@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#f59e0b" />
+  <link rel="manifest" href="manifest.json" />
+  <title>SMART Diet 記録</title>
+  <style>
+    :root{
+      --bg:#fffaf2; --card:#ffffff; --line:#eadfce; --text:#2b241d;
+      --muted:#776b60; --accent:#f59e0b; --accent2:#fff1d6; --danger:#c2410c;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif;background:var(--bg);color:var(--text)}
+    header{position:sticky;top:0;z-index:5;background:linear-gradient(135deg,#f59e0b,#fb923c);color:#fff;padding:18px 16px 14px;box-shadow:0 2px 10px #0002}
+    header h1{font-size:22px;margin:0 0 4px}
+    header p{margin:0;font-size:13px;opacity:.95}
+    main{max-width:760px;margin:auto;padding:14px 12px 80px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px;box-shadow:0 3px 12px #6b4f2a10}
+    h2{font-size:17px;margin:0 0 12px}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .full{grid-column:1/-1}
+    label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
+    input,select,textarea,button{font:inherit}
+    input,select,textarea{width:100%;padding:11px 12px;border:1px solid #d8c9b5;border-radius:10px;background:#fff;color:var(--text)}
+    textarea{min-height:72px;resize:vertical}
+    button{border:0;border-radius:11px;padding:11px 14px;font-weight:700;cursor:pointer}
+    .primary{background:var(--accent);color:#fff}
+    .secondary{background:var(--accent2);color:#8a4b00}
+    .ghost{background:#f6f3ef;color:#5f554a}
+    .danger{background:#fee2e2;color:#991b1b}
+    .row-actions{display:flex;gap:8px;flex-wrap:wrap}
+    .summary{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+    .pill{background:#fff7e8;border:1px solid #f3d39c;border-radius:12px;padding:10px;text-align:center}
+    .pill b{display:block;font-size:20px;margin-top:2px}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    th,td{border-bottom:1px solid #eee2d3;padding:9px 6px;text-align:left;vertical-align:top}
+    th{color:var(--muted);font-weight:600}
+    .small{font-size:12px;color:var(--muted)}
+    .notice{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;padding:10px;border-radius:10px;font-size:12px;line-height:1.55}
+    .empty{text-align:center;color:var(--muted);padding:18px 0}
+    footer{position:fixed;left:0;right:0;bottom:0;background:#ffffffee;backdrop-filter:blur(8px);border-top:1px solid var(--line);padding:8px 12px calc(8px + env(safe-area-inset-bottom));display:flex;gap:8px;justify-content:center}
+    footer button{max-width:240px;flex:1}
+    @media (max-width:560px){.grid{grid-template-columns:1fr}.full{grid-column:auto}.summary{grid-template-columns:repeat(2,1fr)} table{font-size:12px}}
+  </style>
+</head>
+<body>
+<header>
+  <h1>SMART Diet 記録</h1>
+  <p>食品・四群点数・摂取カロリー・体重・水分を記録</p>
+</header>
+
+<main>
+  <section class="card">
+    <h2>記録日</h2>
+    <div class="grid">
+      <div>
+        <label for="recordDate">日付</label>
+        <input id="recordDate" type="date" />
+      </div>
+      <div class="row-actions" style="align-items:end">
+        <button class="secondary" id="loadBtn">この日の記録を表示</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>食品を追加</h2>
+    <div class="notice">
+      試作版では、公式資料に記載された「1点に相当する重量」を自分で入力します。
+      これにより、食品マスターの数値が未確定でも正確に計算できます。
+    </div>
+    <div class="grid" style="margin-top:12px">
+      <div class="full">
+        <label for="foodName">食品名</label>
+        <input id="foodName" placeholder="例：ご飯、卵、牛乳" />
+      </div>
+      <div>
+        <label for="foodGroup">食品群</label>
+        <select id="foodGroup">
+          <option value="1">1群</option>
+          <option value="2">2群</option>
+          <option value="3">3群</option>
+          <option value="4">4群</option>
+        </select>
+      </div>
+      <div>
+        <label for="eatenWeight">食べた重量・容量</label>
+        <input id="eatenWeight" type="number" min="0" step="0.1" placeholder="例：150" />
+      </div>
+      <div>
+        <label for="unitLabel">単位</label>
+        <select id="unitLabel">
+          <option value="g">g</option>
+          <option value="ml">ml</option>
+          <option value="個">個</option>
+          <option value="枚">枚</option>
+          <option value="杯">杯</option>
+          <option value="パック">パック</option>
+        </select>
+      </div>
+      <div>
+        <label for="onePointWeight">1点に相当する量</label>
+        <input id="onePointWeight" type="number" min="0.01" step="0.1" placeholder="公式資料の値" />
+      </div>
+      <div class="full row-actions">
+        <button class="primary" id="addFoodBtn">食品を追加</button>
+        <button class="ghost" id="cancelEditBtn" hidden>編集をやめる</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>今日の食品記録</h2>
+    <div id="foodTableWrap"></div>
+  </section>
+
+  <section class="card">
+    <h2>今日の合計</h2>
+    <div class="summary">
+      <div class="pill">1群<b id="g1Total">0.00点</b></div>
+      <div class="pill">2群<b id="g2Total">0.00点</b></div>
+      <div class="pill">3群<b id="g3Total">0.00点</b></div>
+      <div class="pill">4群<b id="g4Total">0.00点</b></div>
+      <div class="pill">総点数<b id="pointTotal">0.00点</b></div>
+      <div class="pill">摂取カロリー<b id="kcalTotal">0kcal</b></div>
+    </div>
+    <p class="small">計算式：食べた量 ÷ 1点量 ＝ 点数 ／ 点数 × 80kcal ＝ 摂取カロリー</p>
+  </section>
+
+  <section class="card">
+    <h2>体重・水分・メモ</h2>
+    <div class="grid">
+      <div>
+        <label for="weight">体重（kg）</label>
+        <input id="weight" type="number" min="0" step="0.1" placeholder="例：68.5" />
+      </div>
+      <div>
+        <label for="water">水分（ml）</label>
+        <input id="water" type="number" min="0" step="10" placeholder="例：1800" />
+      </div>
+      <div class="full">
+        <label for="memo">一言メモ</label>
+        <textarea id="memo" placeholder="例：夕食の主食を少し控えられた"></textarea>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>データ管理</h2>
+    <div class="row-actions">
+      <button class="secondary" id="exportBtn">CSVで書き出す</button>
+      <button class="danger" id="deleteDayBtn">この日の記録を削除</button>
+    </div>
+    <p class="small">この試作版の記録は、現在使っている端末・ブラウザ内に保存されます。</p>
+  </section>
+</main>
+
+<footer>
+  <button class="primary" id="saveBtn">この日の記録を保存・更新</button>
+</footer>
+
+<script>
+const STORAGE_KEY = "smartDietRecordsV1";
+let foods = [];
+let editIndex = -1;
+
+const $ = (id) => document.getElementById(id);
+const today = new Date();
+$("recordDate").value = today.toISOString().slice(0,10);
+
+function getAllRecords(){
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
+  catch { return {}; }
+}
+function setAllRecords(data){ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+function round2(n){ return Math.round((Number(n)+Number.EPSILON)*100)/100; }
+
+function calculate(item){
+  const points = Number(item.eatenWeight) / Number(item.onePointWeight);
+  return { points: round2(points), kcal: Math.round(points * 80) };
+}
+
+function render(){
+  const wrap = $("foodTableWrap");
+  if(!foods.length){
+    wrap.innerHTML = '<div class="empty">まだ食品が登録されていません</div>';
+  } else {
+    const rows = foods.map((f,i)=>{
+      const c = calculate(f);
+      return `<tr>
+        <td><b>${escapeHtml(f.foodName)}</b><br><span class="small">${f.eatenWeight}${escapeHtml(f.unitLabel)}／1点量 ${f.onePointWeight}${escapeHtml(f.unitLabel)}</span></td>
+        <td>${f.foodGroup}群</td>
+        <td>${c.points.toFixed(2)}点</td>
+        <td>${c.kcal}kcal</td>
+        <td>
+          <button class="ghost" onclick="editFood(${i})">編集</button>
+          <button class="danger" onclick="removeFood(${i})">削除</button>
+        </td>
+      </tr>`;
+    }).join("");
+    wrap.innerHTML = `<table>
+      <thead><tr><th>食品</th><th>群</th><th>点数</th><th>kcal</th><th>操作</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  }
+
+  const groupTotals = {1:0,2:0,3:0,4:0};
+  let totalPoints = 0, totalKcal = 0;
+  foods.forEach(f=>{
+    const c = calculate(f);
+    groupTotals[f.foodGroup] += c.points;
+    totalPoints += c.points;
+    totalKcal += c.kcal;
+  });
+  [1,2,3,4].forEach(g => $("g"+g+"Total").textContent = round2(groupTotals[g]).toFixed(2)+"点");
+  $("pointTotal").textContent = round2(totalPoints).toFixed(2)+"点";
+  $("kcalTotal").textContent = Math.round(totalKcal)+"kcal";
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));
+}
+function clearFoodForm(){
+  $("foodName").value="";
+  $("eatenWeight").value="";
+  $("onePointWeight").value="";
+  editIndex=-1;
+  $("addFoodBtn").textContent="食品を追加";
+  $("cancelEditBtn").hidden=true;
+}
+function validateFood(){
+  const foodName=$("foodName").value.trim();
+  const eatenWeight=Number($("eatenWeight").value);
+  const onePointWeight=Number($("onePointWeight").value);
+  if(!foodName){ alert("食品名を入力してください。"); return null; }
+  if(!(eatenWeight>0)){ alert("食べた量を入力してください。"); return null; }
+  if(!(onePointWeight>0)){ alert("1点に相当する量を入力してください。"); return null; }
+  return {
+    foodName,
+    foodGroup:$("foodGroup").value,
+    eatenWeight,
+    onePointWeight,
+    unitLabel:$("unitLabel").value
+  };
+}
+$("addFoodBtn").addEventListener("click", ()=>{
+  const item=validateFood(); if(!item) return;
+  if(editIndex>=0) foods[editIndex]=item; else foods.push(item);
+  clearFoodForm(); render();
+});
+$("cancelEditBtn").addEventListener("click", clearFoodForm);
+
+window.editFood = function(i){
+  const f=foods[i];
+  $("foodName").value=f.foodName;
+  $("foodGroup").value=f.foodGroup;
+  $("eatenWeight").value=f.eatenWeight;
+  $("onePointWeight").value=f.onePointWeight;
+  $("unitLabel").value=f.unitLabel;
+  editIndex=i;
+  $("addFoodBtn").textContent="変更を反映";
+  $("cancelEditBtn").hidden=false;
+  window.scrollTo({top:100,behavior:"smooth"});
+}
+window.removeFood = function(i){
+  if(confirm("この食品を削除しますか？")){
+    foods.splice(i,1); render();
+  }
+}
+
+function saveCurrent(){
+  const date=$("recordDate").value;
+  if(!date){ alert("日付を選んでください。"); return; }
+  const all=getAllRecords();
+  all[date]={
+    date,
+    foods,
+    weight:$("weight").value,
+    water:$("water").value,
+    memo:$("memo").value,
+    updatedAt:new Date().toISOString()
+  };
+  setAllRecords(all);
+  alert("保存・更新しました。");
+}
+$("saveBtn").addEventListener("click", saveCurrent);
+
+function loadCurrent(){
+  const date=$("recordDate").value;
+  const rec=getAllRecords()[date];
+  foods=rec?.foods || [];
+  $("weight").value=rec?.weight || "";
+  $("water").value=rec?.water || "";
+  $("memo").value=rec?.memo || "";
+  clearFoodForm(); render();
+}
+$("loadBtn").addEventListener("click", loadCurrent);
+$("recordDate").addEventListener("change", loadCurrent);
+
+$("deleteDayBtn").addEventListener("click", ()=>{
+  const date=$("recordDate").value;
+  const all=getAllRecords();
+  if(!all[date]){ alert("この日の保存記録はありません。"); return; }
+  if(confirm(date+" の記録をすべて削除しますか？")){
+    delete all[date]; setAllRecords(all);
+    foods=[]; $("weight").value=""; $("water").value=""; $("memo").value="";
+    render();
+  }
+});
+
+$("exportBtn").addEventListener("click", ()=>{
+  const all=getAllRecords();
+  const rows=[["日付","食品名","食品群","食べた量","単位","1点量","点数","kcal","体重kg","水分ml","メモ"]];
+  Object.keys(all).sort().forEach(date=>{
+    const rec=all[date];
+    if((rec.foods||[]).length){
+      rec.foods.forEach(f=>{
+        const c=calculate(f);
+        rows.push([date,f.foodName,f.foodGroup,f.eatenWeight,f.unitLabel,f.onePointWeight,c.points,c.kcal,rec.weight||"",rec.water||"",rec.memo||""]);
+      });
+    }else{
+      rows.push([date,"","","","","","","",rec.weight||"",rec.water||"",rec.memo||""]);
+    }
+  });
+  const csv="\uFEFF"+rows.map(r=>r.map(v=>`"${String(v??"").replace(/"/g,'""')}"`).join(",")).join("\n");
+  const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a"); a.href=url; a.download="smart-diet-records.csv"; a.click();
+  URL.revokeObjectURL(url);
+});
+
+if("serviceWorker" in navigator){
+  window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
+}
+loadCurrent();
+</script>
+</body>
+</html>

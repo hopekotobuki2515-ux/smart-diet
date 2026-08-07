@@ -1,0 +1,9 @@
+{
+  "name": "SMART Diet 記録",
+  "short_name": "SMART Diet",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#fffaf2",
+  "theme_color": "#f59e0b",
+  "icons": []
+}
