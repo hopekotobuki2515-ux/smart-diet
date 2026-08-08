@@ -185,8 +185,11 @@ data.forEach((p,i)=>{
     else ctx.lineTo(x,y);
     ctx.fillStyle="#222";
     ctx.font="bold 22px sans-serif";
-    ctx.fillText(p.weight+"kg",x-12,y-10);
-    ctx.fillText(p.date.slice(5),x-18,y+32);
+    
+ctx.fillText(p.weight+"kg",x-12,y-10);
+
+ctx.font="18px sans-serif";
+ctx.fillText(p.date.slice(5),x-18,y+32);
   });
   ctx.lineWidth=3;
 ctx.strokeStyle="#ef6c00";
