@@ -64,7 +64,13 @@ nav button.active,.primary{background:#ef6c00;color:white;border:none}
 
   <div class="card">
     <h2>体重の推移</h2>
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+  <button class="secondary" id="range7">7日</button>
+  <button class="secondary" id="range30">30日</button>
+  <button class="secondary" id="rangeAll">全期間</button>
+</div>
     <canvas id="weightChart" width="700" height="300"></canvas>
+
   </div>
 </section>
 <section id="progress" class="hidden">
@@ -109,7 +115,60 @@ function renderPicker(){const d=get("diagnosis",[]),g=get("goals",[]);$("#goalPi
 function renderToday(){const g=get("goals",[]),logs=get("logs",{}),r=logs[day()]||{};$("#weight").value=r.weight||"";$("#todayGoals").innerHTML=g.length?g.map(id=>`<div class=goal data-id="${id}"><b>${title(id)}</b><div class=choice><button class="ok ${r[id]==="ok"?"sel":""}" data-v=ok>できた</button><button class="ng ${r[id]==="ng"?"sel":""}" data-v=ng>できなかった</button></div></div>`).join(""):"<p>まず初回診断をしてください。</p>";$$(".choice button").forEach(b=>b.onclick=()=>{b.parentElement.querySelectorAll("button").forEach(x=>x.classList.remove("sel"));b.classList.add("sel")})}
 function renderProgress(){const g=get("goals",[]),logs=get("logs",{}),dates=Object.keys(logs).sort().slice(-7);$("#progressBody").innerHTML=g.length?g.map(id=>{let n=0,o=0;dates.forEach(d=>{if(logs[d][id]){n++;if(logs[d][id]==="ok")o++}});let r=n?Math.round(o/n*100):0;let status=o>=7?"7日達成！":o>=5?"定着してきています":o>=3?"改善中":"慣らし中";return `<div class=goal><b>${title(id)}</b><p>${r}%（直近7日・記録${n}日）<p><b>${status}</b></p></p><div class=bar><span style="width:${r}%"></span></div></div>`}).join(""):"<p>まだ記録がありません。</p>"}
 function renderHistory(){const logs=get("logs",{}),dates=Object.keys(logs).sort().reverse();$("#historyList").innerHTML=dates.length?dates.map(d=>{const r=logs[d]||{};const items=Object.entries(r).filter(([k])=>k!=="weight").map(([k,v])=>`<div>${title(k)}：${v==="ok"?"できた":v==="ng"?"できなかった":"未記録"}</div>`).join("");return `<div class="goal"><b>${d}</b>${r.weight?`<div>体重：${r.weight}kg</div>`:""}${items}</div>`}).join(""):"<p>まだ記録がありません。</p>";drawWeightChart();}
+let weightRange="all";
 function drawWeightChart(){const c=$("#weightChart");if(!c)return;const ctx=c.getContext("2d"),logs=get("logs",{}),data=Object.keys(logs).sort().map(d=>({d,w:Number(logs[d]?.weight)})).filter(x=>x.w>0);ctx.clearRect(0,0,c.width,c.height);if(!data.length){ctx.font="16px sans-serif";ctx.fillText("体重記録がありません",20,40);return;}const p=40,min=Math.min(...data.map(x=>x.w)),max=Math.max(...data.map(x=>x.w)),range=(max-min)||1;ctx.beginPath();data.forEach((x,i)=>{const px=p+i*((c.width-p*2)/Math.max(data.length-1,1)),py=c.height-p-((x.w-min)/range)*(c.height-p*2);i?ctx.lineTo(px,py):ctx.moveTo(px,py)});ctx.stroke();data.forEach((x,i)=>{const px=p+i*((c.width-p*2)/Math.max(data.length-1,1)),py=c.height-p-((x.w-min)/range)*(c.height-p*2);ctx.beginPath();ctx.arc(px,py,4,0,Math.PI*2);ctx.fill();ctx.fillText(x.w+"kg",px-15,py-10)});}
+drawWeightChart=function(){
+  const c=$("#weightChart");
+  if(!c)return;
+
+  const ctx=c.getContext("2d");
+  const logs=get("logs",{});
+
+  let dates=Object.keys(logs)
+    .sort()
+    .filter(d=>logs[d].weight);
+
+  if(weightRange==="7") dates=dates.slice(-7);
+  if(weightRange==="30") dates=dates.slice(-30);
+
+  const data=dates.map(d=>({
+    date:d,
+    weight:Number(logs[d].weight)
+  }));
+
+  ctx.clearRect(0,0,c.width,c.height);
+
+  if(!data.length){
+    ctx.font="16px sans-serif";
+    ctx.fillText("体重記録がありません",20,40);
+    return;
+  }
+
+  const pad=40;
+  const min=Math.min(...data.map(x=>x.weight));
+  const max=Math.max(...data.map(x=>x.weight));
+  const range=(max-min)||1;
+
+  ctx.beginPath();
+
+  data.forEach((p,i)=>{
+    const x=pad+(c.width-pad*2)*(data.length===1?0:i/(data.length-1));
+    const y=c.height-pad-(c.height-pad*2)*((p.weight-min)/range);
+
+    if(i===0) ctx.moveTo(x,y);
+    else ctx.lineTo(x,y);
+
+    ctx.fillText(p.weight+"kg",x-12,y-10);
+    ctx.fillText(p.date.slice(5),x-15,c.height-12);
+  });
+
+  ctx.stroke();
+};
+$("#range7").onclick=()=>{weightRange="7";drawWeightChart();};
+$("#range30").onclick=()=>{weightRange="30";drawWeightChart();};
+$("#rangeAll").onclick=()=>{weightRange="all";drawWeightChart();};
+
+
 function renderSettings(){const g=get("goals",[]);$("#currentGoals").innerHTML=g.length?g.map(id=>`<div class="goal"><span>${title(id)}</span><button class="removeGoal" data-id="${id}">外す</button></div>`).join(""):"<p>設定されていません。</p>";$$(".removeGoal").forEach(b=>b.onclick=()=>{let goals=get("goals",[]).filter(x=>x!==b.dataset.id);let d=get("diagnosis",[]).filter(x=>x!==b.dataset.id);set("goals",goals);set("diagnosis",d);renderSettings();renderProgress();renderQ();renderPicker();});}
 function show(id){["diagnosis","today","progress","history","settings"].forEach(x=>$("#"+x).classList.toggle("hidden",x!==id));$$("nav button").forEach(b=>b.classList.toggle("active",b.dataset.tab===id));if(id==="today")renderToday();if(id==="progress")renderProgress();if(id==="history")renderHistory();if(id==="settings")renderSettings()}
 $$("nav button").forEach(b=>b.onclick=()=>show(b.dataset.tab));
