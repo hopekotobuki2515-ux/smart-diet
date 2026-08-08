@@ -110,7 +110,13 @@ const H=[
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const get=(k,d)=>JSON.parse(localStorage.getItem(k)||JSON.stringify(d));
 const set=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
-const day=()=>new Date().toISOString().slice(0,10);
+const day=()=>{
+  const d=new Date();
+  const y=d.getFullYear();
+  const m=String(d.getMonth()+1).padStart(2,"0");
+  const date=String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${date}`;
+};
 function title(id){return H.find(x=>x[0]===id)[1]}
 function renderQ(){const s=get("diagnosis",[]);$("#questions").innerHTML=H.map(([id,t])=>`<div class=q><label><input type=checkbox value="${id}" ${s.includes(id)?"checked":""}> ${t}</label></div>`).join("")}
 function renderPicker(){const d=get("diagnosis",[]),g=get("goals",[]);$("#goalPickerCard").classList.toggle("hidden",!d.length);$("#goalPicker").innerHTML=d.map(id=>`<div class=q><label><input class=goalPick type=checkbox value="${id}" ${g.includes(id)?"checked":""}> ${title(id)}</label></div>`).join("")}
