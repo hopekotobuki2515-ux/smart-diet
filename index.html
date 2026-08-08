@@ -148,21 +148,55 @@ drawWeightChart=function(){
   const min=Math.min(...data.map(x=>x.weight));
   const max=Math.max(...data.map(x=>x.weight));
   const range=(max-min)||1;
+// 補助線
+ctx.strokeStyle = "#eeeeee";
+ctx.lineWidth = 1;
 
+// 横線（5本）
+for(let i=0; i<=4; i++){
+  const gy = pad + ((c.height - pad*2) / 4) * i;
+  ctx.beginPath();
+  ctx.moveTo(pad, gy);
+  ctx.lineTo(c.width - pad, gy);
+  ctx.stroke();
+}
+
+// 縦線（データ数に合わせる）
+data.forEach((p,i)=>{
+  const gx = pad + (c.width - pad*2) * (data.length===1 ? 0.5 : i/(data.length-1));
+  ctx.strokeStyle="#ef6c00";
+  ctx.lineWidth=3;
+  ctx.beginPath();
+  ctx.moveTo(gx, pad);
+  ctx.lineTo(gx, c.height - pad);
+  ctx.stroke();
+});
   ctx.beginPath();
 
   data.forEach((p,i)=>{
-    const x=pad+(c.width-pad*2)*(data.length===1?0:i/(data.length-1));
+    const x=pad+(c.width-pad*2)*(data.length===1?0.5:i/(data.length-1))
     const y=c.height-pad-(c.height-pad*2)*((p.weight-min)/range);
 
     if(i===0) ctx.moveTo(x,y);
     else ctx.lineTo(x,y);
-    ctx.font="bold 28px sans-serif";
+    ctx.fillStyle="#222";
+    ctx.font="bold 22px sans-serif";
     ctx.fillText(p.weight+"kg",x-12,y-10);
     ctx.fillText(p.date.slice(5),x-15,c.height-12);
   });
-
+  ctx.lineWidth=3;
+  ctx.strokeStyle="#ef6c00";
   ctx.stroke();
+  data.forEach((p,i)=>{
+  const x=pad+(c.width-pad*2)*(data.length===1?0.5:i/(data.length-1));
+const y=c.height-pad-(c.height-pad*2)*((p.weight-min)/range);
+
+
+  ctx.fillStyle="#ef6c00";
+  ctx.beginPath();
+  ctx.arc(x,y,6,0,Math.PI*2);
+  ctx.fill();
+});
 };
 $("#range7").onclick=()=>{weightRange="7";$("#range7").classList.add("active");$("#range30").classList.remove("active");$("#rangeAll").classList.remove("active");drawWeightChart();};
 
