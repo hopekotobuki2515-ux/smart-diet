@@ -50,7 +50,9 @@ nav button.active,.secondary.active,.primary{background:#ef6c00;color:white;bord
 <div class="card">
 <h2>今日のチェック</h2>
 <div id="todayGoals"></div>
-<h3>体重（任意）</h3>
+<h3>日付（テスト用）</h3>
+<input id="testDate" type="date">
+  <h3>体重（任意）</h3>
 <input id="weight" type="number" step="0.1" placeholder="例 70.5" style="width:100%;padding:11px;border:1px solid #ddd;border-radius:10px">
 <br><br>
 <button class="primary" id="saveToday">今日の記録を保存</button>
@@ -219,8 +221,25 @@ function show(id){["diagnosis","today","progress","history","settings"].forEach(
 $$("nav button").forEach(b=>b.onclick=()=>show(b.dataset.tab));
 $("#saveDiagnosis").onclick=()=>{const d=$$("#questions input:checked").map(x=>x.value);set("diagnosis",d);set("goals",get("goals",[]).filter(x=>d.includes(x)));renderPicker();$("#goalPickerCard").scrollIntoView({behavior:"smooth"})};
 $("#saveGoals").onclick=()=>{const g=$$(".goalPick:checked").map(x=>x.value);if(!g.length||g.length>3){alert("1〜3項目を選んでください");return}set("goals",g);show("today")};
-$("#saveToday").onclick=()=>{const logs=get("logs",{}),r=logs[day()]||{};$$(".goal").forEach(g=>{const s=g.querySelector(".sel");if(s)r[g.dataset.id]=s.dataset.v});if($("#weight").value)r.weight=Number($("#weight").value);logs[day()]=r;set("logs",logs);alert("保存しました")};
-$("#resetAll").onclick=()=>{if(confirm("すべて削除しますか？")){localStorage.clear();location.reload()}};
+$("#saveToday").onclick=()=>{
+  const saveDate=$("#testDate").value || day();
+  const logs=get("logs",{}),r=logs[saveDate]||{};
+
+  $$(".goal").forEach(g=>{
+    const s=g.querySelector(".sel");
+    if(s) r[g.dataset.id]=s.dataset.v;
+  });
+
+  if($("#weight").value){
+    r.weight=Number($("#weight").value);
+  }
+
+  logs[saveDate]=r;
+  set("logs",logs);
+  alert("保存しました");
+};
+
+  $("#resetAll").onclick=()=>{if(confirm("すべて削除しますか？")){localStorage.clear();location.reload()}};
 renderQ();renderPicker();
 </script>
 </body></html>
