@@ -50,7 +50,7 @@ nav button.active,.secondary.active,.primary{background:#ef6c00;color:white;bord
 <div class="card">
 <h2>今日のチェック</h2>
 <div id="todayGoals"></div>
-<h3>日付（テスト用）</h3>
+<h3>日付</h3>
 <input id="testDate" type="date">
   <h3>体重（任意）</h3>
 <input id="weight" type="number" step="0.1" placeholder="例 70.5" style="width:100%;padding:11px;border:1px solid #ddd;border-radius:10px">
@@ -163,18 +163,19 @@ for(let i=0; i<=4; i++){
   ctx.stroke();
 }
 
-// 縦線（データ数に合わせる）
+// 縦線
 data.forEach((p,i)=>{
   const gx = pad + (c.width - pad*2) * (data.length===1 ? 0.5 : i/(data.length-1));
-  ctx.strokeStyle="#ef6c00";
-  ctx.lineWidth=3;
+
+  ctx.strokeStyle="#eeeeee";
+  ctx.lineWidth=1;
+
   ctx.beginPath();
-  ctx.moveTo(gx, pad);
-  ctx.lineTo(gx, c.height - pad);
- if(data.length>=2){
+  ctx.moveTo(gx,pad);
+  ctx.lineTo(gx,c.height-pad);
   ctx.stroke();
-}
 });
+
   ctx.beginPath();
 
   data.forEach((p,i)=>{
@@ -241,5 +242,6 @@ $("#saveToday").onclick=()=>{
 
   $("#resetAll").onclick=()=>{if(confirm("すべて削除しますか？")){localStorage.clear();location.reload()}};
 renderQ();renderPicker();
+$("#testDate").value = day();
 </script>
 </body></html>
