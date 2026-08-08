@@ -169,13 +169,17 @@ data.forEach((p,i)=>{
   ctx.beginPath();
   ctx.moveTo(gx, pad);
   ctx.lineTo(gx, c.height - pad);
+ if(data.length>=2){
   ctx.stroke();
+}
 });
   ctx.beginPath();
 
   data.forEach((p,i)=>{
     const x=pad+(c.width-pad*2)*(data.length===1?0.5:i/(data.length-1))
-    const y=c.height-pad-(c.height-pad*2)*((p.weight-min)/range);
+    const y=data.length===1
+  ? pad+20
+  : c.height-pad-(c.height-pad*2)*((p.weight-min)/range);
 
     if(i===0) ctx.moveTo(x,y);
     else ctx.lineTo(x,y);
@@ -185,12 +189,15 @@ data.forEach((p,i)=>{
     ctx.fillText(p.date.slice(5),x-15,c.height-12);
   });
   ctx.lineWidth=3;
-  ctx.strokeStyle="#ef6c00";
+ctx.strokeStyle="#ef6c00";
+if(data.length>=2){
   ctx.stroke();
+}
   data.forEach((p,i)=>{
   const x=pad+(c.width-pad*2)*(data.length===1?0.5:i/(data.length-1));
-const y=c.height-pad-(c.height-pad*2)*((p.weight-min)/range);
-
+const y=data.length===1
+  ? pad+20
+  : c.height-pad-(c.height-pad*2)*((p.weight-min)/range);
 
   ctx.fillStyle="#ef6c00";
   ctx.beginPath();
