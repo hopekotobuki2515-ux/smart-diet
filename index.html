@@ -24,6 +24,43 @@ nav button.active,.secondary.active,.primary{background:#ef6c00;color:white;bord
   height:auto;
   display:block;
 }
+html,body{
+  max-width:100%;
+  overflow-x:hidden;
+}
+
+*{
+  box-sizing:border-box;
+}
+
+nav{
+  width:100%;
+}
+
+nav button{
+  min-width:0;
+  font-size:14px;
+}
+@media (max-width:600px){
+  main{
+    width:100%;
+    padding:10px;
+  }
+
+  nav{
+    gap:4px;
+  }
+
+  nav button{
+    padding:8px 4px;
+    font-size:12px;
+  }
+
+  .card{
+    width:100%;
+    overflow:hidden;
+  }
+}
 </style>
 </head>
 <body>
