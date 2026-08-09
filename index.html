@@ -299,7 +299,7 @@ const goals=get("goals",[]);
 $$(".goal").forEach(g=>{
   const s=g.querySelector(".sel");
 
-if(s && s.dataset.v==="できた"){
+if(s && s.dataset.v==="ok"){
   const index=goals.indexOf(g.dataset.id);
 
   if(index!==-1){
