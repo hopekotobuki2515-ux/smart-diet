@@ -161,7 +161,22 @@ const day=()=>{
 };
 function title(id){return H.find(x=>x[0]===id)[1]}
 function renderQ(){const s=get("diagnosis",[]);$("#questions").innerHTML=H.map(([id,t])=>`<div class=q><label><input type=checkbox value="${id}" ${s.includes(id)?"checked":""}> ${t}</label></div>`).join("")}
-function renderPicker(){const d=get("diagnosis",[]),g=get("goals",[]);$("#goalPickerCard").classList.toggle("hidden",!d.length);$("#goalPicker").innerHTML=d.map(id=>`<div class=q><label><input class=goalPick type=checkbox value="${id}" ${g.includes(id)?"checked":""}> ${title(id)}</label></div>`).join("")}
+function renderPicker(){
+  const d=get("diagnosis",[]);
+  const g=get("goals",[]);
+  const completed=get("completedGoals",[]);
+
+  const visible=d.filter(id=>!completed.includes(id));
+
+  $("#goalPicker").innerHTML=visible.map(id=>
+    `<div class="q">
+      <label>
+        <input class="goalPick" type="checkbox" value="${id}" ${g.includes(id)?"checked":""}>
+        ${title(id)}
+      </label>
+    </div>`
+  ).join("");
+}
 function renderToday(){const g=get("goals",[]),logs=get("logs",{}),r=logs[day()]||{};$("#weight").value=r.weight||"";$("#todayGoals").innerHTML=g.length?g.map(id=>`<div class=goal data-id="${id}"><b>${title(id)}</b><div class=choice><button class="ok ${r[id]==="ok"?"sel":""}" data-v=ok>できた</button><button class="ng ${r[id]==="ng"?"sel":""}" data-v=ng>できなかった</button></div></div>`).join(""):"<p>まず初回診断をしてください。</p>";$$(".choice button").forEach(b=>b.onclick=()=>{b.parentElement.querySelectorAll("button").forEach(x=>x.classList.remove("sel"));b.classList.add("sel")})}
 function renderProgress(){const g=get("goals",[]),logs=get("logs",{}),dates=Object.keys(logs).sort().slice(-7);$("#progressBody").innerHTML=g.length?g.map(id=>{let n=0,o=0;dates.forEach(d=>{if(logs[d][id]){n++;if(logs[d][id]==="ok")o++}});let r=n?Math.round(o/n*100):0;let status=o>=7?"7日達成！":o>=5?"定着してきています":o>=3?"改善中":"慣らし中";return `<div class=goal><b>${title(id)}</b><p>${r}%（直近7日・記録${n}日）<p><b>${status}</b></p></p><div class=bar><span style="width:${r}%"></span></div></div>`}).join(""):"<p>まだ記録がありません。</p>"}
 function renderHistory(){const logs=get("logs",{}),dates=Object.keys(logs).sort().reverse();$("#historyList").innerHTML=dates.length?dates.map(d=>{const r=logs[d]||{};const items=Object.entries(r).filter(([k])=>k!=="weight").map(([k,v])=>`<div>${title(k)}：${v==="ok"?"できた":v==="ng"?"できなかった":"未記録"}</div>`).join("");return `<div class="goal"><b>${d}</b>${r.weight?`<div>体重：${r.weight}kg</div>`:""}${items}</div>`}).join(""):"<p>まだ記録がありません。</p>";drawWeightChart();}
@@ -284,12 +299,19 @@ const goals=get("goals",[]);
 $$(".goal").forEach(g=>{
   const s=g.querySelector(".sel");
 
- if(s && s.dataset.v==="できた"){
-    const index=goals.indexOf(g.dataset.id);
-    if(index!==-1){
-      goals.splice(index,1);
-    }
+if(s && s.dataset.v==="できた"){
+  const index=goals.indexOf(g.dataset.id);
+
+  if(index!==-1){
+    goals.splice(index,1);
   }
+
+  const completed=get("completedGoals",[]);
+  if(!completed.includes(g.dataset.id)){
+    completed.push(g.dataset.id);
+    set("completedGoals",completed);
+  }
+}
 });
 
 set("goals",goals);
