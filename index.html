@@ -227,6 +227,7 @@ data.forEach((p,i)=>{
   ctx.beginPath();
 
   data.forEach((p,i)=>{
+    const x=pad+(c.width-pad*2)*(data.length===1?0.5:i/(data.length-1));
     const y=data.length===1
   ? pad+10
   : c.height-pad-(c.height-pad*2)*((p.weight-min)/range);
@@ -250,7 +251,7 @@ if(data.length>=2){
   data.forEach((p,i)=>{
   const x=pad+(c.width-pad*2)*(data.length===1?0.5:i/(data.length-1));
 const y=data.length===1
-  ? pad+20
+  ? pad+10
   : c.height-pad-(c.height-pad*2)*((p.weight-min)/range);
 
   ctx.fillStyle="#ef6c00";
