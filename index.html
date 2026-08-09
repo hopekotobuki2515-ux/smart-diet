@@ -165,7 +165,7 @@ function renderPicker(){
   const d=get("diagnosis",[]);
   const g=get("goals",[]);
   const completed=get("completedGoals",[]);
-
+$("#goalPickerCard").classList.toggle("hidden",!d.length);
   const visible=d.filter(id=>!completed.includes(id));
 
   $("#goalPicker").innerHTML=visible.map(id=>
