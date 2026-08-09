@@ -279,7 +279,20 @@ $("#saveToday").onclick=()=>{
     const s=g.querySelector(".sel");
     if(s) r[g.dataset.id]=s.dataset.v;
   });
+const goals=get("goals",[]);
 
+$$(".goal").forEach(g=>{
+  const s=g.querySelector(".sel");
+
+ if(s && s.dataset.v==="できた"){
+    const index=goals.indexOf(g.dataset.id);
+    if(index!==-1){
+      goals.splice(index,1);
+    }
+  }
+});
+
+set("goals",goals);
   if($("#weight").value){
     r.weight=Number($("#weight").value);
   }
