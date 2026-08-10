@@ -79,7 +79,9 @@ nav button{
 <h2>食習慣チェック</h2>
 <p class="muted">当てはまる項目にチェックしてください。</p>
 <div id="questions"></div>
+<div id="diagnosisCount" style="text-align:right;font-weight:700;margin:8px 0;">0 / 15</div>
 <button class="primary" id="saveDiagnosis">診断結果を保存</button>
+
 </div>
 <div class="card hidden" id="goalPickerCard">
 <h2>最初の改善目標</h2>
@@ -163,7 +165,13 @@ const day=()=>{
 };
 function title(id){return H.find(x=>x[0]===id)[1]}
 function renderQ(){const s=get("diagnosis",[]);$("#questions").innerHTML=H.map(([id,t])=>`<div class=q><label><input type=checkbox value="${id}" ${s.includes(id)?"checked":""}> ${t}</label></div>`).join("")}
-function renderPicker(){
+function updateDiagnosisCount(){
+  const count=$$("#questions input:checked").length;
+  $("#diagnosisCount").textContent=`${count} / ${H.length}`;
+}
+$("#questions").addEventListener("change",updateDiagnosisCount);
+setTimeout(updateDiagnosisCount,0);
+  function renderPicker(){
   const d=get("diagnosis",[]);
   const g=get("goals",[]);
   const completed=get("completedGoals",[]);
