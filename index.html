@@ -87,6 +87,7 @@ nav button{
 <h2>最初の改善目標</h2>
 <p class="muted">まずは最大3つに絞ります。</p>
 <div id="goalPicker"></div>
+<div id="goalCount" style="text-align:right;font-weight:700;margin:8px 0;">0 / 0</div>
 <button class="primary" id="saveGoals">この目標で始める</button>
 </div>
 </section>
@@ -177,7 +178,9 @@ setTimeout(updateDiagnosisCount,0);
   const completed=get("completedGoals",[]);
 $("#goalPickerCard").classList.toggle("hidden",!d.length);
   const visible=d.filter(id=>!completed.includes(id));
-
+const total=get("initialDiagnosisCount",d.length);
+const remaining=Math.max(0,total-completed.length);
+$("#goalCount").textContent=`${remaining} / ${total}`;
   $("#goalPicker").innerHTML=visible.map(id=>
     `<div class="q">
       <label>
@@ -327,7 +330,14 @@ function renderSettings(){
 function show(id){["diagnosis","today","progress","history","settings"].forEach(x=>$("#"+x).classList.toggle("hidden",x!==id));$$("nav button").forEach(b=>b.classList.toggle("active",b.dataset.tab===id));if(id==="today")renderToday();if(id==="progress")renderProgress();if(id==="history")renderHistory();if(id==="settings")renderSettings()}
 $$("nav button").forEach(b=>b.onclick=()=>show(b.dataset.tab));
 $("#saveDiagnosis").onclick=()=>{const d=$$("#questions input:checked").map(x=>x.value);set("diagnosis",d);set("goals",get("goals",[]).filter(x=>d.includes(x)));renderPicker();$("#goalPickerCard").scrollIntoView({behavior:"smooth"})};
-$("#saveGoals").onclick=()=>{const g=$$(".goalPick:checked").map(x=>x.value);if(!g.length||g.length>3){alert("1〜3項目を選んでください");return}set("goals",g);show("today")};
+$("#saveDiagnosis").addEventListener("click",()=>{
+  const d=$$("#questions input:checked").map(x=>x.value);
+
+  if(get("initialDiagnosisCount",null)===null){
+    set("initialDiagnosisCount",d.length);
+  }
+});
+  $("#saveGoals").onclick=()=>{const g=$$(".goalPick:checked").map(x=>x.value);if(!g.length||g.length>3){alert("1〜3項目を選んでください");return}set("goals",g);show("today")};
 $("#saveToday").onclick=()=>{
   const saveDate=$("#testDate").value || day();
   const logs=get("logs",{}),r=logs[saveDate]||{};
