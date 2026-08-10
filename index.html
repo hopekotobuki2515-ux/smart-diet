@@ -125,6 +125,8 @@ nav button{
 <div class="card">
 <h2>現在の改善目標</h2>
 <div id="currentGoals"></div>
+<h2>達成済みの改善目標</h2>
+<div id="completedGoalsList"></div>
 <br><button class="secondary" id="resetAll">試作データをすべて消す</button>
 </div>
 <div class="card"><p class="muted">この試作版は記録をこのブラウザ内に保存します。別のスマホとはまだ同期しません。</p></div>
@@ -281,7 +283,39 @@ $("#range30").onclick=()=>{weightRange="30";$("#range7").classList.remove("activ
 
 $("#rangeAll").onclick=()=>{weightRange="all";$("#range7").classList.remove("active");$("#range30").classList.remove("active");$("#rangeAll").classList.add("active");drawWeightChart();};
 
-function renderSettings(){const g=get("goals",[]);$("#currentGoals").innerHTML=g.length?g.map(id=>`<div class="goal"><span>${title(id)}</span><button class="removeGoal" data-id="${id}">外す</button></div>`).join(""):"<p>設定されていません。</p>";$$(".removeGoal").forEach(b=>b.onclick=()=>{let goals=get("goals",[]).filter(x=>x!==b.dataset.id);let d=get("diagnosis",[]).filter(x=>x!==b.dataset.id);set("goals",goals);set("diagnosis",d);renderSettings();renderProgress();renderQ();renderPicker();});}
+function renderSettings(){
+  const g=get("goals",[]);
+  $("#currentGoals").innerHTML=g.length
+    ? g.map(id=>`<div class="q">${title(id)}</div>`).join("")
+    : "現在の改善目標はありません";
+
+  const completed=get("completedGoals",[]);
+  $("#completedGoalsList").innerHTML=completed.length
+    ? completed.map(id=>`
+      <div class="q">
+        ${title(id)}
+        <button class="secondary restoreGoal" data-id="${id}">復活する</button>
+      </div>
+    `).join("")
+    : "達成済みの改善目標はありません";
+
+  $$(".restoreGoal").forEach(btn=>{
+    btn.onclick=()=>{
+      const id=btn.dataset.id;
+
+      const completed=get("completedGoals",[]).filter(x=>x!==id);
+      set("completedGoals",completed);
+
+      const goals=get("goals",[]);
+      if(!goals.includes(id)) goals.push(id);
+      set("goals",goals);
+
+      renderSettings();
+      renderPicker();
+      renderToday();
+    };
+  });
+}
 function show(id){["diagnosis","today","progress","history","settings"].forEach(x=>$("#"+x).classList.toggle("hidden",x!==id));$$("nav button").forEach(b=>b.classList.toggle("active",b.dataset.tab===id));if(id==="today")renderToday();if(id==="progress")renderProgress();if(id==="history")renderHistory();if(id==="settings")renderSettings()}
 $$("nav button").forEach(b=>b.onclick=()=>show(b.dataset.tab));
 $("#saveDiagnosis").onclick=()=>{const d=$$("#questions input:checked").map(x=>x.value);set("diagnosis",d);set("goals",get("goals",[]).filter(x=>d.includes(x)));renderPicker();$("#goalPickerCard").scrollIntoView({behavior:"smooth"})};
