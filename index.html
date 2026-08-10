@@ -90,18 +90,22 @@ nav button{
     <p>BMI25になる体重：<strong id="bmi25Weight">-</strong> kg</p>
 
   
-  <h3>減量目標の目安</h3>
+  <h3>3ヶ月間の減量目安</h3>
 
 <p>5％減：<strong id="weight5">-</strong> kg</p>
+<p>1か月 約<strong id="month5">-</strong> kg減</p>
 <p class="muted">効果を実感しやすい最低目標</p>
 
 <p>8％減：<strong id="weight8">-</strong> kg</p>
+<p>1か月 約<strong id="month8">-</strong> kg減</p>
 <p class="muted">リスク改善効果が得られる目標</p>
 
 <p>10％減：<strong id="weight10">-</strong> kg</p>
+<p>1か月 約<strong id="month10">-</strong> kg減</p>
 <p class="muted">十分な減量効果が得られる目標</p>
 
 <p>15％減：<strong id="weight15">-</strong> kg</p>
+<p>1か月 約<strong id="month15">-</strong> kg減</p>
 <p class="muted">3か月で減量する場合の上限目安</p>
 <button class="primary" id="saveInitialSetup">初回設定を保存</button>  
   </div>
@@ -396,6 +400,10 @@ const weight5=weight*0.95;
 const weight8=weight*0.92;
 const weight10=weight*0.90;
 const weight15=weight*0.85;
+ const month5=(weight*0.05)/3;
+const month8=(weight*0.08)/3;
+const month10=(weight*0.10)/3;
+const month15=(weight*0.15)/3; 
     let judge="";
 
 if(bmi<18.5){
@@ -416,13 +424,21 @@ if(bmi<18.5){
 $("#weight8").textContent=weight8.toFixed(1);
 $("#weight10").textContent=weight10.toFixed(1);
 $("#weight15").textContent=weight15.toFixed(1);
+   $("#month5").textContent=month5.toFixed(1);
+$("#month8").textContent=month8.toFixed(1);
+$("#month10").textContent=month10.toFixed(1);
+$("#month15").textContent=month15.toFixed(1);
     $("#bmiJudge").textContent=judge;
     $("#bmi25Weight").textContent=bmi25.toFixed(1);
   }else{
     $("#bmiJudge").textContent="-";
     $("#bmiValue").textContent="-";
     $("#bmi25Weight").textContent="-";
-  $("#weight5").textContent="-";
+ $("#month5").textContent="-";
+$("#month8").textContent="-";
+$("#month10").textContent="-";
+$("#month15").textContent="-";
+    $("#weight5").textContent="-";
 $("#weight8").textContent="-";
 $("#weight10").textContent="-";
 $("#weight15").textContent="-";
