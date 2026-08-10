@@ -319,8 +319,23 @@ function renderSettings(){
 
       const goals=get("goals",[]);
       if(!goals.includes(id)) goals.push(id);
+      
       set("goals",goals);
+const logs=get("logs",{});
+const dates=Object.keys(logs).sort().reverse();
 
+for(const date of dates){
+  if(logs[date] && logs[date][id]==="ok"){
+    delete logs[date][id];
+
+    if(Object.keys(logs[date]).length===0){
+      delete logs[date];
+    }
+    break;
+  }
+}
+
+set("logs",logs);
       renderSettings();
       renderPicker();
       renderToday();
