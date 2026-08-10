@@ -74,8 +74,25 @@ nav button{
 <button data-tab="settings">設定</button>
 </nav>
 
+
+<section id="initialSetup">
+  <div class="card">
+    <h2>初回設定</h2>
+
+    <label>身長（cm）</label>
+    <input id="heightCm" type="number" step="0.1" placeholder="例 170">
+
+    <label>現在の体重（kg）</label>
+    <input id="startWeight" type="number" step="0.1" placeholder="例 70.0">
+
+    <p>BMI：<strong id="bmiValue">-</strong></p>
+    <p>BMI25になる体重：<strong id="bmi25Weight">-</strong> kg</p>
+
+    <button class="primary" id="saveInitialSetup">初回設定を保存</button>
+  </div>
+</section>
 <section id="diagnosis">
-<div class="card">
+  <div class="card">
 <h2>食習慣チェック</h2>
 <p class="muted">当てはまる項目にチェックしてください。</p>
 <div id="questions"></div>
@@ -352,6 +369,43 @@ $("#saveDiagnosis").addEventListener("click",()=>{
     set("initialDiagnosisCount",d.length);
   }
 });
+  function updateInitialSetupCalc(){
+  const heightCm=Number($("#heightCm").value);
+  const weight=Number($("#startWeight").value);
+
+  if(heightCm>0 && weight>0){
+    const heightM=heightCm/100;
+    const bmi=weight/(heightM*heightM);
+    const bmi25=heightM*heightM*25;
+
+    $("#bmiValue").textContent=bmi.toFixed(1);
+    $("#bmi25Weight").textContent=bmi25.toFixed(1);
+  }else{
+    $("#bmiValue").textContent="-";
+    $("#bmi25Weight").textContent="-";
+  }
+}
+
+$("#heightCm").addEventListener("input",updateInitialSetupCalc);
+$("#startWeight").addEventListener("input",updateInitialSetupCalc);
+
+$("#saveInitialSetup").onclick=()=>{
+  const heightCm=Number($("#heightCm").value);
+  const weight=Number($("#startWeight").value);
+
+  if(!heightCm || !weight){
+    alert("身長と現在の体重を入力してください");
+    return;
+  }
+
+  set("initialSetup",{
+    heightCm:heightCm,
+    startWeight:weight
+  });
+
+  updateInitialSetupCalc();
+  alert("初回設定を保存しました");
+};
   $("#saveGoals").onclick=()=>{const g=$$(".goalPick:checked").map(x=>x.value);if(!g.length||g.length>3){alert("1〜3項目を選んでください");return}set("goals",g);show("today")};
 $("#saveToday").onclick=()=>{
   const saveDate=$("#testDate").value || day();
