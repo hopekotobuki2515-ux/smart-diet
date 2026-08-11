@@ -52,6 +52,40 @@ nav button{
   padding:10px;
   margin-bottom:8px;
 }
+  .diagnosisItem{
+  padding:14px 0;
+  border-bottom:1px solid #eee;
+}
+
+.questionText{
+  font-weight:600;
+  line-height:1.5;
+  margin-bottom:10px;
+}
+
+.ynChoice{
+  display:flex;
+  gap:10px;
+}
+
+.ynBtn{
+  flex:1;
+  padding:12px;
+  border:1px solid #ddd;
+  border-radius:10px;
+  background:#fff;
+  font-weight:700;
+}
+
+.ynBtn.yes.sel{
+  background:#ef6c00;
+  color:#fff;
+}
+
+.ynBtn.no.sel{
+  background:#666;
+  color:#fff;
+}
   @media (max-width:600px){
   main{
     width:100%;
@@ -246,8 +280,46 @@ const day=()=>{
   return `${y}-${m}-${date}`;
 };
 function title(id){return H.find(x=>x[0]===id)[1]}
-function renderQ(){const s=get("diagnosis",[]);$("#questions").innerHTML=H.map(([id,t])=>`<div class=q><label><input type=checkbox value="${id}" ${s.includes(id)?"checked":""}> ${t}</label></div>`).join("")}
-function updateDiagnosisCount(){
+function renderQ(){
+  const s=get("diagnosis",[]);
+
+  $("#questions").innerHTML=H.map(([id,t])=>`
+    <div class="q diagnosisItem">
+      <div class="questionText">${t}</div>
+
+      <div class="ynChoice">
+        <button type="button"
+          class="ynBtn yes ${s.includes(id)?"sel":""}"
+          data-id="${id}" data-v="yes">YES</button>
+
+        <button type="button"
+          class="ynBtn no ${!s.includes(id)?"sel":""}"
+          data-id="${id}" data-v="no">NO</button>
+      </div>
+
+      <input class="diagnosisCheck"
+        type="checkbox"
+        value="${id}"
+        ${s.includes(id)?"checked":""}
+        hidden>
+    </div>
+  `).join("");
+
+  $$(".ynBtn").forEach(btn=>{
+    btn.onclick=()=>{
+      const item=btn.closest(".diagnosisItem");
+      const check=item.querySelector(".diagnosisCheck");
+
+      check.checked=btn.dataset.v==="yes";
+
+      item.querySelectorAll(".ynBtn").forEach(b=>b.classList.remove("sel"));
+      btn.classList.add("sel");
+
+      updateDiagnosisCount();
+    };
+  });
+}
+  function updateDiagnosisCount(){
   const count=$$("#questions input:checked").length;
   $("#diagnosisCount").textContent=`${count} / ${H.length}`;
 }
