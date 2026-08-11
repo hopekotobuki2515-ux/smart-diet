@@ -41,7 +41,18 @@ nav button{
   min-width:0;
   font-size:14px;
 }
-@media (max-width:600px){
+.q label{
+  display:block;
+  margin-bottom:6px;
+  font-weight:600;
+}
+
+.q input{
+  width:100%;
+  padding:10px;
+  margin-bottom:8px;
+}
+  @media (max-width:600px){
   main{
     width:100%;
     padding:10px;
@@ -91,17 +102,25 @@ nav button{
 
   <h3>体重目標の設定</h3>
 
-<label>20歳の時の体重（kg）</label>
-<input id="weight20" type="number" step="0.1" placeholder="例 60.0">
+<div class="q">
+  <label>20歳の時の体重（kg）</label>
+  <input id="weight20" type="number" step="0.1" placeholder="例 60.0">
+</div>
 
-<label>もっとも長く維持した体重（kg）</label>
-<input id="stableWeight" type="number" step="0.1" placeholder="例 65.0">
+<div class="q">
+  <label>もっとも長く維持した体重（kg）</label>
+  <input id="stableWeight" type="number" step="0.1" placeholder="例 65.0">
+</div>
 
-<label>3か月後の目標体重（kg）</label>
-<input id="goalWeight3m" type="number" step="0.1" placeholder="例 66.5">
+<div class="q">
+  <label>3か月後の目標体重（kg）</label>
+  <input id="goalWeight3m" type="number" step="0.1" placeholder="例 66.5">
+</div>
 
-<label>将来の目標体重（kg）</label>
-<input id="futureWeight" type="number" step="0.1" placeholder="例 63.0">
+<div class="q">
+  <label>将来の目標体重（kg）</label>
+  <input id="futureWeight" type="number" step="0.1" placeholder="例 63.0">
+</div>
   <h3>3ヶ月間の減量目安</h3>
 
 <p>5％減：<strong id="weight5">-</strong> kg</p>
