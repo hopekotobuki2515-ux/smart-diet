@@ -96,6 +96,11 @@ nav button{
 
 <section id="initialSetup">
   <div class="card">
+   <button type="button" id="toggleInitialSetup" class="secondary">
+  初回設定を開く ▼
+</button>
+
+<div id="initialSetupContent" class="hidden"> 
     <h2>初回設定</h2>
 
     <label>身長（cm）</label>
@@ -147,7 +152,8 @@ nav button{
 <p>1か月 約<strong id="month15">-</strong> kg減</p>
 <p class="muted">3か月で減量する場合の上限目安</p>
 <button class="primary" id="saveInitialSetup">初回設定を保存</button>  
-  </div>
+</div> 
+</div>
 </section>
 <section id="diagnosis">
   <div class="card">
@@ -419,7 +425,16 @@ set("logs",logs);
 }
 function show(id){["diagnosis","today","progress","history","settings"].forEach(x=>$("#"+x).classList.toggle("hidden",x!==id));$$("nav button").forEach(b=>b.classList.toggle("active",b.dataset.tab===id));if(id==="today")renderToday();if(id==="progress")renderProgress();if(id==="history")renderHistory();if(id==="settings")renderSettings()}
 $$("nav button").forEach(b=>b.onclick=()=>show(b.dataset.tab));
-$("#saveDiagnosis").onclick=()=>{const d=$$("#questions input:checked").map(x=>x.value);set("diagnosis",d);set("goals",get("goals",[]).filter(x=>d.includes(x)));renderPicker();$("#goalPickerCard").scrollIntoView({behavior:"smooth"})};
+$("#toggleInitialSetup").onclick=()=>{
+  const content=$("#initialSetupContent");
+  const isHidden=content.classList.contains("hidden");
+
+  content.classList.toggle("hidden");
+
+  $("#toggleInitialSetup").textContent=
+    isHidden ? "初回設定を閉じる ▲" : "初回設定を開く ▼";
+};
+  $("#saveDiagnosis").onclick=()=>{const d=$$("#questions input:checked").map(x=>x.value);set("diagnosis",d);set("goals",get("goals",[]).filter(x=>d.includes(x)));renderPicker();$("#goalPickerCard").scrollIntoView({behavior:"smooth"})};
 $("#saveDiagnosis").addEventListener("click",()=>{
   const d=$$("#questions input:checked").map(x=>x.value);
 
