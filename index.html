@@ -192,7 +192,7 @@ nav button{
 <section id="diagnosis">
   <div class="card">
 <h2>食習慣チェック</h2>
-<p class="muted">当てはまる項目にチェックしてください。</p>
+<p class="muted">各項目について当てはまる場合は『YES』、当てはまらない場合は『NO』を選んでください。</p>
 <div id="questions"></div>
 <div id="diagnosisCount" style="text-align:right;font-weight:700;margin:8px 0;">0 / 15</div>
 <button class="primary" id="saveDiagnosis">診断結果を保存</button>
@@ -253,7 +253,7 @@ nav button{
 
 <script>
 const H=[
-["leftovers","お腹が空いていなくても残り物を食べることがある"],
+["leftovers","空腹でなくても残り物を食べることがある"],
 ["snacks_home","お菓子を家に常備している"],
 ["fast","食べるのが速い"],
 ["not_chew","よく噛まずに食べることが多い"],
@@ -293,7 +293,7 @@ function renderQ(){
           data-id="${id}" data-v="yes">YES</button>
 
         <button type="button"
-          class="ynBtn no ${!s.includes(id)?"sel":""}"
+         class="ynBtn no"
           data-id="${id}" data-v="no">NO</button>
       </div>
 
