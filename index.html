@@ -368,14 +368,14 @@ $("#goalPickerCard").classList.toggle("hidden",!d.length);
 const total=get("initialDiagnosisCount",d.length);
 const remaining=Math.max(0,total-completed.length);
 $("#goalCount").textContent=`${remaining} / ${total}`;
-  $("#goalPicker").innerHTML=visible.map(id=>
+  $("#goalPicker").innerHTML=visible.map(id=>`
     <div class="q">
   <label class="goalTap">
     <input class="goalPick" type="checkbox" value="${id}" ${g.includes(id)?"checked":""}>
     <span>${title(id)}</span>
   </label>
 </div>
-  ).join("");
+ `).join("");
 }
 function renderToday(){const g=get("goals",[]),logs=get("logs",{}),r=logs[day()]||{};$("#weight").value=r.weight||"";$("#todayGoals").innerHTML=g.length?g.map(id=>`<div class=goal data-id="${id}"><b>${title(id)}</b><div class=choice><button class="ok ${r[id]==="ok"?"sel":""}" data-v=ok>できた</button><button class="ng ${r[id]==="ng"?"sel":""}" data-v=ng>できなかった</button></div></div>`).join(""):"<p>まず初回診断をしてください。</p>";$$(".choice button").forEach(b=>b.onclick=()=>{b.parentElement.querySelectorAll("button").forEach(x=>x.classList.remove("sel"));b.classList.add("sel")})}
 function renderProgress(){const g=get("goals",[]),logs=get("logs",{}),dates=Object.keys(logs).sort().slice(-7);$("#progressBody").innerHTML=g.length?g.map(id=>{let n=0,o=0;dates.forEach(d=>{if(logs[d][id]){n++;if(logs[d][id]==="ok")o++}});let r=n?Math.round(o/n*100):0;let status=o>=7?"7日達成！":o>=5?"定着してきています":o>=3?"改善中":"慣らし中";return `<div class=goal><b>${title(id)}</b><p>${r}%（直近7日・記録${n}日）<p><b>${status}</b></p></p><div class=bar><span style="width:${r}%"></span></div></div>`}).join(""):"<p>まだ記録がありません。</p>"}
