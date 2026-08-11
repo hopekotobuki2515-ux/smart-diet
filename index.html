@@ -524,6 +524,8 @@ const futureWeight=Number($("#futureWeight").value);
 });
 
   updateInitialSetupCalc();
+  $("#initialSetupContent").classList.add("hidden");
+$("#toggleInitialSetup").textContent="初回設定を開く ▼";
   alert("初回設定を保存しました");
 };
   $("#saveGoals").onclick=()=>{const g=$$(".goalPick:checked").map(x=>x.value);if(!g.length||g.length>3){alert("1〜3項目を選んでください");return}set("goals",g);show("today")};
