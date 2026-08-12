@@ -568,13 +568,14 @@ $("#toggleInitialSetup").onclick=()=>{
   $("#toggleInitialSetup").textContent=
     isHidden ? "初回設定を閉じる ▲" : "初回設定を開く ▼";
 };
-  $("#saveDiagnosis").onclick=()=>{const d=$$("#questions input:checked").map(x=>x.value);set("diagnosis",d);set("goals",get("goals",[]).filter(x=>d.includes(x)));renderPicker();$("#goalPickerCard").scrollIntoView({behavior:"smooth"})};
-$("#saveDiagnosis").addEventListener("click",()=>{
+ $("#saveDiagnosis").onclick=async()=>{ ... }
+$("#saveDiagnosis").addEventListener("click",async()=>{
   const d=$$("#questions input:checked").map(x=>x.value);
 
   if(get("initialDiagnosisCount",null)===null){
     set("initialDiagnosisCount",d.length);
   }
+await window.saveUserData();
 });
   function updateInitialSetupCalc(){
   const heightCm=Number($("#heightCm").value);
@@ -636,7 +637,7 @@ $("#weight15").textContent="-";
 $("#heightCm").addEventListener("input",updateInitialSetupCalc);
 $("#startWeight").addEventListener("input",updateInitialSetupCalc);
 
-$("#saveInitialSetup").onclick=()=>{
+$("#saveInitialSetup").onclick=async()=>{
   const heightCm=Number($("#heightCm").value);
   const weight=Number($("#startWeight").value);
 const weight20=Number($("#weight20").value);
@@ -656,14 +657,17 @@ const futureWeight=Number($("#futureWeight").value);
   goalWeight3m:goalWeight3m,
   futureWeight:futureWeight
 });
-
+await window.saveUserData();
   updateInitialSetupCalc();
   $("#initialSetupContent").classList.add("hidden");
 $("#toggleInitialSetup").textContent="初回設定を開く ▼";
   alert("初回設定を保存しました");
 };
   $("#saveGoals").onclick=()=>{const g=$$(".goalPick:checked").map(x=>x.value);if(!g.length||g.length>3){alert("1〜3項目を選んでください");return}set("goals",g);show("today")};
-$("#saveToday").onclick=async()=>{
+$("#saveGoals").addEventListener("click",async()=>{
+  await window.saveUserData();
+});
+  $("#saveToday").onclick=async()=>{
   const saveDate=$("#testDate").value || day();
   const logs=get("logs",{}),r=logs[saveDate]||{};
 
@@ -739,6 +743,7 @@ async function saveUserData() {
   if (!user) return;
 
   const data = {
+   initialSetup: JSON.parse(localStorage.getItem("initialSetup") || "{}"),
     diagnosis: JSON.parse(localStorage.getItem("diagnosis") || "[]"),
     goals: JSON.parse(localStorage.getItem("goals") || "[]"),
     completedGoals: JSON.parse(localStorage.getItem("completedGoals") || "[]"),
@@ -762,7 +767,7 @@ window.saveUserData = saveUserData;
 
   if (snap.exists()) {
     const data = snap.data();
-
+    localStorage.setItem("initialSetup", JSON.stringify(data.initialSetup || {}));
     localStorage.setItem("diagnosis", JSON.stringify(data.diagnosis || []));
     localStorage.setItem("goals", JSON.stringify(data.goals || []));
     localStorage.setItem("completedGoals", JSON.stringify(data.completedGoals || []));
