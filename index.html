@@ -687,4 +687,23 @@ set("goals",goals);
 renderQ();renderPicker();
 $("#testDate").value = day();
 </script>
+<script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyAvSc2x_o03QKie268jX33mr14ub6TBtX0",
+    authDomain: "smart-diet-a5d4e.firebaseapp.com",
+    projectId: "smart-diet-a5d4e",
+    storageBucket: "smart-diet-a5d4e.firebasestorage.app",
+    messagingSenderId: "921025558560",
+    appId: "1:921025558560:web:b00079c4349fa10b15a445"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+</script>
 </body></html>
