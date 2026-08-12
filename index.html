@@ -571,7 +571,7 @@ $("#toggleInitialSetup").onclick=()=>{
 
 $("#saveDiagnosis").addEventListener("click",async()=>{
   const d=$$("#questions input:checked").map(x=>x.value);
-
+set("diagnosis",d);
   if(get("initialDiagnosisCount",null)===null){
     set("initialDiagnosisCount",d.length);
   }
