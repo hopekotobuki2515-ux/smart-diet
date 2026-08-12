@@ -151,7 +151,26 @@ nav button{
 </style>
 </head>
 <body>
+<div id="authArea" class="card">
+  <h2>ログイン</h2>
+
+  <input id="loginEmail" type="email" placeholder="メールアドレス"
+    style="width:100%;padding:12px;margin:6px 0;border:1px solid #ddd;border-radius:10px;">
+
+  <input id="loginPassword" type="password" placeholder="パスワード"
+    style="width:100%;padding:12px;margin:6px 0;border:1px solid #ddd;border-radius:10px;">
+
+  <button id="loginBtn" class="primary">ログイン</button>
+
+  <button id="signupBtn" class="secondary" style="margin-top:8px;">
+    初めての方はこちら
+  </button>
+
+  <div id="authMessage" class="muted" style="margin-top:10px;"></div>
+</div>
+<div id="appArea" class="hidden">
 <header><h1>SMART Diet 食行動改善</h1><div>初めての方は「初回診断」から始めてください</div></header>
+
 <main>
 <nav>
 <button data-tab="diagnosis" class="active">初回診断</button>
@@ -284,7 +303,7 @@ nav button{
 <div class="card"><p class="muted">この試作版は記録をこのブラウザ内に保存します。別のスマホとはまだ同期しません。</p></div>
 </section>
 </main>
-
+</div>
 <script>
 const H=[
 ["leftovers","空腹でなくても残り物を食べることがある"],
@@ -687,10 +706,11 @@ set("goals",goals);
 renderQ();renderPicker();
 $("#testDate").value = day();
 </script>
-<script type="module">
+ <script type="module">
   // Import the functions you need from the SDKs you need
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
-  // TODO: Add SDKs for Firebase products that you want to use
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
+   // TODO: Add SDKs for Firebase products that you want to use
   // https://firebase.google.com/docs/web/setup#available-libraries
 
   // Your web app's Firebase configuration
@@ -705,5 +725,43 @@ $("#testDate").value = day();
 
   // Initialize Firebase
   const app = initializeApp(firebaseConfig);
-</script>
+const auth = getAuth(app);
+
+const authArea = document.getElementById("authArea");
+const appArea = document.getElementById("appArea");
+const authMessage = document.getElementById("authMessage");
+
+document.getElementById("signupBtn").onclick = async () => {
+  const email = document.getElementById("loginEmail").value.trim();
+  const password = document.getElementById("loginPassword").value;
+
+  try {
+    await createUserWithEmailAndPassword(auth, email, password);
+    authMessage.textContent = "登録しました";
+  } catch (e) {
+    authMessage.textContent = "登録できませんでした：" + e.message;
+  }
+};
+
+document.getElementById("loginBtn").onclick = async () => {
+  const email = document.getElementById("loginEmail").value.trim();
+  const password = document.getElementById("loginPassword").value;
+
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+    authMessage.textContent = "";
+  } catch (e) {
+    authMessage.textContent = "ログインできませんでした";
+  }
+};
+
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    authArea.classList.add("hidden");
+    appArea.classList.remove("hidden");
+  } else {
+    authArea.classList.remove("hidden");
+    appArea.classList.add("hidden");
+  }
+});
 </body></html>
