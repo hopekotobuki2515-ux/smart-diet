@@ -299,6 +299,7 @@ nav button{
 <h2>達成済みの改善目標</h2>
 <div id="completedGoalsList"></div>
 <br><button class="secondary" id="resetAll">試作データをすべて消す</button>
+<br><br><button class="secondary" id="logoutBtn">ログアウト</button>
 </div>
 <div class="card"><p class="muted">この試作版は記録をこのブラウザ内に保存します。別のスマホとはまだ同期しません。</p></div>
 </section>
@@ -716,7 +717,8 @@ $("#testDate").value = day();
  <script type="module">
   // Import the functions you need from the SDKs you need
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
-  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
+
   import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js"; 
    // TODO: Add SDKs for Firebase products that you want to use
   // https://firebase.google.com/docs/web/setup#available-libraries
@@ -813,5 +815,10 @@ onAuthStateChanged(auth, async (user) => {
     appArea.classList.add("hidden");
   }
 });
+document.getElementById("logoutBtn").onclick = async () => {
+  await signOut(auth);
+  localStorage.clear();
+  location.reload();
+}; 
  </script>
  </body></html>
