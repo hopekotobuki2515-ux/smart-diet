@@ -568,7 +568,7 @@ $("#toggleInitialSetup").onclick=()=>{
   $("#toggleInitialSetup").textContent=
     isHidden ? "初回設定を閉じる ▲" : "初回設定を開く ▼";
 };
- $("#saveDiagnosis").onclick=async()=>{ ... }
+
 $("#saveDiagnosis").addEventListener("click",async()=>{
   const d=$$("#questions input:checked").map(x=>x.value);
 
