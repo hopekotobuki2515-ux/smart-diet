@@ -752,6 +752,23 @@ async function saveUserData() {
   );
 }
 window.saveUserData = saveUserData;
+   async function loadUserData() {
+  const user = auth.currentUser;
+  if (!user) return;
+
+  const snap = await getDoc(
+    doc(db, "users", user.uid, "appData", "smartDiet")
+  );
+
+  if (snap.exists()) {
+    const data = snap.data();
+
+    localStorage.setItem("diagnosis", JSON.stringify(data.diagnosis || []));
+    localStorage.setItem("goals", JSON.stringify(data.goals || []));
+    localStorage.setItem("completedGoals", JSON.stringify(data.completedGoals || []));
+    localStorage.setItem("logs", JSON.stringify(data.logs || {}));
+  }
+}
    document.getElementById("signupBtn").onclick = async () => {
   const email = document.getElementById("loginEmail").value.trim();
   const password = document.getElementById("loginPassword").value;
@@ -776,10 +793,15 @@ document.getElementById("loginBtn").onclick = async () => {
   }
 };
 
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
   if (user) {
+    await loadUserData();
+
     authArea.classList.add("hidden");
     appArea.classList.remove("hidden");
+
+    renderQ();
+    renderPicker();
   } else {
     authArea.classList.remove("hidden");
     appArea.classList.add("hidden");
