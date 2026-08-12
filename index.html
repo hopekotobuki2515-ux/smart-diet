@@ -793,8 +793,15 @@ document.getElementById("signupBtn").onclick = async () => {
     await createUserWithEmailAndPassword(auth, email, password);
     authMessage.textContent = "登録しました";
   } catch (e) {
-    authMessage.textContent = "登録できませんでした：" + e.message;
-  }
+   if (e.code === "auth/invalid-email") {
+  authMessage.textContent = "メールアドレスの形式を確認してください";
+} else if (e.code === "auth/email-already-in-use") {
+  authMessage.textContent = "このメールアドレスはすでに登録されています";
+} else if (e.code === "auth/weak-password") {
+  authMessage.textContent = "パスワードは6文字以上で入力してください";
+} else {
+  authMessage.textContent = "登録できませんでした。入力内容を確認してください";
+}
 };
 document.getElementById("loginBtn").onclick = async () => {
   const email = document.getElementById("loginEmail").value.trim();
@@ -804,8 +811,17 @@ document.getElementById("loginBtn").onclick = async () => {
     await signInWithEmailAndPassword(auth, email, password);
     authMessage.textContent = "";
   } catch (e) {
-    authMessage.textContent = "ログインできませんでした";
-  }
+    if (e.code === "auth/invalid-email") {
+  authMessage.textContent = "メールアドレスの形式を確認してください";
+} else if (
+  e.code === "auth/invalid-credential" ||
+  e.code === "auth/wrong-password" ||
+  e.code === "auth/user-not-found"
+) {
+  authMessage.textContent = "メールアドレスまたはパスワードが違います";
+} else {
+  authMessage.textContent = "ログインできませんでした。入力内容を確認してください";
+}
 };
 
 onAuthStateChanged(auth, async (user) => {
