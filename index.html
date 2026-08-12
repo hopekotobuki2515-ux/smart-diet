@@ -162,11 +162,13 @@ nav button{
 
   <button id="loginBtn" class="primary">ログイン</button>
 
-  <button id="signupBtn" class="secondary" style="margin-top:8px;">
-    初めての方はこちら
-  </button>
-
-  <div id="authMessage" class="muted" style="margin-top:10px;"></div>
+<button id="showSignupBtn" class="secondary" style="margin-top:8px;">
+初めての方はこちら
+</button>
+<button id="signupBtn" class="primary hidden" style="margin-top:8px;">
+新規登録する
+</button>
+<div id="authMessage" class="muted" style="margin-top:10px;"></div>
 </div>
 <div id="appArea" class="hidden">
 <header><h1>SMART Diet 食行動改善</h1><div>初めての方は「初回診断」から始めてください</div></header>
@@ -777,7 +779,13 @@ window.saveUserData = saveUserData;
     localStorage.setItem("logs", JSON.stringify(data.logs || {}));
   }
 }
-   document.getElementById("signupBtn").onclick = async () => {
+  document.getElementById("showSignupBtn").onclick = () => {
+  document.getElementById("signupBtn").classList.remove("hidden");
+  document.getElementById("showSignupBtn").classList.add("hidden");
+  authMessage.textContent = "メールアドレスとパスワードを入力して「新規登録する」を押してください";
+};
+
+document.getElementById("signupBtn").onclick = async () => {
   const email = document.getElementById("loginEmail").value.trim();
   const password = document.getElementById("loginPassword").value;
 
@@ -788,7 +796,6 @@ window.saveUserData = saveUserData;
     authMessage.textContent = "登録できませんでした：" + e.message;
   }
 };
-
 document.getElementById("loginBtn").onclick = async () => {
   const email = document.getElementById("loginEmail").value.trim();
   const password = document.getElementById("loginPassword").value;
