@@ -721,7 +721,9 @@ set("goals",goals);
     set("logs",{});
 
     await window.saveUserData();
-    location.reload();
+ renderQ();
+renderPicker();
+document.querySelector('[data-tab="diagnosis"]').click();
   }
 };
 renderQ();renderPicker();
