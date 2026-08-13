@@ -7,7 +7,47 @@
 <title>SMART Diet 食行動改善</title>
 <style>
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin:0;background:#fff8f1;color:#222}
-header{background:#ef6c00;color:white;padding:18px}
+header{
+  position:relative;
+  overflow:hidden;
+  background:linear-gradient(135deg,#f57c00 0%,#ef6c00 58%,#e85d04 100%);
+  color:white;
+  padding:24px 20px 22px;
+  border-radius:0 0 24px 24px;
+  box-shadow:0 8px 22px rgba(191,76,0,.18);
+}
+header::after{
+  content:"";
+  position:absolute;
+  top:-74px;
+  right:-54px;
+  width:180px;
+  height:180px;
+  border-radius:50%;
+  background:rgba(255,255,255,.10);
+}
+header h1{
+  position:relative;
+  z-index:1;
+  max-width:760px;
+  margin:0 auto 12px;
+  font-size:clamp(28px,7.4vw,40px);
+  line-height:1.2;
+  letter-spacing:.01em;
+}
+header>div{
+  position:relative;
+  z-index:1;
+  max-width:760px;
+  margin:0 auto;
+  padding:8px 12px;
+  border-left:4px solid rgba(255,255,255,.9);
+  border-radius:0 10px 10px 0;
+  background:rgba(255,255,255,.12);
+  font-size:clamp(13px,3.5vw,16px);
+  font-weight:600;
+  line-height:1.5;
+}
 main{max-width:760px;margin:auto;padding:14px 12px 80px}
 .card{background:white;border:1px solid #eee;border-radius:16px;padding:16px;margin:12px 0}
 nav{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;position:sticky;top:0;background:#fff8f1;padding:8px 0}
