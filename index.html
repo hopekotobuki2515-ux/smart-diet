@@ -300,7 +300,7 @@ nav button{
 <div id="currentGoals"></div>
 <h2>達成済みの改善目標</h2>
 <div id="completedGoalsList"></div>
-<br><button class="secondary" id="resetAll">試作データをすべて消す</button>
+<br><button class="secondary" id="resetAll">記録データをすべて削除</button>
 <br><br><button class="secondary" id="logoutBtn">ログアウト</button>
 </div>
 <div class="card"><p class="muted">この試作版は記録をこのブラウザ内に保存します。別のスマホとはまだ同期しません。</p></div>
@@ -712,7 +712,18 @@ set("goals",goals);
   alert("保存しました");
 };
 
-  $("#resetAll").onclick=()=>{if(confirm("すべて削除しますか？")){localStorage.clear();location.reload()}};
+  $("#resetAll").onclick=async()=>{
+  if(confirm("すべての記録データを削除しますか？")){
+    set("initialSetup",{});
+    set("diagnosis",[]);
+    set("goals",[]);
+    set("completedGoals",[]);
+    set("logs",{});
+
+    await window.saveUserData();
+    location.reload();
+  }
+};
 renderQ();renderPicker();
 $("#testDate").value = day();
 </script>
