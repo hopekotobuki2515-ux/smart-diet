@@ -849,6 +849,7 @@ onAuthStateChanged(auth, async (user) => {
 
     renderQ();
     renderPicker();
+  updateDiagnosisCount();
   } else {
     authArea.classList.remove("hidden");
     appArea.classList.add("hidden");
