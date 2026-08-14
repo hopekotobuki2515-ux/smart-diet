@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- 3か月間の減量目安の下部にも閉じるボタンを追加 -->
+<!-- 今日画面にSTART・現在地・一旦のGOALが分かる体重グラフを追加 -->
 <html lang="ja">
 <head>
 <meta charset="utf-8">
@@ -86,6 +86,20 @@ nav button.active,.secondary.active,.primary{background:#ef6c00;color:white;bord
   height:auto;
   display:block;
 }
+.weightJourneyCard{overflow:hidden}
+.journeyHeader{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.journeyHeader h2{margin:0}
+.journeyPercent{color:#ef6c00;font-size:16px;white-space:nowrap}
+.journeyStats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:14px 0 10px}
+.journeyStat{min-width:0;padding:10px 4px;border:1px solid #eee;border-radius:12px;background:#fffaf5;text-align:center}
+.journeyStat span{display:block;color:#666;font-size:11px;line-height:1.3}
+.journeyStat strong{display:block;margin-top:5px;font-size:14px;line-height:1.25;white-space:nowrap}
+.journeyProgress{height:12px;overflow:hidden;border-radius:999px;background:#eee}
+.journeyProgress span{display:block;width:0;height:100%;border-radius:inherit;background:linear-gradient(90deg,#ff9800,#ef6c00);transition:width .25s ease}
+.journeyMessage{min-height:1.5em;margin:8px 0 14px;color:#ef6c00;font-size:13px;font-weight:700;line-height:1.5}
+.chartRangeButtons{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-bottom:8px}
+.chartRangeButtons button{width:100%;min-width:0;padding:9px 2px;font-size:13px;font-weight:700}
+.chartCanvasWrap{width:100%;overflow:hidden;border:1px solid #f1f1f1;border-radius:12px;background:#fff}
 html,body{
   max-width:100%;
   overflow-x:hidden;
@@ -421,6 +435,27 @@ nav button{
 </section>
 
 <section id="today" class="hidden">
+<div class="card weightJourneyCard">
+  <div class="journeyHeader">
+    <h2>体重の現在地</h2>
+    <strong id="weightJourneyPercent" class="journeyPercent">進捗 -</strong>
+  </div>
+  <div class="journeyStats">
+    <div class="journeyStat"><span>START<br>スタート</span><strong id="journeyStart">- kg</strong></div>
+    <div class="journeyStat"><span>NOW<br>現在</span><strong id="journeyCurrent">- kg</strong></div>
+    <div class="journeyStat"><span>GOAL<br>一旦のゴール</span><strong id="journeyGoal">- kg</strong></div>
+  </div>
+  <div class="journeyProgress" aria-hidden="true"><span id="journeyProgressBar"></span></div>
+  <p id="journeyMessage" class="journeyMessage" aria-live="polite"></p>
+  <div class="chartRangeButtons" aria-label="グラフの表示期間">
+    <button class="secondary active" id="range7" type="button">7日</button>
+    <button class="secondary" id="range30" type="button">30日</button>
+    <button class="secondary" id="rangeAll" type="button">全期間</button>
+  </div>
+  <div class="chartCanvasWrap">
+    <canvas id="weightChart" width="700" height="300" aria-label="体重の推移グラフ"></canvas>
+  </div>
+</div>
 <div class="card">
 <h2>今日のチェック</h2>
 <div id="todayGoals"></div>
@@ -436,16 +471,6 @@ nav button{
   <div class="card">
     <h2>記録履歴</h2>
     <div id="historyList"></div>
-  </div>
-
-  <div class="card">
-    <h2>体重の推移</h2>
-   <div style="display:flex;gap:8px;margin-bottom:10px">
-<button class="secondary" id="range7" style="flex:1;font-size:16px">7日</button>
-<button class="secondary" id="range30" style="flex:1;font-size:16px">30日</button>
-<button class="secondary" id="rangeAll" style="flex:1;font-size:16px">全期間</button>
-</div>
-<canvas id="weightChart" width="700" height="240" style="width:100%;max-width:100%;height:auto;display:block;"></canvas>
   </div>
 </section>
 <section id="progress" class="hidden">
@@ -566,109 +591,208 @@ $$(".goalPick").forEach(cb=>{
 
 updateGoalCount();
 }
-function renderToday(){const g=get("goals",[]),logs=get("logs",{}),r=logs[day()]||{};$("#weight").value=r.weight||"";$("#todayGoals").innerHTML=g.length?g.map(id=>`<div class=goal data-id="${id}"><b>${title(id)}</b><div class=choice><button class="ok ${r[id]==="ok"?"sel":""}" data-v=ok>できた</button><button class="ng ${r[id]==="ng"?"sel":""}" data-v=ng>できなかった</button></div></div>`).join(""):"<p>現在の改善目標はありません。初回チェックから次の改善目標を選んでください。</p>";$$(".choice button").forEach(b=>b.onclick=()=>{b.parentElement.querySelectorAll("button").forEach(x=>x.classList.remove("sel"));b.classList.add("sel")})}
+function getWeightRecords(){
+  const logs=get("logs",{});
+  return Object.keys(logs).sort().map(date=>({
+    date,
+    weight:Number(logs[date]?.weight)
+  })).filter(record=>Number.isFinite(record.weight)&&record.weight>0);
+}
+function formatWeightDisplay(value){
+  const number=Number(value);
+  if(!Number.isFinite(number)||number<=0)return "-";
+  return Number.isInteger(number)?String(number):number.toFixed(1);
+}
+function renderToday(){
+  const g=get("goals",[]),logs=get("logs",{}),r=logs[day()]||{};
+  $("#weight").value=r.weight||"";
+  $("#todayGoals").innerHTML=g.length?g.map(id=>`<div class=goal data-id="${id}"><b>${title(id)}</b><div class=choice><button class="ok ${r[id]==="ok"?"sel":""}" data-v=ok>できた</button><button class="ng ${r[id]==="ng"?"sel":""}" data-v=ng>できなかった</button></div></div>`).join(""):"<p>現在の改善目標はありません。初回チェックから次の改善目標を選んでください。</p>";
+  $$(".choice button").forEach(b=>b.onclick=()=>{
+    b.parentElement.querySelectorAll("button").forEach(x=>x.classList.remove("sel"));
+    b.classList.add("sel");
+  });
+  renderWeightJourney();
+}
 function renderProgress(){const g=get("goals",[]),logs=get("logs",{}),dates=Object.keys(logs).sort().slice(-7);$("#progressBody").innerHTML=g.length?g.map(id=>{let n=0,o=0;dates.forEach(d=>{if(logs[d][id]){n++;if(logs[d][id]==="ok")o++}});let r=n?Math.round(o/n*100):0;let status=o>=7?"7日達成！":o>=5?"定着してきています":o>=3?"改善中":"慣らし中";return `<div class=goal><b>${title(id)}</b><p>${r}%（直近7日・記録${n}日）<p><b>${status}</b></p></p><div class=bar><span style="width:${r}%"></span></div></div>`}).join(""):"<p>まだ記録がありません。</p>"}
-function renderHistory(){const logs=get("logs",{}),dates=Object.keys(logs).sort().reverse();$("#historyList").innerHTML=dates.length?dates.map(d=>{const r=logs[d]||{};const items=Object.entries(r).filter(([k])=>k!=="weight").map(([k,v])=>`<div>${title(k)}：${v==="ok"?"できた":v==="ng"?"できなかった":"未記録"}</div>`).join("");return `<div class="goal"><b>${d}</b>${r.weight?`<div>体重：${r.weight}kg</div>`:""}${items}</div>`}).join(""):"<p>まだ記録がありません。</p>";drawWeightChart();}
-let weightRange="all";
-function drawWeightChart(){const c=$("#weightChart");if(!c)return;const ctx=c.getContext("2d"),logs=get("logs",{}),data=Object.keys(logs).sort().map(d=>({d,w:Number(logs[d]?.weight)})).filter(x=>x.w>0);ctx.clearRect(0,0,c.width,c.height);if(!data.length){ctx.font="16px sans-serif";ctx.fillText("体重記録がありません",20,40);return;}const p=40,min=Math.min(...data.map(x=>x.w)),max=Math.max(...data.map(x=>x.w)),range=(max-min)||1;ctx.beginPath();data.forEach((x,i)=>{const px=p+i*((c.width-p*2)/Math.max(data.length-1,1)),py=c.height-p-((x.w-min)/range)*(c.height-p*2);i?ctx.lineTo(px,py):ctx.moveTo(px,py)});ctx.stroke();data.forEach((x,i)=>{const px=p+i*((c.width-p*2)/Math.max(data.length-1,1)),py=c.height-p-((x.w-min)/range)*(c.height-p*2);ctx.beginPath();ctx.arc(px,py,4,0,Math.PI*2);ctx.fill();ctx.fillText(x.w+"kg",px-15,py-10)});}
-drawWeightChart=function(){
+function renderHistory(){const logs=get("logs",{}),dates=Object.keys(logs).sort().reverse();$("#historyList").innerHTML=dates.length?dates.map(d=>{const r=logs[d]||{};const items=Object.entries(r).filter(([k])=>k!=="weight").map(([k,v])=>`<div>${title(k)}：${v==="ok"?"できた":v==="ng"?"できなかった":"未記録"}</div>`).join("");return `<div class="goal"><b>${d}</b>${r.weight?`<div>体重：${r.weight}kg</div>`:""}${items}</div>`}).join(""):"<p>まだ記録がありません。</p>";}
+let weightRange="7";
+function renderWeightJourney(){
+  const setup=get("initialSetup",{});
+  const records=getWeightRecords();
+  const start=Number(setup.startWeight);
+  const goal=Number(setup.goalWeight3m);
+  const hasStart=Number.isFinite(start)&&start>0;
+  const hasGoal=Number.isFinite(goal)&&goal>0;
+  const current=records.length?records[records.length-1].weight:(hasStart?start:0);
+
+  $("#journeyStart").textContent=`${formatWeightDisplay(start)} kg`;
+  $("#journeyCurrent").textContent=`${formatWeightDisplay(current)} kg`;
+  $("#journeyGoal").textContent=`${formatWeightDisplay(goal)} kg`;
+
+  let percent=0;
+  let percentText="進捗 -";
+  let message="初回設定でスタート体重と3か月後の目標体重を設定してください。";
+
+  if(hasStart&&hasGoal&&start>goal&&current>0){
+    const total=start-goal;
+    const achieved=start-current;
+    const remaining=Math.max(current-goal,0);
+    percent=Math.max(0,Math.min(100,Math.round(achieved/total*100)));
+    percentText=`進捗 ${percent}%`;
+    if(current<=goal){
+      message="一旦のゴール達成！積み重ねた記録が成果になりました。";
+    }else if(achieved>0){
+      message=`スタートから${formatWeightDisplay(achieved)} kg進みました。ゴールまであと${formatWeightDisplay(remaining)} kg！`;
+    }else if(achieved<0){
+      message=`今はスタートから${formatWeightDisplay(Math.abs(achieved))} kg上。今日からまた一歩ずつ。`;
+    }else if(records.length){
+      message="ここがスタート。小さな記録を積み重ねていきましょう！";
+    }else{
+      message="ここがスタート。今日の体重を記録するとグラフが始まります。";
+    }
+  }else if(hasStart&&!hasGoal){
+    message="3か月後の目標体重を設定すると、ゴールまでの進捗が表示されます。";
+  }else if(hasGoal&&!hasStart){
+    message="スタート体重を設定すると、ゴールまでの進捗が表示されます。";
+  }else if(hasStart&&hasGoal){
+    message="一旦のゴールは、スタート体重より軽い数値で設定してください。";
+  }
+
+  $("#weightJourneyPercent").textContent=percentText;
+  $("#journeyProgressBar").style.width=`${percent}%`;
+  $("#journeyMessage").textContent=message;
+  drawWeightChart();
+}
+function getVisibleWeightRecords(){
+  const records=getWeightRecords();
+  if(weightRange==="all"||!records.length)return records;
+  const days=weightRange==="30"?30:7;
+  const lastTime=new Date(`${records[records.length-1].date}T00:00:00`).getTime();
+  const cutoff=lastTime-(days-1)*24*60*60*1000;
+  return records.filter(record=>new Date(`${record.date}T00:00:00`).getTime()>=cutoff);
+}
+function drawWeightChart(){
   const c=$("#weightChart");
   if(!c)return;
-
   const ctx=c.getContext("2d");
-  const logs=get("logs",{});
-
-  let dates=Object.keys(logs)
-    .sort()
-    .filter(d=>logs[d].weight);
-
-  if(weightRange==="7") dates=dates.slice(-7);
-  if(weightRange==="30") dates=dates.slice(-30);
-
-  const data=dates.map(d=>({
-    date:d,
-    weight:Number(logs[d].weight)
-  }));
+  const setup=get("initialSetup",{});
+  const start=Number(setup.startWeight);
+  const goal=Number(setup.goalWeight3m);
+  const hasStart=Number.isFinite(start)&&start>0;
+  const hasGoal=Number.isFinite(goal)&&goal>0;
+  const data=getVisibleWeightRecords();
+  const scaleValues=data.map(record=>record.weight);
+  if(hasStart)scaleValues.push(start);
+  if(hasGoal)scaleValues.push(goal);
 
   ctx.clearRect(0,0,c.width,c.height);
-
-  if(!data.length){
-    ctx.font="16px sans-serif";
-    ctx.fillText("体重記録がありません",20,40);
+  if(!scaleValues.length){
+    ctx.fillStyle="#777";
+    ctx.font="22px sans-serif";
+    ctx.textAlign="center";
+    ctx.fillText("体重を設定するとグラフが表示されます",c.width/2,c.height/2);
     return;
   }
 
-  const pad=40;
-  const min=Math.min(...data.map(x=>x.weight));
-  const max=Math.max(...data.map(x=>x.weight));
-  const range=(max-min)||1;
-// 補助線
-ctx.strokeStyle = "#eeeeee";
-ctx.lineWidth = 1;
+  const padLeft=58,padRight=26,padTop=42,padBottom=44;
+  let min=Math.min(...scaleValues),max=Math.max(...scaleValues);
+  const spread=max-min;
+  const margin=spread>0?Math.max(.8,spread*.12):1;
+  min-=margin;
+  max+=margin;
+  const range=max-min;
+  const yFor=value=>c.height-padBottom-((value-min)/range)*(c.height-padTop-padBottom);
 
-// 横線（5本）
-for(let i=0; i<=4; i++){
-  const gy = pad + ((c.height - pad*2) / 4) * i;
-  ctx.beginPath();
-  ctx.moveTo(pad, gy);
-  ctx.lineTo(c.width - pad, gy);
-  ctx.stroke();
-}
-
-// 縦線
-data.forEach((p,i)=>{
-  const gx = pad + (c.width - pad*2) * (data.length===1 ? 0.5 : i/(data.length-1));
-
-  ctx.strokeStyle="#eeeeee";
   ctx.lineWidth=1;
+  ctx.font="18px sans-serif";
+  ctx.textAlign="right";
+  for(let i=0;i<=4;i++){
+    const y=padTop+((c.height-padTop-padBottom)/4)*i;
+    const value=max-(range/4)*i;
+    ctx.strokeStyle="#eeeeee";
+    ctx.beginPath();
+    ctx.moveTo(padLeft,y);
+    ctx.lineTo(c.width-padRight,y);
+    ctx.stroke();
+    ctx.fillStyle="#888";
+    ctx.fillText(value.toFixed(1),padLeft-8,y+6);
+  }
 
+  const drawReferenceLine=(value,color,label,below)=>{
+    const y=yFor(value);
+    ctx.save();
+    ctx.setLineDash([10,7]);
+    ctx.lineWidth=2;
+    ctx.strokeStyle=color;
+    ctx.beginPath();
+    ctx.moveTo(padLeft,y);
+    ctx.lineTo(c.width-padRight,y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle=color;
+    ctx.font="bold 20px sans-serif";
+    ctx.textAlign="left";
+    const labelY=Math.max(padTop+18,Math.min(c.height-padBottom-4,y+(below?25:-9)));
+    ctx.fillText(label,padLeft+8,labelY);
+    ctx.restore();
+  };
+  if(hasStart&&(!hasGoal||Math.abs(start-goal)>.05)){
+    drawReferenceLine(start,"#888",`START ${formatWeightDisplay(start)}kg`,true);
+  }
+  if(hasGoal){
+    drawReferenceLine(goal,"#078bf2",`GOAL ${formatWeightDisplay(goal)}kg`,false);
+  }
+
+  if(!data.length){
+    ctx.fillStyle="#777";
+    ctx.font="21px sans-serif";
+    ctx.textAlign="center";
+    ctx.fillText("今日の体重を記録すると推移が始まります",c.width/2,c.height/2);
+    return;
+  }
+
+  const xFor=index=>data.length===1?(padLeft+c.width-padRight)/2:padLeft+(c.width-padLeft-padRight)*(index/(data.length-1));
   ctx.beginPath();
-  ctx.moveTo(gx,pad);
-  ctx.lineTo(gx,c.height-pad);
-  ctx.stroke();
-});
-
-  ctx.beginPath();
-
-  data.forEach((p,i)=>{
-    const x=pad+(c.width-pad*2)*(data.length===1?0.5:i/(data.length-1));
-    const y=data.length===1
-  ? pad+10
-  : c.height-pad-(c.height-pad*2)*((p.weight-min)/range);
-
-    if(i===0) ctx.moveTo(x,y);
-    else ctx.lineTo(x,y);
-    ctx.fillStyle="#222";
-    const isMobile = window.innerWidth <= 600;
-
-ctx.font = isMobile ? "bold 16px sans-serif" : "bold 22px sans-serif";
-ctx.fillText(p.weight+"kg",x-12,y-10);
-
-ctx.font = isMobile ? "14px sans-serif" : "18px sans-serif";
-ctx.fillText(p.date.slice(5),x-18,y+28);
+  data.forEach((record,index)=>{
+    const x=xFor(index),y=yFor(record.weight);
+    if(index===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
   });
-  ctx.lineWidth=3;
-ctx.strokeStyle="#ef6c00";
-if(data.length>=2){
-  ctx.stroke();
+  if(data.length>=2){
+    ctx.lineWidth=4;
+    ctx.strokeStyle="#ef6c00";
+    ctx.stroke();
+  }
+
+  const maxLabels=weightRange==="7"?7:6;
+  const labelEvery=Math.max(1,Math.ceil(data.length/maxLabels));
+  data.forEach((record,index)=>{
+    const x=xFor(index),y=yFor(record.weight);
+    ctx.fillStyle="#ef6c00";
+    ctx.beginPath();
+    ctx.arc(x,y,7,0,Math.PI*2);
+    ctx.fill();
+    const showLabel=index===0||index===data.length-1||index%labelEvery===0;
+    if(showLabel){
+      ctx.fillStyle="#222";
+      ctx.font="bold 20px sans-serif";
+      ctx.textAlign="center";
+      ctx.fillText(`${formatWeightDisplay(record.weight)}kg`,x,Math.max(padTop+19,y-12));
+      ctx.fillStyle="#666";
+      ctx.font="18px sans-serif";
+      ctx.fillText(record.date.slice(5),x,c.height-13);
+    }
+  });
 }
-  data.forEach((p,i)=>{
-  const x=pad+(c.width-pad*2)*(data.length===1?0.5:i/(data.length-1));
-const y=data.length===1
-  ? pad+10
-  : c.height-pad-(c.height-pad*2)*((p.weight-min)/range);
-
-  ctx.fillStyle="#ef6c00";
-  ctx.beginPath();
-  ctx.arc(x,y,6,0,Math.PI*2);
-  ctx.fill();
-});
-};
-$("#range7").onclick=()=>{weightRange="7";$("#range7").classList.add("active");$("#range30").classList.remove("active");$("#rangeAll").classList.remove("active");drawWeightChart();};
-
-$("#range30").onclick=()=>{weightRange="30";$("#range7").classList.remove("active");$("#range30").classList.add("active");$("#rangeAll").classList.remove("active");drawWeightChart();};
-
-$("#rangeAll").onclick=()=>{weightRange="all";$("#range7").classList.remove("active");$("#range30").classList.remove("active");$("#rangeAll").classList.add("active");drawWeightChart();};
+function setWeightRange(range){
+  weightRange=range;
+  [["range7","7"],["range30","30"],["rangeAll","all"]].forEach(([id,value])=>{
+    $("#"+id).classList.toggle("active",value===range);
+  });
+  drawWeightChart();
+}
+$("#range7").onclick=()=>setWeightRange("7");
+$("#range30").onclick=()=>setWeightRange("30");
+$("#rangeAll").onclick=()=>setWeightRange("all");
 
 function renderSettings(){
   const g=get("goals",[]);
@@ -968,6 +1092,7 @@ await window.saveUserData();
   $("#toggleBmiGoals").textContent="BMIを基準にした目標値を見る ▼";
   $("#toggleBmiGoals").setAttribute("aria-expanded","false");
   setThreeMonthGuideOpen(false);
+  renderWeightJourney();
   alert("初回設定を保存しました");
 };
   $("#saveGoals").onclick=()=>{const g=$$(".goalPick:checked").map(x=>x.value);if(!g.length||g.length>3){alert("1〜3項目を選んでください");return}set("goals",g);show("today")};
@@ -1012,6 +1137,7 @@ set("goals",goals);
   logs[saveDate]=r;
   set("logs",logs);
   await window.saveUserData();
+  renderWeightJourney();
   alert("保存しました");
 };
 
