@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- BMI25・BMI22の目標値を2列・開閉式のコンパクト表示に変更 -->
+<!-- 3か月間の減量目安の下部にも閉じるボタンを追加 -->
 <html lang="ja">
 <head>
 <meta charset="utf-8">
@@ -363,6 +363,9 @@ nav button{
     <p class="muted">頑張りすぎ注意！3か月ではここまでが上限</p>
   </div>
 </div>
+<button type="button" id="closeThreeMonthGuide" class="secondary sectionToggle">
+  3か月間の減量目安を閉じる ▲
+</button>
 </div>
 
 <h3>体重目標の設定</h3>
@@ -739,16 +742,26 @@ $("#toggleBmiGoals").onclick=()=>{
   button.setAttribute("aria-expanded",String(isHidden));
 };
 
-$("#toggleThreeMonthGuide").onclick=()=>{
+function setThreeMonthGuideOpen(isOpen){
   const content=$("#threeMonthGuideContent");
-  const isHidden=content.classList.contains("hidden");
   const button=$("#toggleThreeMonthGuide");
 
-  content.classList.toggle("hidden");
-  button.textContent=isHidden
+  content.classList.toggle("hidden",!isOpen);
+  button.textContent=isOpen
     ? "3か月間の減量目安を閉じる ▲"
     : "3か月間の減量目安を見る ▼";
-  button.setAttribute("aria-expanded",String(isHidden));
+  button.setAttribute("aria-expanded",String(isOpen));
+}
+
+$("#toggleThreeMonthGuide").onclick=()=>{
+  setThreeMonthGuideOpen($("#threeMonthGuideContent").classList.contains("hidden"));
+};
+
+$("#closeThreeMonthGuide").onclick=()=>{
+  setThreeMonthGuideOpen(false);
+  requestAnimationFrame(()=>{
+    $("#toggleThreeMonthGuide").scrollIntoView({behavior:"smooth",block:"center"});
+  });
 };
 
 $("#saveDiagnosis").addEventListener("click",async()=>{
@@ -954,9 +967,7 @@ await window.saveUserData();
   $("#bmiGoalsContent").classList.add("hidden");
   $("#toggleBmiGoals").textContent="BMIを基準にした目標値を見る ▼";
   $("#toggleBmiGoals").setAttribute("aria-expanded","false");
-  $("#threeMonthGuideContent").classList.add("hidden");
-  $("#toggleThreeMonthGuide").textContent="3か月間の減量目安を見る ▼";
-  $("#toggleThreeMonthGuide").setAttribute("aria-expanded","false");
+  setThreeMonthGuideOpen(false);
   alert("初回設定を保存しました");
 };
   $("#saveGoals").onclick=()=>{const g=$$(".goalPick:checked").map(x=>x.value);if(!g.length||g.length>3){alert("1〜3項目を選んでください");return}set("goals",g);show("today")};
