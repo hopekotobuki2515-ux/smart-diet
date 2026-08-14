@@ -297,6 +297,14 @@ nav button{
 </div>
   <h3>3ヶ月間の減量目安</h3>
 
+<div class="goal">
+  <p><strong>BMI22までの減量目安</strong></p>
+  <p>目標体重：<strong id="bmi22GuideWeight">-</strong> kg</p>
+  <p>現在から：約<strong id="bmi22Loss">-</strong> kg減</p>
+  <p>1か月：約<strong id="bmi22MonthlyLoss">-</strong> kg減</p>
+  <p class="muted" id="bmi22GuideStatus">身長と現在の体重を入力すると表示されます。</p>
+</div>
+
 <p>5％減：<strong id="weight5">-</strong> kg</p>
 <p>1か月 約<strong id="month5">-</strong> kg減</p>
 <p class="muted">効果を実感しやすい最低目標</p>
@@ -664,6 +672,7 @@ await window.saveUserData();
     const bmi22=heightM*heightM*22;
     const bmi25Diff=weight-bmi25;
     const bmi22Diff=weight-bmi22;
+    const bmi22MonthlyLoss=bmi22Diff/3;
 const weight5=weight*0.95;
 const weight8=weight*0.92;
 const weight10=weight*0.90;
@@ -709,6 +718,16 @@ $("#month15").textContent=month15.toFixed(1);
       : bmi22Diff<-0.05
         ? "現在はBMI22の標準体重を下回っています"
         : "現在はBMI22の標準体重付近です";
+    $("#bmi22GuideWeight").textContent=bmi22.toFixed(1);
+    if(bmi22Diff>0.05){
+      $("#bmi22Loss").textContent=bmi22Diff.toFixed(1);
+      $("#bmi22MonthlyLoss").textContent=bmi22MonthlyLoss.toFixed(1);
+      $("#bmi22GuideStatus").textContent="BMI22までの差を3か月で均等に分けた単純計算です。無理に3か月で目指す必要はありません。";
+    }else{
+      $("#bmi22Loss").textContent="-";
+      $("#bmi22MonthlyLoss").textContent="-";
+      $("#bmi22GuideStatus").textContent="現在はBMI22の標準体重以下のため、BMI22を目指す減量計算は表示しません。";
+    }
   }else{
     $("#bmiJudge").textContent="-";
     $("#bmiValue").textContent="-";
@@ -716,6 +735,10 @@ $("#month15").textContent=month15.toFixed(1);
     $("#bmi22Weight").textContent="-";
     $("#bmi25GoalStatus").textContent="-";
     $("#bmi22GoalStatus").textContent="-";
+    $("#bmi22GuideWeight").textContent="-";
+    $("#bmi22Loss").textContent="-";
+    $("#bmi22MonthlyLoss").textContent="-";
+    $("#bmi22GuideStatus").textContent="身長と現在の体重を入力すると表示されます。";
  $("#month5").textContent="-";
 $("#month8").textContent="-";
 $("#month10").textContent="-";
