@@ -1383,44 +1383,7 @@ document.getElementById("logoutBtn").onclick = async () => {
   localStorage.clear();
   location.reload();
 }; 
-setTimeout(() => {
-  const app = document.getElementById("appArea");
-  const main = document.querySelector("main");
-  const diagnosis = document.getElementById("diagnosis");
 
-  const limit = document.documentElement.clientWidth;
-
-const offenders = [...document.querySelectorAll("body *")]
-  .map(el => {
-    const r = el.getBoundingClientRect();
-    return {
-      name:
-        el.tagName.toLowerCase() +
-        (el.id ? "#" + el.id : "") +
-        (el.className && typeof el.className === "string"
-          ? "." + el.className.trim().replace(/\s+/g, ".")
-          : ""),
-      left: Math.round(r.left),
-      right: Math.round(r.right),
-      width: Math.round(r.width)
-    };
-  })
-  .filter(x => x.right > limit + 1 || x.left < -1 || x.width > limit + 1)
-  .slice(0, 10);
-
-const info = [
-  "画面幅: " + limit,
-  "ページ幅: " + document.documentElement.scrollWidth,
-  "",
-  "はみ出している要素:",
-  ...offenders.map(
-    x => `${x.name}\n幅:${x.width}  左:${x.left}  右:${x.right}`
-  )
-].join("\n");
-
-
-  alert(info);
-}, 1500);
  
  </script>
  </body></html>
