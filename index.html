@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- 3か月間の減量目安を体重目標の設定より上へ移動 -->
+<!-- 3か月間の減量目安を折りたたみ表示に変更 -->
 <html lang="ja">
 <head>
 <meta charset="utf-8">
@@ -61,6 +61,7 @@ nav button.active,.secondary.active,.primary{background:#ef6c00;color:white;bord
 .percentageGoal:last-child{border-bottom:none}
 .percentageGoal p{margin:3px 0;line-height:1.45}
 .percentageGoal .muted{margin-top:5px}
+.sectionToggle{width:100%;margin:12px 0;padding:12px 14px;text-align:left;font-size:16px;font-weight:700}
 .choice{display:flex;gap:8px}.choice button{flex:1;padding:10px;border-radius:12px;border:1px solid #ddd;background:white}
 .ok.sel{background:#e8f5e9}.ng.sel{background:#ffebee}
 .hidden{display:none}.muted{color:#666;font-size:13px}.bar{height:12px;background:#eee;border-radius:20px;overflow:hidden}.bar span{display:block;height:100%;background:#ef6c00}
@@ -279,7 +280,12 @@ nav button{
     </div>
     <p class="muted">※目標BMIの範囲は年齢で異なります（18～49歳：18.5～24.9、50～64歳：20.0～24.9、65歳以上：21.5～24.9）。体組成や健康状態も考慮してください。</p>
 
-  <h3>3ヶ月間の減量目安</h3>
+<button type="button" id="toggleThreeMonthGuide" class="secondary sectionToggle"
+  aria-expanded="false" aria-controls="threeMonthGuideContent">
+  3か月間の減量目安を見る ▼
+</button>
+
+<div id="threeMonthGuideContent" class="hidden">
 
 <p class="muted">身長と現在の体重から、BMI25・BMI22までの差を計算します。</p>
 
@@ -326,6 +332,7 @@ nav button{
     <p>1か月 約<strong id="month15">-</strong> kg減</p>
     <p class="muted">頑張りすぎ注意！3か月ではここまでが上限</p>
   </div>
+</div>
 </div>
 
 <h3>体重目標の設定</h3>
@@ -681,6 +688,18 @@ $("#toggleInitialSetup").onclick=()=>{
     isHidden ? "初回設定を閉じる ▲" : "初回設定を開く ▼";
 };
 
+$("#toggleThreeMonthGuide").onclick=()=>{
+  const content=$("#threeMonthGuideContent");
+  const isHidden=content.classList.contains("hidden");
+  const button=$("#toggleThreeMonthGuide");
+
+  content.classList.toggle("hidden");
+  button.textContent=isHidden
+    ? "3か月間の減量目安を閉じる ▲"
+    : "3か月間の減量目安を見る ▼";
+  button.setAttribute("aria-expanded",String(isHidden));
+};
+
 $("#saveDiagnosis").addEventListener("click",async()=>{
   const d=$$("#questions input:checked").map(x=>x.value);
 set("diagnosis",d);
@@ -824,7 +843,10 @@ const futureWeight=Number($("#futureWeight").value);
 await window.saveUserData();
   updateInitialSetupCalc();
   $("#initialSetupContent").classList.add("hidden");
-$("#toggleInitialSetup").textContent="初回設定を開く ▼";
+  $("#toggleInitialSetup").textContent="初回設定を開く ▼";
+  $("#threeMonthGuideContent").classList.add("hidden");
+  $("#toggleThreeMonthGuide").textContent="3か月間の減量目安を見る ▼";
+  $("#toggleThreeMonthGuide").setAttribute("aria-expanded","false");
   alert("初回設定を保存しました");
 };
   $("#saveGoals").onclick=()=>{const g=$$(".goalPick:checked").map(x=>x.value);if(!g.length||g.length>3){alert("1〜3項目を選んでください");return}set("goals",g);show("today")};
