@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- BMI25・BMI22の目標値から将来目標を自動入力できるように変更 -->
+<!-- BMI25・BMI22の目標値を2列・開閉式のコンパクト表示に変更 -->
 <html lang="ja">
 <head>
 <meta charset="utf-8">
@@ -66,9 +66,15 @@ nav button.active,.secondary.active,.primary{background:#ef6c00;color:white;bord
 .goalCandidate{min-width:0;padding:10px 6px;border:1px solid #ddd;border-radius:10px;background:#fff;color:#078bf2;font-size:14px;font-weight:700;line-height:1.35}
 .goalCandidate.selected{border-color:#ef6c00;background:#fff3e0;color:#ef6c00}
 .goalCandidate:disabled{background:#fafafa;color:#aaa}
-.bmiGoalButton{width:100%;text-align:left;padding:10px 12px}
-.bmiGoalButton strong{display:block;font-size:16px}
-.bmiGoalAction{display:block;margin-top:6px;font-size:13px}
+.bmiGoalChoices{margin-bottom:4px}
+.bmiGoalButton{width:100%;min-height:112px;text-align:left;padding:10px;display:flex;flex-direction:column;align-items:flex-start}
+.bmiGoalButton strong{display:block;font-size:14px}
+.bmiGoalStatus{display:block;margin-top:7px;color:#444;font-size:12px;font-weight:600}
+.bmiGoalButton:disabled .bmiGoalStatus{color:#999}
+.bmiGoalAction{display:block;margin-top:auto;padding-top:7px;font-size:12px}
+.bmiGoalDetails{margin:8px 0 0;padding:9px 11px;border:1px solid #eee;border-radius:10px;background:#fafafa}
+.bmiGoalDetails summary{color:#078bf2;font-size:13px;font-weight:700;cursor:pointer}
+.bmiGoalDetails p{margin:8px 0 0;line-height:1.5}
 .candidateHint{margin:8px 0 4px}
 .candidateFeedback{min-height:1.4em;margin:4px 0 0;color:#ef6c00;font-size:13px;font-weight:600}
 .choice{display:flex;gap:8px}.choice button{flex:1;padding:10px;border-radius:12px;border:1px solid #ddd;background:white}
@@ -275,28 +281,34 @@ nav button{
     <p>BMI：<strong id="bmiValue">-</strong></p>
     <p>判定：<strong id="bmiJudge">-</strong></p>
 
-    <h3>BMIを基準にした目標値</h3>
-    <div class="goal">
+    <button type="button" id="toggleBmiGoals" class="secondary sectionToggle"
+      aria-expanded="false" aria-controls="bmiGoalsContent">
+      BMIを基準にした目標値を見る ▼
+    </button>
+
+    <div id="bmiGoalsContent" class="hidden">
+    <div class="goalCandidates bmiGoalChoices">
       <button type="button" id="candidateBmi25" class="goalCandidate bmiGoalButton"
         data-target="futureWeight" disabled>
-        <strong>BMI25の目標値：<span id="bmi25Weight">-</span> kg</strong>
-        <span class="bmiGoalAction">この体重を将来目標にする</span>
+        <strong>BMI25：<span id="bmi25Weight">-</span> kg</strong>
+        <span id="bmi25GoalStatus" class="bmiGoalStatus">-</span>
+        <span class="bmiGoalAction">将来目標にする</span>
       </button>
-      <p id="bmi25GoalStatus">-</p>
-      <p class="muted">BMI25は肥満判定の境界となる値です。</p>
-    </div>
-
-    <div class="goal">
       <button type="button" id="candidateBmi22" class="goalCandidate bmiGoalButton"
         data-target="futureWeight" disabled>
-        <strong>BMI22の標準体重：<span id="bmi22Weight">-</span> kg</strong>
-        <span class="bmiGoalAction">この体重を将来目標にする</span>
+        <strong>BMI22：<span id="bmi22Weight">-</span> kg</strong>
+        <span id="bmi22GoalStatus" class="bmiGoalStatus">-</span>
+        <span class="bmiGoalAction">将来目標にする</span>
       </button>
-      <p id="bmi22GoalStatus">-</p>
-      <p class="muted">BMI22で計算した体重は「標準体重」とされ、日本人ではBMI22あたりで病気の合併が最も少ないとされています（厚生労働省 e-ヘルスネット）。</p>
     </div>
     <p id="futureWeightFeedback" class="candidateFeedback" aria-live="polite"></p>
-    <p class="muted">※目標BMIの範囲は年齢で異なります（18～49歳：18.5～24.9、50～64歳：20.0～24.9、65歳以上：21.5～24.9）。体組成や健康状態も考慮してください。</p>
+    <details class="bmiGoalDetails">
+      <summary>BMI25・BMI22について</summary>
+      <p class="muted">BMI25は肥満判定の境界となる値です。</p>
+      <p class="muted">BMI22で計算した体重は「標準体重」とされ、日本人ではBMI22あたりで病気の合併が最も少ないとされています（厚生労働省 e-ヘルスネット）。</p>
+      <p class="muted">※目標BMIの範囲は年齢で異なります（18～49歳：18.5～24.9、50～64歳：20.0～24.9、65歳以上：21.5～24.9）。体組成や健康状態も考慮してください。</p>
+    </details>
+    </div>
 
 <button type="button" id="toggleThreeMonthGuide" class="secondary sectionToggle"
   aria-expanded="false" aria-controls="threeMonthGuideContent">
@@ -715,6 +727,18 @@ $("#toggleInitialSetup").onclick=()=>{
     isHidden ? "初回設定を閉じる ▲" : "初回設定を開く ▼";
 };
 
+$("#toggleBmiGoals").onclick=()=>{
+  const content=$("#bmiGoalsContent");
+  const isHidden=content.classList.contains("hidden");
+  const button=$("#toggleBmiGoals");
+
+  content.classList.toggle("hidden");
+  button.textContent=isHidden
+    ? "BMIを基準にした目標値を閉じる ▲"
+    : "BMIを基準にした目標値を見る ▼";
+  button.setAttribute("aria-expanded",String(isHidden));
+};
+
 $("#toggleThreeMonthGuide").onclick=()=>{
   const content=$("#threeMonthGuideContent");
   const isHidden=content.classList.contains("hidden");
@@ -927,6 +951,9 @@ await window.saveUserData();
   updateInitialSetupCalc();
   $("#initialSetupContent").classList.add("hidden");
   $("#toggleInitialSetup").textContent="初回設定を開く ▼";
+  $("#bmiGoalsContent").classList.add("hidden");
+  $("#toggleBmiGoals").textContent="BMIを基準にした目標値を見る ▼";
+  $("#toggleBmiGoals").setAttribute("aria-expanded","false");
   $("#threeMonthGuideContent").classList.add("hidden");
   $("#toggleThreeMonthGuide").textContent="3か月間の減量目安を見る ▼";
   $("#toggleThreeMonthGuide").setAttribute("aria-expanded","false");
