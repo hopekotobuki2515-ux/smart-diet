@@ -1311,6 +1311,11 @@ document.getElementById("loginBtn").onclick = async () => {
 onAuthStateChanged(auth, async (user) => {
   if (user) {
     await loadUserData();
+const loadedGoals = JSON.parse(localStorage.getItem("goals") || "[]");
+if(loadedGoals.length > 3){
+  localStorage.setItem("goals", JSON.stringify(loadedGoals.slice(0,3)));
+  await saveUserData();
+}
 
     authArea.classList.add("hidden");
     appArea.classList.remove("hidden");
