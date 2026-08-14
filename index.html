@@ -1378,5 +1378,23 @@ document.getElementById("logoutBtn").onclick = async () => {
   localStorage.clear();
   location.reload();
 }; 
+setTimeout(() => {
+  const app = document.getElementById("appArea");
+  const main = document.querySelector("main");
+  const diagnosis = document.getElementById("diagnosis");
+
+  const info = [
+    "innerWidth: " + window.innerWidth,
+    "html clientWidth: " + document.documentElement.clientWidth,
+    "html scrollWidth: " + document.documentElement.scrollWidth,
+    "body scrollWidth: " + document.body.scrollWidth,
+    "appArea: " + Math.round(app.getBoundingClientRect().width),
+    "main: " + Math.round(main.getBoundingClientRect().width),
+    "diagnosis: " + Math.round(diagnosis.getBoundingClientRect().width)
+  ].join("\n");
+
+  alert(info);
+}, 1500);
+ 
  </script>
  </body></html>
