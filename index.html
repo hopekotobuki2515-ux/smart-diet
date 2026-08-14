@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- 3か月間の減量目安を折りたたみ表示に変更 -->
+<!-- 計算結果から目標体重を選んで自動入力できるように変更 -->
 <html lang="ja">
 <head>
 <meta charset="utf-8">
@@ -62,6 +62,12 @@ nav button.active,.secondary.active,.primary{background:#ef6c00;color:white;bord
 .percentageGoal p{margin:3px 0;line-height:1.45}
 .percentageGoal .muted{margin-top:5px}
 .sectionToggle{width:100%;margin:12px 0;padding:12px 14px;text-align:left;font-size:16px;font-weight:700}
+.goalCandidates{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:8px 0}
+.goalCandidate{min-width:0;padding:10px 6px;border:1px solid #ddd;border-radius:10px;background:#fff;color:#078bf2;font-size:14px;font-weight:700;line-height:1.35}
+.goalCandidate.selected{border-color:#ef6c00;background:#fff3e0;color:#ef6c00}
+.goalCandidate:disabled{background:#fafafa;color:#aaa}
+.candidateHint{margin:8px 0 4px}
+.candidateFeedback{min-height:1.4em;margin:4px 0 0;color:#ef6c00;font-size:13px;font-weight:600}
 .choice{display:flex;gap:8px}.choice button{flex:1;padding:10px;border-radius:12px;border:1px solid #ddd;background:white}
 .ok.sel{background:#e8f5e9}.ng.sel{background:#ffebee}
 .hidden{display:none}.muted{color:#666;font-size:13px}.bar{height:12px;background:#eee;border-radius:20px;overflow:hidden}.bar span{display:block;height:100%;background:#ef6c00}
@@ -336,6 +342,7 @@ nav button{
 </div>
 
 <h3>体重目標の設定</h3>
+<p class="muted">候補をタップすると入力欄に自動で入ります。あとから手入力で修正できます。</p>
 
 <div class="q">
   <label>20歳の時の体重（kg）</label>
@@ -350,11 +357,25 @@ nav button{
 <div class="q">
   <label>3か月後の目標体重（kg）</label>
   <input id="goalWeight3m" type="number" step="0.1" placeholder="例 66.5">
+  <p class="muted candidateHint">現在体重からの割合別候補</p>
+  <div class="goalCandidates">
+    <button type="button" id="candidate5" class="goalCandidate" data-target="goalWeight3m" disabled>5％：- kg</button>
+    <button type="button" id="candidate8" class="goalCandidate" data-target="goalWeight3m" disabled>8％：- kg</button>
+    <button type="button" id="candidate10" class="goalCandidate" data-target="goalWeight3m" disabled>10％：- kg</button>
+    <button type="button" id="candidate15" class="goalCandidate" data-target="goalWeight3m" disabled>15％：- kg</button>
+  </div>
+  <p id="goalWeight3mFeedback" class="candidateFeedback" aria-live="polite"></p>
 </div>
 
 <div class="q">
   <label>将来の目標体重（kg）</label>
   <input id="futureWeight" type="number" step="0.1" placeholder="例 63.0">
+  <p class="muted candidateHint">BMIを基準にした候補</p>
+  <div class="goalCandidates">
+    <button type="button" id="candidateBmi25" class="goalCandidate" data-target="futureWeight" disabled>BMI25：- kg</button>
+    <button type="button" id="candidateBmi22" class="goalCandidate" data-target="futureWeight" disabled>BMI22：- kg</button>
+  </div>
+  <p id="futureWeightFeedback" class="candidateFeedback" aria-live="polite"></p>
 </div>
 <button class="primary" id="saveInitialSetup">初回設定を保存</button>  
 </div> 
@@ -709,9 +730,27 @@ set("diagnosis",d);
   }
 await window.saveUserData();
 });
+
+function updateGoalCandidate(buttonId,label,value){
+  const button=$(buttonId);
+  const isAvailable=Number.isFinite(value) && value>0;
+
+  button.disabled=!isAvailable;
+  button.dataset.value=isAvailable ? value.toFixed(1) : "";
+  button.textContent=`${label}：${isAvailable ? value.toFixed(1) : "-"} kg`;
+}
+
+function clearGoalCandidateSelection(targetId){
+  $$(`.goalCandidate[data-target="${targetId}"]`).forEach(button=>button.classList.remove("selected"));
+  $(`#${targetId}Feedback`).textContent="";
+}
+
   function updateInitialSetupCalc(){
   const heightCm=Number($("#heightCm").value);
   const weight=Number($("#startWeight").value);
+
+  clearGoalCandidateSelection("goalWeight3m");
+  clearGoalCandidateSelection("futureWeight");
 
   if(heightCm>0 && weight>0){
     const heightM=heightCm/100;
@@ -730,6 +769,12 @@ const weight15=weight*0.85;
 const month8=(weight*0.08)/3;
 const month10=(weight*0.10)/3;
 const month15=(weight*0.15)/3; 
+    updateGoalCandidate("#candidate5","5％",weight5);
+    updateGoalCandidate("#candidate8","8％",weight8);
+    updateGoalCandidate("#candidate10","10％",weight10);
+    updateGoalCandidate("#candidate15","15％",weight15);
+    updateGoalCandidate("#candidateBmi25","BMI25",bmi25Diff>0.05 ? bmi25 : null);
+    updateGoalCandidate("#candidateBmi22","BMI22",bmi22Diff>0.05 ? bmi22 : null);
     let judge="";
 
 if(bmi<18.5){
@@ -814,11 +859,35 @@ $("#month15").textContent="-";
 $("#weight8").textContent="-";
 $("#weight10").textContent="-";
 $("#weight15").textContent="-";
+    updateGoalCandidate("#candidate5","5％",null);
+    updateGoalCandidate("#candidate8","8％",null);
+    updateGoalCandidate("#candidate10","10％",null);
+    updateGoalCandidate("#candidate15","15％",null);
+    updateGoalCandidate("#candidateBmi25","BMI25",null);
+    updateGoalCandidate("#candidateBmi22","BMI22",null);
   }
 }
 
 $("#heightCm").addEventListener("input",updateInitialSetupCalc);
 $("#startWeight").addEventListener("input",updateInitialSetupCalc);
+
+$$('.goalCandidate').forEach(button=>{
+  button.onclick=()=>{
+    if(!button.dataset.value) return;
+
+    const targetId=button.dataset.target;
+    const input=$(`#${targetId}`);
+    clearGoalCandidateSelection(targetId);
+    input.value=button.dataset.value;
+    button.classList.add("selected");
+    $(`#${targetId}Feedback`).textContent=
+      `${button.textContent.trim()}を入力しました`;
+  };
+});
+
+[$("#goalWeight3m"),$("#futureWeight")].forEach(input=>{
+  input.addEventListener("input",()=>clearGoalCandidateSelection(input.id));
+});
 
 $("#saveInitialSetup").onclick=async()=>{
   const heightCm=Number($("#heightCm").value);
