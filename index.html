@@ -604,7 +604,12 @@ setTimeout(updateDiagnosisCount,0);
   function renderPicker(){
   const d=get("diagnosis",[]);
   const g=get("goals",[]);
-  const completed=get("completedGoals",[]);
+  if(g.length>3){
+  g.splice(3);
+  set("goals",g);
+}
+
+    const completed=get("completedGoals",[]);
 $("#goalPickerCard").classList.toggle("hidden",!d.length);
   const visible=d.filter(id=>!completed.includes(id));
 
