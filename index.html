@@ -1147,27 +1147,7 @@ $("#saveGoals").addEventListener("click",async()=>{
     const s=g.querySelector(".sel");
     if(s) r[g.dataset.id]=s.dataset.v;
   });
-const goals=get("goals",[]);
 
-$$(".goal").forEach(g=>{
-  const s=g.querySelector(".sel");
-
-if(s && s.dataset.v==="ok"){
-  const index=goals.indexOf(g.dataset.id);
-
-  if(index!==-1){
-    goals.splice(index,1);
-  }
-
-  const completed=get("completedGoals",[]);
-  if(!completed.includes(g.dataset.id)){
-    completed.push(g.dataset.id);
-    set("completedGoals",completed);
-  }
-}
-});
-
-set("goals",goals);
   
   renderPicker();
   if($("#weight").value){
