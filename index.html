@@ -625,9 +625,23 @@ const updateGoalCount=()=>{
   $("#goalCount").textContent=`${count} / 3`;
 };
 
+
+
+
+
 $$(".goalPick").forEach(cb=>{
-  cb.addEventListener("change",updateGoalCount);
+  cb.addEventListener("change",()=>{
+    const checked=$$(".goalPick:checked");
+
+    if(checked.length>3){
+      cb.checked=false;
+      alert("改善目標は最大3つまで選べます");
+    }
+
+    updateGoalCount();
+  });
 });
+
 
 updateGoalCount();
 }
