@@ -302,8 +302,8 @@ nav button{
 <div class="goal">
   <p><strong>BMI25までの計算結果</strong></p>
   <p>目標体重：<strong id="bmi25GuideWeight">-</strong> kg</p>
-  <p>現在から：約<strong id="bmi25Loss">-</strong> kg減</p>
-  <p>1か月：約<strong id="bmi25MonthlyLoss">-</strong> kg減</p>
+  <p>現在から：<strong id="bmi25Loss">-</strong></p>
+  <p>1か月：<strong id="bmi25MonthlyLoss">-</strong></p>
   <p class="muted" id="bmi25GuideStatus">身長と現在の体重を入力すると表示されます。</p>
 </div>
 
@@ -734,13 +734,17 @@ $("#month15").textContent=month15.toFixed(1);
         : "現在はBMI22の標準体重付近です";
     $("#bmi25GuideWeight").textContent=bmi25.toFixed(1);
     if(bmi25Diff>0.05){
-      $("#bmi25Loss").textContent=bmi25Diff.toFixed(1);
-      $("#bmi25MonthlyLoss").textContent=bmi25MonthlyLoss.toFixed(1);
+      $("#bmi25Loss").textContent=`約${bmi25Diff.toFixed(1)} kg減`;
+      $("#bmi25MonthlyLoss").textContent=`約${bmi25MonthlyLoss.toFixed(1)} kg減`;
       $("#bmi25GuideStatus").textContent="BMI25までの差を3か月で均等に分けた単純計算です。";
+    }else if(bmi25Diff<-0.05){
+      $("#bmi25Loss").textContent="減量不要";
+      $("#bmi25MonthlyLoss").textContent="表示なし";
+      $("#bmi25GuideStatus").textContent="すでにBMI25未満です。";
     }else{
-      $("#bmi25Loss").textContent="-";
-      $("#bmi25MonthlyLoss").textContent="-";
-      $("#bmi25GuideStatus").textContent="現在はBMI25以下のため、BMI25を目指す減量計算は表示しません。";
+      $("#bmi25Loss").textContent="減量不要";
+      $("#bmi25MonthlyLoss").textContent="表示なし";
+      $("#bmi25GuideStatus").textContent="現在はBMI25付近です。";
     }
     $("#bmi22GuideWeight").textContent=bmi22.toFixed(1);
     if(bmi22Diff>0.05){
