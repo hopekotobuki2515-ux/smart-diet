@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- 割合別目標文言の統一版をGitHub Pagesへ再公開 -->
+<!-- 3か月間の減量目安を体重目標の設定より上へ移動 -->
 <html lang="ja">
 <head>
 <meta charset="utf-8">
@@ -279,27 +279,6 @@ nav button{
     </div>
     <p class="muted">※目標BMIの範囲は年齢で異なります（18～49歳：18.5～24.9、50～64歳：20.0～24.9、65歳以上：21.5～24.9）。体組成や健康状態も考慮してください。</p>
 
-  <h3>体重目標の設定</h3>
-
-<div class="q">
-  <label>20歳の時の体重（kg）</label>
-  <input id="weight20" type="number" step="0.1" placeholder="例 60.0">
-</div>
-
-<div class="q">
-  <label>もっとも長く維持した体重（kg）</label>
-  <input id="stableWeight" type="number" step="0.1" placeholder="例 65.0">
-</div>
-
-<div class="q">
-  <label>3か月後の目標体重（kg）</label>
-  <input id="goalWeight3m" type="number" step="0.1" placeholder="例 66.5">
-</div>
-
-<div class="q">
-  <label>将来の目標体重（kg）</label>
-  <input id="futureWeight" type="number" step="0.1" placeholder="例 63.0">
-</div>
   <h3>3ヶ月間の減量目安</h3>
 
 <p class="muted">身長と現在の体重から、BMI25・BMI22までの差を計算します。</p>
@@ -347,6 +326,28 @@ nav button{
     <p>1か月 約<strong id="month15">-</strong> kg減</p>
     <p class="muted">頑張りすぎ注意！3か月ではここまでが上限</p>
   </div>
+</div>
+
+<h3>体重目標の設定</h3>
+
+<div class="q">
+  <label>20歳の時の体重（kg）</label>
+  <input id="weight20" type="number" step="0.1" placeholder="例 60.0">
+</div>
+
+<div class="q">
+  <label>もっとも長く維持した体重（kg）</label>
+  <input id="stableWeight" type="number" step="0.1" placeholder="例 65.0">
+</div>
+
+<div class="q">
+  <label>3か月後の目標体重（kg）</label>
+  <input id="goalWeight3m" type="number" step="0.1" placeholder="例 66.5">
+</div>
+
+<div class="q">
+  <label>将来の目標体重（kg）</label>
+  <input id="futureWeight" type="number" step="0.1" placeholder="例 63.0">
 </div>
 <button class="primary" id="saveInitialSetup">初回設定を保存</button>  
 </div> 
