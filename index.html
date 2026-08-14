@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- 最も長く維持していた体重の文言を修正 -->
+<!-- BMI25・BMI22の目標値から将来目標を自動入力できるように変更 -->
 <html lang="ja">
 <head>
 <meta charset="utf-8">
@@ -66,6 +66,9 @@ nav button.active,.secondary.active,.primary{background:#ef6c00;color:white;bord
 .goalCandidate{min-width:0;padding:10px 6px;border:1px solid #ddd;border-radius:10px;background:#fff;color:#078bf2;font-size:14px;font-weight:700;line-height:1.35}
 .goalCandidate.selected{border-color:#ef6c00;background:#fff3e0;color:#ef6c00}
 .goalCandidate:disabled{background:#fafafa;color:#aaa}
+.bmiGoalButton{width:100%;text-align:left;padding:10px 12px}
+.bmiGoalButton strong{display:block;font-size:16px}
+.bmiGoalAction{display:block;margin-top:6px;font-size:13px}
 .candidateHint{margin:8px 0 4px}
 .candidateFeedback{min-height:1.4em;margin:4px 0 0;color:#ef6c00;font-size:13px;font-weight:600}
 .choice{display:flex;gap:8px}.choice button{flex:1;padding:10px;border-radius:12px;border:1px solid #ddd;background:white}
@@ -274,16 +277,25 @@ nav button{
 
     <h3>BMIを基準にした目標値</h3>
     <div class="goal">
-      <p><strong>BMI25の目標値：<span id="bmi25Weight">-</span> kg</strong></p>
+      <button type="button" id="candidateBmi25" class="goalCandidate bmiGoalButton"
+        data-target="futureWeight" disabled>
+        <strong>BMI25の目標値：<span id="bmi25Weight">-</span> kg</strong>
+        <span class="bmiGoalAction">この体重を将来目標にする</span>
+      </button>
       <p id="bmi25GoalStatus">-</p>
       <p class="muted">BMI25は肥満判定の境界となる値です。</p>
     </div>
 
     <div class="goal">
-      <p><strong>BMI22の標準体重：<span id="bmi22Weight">-</span> kg</strong></p>
+      <button type="button" id="candidateBmi22" class="goalCandidate bmiGoalButton"
+        data-target="futureWeight" disabled>
+        <strong>BMI22の標準体重：<span id="bmi22Weight">-</span> kg</strong>
+        <span class="bmiGoalAction">この体重を将来目標にする</span>
+      </button>
       <p id="bmi22GoalStatus">-</p>
       <p class="muted">BMI22で計算した体重は「標準体重」とされ、日本人ではBMI22あたりで病気の合併が最も少ないとされています（厚生労働省 e-ヘルスネット）。</p>
     </div>
+    <p id="futureWeightFeedback" class="candidateFeedback" aria-live="polite"></p>
     <p class="muted">※目標BMIの範囲は年齢で異なります（18～49歳：18.5～24.9、50～64歳：20.0～24.9、65歳以上：21.5～24.9）。体組成や健康状態も考慮してください。</p>
 
 <button type="button" id="toggleThreeMonthGuide" class="secondary sectionToggle"
@@ -370,12 +382,6 @@ nav button{
 <div class="q">
   <label>将来の目標体重（kg）</label>
   <input id="futureWeight" type="number" step="0.1" placeholder="例 63.0">
-  <p class="muted candidateHint">BMIを基準にした候補</p>
-  <div class="goalCandidates">
-    <button type="button" id="candidateBmi25" class="goalCandidate" data-target="futureWeight" disabled>BMI25：- kg</button>
-    <button type="button" id="candidateBmi22" class="goalCandidate" data-target="futureWeight" disabled>BMI22：- kg</button>
-  </div>
-  <p id="futureWeightFeedback" class="candidateFeedback" aria-live="polite"></p>
 </div>
 <button class="primary" id="saveInitialSetup">初回設定を保存</button>  
 </div> 
@@ -740,6 +746,14 @@ function updateGoalCandidate(buttonId,label,value){
   button.textContent=`${label}：${isAvailable ? value.toFixed(1) : "-"} kg`;
 }
 
+function updateBmiGoalCandidate(buttonId,value){
+  const button=$(buttonId);
+  const isAvailable=Number.isFinite(value) && value>0;
+
+  button.disabled=!isAvailable;
+  button.dataset.value=isAvailable ? value.toFixed(1) : "";
+}
+
 function clearGoalCandidateSelection(targetId){
   $$(`.goalCandidate[data-target="${targetId}"]`).forEach(button=>button.classList.remove("selected"));
   $(`#${targetId}Feedback`).textContent="";
@@ -773,8 +787,8 @@ const month15=(weight*0.15)/3;
     updateGoalCandidate("#candidate8","8％",weight8);
     updateGoalCandidate("#candidate10","10％",weight10);
     updateGoalCandidate("#candidate15","15％",weight15);
-    updateGoalCandidate("#candidateBmi25","BMI25",bmi25Diff>0.05 ? bmi25 : null);
-    updateGoalCandidate("#candidateBmi22","BMI22",bmi22Diff>0.05 ? bmi22 : null);
+    updateBmiGoalCandidate("#candidateBmi25",bmi25Diff>0.05 ? bmi25 : null);
+    updateBmiGoalCandidate("#candidateBmi22",bmi22Diff>0.05 ? bmi22 : null);
     let judge="";
 
 if(bmi<18.5){
@@ -863,8 +877,8 @@ $("#weight15").textContent="-";
     updateGoalCandidate("#candidate8","8％",null);
     updateGoalCandidate("#candidate10","10％",null);
     updateGoalCandidate("#candidate15","15％",null);
-    updateGoalCandidate("#candidateBmi25","BMI25",null);
-    updateGoalCandidate("#candidateBmi22","BMI22",null);
+    updateBmiGoalCandidate("#candidateBmi25",null);
+    updateBmiGoalCandidate("#candidateBmi22",null);
   }
 }
 
@@ -881,7 +895,7 @@ $$('.goalCandidate').forEach(button=>{
     input.value=button.dataset.value;
     button.classList.add("selected");
     $(`#${targetId}Feedback`).textContent=
-      `${button.textContent.trim()}を入力しました`;
+      `${button.dataset.value} kgを${targetId==="goalWeight3m" ? "3か月後" : "将来"}の目標体重に入力しました`;
   };
 });
 
