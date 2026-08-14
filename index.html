@@ -260,6 +260,7 @@ nav button{
     <p>BMI：<strong id="bmiValue">-</strong></p>
     <p>判定：<strong id="bmiJudge">-</strong></p>
     <p>BMI25になる体重：<strong id="bmi25Weight">-</strong> kg</p>
+    <p>BMI22になる体重：<strong id="bmi22Weight">-</strong> kg</p>
 
   <h3>体重目標の設定</h3>
 
@@ -648,6 +649,7 @@ await window.saveUserData();
     const heightM=heightCm/100;
     const bmi=weight/(heightM*heightM);
     const bmi25=heightM*heightM*25;
+    const bmi22=heightM*heightM*22;
 const weight5=weight*0.95;
 const weight8=weight*0.92;
 const weight10=weight*0.90;
@@ -682,10 +684,12 @@ $("#month10").textContent=month10.toFixed(1);
 $("#month15").textContent=month15.toFixed(1);
     $("#bmiJudge").textContent=judge;
     $("#bmi25Weight").textContent=bmi25.toFixed(1);
+    $("#bmi22Weight").textContent=bmi22.toFixed(1);
   }else{
     $("#bmiJudge").textContent="-";
     $("#bmiValue").textContent="-";
     $("#bmi25Weight").textContent="-";
+    $("#bmi22Weight").textContent="-";
  $("#month5").textContent="-";
 $("#month8").textContent="-";
 $("#month10").textContent="-";
