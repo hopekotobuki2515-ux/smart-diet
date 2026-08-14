@@ -297,13 +297,26 @@ nav button{
 </div>
   <h3>3ヶ月間の減量目安</h3>
 
+<p class="muted">身長と現在の体重から、BMI25・BMI22までの差を計算します。</p>
+
 <div class="goal">
-  <p><strong>BMI22までの減量目安</strong></p>
+  <p><strong>BMI25までの計算結果</strong></p>
+  <p>目標体重：<strong id="bmi25GuideWeight">-</strong> kg</p>
+  <p>現在から：約<strong id="bmi25Loss">-</strong> kg減</p>
+  <p>1か月：約<strong id="bmi25MonthlyLoss">-</strong> kg減</p>
+  <p class="muted" id="bmi25GuideStatus">身長と現在の体重を入力すると表示されます。</p>
+</div>
+
+<div class="goal">
+  <p><strong>BMI22までの計算結果</strong></p>
   <p>目標体重：<strong id="bmi22GuideWeight">-</strong> kg</p>
   <p>現在から：約<strong id="bmi22Loss">-</strong> kg減</p>
   <p>1か月：約<strong id="bmi22MonthlyLoss">-</strong> kg減</p>
   <p class="muted" id="bmi22GuideStatus">身長と現在の体重を入力すると表示されます。</p>
 </div>
+
+<h4>現在体重からの割合別目安</h4>
+<p class="muted">以下はBMI25・BMI22ではなく、現在の体重から5～15％減らした場合の計算です。</p>
 
 <p>5％減：<strong id="weight5">-</strong> kg</p>
 <p>1か月 約<strong id="month5">-</strong> kg減</p>
@@ -672,6 +685,7 @@ await window.saveUserData();
     const bmi22=heightM*heightM*22;
     const bmi25Diff=weight-bmi25;
     const bmi22Diff=weight-bmi22;
+    const bmi25MonthlyLoss=bmi25Diff/3;
     const bmi22MonthlyLoss=bmi22Diff/3;
 const weight5=weight*0.95;
 const weight8=weight*0.92;
@@ -718,6 +732,16 @@ $("#month15").textContent=month15.toFixed(1);
       : bmi22Diff<-0.05
         ? "現在はBMI22の標準体重を下回っています"
         : "現在はBMI22の標準体重付近です";
+    $("#bmi25GuideWeight").textContent=bmi25.toFixed(1);
+    if(bmi25Diff>0.05){
+      $("#bmi25Loss").textContent=bmi25Diff.toFixed(1);
+      $("#bmi25MonthlyLoss").textContent=bmi25MonthlyLoss.toFixed(1);
+      $("#bmi25GuideStatus").textContent="BMI25までの差を3か月で均等に分けた単純計算です。";
+    }else{
+      $("#bmi25Loss").textContent="-";
+      $("#bmi25MonthlyLoss").textContent="-";
+      $("#bmi25GuideStatus").textContent="現在はBMI25以下のため、BMI25を目指す減量計算は表示しません。";
+    }
     $("#bmi22GuideWeight").textContent=bmi22.toFixed(1);
     if(bmi22Diff>0.05){
       $("#bmi22Loss").textContent=bmi22Diff.toFixed(1);
@@ -735,6 +759,10 @@ $("#month15").textContent=month15.toFixed(1);
     $("#bmi22Weight").textContent="-";
     $("#bmi25GoalStatus").textContent="-";
     $("#bmi22GoalStatus").textContent="-";
+    $("#bmi25GuideWeight").textContent="-";
+    $("#bmi25Loss").textContent="-";
+    $("#bmi25MonthlyLoss").textContent="-";
+    $("#bmi25GuideStatus").textContent="身長と現在の体重を入力すると表示されます。";
     $("#bmi22GuideWeight").textContent="-";
     $("#bmi22Loss").textContent="-";
     $("#bmi22MonthlyLoss").textContent="-";
