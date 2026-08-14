@@ -527,7 +527,25 @@ const H=[
 ["late_eating","夕食が夜9時以降になることが多い"],
 ["alcohol","お酒をほぼ毎日飲む"]
 ];
-const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const ADVICE={
+  leftovers:"残り物は「今食べる」ではなく、まず保存する習慣をつけましょう。",
+  snacks_home:"お菓子は大袋を避け、1回で食べ切れる量を選びましょう。",
+  fast:"最初の5口だけでも、いつもよりゆっくり噛んでみましょう。",
+  not_chew:"ひと口ごとに箸を置くと、自然と噛む回数を増やせます。",
+  grazing:"食べる前に「本当に空腹？」と一度確認してみましょう。",
+  late_snack:"夜9時以降はお菓子・アイス・甘い飲み物を控え、食べる場合は量を決めましょう。",
+  fried:"1日1品は、焼く・蒸す・煮る料理に置き換えてみましょう。",
+  strong_taste:"酸味や香ばしさ、だしなど、風味を活かした料理を選んでみましょう。",
+  veg_juice:"用意が面倒だったり野菜が苦手なときは、野菜を使ったスムージーも取り入れてみましょう。",
+  skip_breakfast:"朝はヨーグルト・バナナ・温かいスープなど、1品から口にするところから始めてみましょう。",
+  eat_out:"主食・主菜・野菜がそろう組み合わせを意識しましょう。",
+  single_dish:"野菜・海藻・いも・豆類などを使った小鉢を1品プラスしましょう。",
+  snacking:"間食は時間と量を決めて、まずは1日1回を目安にしましょう。",
+  late_eating:"夕食が遅くなる日は、夕方に麺・パン・ご飯などを軽く食べ、夜は魚など脂質の少ない主菜と野菜を中心にしましょう。",
+  alcohol:"まずは週に1日、飲まない日をつくることから始めましょう。"
+};
+
+  const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const get=(k,d)=>JSON.parse(localStorage.getItem(k)||JSON.stringify(d));
 const set=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
 const day=()=>{
@@ -595,6 +613,9 @@ $("#goalPickerCard").classList.toggle("hidden",!d.length);
   <label class="goalTap">
     <input class="goalPick" type="checkbox" value="${id}" ${g.includes(id)?"checked":""}>
     <span>${title(id)}</span>
+  <span class="muted" style="display:block;margin-top:6px;">💡 ${ADVICE[id]}</span>
+
+
   </label>
 </div>
  `).join("");
