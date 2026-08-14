@@ -259,8 +259,20 @@ nav button{
 
     <p>BMI：<strong id="bmiValue">-</strong></p>
     <p>判定：<strong id="bmiJudge">-</strong></p>
-    <p>BMI25になる体重：<strong id="bmi25Weight">-</strong> kg</p>
-    <p>BMI22になる体重：<strong id="bmi22Weight">-</strong> kg</p>
+
+    <h3>BMIを基準にした目標値</h3>
+    <div class="goal">
+      <p><strong>BMI25の目標値：<span id="bmi25Weight">-</span> kg</strong></p>
+      <p id="bmi25GoalStatus">-</p>
+      <p class="muted">BMI25は肥満判定の境界となる値です。</p>
+    </div>
+
+    <div class="goal">
+      <p><strong>BMI22の標準体重：<span id="bmi22Weight">-</span> kg</strong></p>
+      <p id="bmi22GoalStatus">-</p>
+      <p class="muted">BMI22で計算した体重は「標準体重」とされ、日本人ではBMI22あたりで病気の合併が最も少ないとされています（厚生労働省 e-ヘルスネット）。</p>
+    </div>
+    <p class="muted">※目標BMIの範囲は年齢で異なります（18～49歳：18.5～24.9、50～64歳：20.0～24.9、65歳以上：21.5～24.9）。体組成や健康状態も考慮してください。</p>
 
   <h3>体重目標の設定</h3>
 
@@ -650,6 +662,8 @@ await window.saveUserData();
     const bmi=weight/(heightM*heightM);
     const bmi25=heightM*heightM*25;
     const bmi22=heightM*heightM*22;
+    const bmi25Diff=weight-bmi25;
+    const bmi22Diff=weight-bmi22;
 const weight5=weight*0.95;
 const weight8=weight*0.92;
 const weight10=weight*0.90;
@@ -685,11 +699,23 @@ $("#month15").textContent=month15.toFixed(1);
     $("#bmiJudge").textContent=judge;
     $("#bmi25Weight").textContent=bmi25.toFixed(1);
     $("#bmi22Weight").textContent=bmi22.toFixed(1);
+    $("#bmi25GoalStatus").textContent=bmi25Diff>0.05
+      ? `現在から約${bmi25Diff.toFixed(1)} kg減`
+      : bmi25Diff<-0.05
+        ? "現在はBMI25未満です"
+        : "現在はBMI25付近です";
+    $("#bmi22GoalStatus").textContent=bmi22Diff>0.05
+      ? `現在から約${bmi22Diff.toFixed(1)} kg減`
+      : bmi22Diff<-0.05
+        ? "現在はBMI22の標準体重を下回っています"
+        : "現在はBMI22の標準体重付近です";
   }else{
     $("#bmiJudge").textContent="-";
     $("#bmiValue").textContent="-";
     $("#bmi25Weight").textContent="-";
     $("#bmi22Weight").textContent="-";
+    $("#bmi25GoalStatus").textContent="-";
+    $("#bmi22GoalStatus").textContent="-";
  $("#month5").textContent="-";
 $("#month8").textContent="-";
 $("#month10").textContent="-";
