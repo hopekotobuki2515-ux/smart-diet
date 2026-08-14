@@ -56,6 +56,11 @@ nav button.active,.secondary.active,.primary{background:#ef6c00;color:white;bord
 .primary{width:100%;padding:13px;border-radius:12px;font-weight:700}
 .q{padding:11px 0;border-bottom:1px solid #eee}
 .goal{border:1px solid #eee;border-radius:14px;padding:12px;margin:10px 0}
+.percentageGoals{margin:6px 0 14px}
+.percentageGoal{padding:10px 0;border-bottom:1px solid #eee}
+.percentageGoal:last-child{border-bottom:none}
+.percentageGoal p{margin:3px 0;line-height:1.45}
+.percentageGoal .muted{margin-top:5px}
 .choice{display:flex;gap:8px}.choice button{flex:1;padding:10px;border-radius:12px;border:1px solid #ddd;background:white}
 .ok.sel{background:#e8f5e9}.ng.sel{background:#ffebee}
 .hidden{display:none}.muted{color:#666;font-size:13px}.bar{height:12px;background:#eee;border-radius:20px;overflow:hidden}.bar span{display:block;height:100%;background:#ef6c00}
@@ -318,21 +323,31 @@ nav button{
 <h4>現在体重からの割合別目安</h4>
 <p class="muted">以下はBMI25・BMI22ではなく、現在の体重から5～15％減らした場合の計算です。</p>
 
-<p>5％減：<strong id="weight5">-</strong> kg</p>
-<p>1か月 約<strong id="month5">-</strong> kg減</p>
-<p class="muted">まずはここから！気軽にチャレンジ</p>
+<div class="percentageGoals">
+  <div class="percentageGoal">
+    <p>5％減：<strong id="weight5">-</strong> kg</p>
+    <p>1か月 約<strong id="month5">-</strong> kg減</p>
+    <p class="muted">まずはここから！気軽にチャレンジ</p>
+  </div>
 
-<p>8％減：<strong id="weight8">-</strong> kg</p>
-<p>1か月 約<strong id="month8">-</strong> kg減</p>
-<p class="muted">もう一歩先へ！少し頑張るチャレンジ</p>
+  <div class="percentageGoal">
+    <p>8％減：<strong id="weight8">-</strong> kg</p>
+    <p>1か月 約<strong id="month8">-</strong> kg減</p>
+    <p class="muted">もう一歩先へ！少し頑張るチャレンジ</p>
+  </div>
 
-<p>10％減：<strong id="weight10">-</strong> kg</p>
-<p>1か月 約<strong id="month10">-</strong> kg減</p>
-<p class="muted">しっかり挑戦！本気で取り組むチャレンジ</p>
+  <div class="percentageGoal">
+    <p>10％減：<strong id="weight10">-</strong> kg</p>
+    <p>1か月 約<strong id="month10">-</strong> kg減</p>
+    <p class="muted">しっかり挑戦！本気で取り組むチャレンジ</p>
+  </div>
 
-<p>15％減：<strong id="weight15">-</strong> kg</p>
-<p>1か月 約<strong id="month15">-</strong> kg減</p>
-<p class="muted">頑張りすぎ注意！3か月ではここまでが上限</p>
+  <div class="percentageGoal">
+    <p>15％減：<strong id="weight15">-</strong> kg</p>
+    <p>1か月 約<strong id="month15">-</strong> kg減</p>
+    <p class="muted">頑張りすぎ注意！3か月ではここまでが上限</p>
+  </div>
+</div>
 <button class="primary" id="saveInitialSetup">初回設定を保存</button>  
 </div> 
 </div>
