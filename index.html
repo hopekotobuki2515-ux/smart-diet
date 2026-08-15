@@ -1034,8 +1034,17 @@ set("diagnosis",d);
     set("initialDiagnosisCount",d.length);
   }
 await window.saveUserData();
-});
+alert("チェック結果を保存しました");
+$("#goalPickerCard").classList.remove("hidden");
 
+setTimeout(() => {
+  $("#goalPickerCard").scrollIntoView({
+    behavior:"smooth",
+    block:"start"
+  });
+}, 200);
+
+});
 function updateGoalCandidate(buttonId,label,value){
   const button=$(buttonId);
   const isAvailable=Number.isFinite(value) && value>0;
