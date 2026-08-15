@@ -255,7 +255,12 @@ box-sizing:border-box;
 }
 
   @media (max-width:600px){
-  main{
+  input,
+select,
+textarea{
+  font-size:16px;
+}
+ main{
     width:100%;
     padding:10px 10px calc(84px + env(safe-area-inset-bottom));
   }
@@ -951,7 +956,26 @@ set("logs",logs);
     };
   });
 }
-function show(id){["diagnosis","today","progress","history","settings"].forEach(x=>$("#"+x).classList.toggle("hidden",x!==id));$$("nav button").forEach(b=>b.classList.toggle("active",b.dataset.tab===id));if(id==="today")renderToday();if(id==="progress")renderProgress();if(id==="history")renderHistory();if(id==="settings")renderSettings()}
+function show(id){
+  ["diagnosis","today","progress","history","settings"].forEach(x=>
+    $("#"+x).classList.toggle("hidden",x!==id)
+  );
+
+  $$("nav button").forEach(b=>
+    b.classList.toggle("active",b.dataset.tab===id)
+  );
+
+  if(id==="today") renderToday();
+  if(id==="progress") renderProgress();
+  if(id==="history") renderHistory();
+  if(id==="settings") renderSettings();
+
+  window.scrollTo({
+    top:0,
+    left:0,
+    behavior:"auto"
+  });
+}
 $$("nav button").forEach(b=>b.onclick=()=>show(b.dataset.tab));
 $("#toggleInitialSetup").onclick=()=>{
   const content=$("#initialSetupContent");
