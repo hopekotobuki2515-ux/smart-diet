@@ -80,16 +80,31 @@ nav button.active,.secondary.active,.primary{background:#ef6c00;color:white;bord
 .candidateFeedback{min-height:1.4em;margin:4px 0 0;color:#ef6c00;font-size:13px;font-weight:600}
 .choice{display:flex;gap:8px}.choice button{flex:1;padding:10px;border-radius:12px;border:1px solid #ddd;background:white}
 .ok.sel{
-  background:#ef6c00;
-  color:#fff;
-  border-color:#ef6c00;
+  background:#e8f5e9;
 }
 
 .ng.sel{
-  background:#666;
-  color:#fff;
-  border-color:#666;
+  background:#ffebee;
 }
+  .goalTap.completed{
+  background:#e8f5e9;
+  border-color:#4caf50;
+  color:#2e7d32;
+}
+
+.goalTap.completed .muted{
+  color:#2e7d32;
+}
+
+.doneMark{
+  display:block;
+  margin-top:6px;
+  font-weight:700;
+  color:#2e7d32;
+}
+
+
+
 
 .hidden{display:none}.muted{color:#666;font-size:13px}.bar{height:12px;background:#eee;border-radius:20px;overflow:hidden}.bar span{display:block;height:100%;background:#ef6c00}
 #weightChart{
@@ -677,14 +692,14 @@ setTimeout(updateDiagnosisCount,0);
 
     const completed=get("completedGoals",[]);
 $("#goalPickerCard").classList.toggle("hidden",!d.length);
-  const visible=d.filter(id=>!completed.includes(id));
-
+ const visible=d;
   $("#goalPicker").innerHTML=visible.map(id=>`
     <div class="q">
-  <label class="goalTap">
-    <input class="goalPick" type="checkbox" value="${id}" ${g.includes(id)?"checked":""}>
+ <label class="goalTap ${completed.includes(id) ? "completed" : ""}">
+ <input class="goalPick" type="checkbox" value="${id}" ${g.includes(id)?"checked":""}>
     <span>${title(id)}</span>
-  <span class="muted" style="display:block;margin-top:6px;">💡 ${ADVICE[id]}</span>
+ ${completed.includes(id) ? '<span class="doneMark">達成済み ✓</span>' : ''}
+ <span class="muted" style="display:block;margin-top:6px;">💡 ${ADVICE[id]}</span>
 
 
   </label>
