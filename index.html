@@ -985,7 +985,12 @@ $("#toggleInitialSetup").onclick=()=>{
 
   $("#toggleInitialSetup").textContent=
     isHidden ? "初回設定を閉じる ▲" : "初回設定を開く ▼";
-window.scrollTo(0,0);
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    window.scrollTo(0,0);
+  });
+});
+
 };
 
 $("#toggleBmiGoals").onclick=()=>{
