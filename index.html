@@ -1232,6 +1232,11 @@ await window.saveUserData();
   setThreeMonthGuideOpen(false);
   renderWeightJourney();
   alert("初回設定を保存しました");
+setTimeout(() => {
+  window.scrollTo(0,0);
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
+}, 200);
 };
   $("#saveGoals").onclick=()=>{const g=$$(".goalPick:checked").map(x=>x.value);if(!g.length||g.length>3){alert("1〜3項目を選んでください");return}set("goals",g);show("today")};
 $("#saveGoals").addEventListener("click",async()=>{
