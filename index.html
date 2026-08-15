@@ -1285,6 +1285,17 @@ $("#saveGoals").addEventListener("click",async()=>{
     const s=g.querySelector(".sel");
     if(s) r[g.dataset.id]=s.dataset.v;
   });
+const currentGoals=get("goals",[]);
+const completed=get("completedGoals",[]);
+
+const achieved=currentGoals.filter(id=>r[id]==="ok");
+
+achieved.forEach(id=>{
+  if(!completed.includes(id)) completed.push(id);
+});
+
+set("completedGoals",completed);
+set("goals",currentGoals.filter(id=>!achieved.includes(id)));
 
   
   renderPicker();
