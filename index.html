@@ -779,6 +779,17 @@ function renderQ(){
       </div>
     </details>
   `;
+$$(".foodCategory").forEach(category=>{
+  category.addEventListener("toggle",()=>{
+    if(!category.open) return;
+
+    $$(".foodCategory").forEach(other=>{
+      if(other!==category){
+        other.open=false;
+      }
+    });
+  });
+});
 
   $$(".ynBtn").forEach(btn=>{
     btn.onclick=()=>{
