@@ -683,27 +683,56 @@ function title(id){return H.find(x=>x[0]===id)[1]}
 function renderQ(){
   const s=get("diagnosis",[]);
 
-  $("#questions").innerHTML=H.map(([id,t])=>`
-    <div class="q diagnosisItem">
-      <div class="questionText">${t}</div>
+  const makeQuestion=(id)=>{
+    const item=H.find(x=>x[0]===id);
+    if(!item) return "";
+    const t=item[1];
 
-      <div class="ynChoice">
-        <button type="button"
-          class="ynBtn yes ${s.includes(id)?"sel":""}"
-          data-id="${id}" data-v="yes">YES</button>
+    return `
+      <div class="q diagnosisItem">
+        <div class="questionText">${t}</div>
 
-        <button type="button"
-         class="ynBtn no"
-          data-id="${id}" data-v="no">NO</button>
+        <div class="ynChoice">
+          <button type="button"
+            class="ynBtn yes ${s.includes(id)?"sel":""}"
+            data-id="${id}" data-v="yes">YES</button>
+
+          <button type="button"
+            class="ynBtn no"
+            data-id="${id}" data-v="no">NO</button>
+        </div>
+
+        <input class="diagnosisCheck"
+          type="checkbox"
+          value="${id}"
+          ${s.includes(id)?"checked":""}
+          hidden>
       </div>
+    `;
+  };
 
-      <input class="diagnosisCheck"
-        type="checkbox"
-        value="${id}"
-        ${s.includes(id)?"checked":""}
-        hidden>
-    </div>
-  `).join("");
+  $("#questions").innerHTML=`
+    <details class="foodCategory">
+      <summary>減らすこと <span>5項目</span></summary>
+      <div class="foodCategoryBody">
+        ${CATEGORY.reduce.map(makeQuestion).join("")}
+      </div>
+    </details>
+
+    <details class="foodCategory">
+      <summary>増やすこと <span>6項目</span></summary>
+      <div class="foodCategoryBody">
+        ${CATEGORY.increase.map(makeQuestion).join("")}
+      </div>
+    </details>
+
+    <details class="foodCategory">
+      <summary>整える <span>5項目</span></summary>
+      <div class="foodCategoryBody">
+        ${CATEGORY.arrange.map(makeQuestion).join("")}
+      </div>
+    </details>
+  `;
 
   $$(".ynBtn").forEach(btn=>{
     btn.onclick=()=>{
@@ -719,6 +748,7 @@ function renderQ(){
     };
   });
 }
+
   function updateDiagnosisCount(){
   const count=$$("#questions input:checked").length;
   $("#diagnosisCount").textContent=`${count} / ${H.length}`;
