@@ -590,41 +590,61 @@ textarea{
 </div>
 <script>
 const H=[
-["leftovers","空腹でなくても残り物を食べることがある"],
-["snacks_home","お菓子を家に常備している"],
-["fast","食べるのが速い"],
-["not_chew","よく噛まずに食べることが多い"],
-["grazing","食事以外の時間につい何か食べる"],
-["late_snack","夜9時以降にお菓子・アイス・甘い飲み物などをとることが多い"],
-["fried","揚げ物や油を使った料理が多い"],
-["strong_taste","味の濃い料理を選ぶことが多い"],
-["veg_juice","野菜を野菜ジュースだけで済ませることがある"],
-["skip_breakfast","朝食を抜くことがある"],
-["eat_out","外食・中食が多い"],
-["single_dish","丼物・麺類・ファストフードをよく選ぶ"],
-["snacking","間食をほぼ毎日している"],
-["late_eating","夕食が夜9時以降になることが多い"],
-["alcohol","お酒をほぼ毎日飲む"]
+["leftovers","空腹ではないのに食べることがありますか？"],
+["snacks_home","お菓子や菓子パンなどを家や目につく場所に常備していますか？"],
+["fast","食べるのが速いですか？"],
+["not_chew","満腹になるまで食べることが多いですか？"],
+["grazing","間食の回数や量を決めずに食べることが多いですか？"],
+["late_snack","ジュース・炭酸飲料・甘いカフェ飲料などをよく飲みますか？"],
+["fried","揚げ物や脂っこい料理をよく食べますか？"],
+["strong_taste","食事をするとき、食べる量を決めずに食べることが多いですか？"],
+["veg_juice","テレビやスマートフォンを見ながら食べることが多いですか？"],
+["skip_breakfast","朝食を抜くことが多く、その反動で昼食を一気に食べたり、食べ過ぎることがありますか？"],
+["eat_out","ストレス・退屈・気分転換のために食べることがありますか？"],
+["single_dish","丼物・麺類・ファストフードなど、単品だけで食事を済ませることが多いですか？"],
+["snacking","大盛りやおかわりをすることが多いですか？"],
+["late_eating","夕食が夜9時以降になることが多いですか？"],
+["alcohol","お酒を飲むと、つまみや食事の量が増えることがありますか？"],
+["water","水やお茶など、糖分を含まない飲み物をこまめに飲んでいますか？"]
 ];
-const ADVICE={
-  leftovers:"残り物は「今食べる」ではなく、まず保存する習慣をつけましょう。",
-  snacks_home:"お菓子は大袋を避け、1回で食べ切れる量を選びましょう。",
-  fast:"最初の5口だけでも、いつもよりゆっくり噛んでみましょう。",
-  not_chew:"ひと口ごとに箸を置くと、自然と噛む回数を増やせます。",
-  grazing:"食べる前に「本当に空腹？」と一度確認してみましょう。",
-  late_snack:"夜9時以降はお菓子・アイス・甘い飲み物を控え、食べる場合は量を決めましょう。",
-  fried:"1日1品は、焼く・蒸す・煮る料理に置き換えてみましょう。",
-  strong_taste:"酸味や香ばしさ、だしなど、風味を活かした料理を選んでみましょう。",
-  veg_juice:"用意が面倒だったり野菜が苦手なときは、野菜を使ったスムージーも取り入れてみましょう。",
-  skip_breakfast:"朝はヨーグルト・バナナ・温かいスープなど、1品から口にするところから始めてみましょう。",
-  eat_out:"主食・主菜・野菜がそろう組み合わせを意識しましょう。",
-  single_dish:"野菜・海藻・いも・豆類などを使った小鉢を1品プラスしましょう。",
-  snacking:"間食は時間と量を決めて、まずは1日1回を目安にしましょう。",
-  late_eating:"夕食が遅くなる日は、夕方に麺・パン・ご飯などを軽く食べ、夜は魚など脂質の少ない主菜と野菜を中心にしましょう。",
-  alcohol:"まずは週に1日、飲まない日をつくることから始めましょう。"
-};
 
-  const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const ADVICE={
+  leftovers:"食べる前に「今、本当にお腹が空いている？」と一度確認してみましょう。",
+  snacks_home:"大袋を避け、必要な時に1回分だけ買うようにしてみましょう。",
+  fast:"最初の5口だけ、いつもよりゆっくり噛んでみましょう。",
+  not_chew:"「もう少し食べられる」くらいで、一度箸を置いてみましょう。",
+  grazing:"「今日は1回・この量まで」と、間食する前に決めておきましょう。",
+  late_snack:"まず1日1回だけ、水・お茶・無糖飲料に置き換えてみましょう。",
+  fried:"揚げ物を1品だけ、焼く・蒸す・煮る料理に置き換えてみましょう。",
+  strong_taste:"食べ始める前に「今日はここまで」と1食分を決めておきましょう。",
+  veg_juice:"最初の10分だけでも、スマホを手の届かない場所に置いてみましょう。",
+  skip_breakfast:"朝はヨーグルト・牛乳・卵・バナナ・スープなど、食べやすい1品から始めてみましょう。",
+  eat_out:"5分歩く・入浴・音楽など、食べる代わりの気分転換を1つ決めておきましょう。",
+  single_dish:"野菜・海藻・きのこ・豆類などを使った小鉢を1品足してみましょう。",
+  snacking:"最初から普通盛りにして、食べ終わったら少し時間を置いてみましょう。",
+  late_eating:"夕食が遅くなる日は、夕方に軽く食べて、夜は脂質の少ない主菜と野菜を中心にしましょう。",
+  alcohol:"飲み始める前に、その日に食べるつまみの量を決めておきましょう。",
+　water:"一度にたくさん飲まず、起床後・食事の合間・入浴前後など、タイミングを決めて少しずつ飲みましょう。"
+};
+const ACTION={
+  leftovers:"空腹でない時は食べない",
+  snacks_home:"食べ過ぎやすい食品を置きすぎない",
+  fast:"いつもよりゆっくり食べる",
+  not_chew:"満腹になる前に食事を終える",
+  grazing:"間食の回数と量を先に決める",
+  late_snack:"甘い飲み物を減らす",
+  fried:"油の少ない料理を1品選ぶ",
+  strong_taste:"食べる量を最初に決める",
+  veg_juice:"食事中は食べることに集中する",
+  skip_breakfast:"朝食を少量でもとり、昼食の食べ過ぎを防ぐ",
+  eat_out:"食べる以外の気分転換をする",
+  single_dish:"単品料理にもう1品加える",
+  snacking:"普通盛りで食事を終える",
+  late_eating:"遅い時間の夕食は量と内容を調整する",
+  alcohol:"飲酒時に食べる量を先に決める",
+  water:"食事とは別に、1日1.5〜2.0Lを目安に、こまめに水分をとる"
+};
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const get=(k,d)=>JSON.parse(localStorage.getItem(k)||JSON.stringify(d));
 const set=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
 const day=()=>{
@@ -695,7 +715,7 @@ $("#goalPickerCard").classList.toggle("hidden",!d.length);
     <div class="q">
  <label class="goalTap ${completed.includes(id) ? "completed" : ""}">
  <input class="goalPick" type="checkbox" value="${id}" ${g.includes(id)?"checked":""}>
-    <span>${title(id)}</span>
+    <span>${ACTION[id]}</span>
  ${completed.includes(id) ? '<span class="doneMark">達成済み ✓</span>' : ''}
  <span class="muted" style="display:block;margin-top:6px;">💡 ${ADVICE[id]}</span>
 
