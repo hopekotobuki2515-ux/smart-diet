@@ -644,6 +644,31 @@ const ACTION={
   alcohol:"飲酒時に食べる量を先に決める",
   water:"食事とは別に、1日1.5〜2.0Lを目安に、こまめに水分をとる"
 };
+const CATEGORY={
+  reduce:[
+    "leftovers",
+    "not_chew",
+    "late_snack",
+    "fried",
+    "snacking"
+  ],
+  increase:[
+    "fast",
+    "veg_juice",
+    "skip_breakfast",
+    "eat_out",
+    "single_dish",
+    "water"
+  ],
+  arrange:[
+    "snacks_home",
+    "grazing",
+    "strong_taste",
+    "late_eating",
+    "alcohol"
+  ]
+};
+
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const get=(k,d)=>JSON.parse(localStorage.getItem(k)||JSON.stringify(d));
 const set=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
