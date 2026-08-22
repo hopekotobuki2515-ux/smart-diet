@@ -1,4 +1,4 @@
-name: Shorten app introduction
+name: Fix intro line break
 
 on:
   push:
@@ -13,19 +13,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Shorten intro text
+      - name: Shorten exercise sentence
         run: |
           python - <<'PY'
           from pathlib import Path
 
           p = Path('index.html')
           s = p.read_text(encoding='utf-8')
-
-          old = '<div class="card introCard"><h2>このアプリについて</h2><p class="introLead">ダイエットを、いきなり頑張りすぎない。</p><p>このアプリは、大幅な減量を目指すためのものではありません。<br>「そろそろダイエットを始めてみようかな」<br>「少し食べ方を見直してみたい」<br>そんな時に、最初の一歩を踏み出しやすくするためのアプリです。</p><p>また、すでに運動を続けている方にも、<br><strong>今の食べ方を見直し、運動の効果をより活かすためのサポート</strong>として使っていただけます。</p><p>食べ方を知り、無理のない目標を決めます。<br>毎日の小さな「できた」を積み重ねていきます。</p><p class="introClosing">大きく変えるより、まず一歩。<br>運動している人も、これから始める人も、食べ方から整えていきましょう。</p></div>'
-          new = '<div class="card introCard"><h2>このアプリについて</h2><p class="introLead">ダイエットを、いきなり頑張りすぎない。</p><p>このアプリは、食習慣を見直し、ダイエットの土台をつくるためのアプリです。</p><p>「またダイエットを始めてみよう」<br>「今の食べ方を見直してみたい」<br>そんな時の最初の一歩をサポートします。</p><p>すでに運動を続けている方にも、食べ方を整え、運動の効果をより活かすために使っていただけます。</p><p><strong>食べ方を知る → 目標を決める → 毎日の「できた」を積み重ねる。</strong></p><p class="introClosing">まずは、食習慣から。</p></div>'
-
+          old = 'すでに運動を続けている方にも、食べ方を整え、運動の効果をより活かすために使っていただけます。'
+          new = '運動を続けている方にも、食べ方を整え、運動の効果をより活かすために使えます。'
           if old not in s:
-              raise SystemExit('Expected intro block not found')
+              raise SystemExit('Expected sentence not found')
           s = s.replace(old, new, 1)
           p.write_text(s, encoding='utf-8')
           PY
@@ -35,5 +33,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add index.html
-          git commit -m "Shorten app introduction"
+          git commit -m "Fix intro line break"
           git push
