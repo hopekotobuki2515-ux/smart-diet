@@ -1,4 +1,4 @@
-name: Remove header logo
+name: Shorten app introduction
 
 on:
   push:
@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Remove logo from app header
+      - name: Shorten intro text
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -21,23 +21,13 @@ jobs:
           p = Path('index.html')
           s = p.read_text(encoding='utf-8')
 
-          old_css = '.headerInner{position:relative;z-index:1;max-width:760px;margin:0 auto}.brandLogoWrap{display:inline-flex;align-items:center;justify-content:center;min-width:122px;min-height:54px;padding:5px 10px;border-radius:14px;background:rgba(255,255,255,.96);box-shadow:0 4px 12px rgba(120,55,0,.14)}.brandLogo{display:block;width:108px;max-width:32vw;height:auto}header h1{margin:9px 0 4px;font-size:clamp(26px,6.8vw,38px);line-height:1.2;letter-spacing:.01em}'
-          new_css = '.headerInner{position:relative;z-index:1;max-width:760px;margin:0 auto}header h1{margin:0 0 4px;font-size:clamp(26px,6.8vw,38px);line-height:1.2;letter-spacing:.01em}'
-          if old_css not in s:
-              raise SystemExit('Expected header CSS not found')
-          s = s.replace(old_css, new_css, 1)
+          old = '<div class="card introCard"><h2>このアプリについて</h2><p class="introLead">ダイエットを、いきなり頑張りすぎない。</p><p>このアプリは、大幅な減量を目指すためのものではありません。<br>「そろそろダイエットを始めてみようかな」<br>「少し食べ方を見直してみたい」<br>そんな時に、最初の一歩を踏み出しやすくするためのアプリです。</p><p>また、すでに運動を続けている方にも、<br><strong>今の食べ方を見直し、運動の効果をより活かすためのサポート</strong>として使っていただけます。</p><p>食べ方を知り、無理のない目標を決めます。<br>毎日の小さな「できた」を積み重ねていきます。</p><p class="introClosing">大きく変えるより、まず一歩。<br>運動している人も、これから始める人も、食べ方から整えていきましょう。</p></div>'
+          new = '<div class="card introCard"><h2>このアプリについて</h2><p class="introLead">ダイエットを、いきなり頑張りすぎない。</p><p>このアプリは、食習慣を見直し、ダイエットの土台をつくるためのアプリです。</p><p>「またダイエットを始めてみよう」<br>「今の食べ方を見直してみたい」<br>そんな時の最初の一歩をサポートします。</p><p>すでに運動を続けている方にも、食べ方を整え、運動の効果をより活かすために使っていただけます。</p><p><strong>食べ方を知る → 目標を決める → 毎日の「できた」を積み重ねる。</strong></p><p class="introClosing">まずは、食習慣から。</p></div>'
 
-          old_html = '<div id="appArea" class="hidden"><header><div class="headerInner"><div class="brandLogoWrap"><img class="brandLogo" src="assets/hope-logo.png" alt="加圧パーソナルエクササイズスタジオHOPE"></div><h1>まずは、食習慣から。</h1><p class="brandSubtitle">ダイエットの土台をつくる食習慣改善ナビゲーションアプリ</p><div class="headerGuide">初めての方は「設定」から始めてください</div></div></header><main>'
-          new_html = '<div id="appArea" class="hidden"><header><div class="headerInner"><h1>まずは、食習慣から。</h1><p class="brandSubtitle">ダイエットの土台をつくる食習慣改善ナビゲーションアプリ</p><div class="headerGuide">初めての方は「設定」から始めてください</div></div></header><main>'
-          if old_html not in s:
-              raise SystemExit('Expected header HTML not found')
-          s = s.replace(old_html, new_html, 1)
-
+          if old not in s:
+              raise SystemExit('Expected intro block not found')
+          s = s.replace(old, new, 1)
           p.write_text(s, encoding='utf-8')
-
-          logo = Path('assets/hope-logo.png')
-          if logo.exists():
-              logo.unlink()
           PY
 
       - name: Commit changes
@@ -45,6 +35,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add index.html
-          git add -u assets
-          git commit -m "Remove header logo"
+          git commit -m "Shorten app introduction"
           git push
