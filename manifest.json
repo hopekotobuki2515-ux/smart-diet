@@ -1,6 +1,6 @@
 {
-  "name": "SMART Diet 記録",
-  "short_name": "SMART Diet",
+  "name": "まずは、食習慣から。",
+  "short_name": "食習慣ナビ",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#fffaf2",
