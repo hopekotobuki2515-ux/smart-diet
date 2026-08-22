@@ -1,4 +1,4 @@
-name: Fix intro line break
+name: Center initial setup button
 
 on:
   push:
@@ -13,18 +13,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Shorten exercise sentence
+      - name: Center and tighten initial setup card
         run: |
           python - <<'PY'
           from pathlib import Path
 
           p = Path('index.html')
           s = p.read_text(encoding='utf-8')
-          old = 'すでに運動を続けている方にも、食べ方を整え、運動の効果をより活かすために使っていただけます。'
-          new = '運動を続けている方にも、食べ方を整え、運動の効果をより活かすために使えます。'
-          if old not in s:
-              raise SystemExit('Expected sentence not found')
-          s = s.replace(old, new, 1)
+          marker = '.foodCategory{border:1px solid #e5e5e5;border-radius:16px;margin:12px 0;overflow:hidden;background:#fff;overflow-anchor:none}'
+          extra = '#initialSetup>.card:has(#initialSetupContent.hidden){padding:10px 12px;text-align:center}#initialSetup>.card:has(#initialSetupContent.hidden) #toggleInitialSetup{display:block;margin:0 auto;padding:10px 18px;border:1px solid #ef6c00;background:#fff8f1;color:#ef6c00;font-weight:800}\n'
+          if marker not in s:
+              raise SystemExit('Expected CSS marker not found')
+          if extra not in s:
+              s = s.replace(marker, extra + marker, 1)
           p.write_text(s, encoding='utf-8')
           PY
 
@@ -33,5 +34,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add index.html
-          git commit -m "Fix intro line break"
+          git commit -m "Center initial setup button"
           git push
