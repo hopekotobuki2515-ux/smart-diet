@@ -1,0 +1,67 @@
+name: Apply header branding
+
+on:
+  push:
+    paths:
+      - .github/workflows/apply-header.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update app header
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import base64, json
+
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+
+          replacements = [
+              ('<meta name="apple-mobile-web-app-title" content="食べ方くるり">', '<meta name="apple-mobile-web-app-title" content="食習慣ナビ">'),
+              ('<title>近道は、食べ方くるり。</title>', '<title>まずは、食習慣から。</title>'),
+              ('header{position:relative;overflow:hidden;background:linear-gradient(135deg,#f57c00 0%,#ef6c00 58%,#e85d04 100%);color:white;padding:24px 20px 22px;border-radius:0 0 24px 24px;box-shadow:0 8px 22px rgba(191,76,0,.18);flex:0 0 auto;z-index:20}\nheader::after{content:"";position:absolute;top:-74px;right:-54px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.10)}\nheader h1{position:relative;z-index:1;max-width:760px;margin:0 auto 12px;font-size:clamp(28px,7.4vw,40px);line-height:1.2;letter-spacing:.01em}\nheader>div{position:relative;z-index:1;max-width:760px;margin:0 auto;padding:8px 12px;border-left:4px solid rgba(255,255,255,.9);border-radius:0 10px 10px 0;background:rgba(255,255,255,.12);font-size:clamp(13px,3.5vw,16px);font-weight:600;line-height:1.5}',
+               'header{position:relative;overflow:hidden;background:linear-gradient(135deg,#f57c00 0%,#ef6c00 58%,#e85d04 100%);color:white;padding:14px 16px 16px;border-radius:0 0 24px 24px;box-shadow:0 8px 22px rgba(191,76,0,.18);flex:0 0 auto;z-index:20}\nheader::after{content:"";position:absolute;top:-74px;right:-54px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.10)}\n.headerInner{position:relative;z-index:1;max-width:760px;margin:0 auto}.brandLogoWrap{display:inline-flex;align-items:center;justify-content:center;min-width:122px;min-height:54px;padding:5px 10px;border-radius:14px;background:rgba(255,255,255,.96);box-shadow:0 4px 12px rgba(120,55,0,.14)}.brandLogo{display:block;width:108px;max-width:32vw;height:auto}header h1{margin:9px 0 4px;font-size:clamp(26px,6.8vw,38px);line-height:1.2;letter-spacing:.01em}.brandSubtitle{max-width:640px;margin:0 0 10px;font-size:clamp(12px,3.25vw,15px);font-weight:700;line-height:1.45;color:rgba(255,255,255,.96)}.headerGuide{padding:8px 12px;border-left:4px solid rgba(255,255,255,.9);border-radius:0 10px 10px 0;background:rgba(255,255,255,.12);font-size:clamp(13px,3.5vw,16px);font-weight:700;line-height:1.5}'),
+              ('<div id="appArea" class="hidden"><header><h1>近道は、食べ方くるり。</h1><div>初めての方は「設定」から始めてください</div></header><main>', '<div id="appArea" class="hidden"><header><div class="headerInner"><div class="brandLogoWrap"><img class="brandLogo" src="assets/hope-logo.png" alt="加圧パーソナルエクササイズスタジオHOPE"></div><h1>まずは、食習慣から。</h1><p class="brandSubtitle">ダイエットの土台をつくる食習慣改善ナビゲーションアプリ</p><div class="headerGuide">初めての方は「設定」から始めてください</div></div></header><main>'),
+          ]
+
+          for old, new in replacements:
+              if old not in s:
+                  raise SystemExit(f'Expected text not found: {old[:80]}')
+              s = s.replace(old, new, 1)
+
+          duplicate = 'else if(hasStart&&hasGoal)message="一旦のゴールは、スタート体重より軽い数値で設定してください。";else if(hasStart&&hasGoal)message="一旦のゴールは、スタート体重より軽い数値で設定してください。";'
+          single = 'else if(hasStart&&hasGoal)message="一旦のゴールは、スタート体重より軽い数値で設定してください。";'
+          if duplicate in s:
+              s = s.replace(duplicate, single, 1)
+
+          p.write_text(s, encoding='utf-8')
+
+          assets = Path('assets')
+          assets.mkdir(exist_ok=True)
+          encoded = (assets / 'hope-logo.png.base64.txt').read_text(encoding='utf-8').strip()
+          (assets / 'hope-logo.png').write_bytes(base64.b64decode(encoded))
+          for junk in [assets / 'hope-logo.png.base64.txt', assets / 'hope-logo.txt']:
+              if junk.exists():
+                  junk.unlink()
+
+          mp = Path('manifest.json')
+          manifest = json.loads(mp.read_text(encoding='utf-8'))
+          manifest['name'] = 'まずは、食習慣から。'
+          manifest['short_name'] = '食習慣ナビ'
+          mp.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+          PY
+
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html manifest.json assets/hope-logo.png
+          git add -u assets
+          git commit -m "Update header branding and title"
+          git push
