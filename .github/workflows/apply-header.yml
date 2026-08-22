@@ -1,4 +1,4 @@
-name: Center initial setup button
+name: Persist restored goals
 
 on:
   push:
@@ -13,19 +13,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Center and tighten initial setup card
+      - name: Save restored goals to Firebase
         run: |
           python - <<'PY'
           from pathlib import Path
 
           p = Path('index.html')
           s = p.read_text(encoding='utf-8')
-          marker = '.foodCategory{border:1px solid #e5e5e5;border-radius:16px;margin:12px 0;overflow:hidden;background:#fff;overflow-anchor:none}'
-          extra = '#initialSetup>.card:has(#initialSetupContent.hidden){padding:10px 12px;text-align:center}#initialSetup>.card:has(#initialSetupContent.hidden) #toggleInitialSetup{display:block;margin:0 auto;padding:10px 18px;border:1px solid #ef6c00;background:#fff8f1;color:#ef6c00;font-weight:800}\n'
-          if marker not in s:
-              raise SystemExit('Expected CSS marker not found')
-          if extra not in s:
-              s = s.replace(marker, extra + marker, 1)
+          old = '$$(".restoreGoal").forEach(btn=>{btn.onclick=()=>{const id=btn.dataset.id,completed=get("completedGoals",[]).filter(x=>x!==id);set("completedGoals",completed);const goals=get("goals",[]);if(!goals.includes(id)&&goals.length<3)goals.push(id);set("goals",goals);const logs=get("logs",{});getRecentDates(day(),7).forEach(date=>{if(logs[date]?.[id])delete logs[date][id]});set("logs",logs);renderSettings();renderPicker();renderToday()}})'
+          new = '$$(".restoreGoal").forEach(btn=>{btn.onclick=async()=>{const id=btn.dataset.id,completed=get("completedGoals",[]).filter(x=>x!==id);set("completedGoals",completed);const goals=get("goals",[]);if(!goals.includes(id)&&goals.length<3)goals.push(id);set("goals",goals);const logs=get("logs",{});getRecentDates(day(),7).forEach(date=>{if(logs[date]?.[id])delete logs[date][id]});set("logs",logs);await window.saveUserData();renderSettings();renderPicker();renderToday()}})'
+          if old not in s:
+              raise SystemExit('Expected restore-goal handler not found')
+          s = s.replace(old, new, 1)
           p.write_text(s, encoding='utf-8')
           PY
 
@@ -34,5 +33,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add index.html
-          git commit -m "Center initial setup button"
+          git commit -m "Persist restored goals"
           git push
