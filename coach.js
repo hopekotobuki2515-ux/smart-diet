@@ -2,6 +2,7 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.17.1/fireba
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js';
 import { getFirestore, collection, query, where, getDocs, doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js';
 import { currentWeek } from './program-config.js';
+import { CURRICULUM } from './program-curriculum.js';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyAvSc2x_o03QKie268jX33mr14ub6TBtX0',
@@ -15,6 +16,11 @@ const auth = getAuth(initializeApp(firebaseConfig)), db = getFirestore();
 const $ = selector => document.querySelector(selector);
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let coach = null, clientUid = null, selectedWeek = 1, clients = new Map(), comment = null;
+const weekOneQuestions = {
+  reason: '今回始めようと思った一番の理由',
+  causes: '最近、体重が増えた原因として思い当たること',
+  style: '普段の食事スタイル'
+};
 
 function message(value, error = false) {
   $('#status').textContent = value;
@@ -30,6 +36,27 @@ function renderClients() {
   }));
   if (!clients.size) $('#clients').textContent = '担当する方はまだ登録されていません。';
 }
+function renderAnswers(answer, weekNumber) {
+  if (!answer) return '<p class="muted">回答はありません。</p>';
+  const rows = [];
+  if (weekNumber === 1) {
+    for (const [key, title] of Object.entries(weekOneQuestions)) {
+      const choices = Array.isArray(answer[key]) ? answer[key].filter(Boolean) : [];
+      if (choices.length) rows.push([title, choices.join('、')]);
+      const freeText = typeof answer[`${key}Text`] === 'string' ? answer[`${key}Text`].trim() : '';
+      if (freeText) rows.push([`${title}・付け足し`, freeText]);
+    }
+    if (typeof answer.future === 'string' && answer.future.trim()) rows.push(['3か月後、どんな自分でいたいか', answer.future.trim()]);
+  } else {
+    const title = CURRICULUM[weekNumber - 1]?.question?.title || `第${weekNumber}週の回答`;
+    const choices = Array.isArray(answer.choices) ? answer.choices.filter(Boolean) : [];
+    if (choices.length) rows.push([title, choices.join('、')]);
+    if (typeof answer.freeText === 'string' && answer.freeText.trim()) rows.push(['自分の言葉で付け足したこと', answer.freeText.trim()]);
+  }
+  return rows.length
+    ? rows.map(([title, value]) => `<p><strong>${esc(title)}</strong><br>${esc(value)}</p>`).join('')
+    : '<p class="muted">回答はありません。</p>';
+}
 function renderDetail() {
   const record = clients.get(clientUid), profile = record?.profile;
   if (!profile) return;
@@ -41,7 +68,7 @@ function renderDetail() {
     <label>コメントする週<select id="coachWeek">${Array.from({length:12},(_,i)=>`<option value="${i+1}" ${i+1===selectedWeek?'selected':''}>第${i+1}週</option>`).join('')}</select></label>
     <h3>最近の食事記録</h3>${recentMeals.length ? recentMeals.map(x=>`<p>${esc(x.date)} ${esc(x.type)}：${esc(x.food || '写真・メモの記録')} ${esc(x.amount || '')} ${esc(x.memo || '')}</p>`).join('') : '<p class="muted">まだ記録がありません。</p>'}
     <h3>最近の体重・腹囲</h3>${latest.length ? latest.map(([date,x])=>`<p>${esc(date)}：${x.weight ? esc(x.weight)+'kg' : '体重なし'} / ${x.waist ? esc(x.waist)+'cm' : '腹囲なし'}</p>`).join('') : '<p class="muted">まだ記録がありません。</p>'}
-    <h3>今週の回答・振り返り</h3><p>${answers ? esc(JSON.stringify(answers)) : '回答はありません。'}</p><p>${esc(record.reflections?.[selectedWeek] || '振り返りはありません。')}</p></div>
+    <h3>今週の回答</h3>${renderAnswers(answers, selectedWeek)}<h3>今週の振り返り</h3><p>${esc(record.reflections?.[selectedWeek] || '振り返りはありません。')}</p></div>
     <div class="card"><h2>HOPEからのコメント</h2><p class="muted">できていること、今週気づいてほしいこと、次にやることを一つずつ短く伝えます。</p>
     <form id="commentForm"><label>コメント<textarea name="message" maxlength="1500" required>${esc(comment?.message || '')}</textarea></label>
     <p class="muted">下書きは利用者に表示されません。公開すると利用者の第${selectedWeek}週に表示されます。</p>
