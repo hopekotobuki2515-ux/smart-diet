@@ -1,5 +1,5 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js';
-import { getAuth, onAuthStateChanged, signInWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js';
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js';
 import { getFirestore, doc, getDoc, setDoc, arrayUnion } from 'https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js';
 import { PROGRAM, WEEK_TITLES, goalWeight, bmi, currentWeek, foodPoints } from './program-config.js';
 import { CURRICULUM } from './program-curriculum.js';
@@ -159,6 +159,7 @@ function renderMore(){
   $('#more').innerHTML=`<div class="card"><h1>マイページ</h1><p>${esc(p.name)}さん / 開始日 ${esc(p.startDate)}</p><div class="row"><span>開始時の希望目標</span><strong>${p.goalPercent}％ / ${goalWeight(p.startWeight,p.goalPercent).toFixed(1)}kg</strong></div><div class="row"><span>現在の希望目標</span><strong>${current.percent}％ / ${current.target.toFixed(1)}kg</strong></div><p class="muted">体重目標は村田コーチと確認して決めます。アプリへの入力だけで確定とは扱いません。</p><div class="row"><span>開始時のBMI</span><strong>${bmi(p.heightCm,p.startWeight).toFixed(1)}</strong></div></div>
     <div class="card"><h2>目標を変更する</h2><p class="muted">最初の目標と変更履歴は残ります。体重目標は村田コーチとも確認してください。</p><form id="goalForm"><label>減量率<select name="percent">${PROGRAM.goalPercents.map(v=>`<option value="${v}" ${v===current.percent?'selected':''}>${v}％</option>`).join('')}</select></label><button class="button" type="submit">変更を記録する</button></form></div>
     <div class="card"><h2>変更履歴</h2>${g.length?g.map(x=>`<div class="row"><span>${esc(x.changedAt.slice(0,10))}</span><strong>${x.percent}％ / ${x.target.toFixed(1)}kg</strong></div>`).join(''):'<p class="muted">変更はありません。</p>'}</div>
+    <div class="card"><h2>アカウント</h2><p class="muted">利用者と村田コーチの画面を切り替える時に使います。保存済みの記録は消えません。</p><button id="switchProgramAccount" class="button ghost" type="button">別のアカウントでログイン</button></div>
     <div class="card"><h2>この画面について</h2><p>この12週間の記録は、従来のSMART Dietの記録とは別に保存しています。従来の記録は上部の戻るボタンから確認できます。</p><p class="muted">HOPEコメントは公開済みのものだけを表示します。写真はこの端末内のみです。</p></div>`;
 }
 function render(){
@@ -193,7 +194,21 @@ $('#setupForm').addEventListener('submit',async e=>{
   const next=copy();next.profile=p;next.goals=[{percent:p.goalPercent,target:goalWeight(p.startWeight,p.goalPercent),reviewStatus:'pending',changedAt:new Date().toISOString()}];
   try{await persist(next);startProfile()}catch(e){message('初回設定を保存できませんでした。通信と権限を確認してください。',true)}
 });
-document.addEventListener('click',e=>{
+document.addEventListener('click',async e=>{
+  const switchAccount=e.target.closest('#switchProgramAccount');
+  if(switchAccount){
+    switchAccount.disabled=true;message('アカウントを切り替えています…');
+    try{
+      await signOut(auth);
+      user=null;state={};coachComment=null;
+      for(const url of photoUrls)URL.revokeObjectURL(url);photoUrls=[];
+      $('#login').hidden=false;$('#app').hidden=true;$('#email').focus();
+      message('利用するアカウントでログインしてください。');
+    }catch(error){
+      switchAccount.disabled=false;message('ログアウトできませんでした。もう一度お試しください。',true);
+    }
+    return;
+  }
   const sample=e.target.closest('[data-sample]');
   if(sample){sampleCategory=sample.dataset.sample;$('#sampleCard').outerHTML=renderSample();return}
   const rice=e.target.closest('[data-rice-grams]');
