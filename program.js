@@ -1,7 +1,7 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js';
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js';
-import { getFirestore, doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js';
-import { PROGRAM, WEEK_TITLES, WEEK_SOURCES, goalWeight, bmi, currentWeek, foodPoints } from './program-config.js';
+import { getFirestore, doc, getDoc, setDoc, arrayUnion } from 'https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js';
+import { PROGRAM, WEEK_TITLES, goalWeight, bmi, currentWeek, foodPoints } from './program-config.js';
 import { CURRICULUM } from './program-curriculum.js';
 
 // Same Firebase project and sign-in as the existing index.html; separate document to preserve legacy records.
@@ -26,9 +26,9 @@ const questions = [
   { id:'style', title:'普段の食事スタイルは？', multiple:true, options:['自炊','外食','コンビニ','スーパーの弁当・惣菜','ファストフード','冷凍食品・冷凍弁当','その他'] }
 ];
 function message(s, error=false){ $('#status').textContent=s; $('#status').classList.toggle('error', error); }
-async function persist(next){
+async function persist(next, patch = next){
   if (!user) throw new Error('ログインが必要です');
-  const { coachComments, ...writable } = next;
+  const { coachComments, ...writable } = patch;
   await setDoc(doc(db,'users',user.uid,'appData','hopeProgram'), writable, {merge:true});
   state = next; message('保存しました'); render();
 }
@@ -72,10 +72,9 @@ function renderHome(){
     <div class="card"><h2>1日の食事例</h2><p>食品マスターとの照合後に、量・食品グループ・点数を示した見本を掲載します。この通り食べる必要はありません。</p></div>`;
 }
 function renderWeek(){
-  const w=week(), q=state.answers?.[1]||{}, lesson=CURRICULUM[w-1], source=`https://docs.google.com/document/d/${WEEK_SOURCES[w-1]}/edit`;
+  const w=week(), q=state.answers?.[1]||{}, lesson=CURRICULUM[w-1];
   $('#week').innerHTML=`<div class="card"><span class="eyebrow">第${w}週 / 12週間</span><h1>${esc(WEEK_TITLES[w-1])}</h1><p class="muted">学ぶ → やってみる → 記録する → コメントを受け取る → 振り返る</p></div>
-    <div class="card"><span class="eyebrow">今週のお話</span><h2>${esc(WEEK_TITLES[w-1])}</h2>${lesson.lesson.map(x=>`<p>${esc(x)}</p>`).join('')}
-      <p class="source">元資料：<a href="${source}" target="_blank" rel="noopener noreferrer">第${w}週のGoogleドキュメント</a></p></div>
+    <div class="card"><span class="eyebrow">今週のお話</span><h2>${esc(WEEK_TITLES[w-1])}</h2>${lesson.lesson.map(x=>`<p>${esc(x)}</p>`).join('')}</div>
     <div class="card"><h2>今週やってみること</h2><p>${esc(lesson.task)}</p><button class="button" data-go="record">食事を記録する</button></div>
     ${w===1?`<div class="card"><h2>今週の質問</h2><p class="muted">選ぶだけでも大丈夫です。付け足す言葉は任意です。</p><form id="questionForm">${questions.map(item=>`<h3>${item.title}</h3><div class="choice">${item.options.map(o=>`<label><input type="${item.multiple?'checkbox':'radio'}" name="${item.id}" value="${esc(o)}" ${(q[item.id]||[]).includes(o)?'checked':''}>${esc(o)}</label>`).join('')}</div><label>自分の言葉で付け足したいことがあれば<textarea name="${item.id}Text" maxlength="500">${esc(q[item.id+'Text']||'')}</textarea></label>`).join('')}<h3>3か月後、どんな自分でいたいですか？</h3><textarea name="future" maxlength="500" aria-label="3か月後の自分">${esc(q.future||'')}</textarea><button class="button" type="submit">回答を保存する</button></form></div>`:''}
     ${w>1?`<div class="card"><h2>今週の質問</h2><p>選択肢から選び、付け足したいことだけ入力してください。</p><form id="weeklyQuestionForm"><h3>${esc(lesson.question.title)}</h3><div class="choice">${lesson.question.options.map(o=>`<label><input type="${lesson.question.multiple||lesson.question.max?'checkbox':'radio'}" name="answer" value="${esc(o)}" ${(state.answers?.[w]?.choices||[]).includes(o)?'checked':''}>${esc(o)}</label>`).join('')}</div><label>自分の言葉で付け足したいことがあれば<textarea name="freeText" maxlength="500">${esc(state.answers?.[w]?.freeText||'')}</textarea></label><button class="button" type="submit">回答を保存する</button></form></div>`:''}
@@ -88,7 +87,7 @@ function renderRecord(){
   const list=(state.meals||[]).slice(-20).reverse();
   $('#record').innerHTML=`<div class="card"><span class="eyebrow">食事記録</span><h1>いつもの食事を残しましょう</h1><p>第1週は写真と簡単なメモだけで大丈夫。点数や食品群の入力は必要ありません。</p>
     <form id="mealForm"><label>日付<input id="mealDate" name="date" type="date" value="${today()}" required></label><div class="tabs" role="group" aria-label="食事の種類">${meals.map(t=>`<button type="button" data-meal="${t}" class="${t===mealType?'selected':''}">${t}</button>`).join('')}</div>
-    <label>写真（任意・この端末だけに保存）<input name="photo" type="file" accept="image/*" capture="environment"></label><p class="muted">写真は現段階では端末内保存です。他の端末には表示されません。</p>
+    <label>写真（任意・この端末だけに保存）<input name="photo" type="file" accept="image/*"></label><p class="muted">写真は現段階では端末内保存です。他の端末には表示されません。</p>
     <label>食品・料理名（任意）<input name="food" maxlength="120" placeholder="例：ご飯、焼き魚、みそ汁"></label>
     <label>食品マスターから探す（任意）<input id="foodSearch" type="search" autocomplete="off" placeholder="例：めし・水稲・精白米"></label>
     <div id="foodResults" class="food-results" aria-live="polite"></div>
@@ -112,7 +111,7 @@ function renderRecord(){
 }
 function renderMore(){
   const p=state.profile,g=state.goals||[],current=g.at(-1)||{percent:p.goalPercent,target:goalWeight(p.startWeight,p.goalPercent)};
-  $('#more').innerHTML=`<div class="card"><h1>マイページ</h1><p>${esc(p.name)}さん / 開始日 ${esc(p.startDate)}</p><div class="row"><span>開始時の目標</span><strong>${p.goalPercent}％ / ${goalWeight(p.startWeight,p.goalPercent).toFixed(1)}kg</strong></div><div class="row"><span>現在の目標</span><strong>${current.percent}％ / ${current.target.toFixed(1)}kg</strong></div><div class="row"><span>開始時のBMI</span><strong>${bmi(p.heightCm,p.startWeight).toFixed(1)}</strong></div></div>
+  $('#more').innerHTML=`<div class="card"><h1>マイページ</h1><p>${esc(p.name)}さん / 開始日 ${esc(p.startDate)}</p><div class="row"><span>開始時の希望目標</span><strong>${p.goalPercent}％ / ${goalWeight(p.startWeight,p.goalPercent).toFixed(1)}kg</strong></div><div class="row"><span>現在の希望目標</span><strong>${current.percent}％ / ${current.target.toFixed(1)}kg</strong></div><p class="muted">体重目標は村田コーチと確認して決めます。アプリへの入力だけで確定とは扱いません。</p><div class="row"><span>開始時のBMI</span><strong>${bmi(p.heightCm,p.startWeight).toFixed(1)}</strong></div></div>
     <div class="card"><h2>目標を変更する</h2><p class="muted">最初の目標と変更履歴は残ります。体重目標は村田コーチとも確認してください。</p><form id="goalForm"><label>減量率<select name="percent">${PROGRAM.goalPercents.map(v=>`<option value="${v}" ${v===current.percent?'selected':''}>${v}％</option>`).join('')}</select></label><button class="button" type="submit">変更を記録する</button></form></div>
     <div class="card"><h2>変更履歴</h2>${g.length?g.map(x=>`<div class="row"><span>${esc(x.changedAt.slice(0,10))}</span><strong>${x.percent}％ / ${x.target.toFixed(1)}kg</strong></div>`).join(''):'<p class="muted">変更はありません。</p>'}</div>
     <div class="card"><h2>この画面について</h2><p>この12週間の記録は、従来のSMART Dietの記録とは別に保存しています。従来の記録は上部の戻るボタンから確認できます。</p><p class="muted">HOPEコメントは公開済みのものだけを表示します。写真はこの端末内のみです。</p></div>`;
@@ -146,7 +145,7 @@ $('#setupForm').addEventListener('submit',async e=>{
   if(!f.reportValidity())return;
   const p={name:f.elements.name.value.trim(),age:Number(f.elements.age.value),heightCm:Number(f.elements.heightCm.value),startWeight:Number(f.elements.startWeight.value),waist:Number(f.elements.waist.value),goalPercent:Number(f.elements.goalPercent.value),startDate:today()};
   if(!p.name || !Number.isFinite(p.startWeight) || !Number.isFinite(p.heightCm))return;
-  const next=copy();next.profile=p;next.goals=[{percent:p.goalPercent,target:goalWeight(p.startWeight,p.goalPercent),changedAt:new Date().toISOString()}];
+  const next=copy();next.profile=p;next.goals=[{percent:p.goalPercent,target:goalWeight(p.startWeight,p.goalPercent),reviewStatus:'pending',changedAt:new Date().toISOString()}];
   try{await persist(next);startProfile()}catch(e){message('初回設定を保存できませんでした。通信と権限を確認してください。',true)}
 });
 document.addEventListener('click',e=>{
@@ -213,7 +212,7 @@ document.addEventListener('click',async e=>{
   const name=$('#mealForm')?.elements.food.value.trim();
   if(!name){message('登録する食品名を入力してください。',true);return}
   const next=copy();next.savedFoods=[...new Set([...(next.savedFoods||[]),name])];
-  try{await persist(next)}catch(err){message('食品を登録できませんでした。',true)}
+  try{await persist(next,{savedFoods:arrayUnion(name)})}catch(err){message('食品を登録できませんでした。',true)}
 });
 function updatePoints(){
   const f=$('#mealForm'), x=foodMaster.find(x=>x.name===f.dataset.masterName), grams=Number(f.elements.grams.value);
@@ -223,7 +222,7 @@ document.addEventListener('submit',async e=>{
   if(!['mealForm','measurementForm','questionForm','weeklyQuestionForm','reflectionForm','goalForm'].includes(e.target.id))return;
   e.preventDefault();const f=e.target,next=copy(),w=week();
   const button=f.querySelector('button[type=submit]');button.disabled=true;message('保存中…');
-  let photoId=null;
+  let photoId=null, writePatch=null;
   try{
     if(f.id==='mealForm'){
       const file=f.elements.photo.files[0], food=f.elements.food.value.trim(), amount=f.elements.amount.value.trim(), memo=f.elements.memo.value.trim();
@@ -232,28 +231,35 @@ document.addEventListener('submit',async e=>{
       photoId=file?crypto.randomUUID():null;
       if(file)await savePhoto(photoId,file);
       const master=foodMaster.find(x=>x.name===f.dataset.masterName && x.name===food),grams=f.elements.grams.value?Number(f.elements.grams.value):null;
-      next.meals=[...(next.meals||[]),{id:crypto.randomUUID(),date:f.elements.date.value,type:mealType,food,amount,memo,photoId,grams,group:master?.group||null,points:master&&grams?foodPoints(grams,master.gramsPerPoint):null,createdAt:new Date().toISOString()}];
+      const entry={id:crypto.randomUUID(),date:f.elements.date.value,type:mealType,food,amount,memo,photoId,grams,group:master?.group||null,points:master&&grams?foodPoints(grams,master.gramsPerPoint):null,createdAt:new Date().toISOString()};
+      next.meals=[...(next.meals||[]),entry];writePatch={meals:arrayUnion(entry)};
     } else if(f.id==='measurementForm'){
       const values={};
       for(const key of ['weight','waist','water'])if(f.elements[key].value)values[key]=Number(f.elements[key].value);
       for(const key of ['condition','mood','bowel','memo'])if(f.elements[key].value.trim())values[key]=f.elements[key].value.trim();
       if(!Object.keys(values).length)throw new Error('記録する項目を一つ選んでください。');
       next.measurements={...(next.measurements||{}),[f.elements.date.value]:{...(next.measurements?.[f.elements.date.value]||{}),...values}};
+      writePatch={measurements:{[f.elements.date.value]:values}};
     } else if(f.id==='questionForm'){
       const a={};for(const q of questions){a[q.id]=Array.from(f.querySelectorAll(`[name="${q.id}"]:checked`)).map(x=>x.value);a[q.id+'Text']=f.elements[q.id+'Text'].value.trim()}
-      a.future=f.elements.future.value.trim();next.answers={...(next.answers||{}),1:a};
+      a.future=f.elements.future.value.trim();next.answers={...(next.answers||{}),1:a};writePatch={answers:{1:a}};
     } else if(f.id==='weeklyQuestionForm'){
       const choices=[...f.querySelectorAll('[name="answer"]:checked')].map(x=>x.value);
       const limit=CURRICULUM[w-1].question.max;
       if(limit && choices.length>limit)throw new Error(`選択は${limit}個までにしてください。`);
-      next.answers={...(next.answers||{}),[w]:{choices,freeText:f.elements.freeText.value.trim()}};
-    } else if(f.id==='reflectionForm')next.reflections={...(next.reflections||{}),[w]:f.elements.reflection.value.trim()};
+      const answer={choices,freeText:f.elements.freeText.value.trim()};
+      next.answers={...(next.answers||{}),[w]:answer};writePatch={answers:{[w]:answer}};
+    } else if(f.id==='reflectionForm'){
+      const reflection=f.elements.reflection.value.trim();
+      next.reflections={...(next.reflections||{}),[w]:reflection};writePatch={reflections:{[w]:reflection}};
+    }
     else if(f.id==='goalForm'){
       const percent=Number(f.elements.percent.value), last=next.goals.at(-1);
       if(percent===last.percent)throw new Error('現在と同じ目標です。');
-      next.goals.push({percent,target:goalWeight(next.profile.startWeight,percent),changedAt:new Date().toISOString()});
+      const goal={percent,target:goalWeight(next.profile.startWeight,percent),reviewStatus:'pending',changedAt:new Date().toISOString()};
+      next.goals.push(goal);writePatch={goals:arrayUnion(goal)};
     }
-    await persist(next);
+    await persist(next,writePatch);
   }catch(err){if(photoId)await deletePhoto(photoId).catch(()=>{});message(err.message?.includes('ください')||err.message?.includes('同じ')?err.message:'保存できませんでした。通信と権限を確認してください。',true)}
   finally{button.disabled=false}
 });
