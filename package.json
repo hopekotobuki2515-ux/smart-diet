@@ -2,7 +2,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test program-config.test.mjs program-ui.test.mjs"
+    "test": "node --test program-config.test.mjs program-ui.test.mjs coach-ui.test.mjs"
   },
   "devDependencies": {
     "jsdom": "26.1.0"
