@@ -59,7 +59,9 @@ test('initial setup, master calculation, records and goal history survive reload
     store.value.meals=[{id:'from-another-device',date:tokyoDate(new Date()),type:'昼食',food:'普通牛乳',amount:'120g',points:1,photoId:null}];
     app.fill('#foodSearch','めし・水稲・精白米');
     app.q('#foodResults button').click();
-    app.fill('#mealForm [name="grams"]','150');
+    assert.equal(app.q('#riceAmounts').hidden,false);
+    app.q('[data-rice-grams="150"]').click();
+    assert.equal(app.q('#mealForm [name="grams"]').value,'150');
     assert.match(app.q('#pointPreview').textContent,/3\.00点/);
     app.submit('#mealForm');await pause();
     assert.equal(store.value.meals.length,2);

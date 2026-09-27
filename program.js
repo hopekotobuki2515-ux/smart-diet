@@ -113,6 +113,7 @@ function renderRecord(){
     <button id="saveFood" type="button" class="small-button">この食品を登録する</button>
     <label>量（分かる範囲で・任意）<input name="amount" maxlength="80" placeholder="例：ご飯150g"></label>
     <label>実測した量（g・任意）<input name="grams" type="number" min="0.1" max="10000" step="0.1" inputmode="decimal"></label><p id="pointPreview" class="muted"></p>
+    <div id="riceAmounts" class="amount-guide" hidden><p>ご飯の量の目安（計量した値を優先）</p><div class="amount-options">${[100,150,200,260].map(g=>`<button type="button" data-rice-grams="${g}">${g}g</button>`).join('')}</div><p class="muted">このボタンは入力の補助です。実物写真による量の見本は準備中です。</p></div>
     <label>ひとこと（任意）<textarea name="memo" maxlength="500"></textarea></label>
     <button class="button" type="submit">この食事を保存する</button></form></div>
     <div class="card"><h2>記録した食事</h2><div id="mealList">${list.length?list.map(x=>`<div class="meal-entry"><strong>${esc(x.date)}・${esc(x.type)}</strong><br>${esc(x.food||'写真・メモの記録')}${x.amount?' / '+esc(x.amount):''}${x.points!=null?' / '+x.points+'点':''}${x.photoId?`<div data-photo-id="${esc(x.photoId)}"></div>`:''}</div>`).join(''):'<p class="muted">まだ記録はありません。</p>'}</div></div>
@@ -168,6 +169,8 @@ $('#setupForm').addEventListener('submit',async e=>{
 document.addEventListener('click',e=>{
   const sample=e.target.closest('[data-sample]');
   if(sample){sampleCategory=sample.dataset.sample;$('#sampleCard').outerHTML=renderSample();return}
+  const rice=e.target.closest('[data-rice-grams]');
+  if(rice){$('#mealForm').elements.grams.value=rice.dataset.riceGrams;updatePoints();return}
   const nav=e.target.closest('[data-page],[data-go],[data-meal]');
   if(!nav)return;
   if(nav.dataset.meal){mealType=nav.dataset.meal;document.querySelectorAll('[data-meal]').forEach(x=>x.classList.toggle('selected',x.dataset.meal===mealType))}
@@ -207,7 +210,7 @@ document.addEventListener('input',e=>{
       return b;
     }));
   }
-  if(e.target.name==='food' && f.dataset.masterName!==e.target.value)delete f.dataset.masterName;
+  if(e.target.name==='food' && f.dataset.masterName!==e.target.value){delete f.dataset.masterName;$('#riceAmounts').hidden=true}
   if(e.target.name==='grams'||e.target.name==='food')updatePoints();
 });
 function selectFood(name){
@@ -215,6 +218,7 @@ function selectFood(name){
   f.elements.food.value=name;
   if(x){f.dataset.masterName=name;$('#selectedFood').textContent=`${name}｜${x.group}｜1点 ${x.gramsPerPoint}g`}
   else {delete f.dataset.masterName;$('#selectedFood').textContent='自由入力の食品です。点数は未計算のまま記録します。'}
+  $('#riceAmounts').hidden=name!=='めし・水稲・精白米';
   updatePoints();
 }
 function renderFoodShortcuts(){
