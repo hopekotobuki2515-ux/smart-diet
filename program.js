@@ -90,9 +90,16 @@ function renderSample(){
   }else if(sampleCategory==='自炊'){
     body='<p class="muted">食品マスターを読み込んでいます。</p>';
   }else{
-    body='<p class="muted">このカテゴリーは、商品・料理の表示と量、食品グループを確認してから掲載します。現在は食事記録から、あなたが実際に選んだものを残せます。</p>';
+    body=`<div class="sample-pending" role="status"><span class="eyebrow">準備中</span><h3>${esc(sampleCategory)}の見本は確認中です</h3><p>商品・料理の表示、量、食品グループをHOPEで確認してから掲載します。現在は食事記録から、あなたが実際に選んだものを残せます。</p></div>`;
   }
-  return `<div class="card" id="sampleCard"><h2>1日の組み立て見本</h2><p>この通り食べる必要はありません。1日の組み立て方を見るための例です。</p><div class="tabs">${SAMPLE_CATEGORIES.map(x=>`<button type="button" data-sample="${x}" class="${x===sampleCategory?'selected':''}">${x}</button>`).join('')}</div>${body}<p class="muted">調理に使う油・調味料・追加した食品は含めていません。量と点数は食品マスターから計算し、あなたの摂取目標を決めるものではありません。</p></div>`;
+  return `<div class="card" id="sampleCard"><h2>1日の組み立て見本</h2><p>この通り食べる必要はありません。1日の組み立て方を見るための例です。</p><div class="tabs sample-tabs" role="tablist" aria-label="食事例のカテゴリー">${SAMPLE_CATEGORIES.map(x=>`<button type="button" role="tab" aria-selected="${x===sampleCategory}" data-sample="${x}" class="${x===sampleCategory?'selected':''}">${x}</button>`).join('')}</div><p class="tab-hint">左右に動かしてカテゴリーを選べます。</p>${body}<p class="muted">調理に使う油・調味料・追加した食品は含めていません。量と点数は食品マスターから計算し、あなたの摂取目標を決めるものではありません。</p></div>`;
+}
+function revealSelectedSample(){
+  const tabs=$('#sampleCard .sample-tabs'),selected=tabs?.querySelector('[aria-selected="true"]');
+  if(!tabs || !selected)return;
+  const left=selected.offsetLeft-(tabs.clientWidth-selected.offsetWidth)/2;
+  if(typeof tabs.scrollTo==='function')tabs.scrollTo({left:Math.max(0,left),behavior:'smooth'});
+  else tabs.scrollLeft=Math.max(0,left);
 }
 function finalSummary(){
   const p=state.profile, logs=Object.entries(state.measurements||{}).sort(([a],[b])=>a.localeCompare(b));
@@ -210,7 +217,7 @@ document.addEventListener('click',async e=>{
     return;
   }
   const sample=e.target.closest('[data-sample]');
-  if(sample){sampleCategory=sample.dataset.sample;$('#sampleCard').outerHTML=renderSample();return}
+  if(sample){sampleCategory=sample.dataset.sample;$('#sampleCard').outerHTML=renderSample();revealSelectedSample();return}
   const rice=e.target.closest('[data-rice-grams]');
   if(rice){$('#mealForm').elements.grams.value=rice.dataset.riceGrams;updatePoints();return}
   const nav=e.target.closest('[data-page],[data-go],[data-meal]');
