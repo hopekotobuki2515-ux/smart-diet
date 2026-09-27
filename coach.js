@@ -67,7 +67,12 @@ $('#signIn').onclick = async () => {
 };
 $('#switchAccount').onclick = async () => {
   message('アカウントを切り替えています…');
-  try { await signOut(auth); }
+  try {
+    await signOut(auth);
+    coach = null;clients = new Map();clientUid = null;comment = null;
+    $('#login').hidden = false;$('#coachApp').hidden = true;$('#clientDetail').hidden = true;
+    $('#email').focus();message('コーチ用アカウントでログインしてください。');
+  }
   catch (error) { message('ログアウトできませんでした。もう一度お試しください。', true); }
 };
 onAuthStateChanged(auth, async account => {
