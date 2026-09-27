@@ -3,6 +3,7 @@ import { getAuth, onAuthStateChanged, signInWithEmailAndPassword } from 'https:/
 import { getFirestore, doc, getDoc, setDoc, arrayUnion } from 'https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js';
 import { PROGRAM, WEEK_TITLES, goalWeight, bmi, currentWeek, foodPoints } from './program-config.js';
 import { CURRICULUM } from './program-curriculum.js';
+import { SAMPLE_CATEGORIES, resolveSample } from './program-samples.js';
 
 // Same Firebase project and sign-in as the existing index.html; separate document to preserve legacy records.
 const firebaseConfig = {
@@ -17,7 +18,7 @@ const auth = getAuth(initializeApp(firebaseConfig)), db = getFirestore();
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const today = () => new Intl.DateTimeFormat('sv-SE', {timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
-let state = {}, user = null, mealType = '朝食', page = 'home';
+let state = {}, user = null, mealType = '朝食', page = 'home', sampleCategory = '自炊';
 let foodMaster = [], photoUrls = [];
 const meals = ['朝食','昼食','夕食','間食','飲み物','飲酒'];
 const questions = [
@@ -49,6 +50,23 @@ function graph(){
 function comment(){
   return `<div class="card"><div class="coach-head"><img src="./coach.svg" alt="男性コーチのイラスト"><div><span class="eyebrow">村田コーチより</span><h2>HOPEからのコメント</h2></div></div><p>コメントの送受信は準備中です。記録だけでも続けていきましょう。</p></div>`;
 }
+function renderSample(){
+  let body='';
+  if(sampleCategory==='自炊' && foodMaster.length){
+    try{
+      const sample=resolveSample(foodMaster);
+      body=['朝食','昼食','夕食','間食'].map(meal=>{
+        const rows=sample.items.filter(item=>item.meal===meal);
+        return `<h3>${meal}</h3>${rows.map(item=>`<div class="row"><span>${esc(item.name)}　${item.grams}g<br><small>${esc(item.group)}</small></span><strong>${item.points.toFixed(2)}点</strong></div>`).join('')}`;
+      }).join('')+`<p class="soft">登録した食品の重量だけで計算した合計：${sample.totalPoints.toFixed(2)}点</p>`;
+    }catch(e){body='<p class="muted">食品マスターを確認できないため、食事例を表示できません。</p>'}
+  }else if(sampleCategory==='自炊'){
+    body='<p class="muted">食品マスターを読み込んでいます。</p>';
+  }else{
+    body='<p class="muted">このカテゴリーは、商品・料理の表示と量、食品グループを確認してから掲載します。現在は食事記録から、あなたが実際に選んだものを残せます。</p>';
+  }
+  return `<div class="card" id="sampleCard"><h2>1日の組み立て見本</h2><p>この通り食べる必要はありません。1日の組み立て方を見るための例です。</p><div class="tabs">${SAMPLE_CATEGORIES.map(x=>`<button type="button" data-sample="${x}" class="${x===sampleCategory?'selected':''}">${x}</button>`).join('')}</div>${body}<p class="muted">調理に使う油・調味料・追加した食品は含めていません。量と点数は食品マスターから計算し、あなたの摂取目標を決めるものではありません。</p></div>`;
+}
 function finalSummary(){
   const p=state.profile, logs=Object.entries(state.measurements||{}).sort(([a],[b])=>a.localeCompare(b));
   const weights=logs.filter(([,v])=>Number(v.weight)>0), waists=logs.filter(([,v])=>Number(v.waist)>0);
@@ -68,8 +86,7 @@ function renderHome(){
     <div class="card"><span class="eyebrow">こんにちは、${esc(state.profile.name)}さん</span><h1>今日も、自分のペースで。</h1><p>第${w}週 / 12週間</p><div class="progress" aria-label="12週間中${w}週目">${bars}</div></div>
     <div class="card"><span class="eyebrow">今週のお話</span><h2>第${w}週　${esc(WEEK_TITLES[w-1])}</h2><p>読むことは任意です。食事の記録から始めても大丈夫です。</p><button class="button ghost" data-go="week">今週のお話を見る</button></div>
     <div class="card"><h2>今日やること</h2><div class="row"><span>${w===1?'いつもの食事を写真で記録':'食事を記録する'}</span><button data-go="record">記録する</button></div><div class="row"><span>体重・体調を残す（任意）</span><button data-go="record">入力する</button></div>${w===1?`<p class="muted">第1週は3日間、できれば平日2日と休日1日。現在 ${n}日分です。採点はしません。</p>`:''}</div>
-    <div class="card"><h2>体重の流れ</h2>${graph()}</div>${comment()}
-    <div class="card"><h2>1日の食事例</h2><p>食品マスターとの照合後に、量・食品グループ・点数を示した見本を掲載します。この通り食べる必要はありません。</p></div>`;
+    <div class="card"><h2>体重の流れ</h2>${graph()}</div>${comment()}${renderSample()}`;
 }
 function renderWeek(){
   const w=week(), q=state.answers?.[1]||{}, lesson=CURRICULUM[w-1];
@@ -135,7 +152,7 @@ onAuthStateChanged(auth,async u=>{
   try{const snap=await getDoc(doc(db,'users',u.uid,'appData','hopeProgram'));state=snap.exists()?snap.data():{};message('');startProfile()}
   catch(e){message('記録を読み込めませんでした。通信と権限を確認してください。',true);$('#workspace').hidden=true}
 });
-fetch('./food-master.json').then(r=>{if(!r.ok)throw new Error('master');return r.json()}).then(v=>{foodMaster=v.foods||[]}).catch(()=>{message('食品マスターを読み込めませんでした。自由入力は使えます。',true)});
+fetch('./food-master.json').then(r=>{if(!r.ok)throw new Error('master');return r.json()}).then(v=>{foodMaster=v.foods||[];if($('#sampleCard'))$('#sampleCard').outerHTML=renderSample()}).catch(()=>{message('食品マスターを読み込めませんでした。自由入力は使えます。',true)});
 $('#setupForm').addEventListener('input',()=>{
   const f=$('#setupForm'),h=Number(f.elements.heightCm.value),w=Number(f.elements.startWeight.value),p=Number(f.elements.goalPercent.value);
   $('#goalPreview').textContent=h>0&&w>0?`目標体重 ${goalWeight(w,p).toFixed(1)}kg　/　BMI ${bmi(h,w).toFixed(1)}`:'身長と体重を入力すると、目標体重とBMIを表示します。';
@@ -149,6 +166,8 @@ $('#setupForm').addEventListener('submit',async e=>{
   try{await persist(next);startProfile()}catch(e){message('初回設定を保存できませんでした。通信と権限を確認してください。',true)}
 });
 document.addEventListener('click',e=>{
+  const sample=e.target.closest('[data-sample]');
+  if(sample){sampleCategory=sample.dataset.sample;$('#sampleCard').outerHTML=renderSample();return}
   const nav=e.target.closest('[data-page],[data-go],[data-meal]');
   if(!nav)return;
   if(nav.dataset.meal){mealType=nav.dataset.meal;document.querySelectorAll('[data-meal]').forEach(x=>x.classList.toggle('selected',x.dataset.meal===mealType))}

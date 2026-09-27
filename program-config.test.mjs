@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { PROGRAM, WEEK_TITLES, WEEK_SOURCES, goalWeight, bmi, currentWeek, foodPoints } from './program-config.js';
 import { CURRICULUM } from './program-curriculum.js';
+import { resolveSample, SAMPLE_CATEGORIES } from './program-samples.js';
 
 test('12 weeks and goals match the confirmed program values', () => {
   assert.equal(WEEK_TITLES.length, 12);
@@ -27,4 +28,9 @@ test('food calculation uses the verified master weight, not an AI estimate', () 
   assert.deepEqual({ group: rice.group, gramsPerPoint: rice.gramsPerPoint }, { group: '第4群', gramsPerPoint: 50 });
   assert.equal(foodPoints(150, rice.gramsPerPoint), 3);
   assert.throws(() => foodPoints(0, 50), RangeError);
+  assert.deepEqual(SAMPLE_CATEGORIES,['自炊','外食','コンビニ','スーパー','ファストフード']);
+  const sample=resolveSample(foods);
+  assert.equal(sample.totalPoints,15);
+  assert.equal(sample.items.length,12);
+  assert.ok(sample.items.every(item=>item.group && Number.isFinite(item.points)));
 });
