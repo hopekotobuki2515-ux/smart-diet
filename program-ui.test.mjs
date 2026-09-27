@@ -23,7 +23,13 @@ async function openApp(store) {
   Object.assign(win, config, {CURRICULUM,SAMPLE_CATEGORIES,resolveSample});
   win.initializeApp = x => x; win.getAuth = () => ({currentUser:{uid:'test-user'}});
   win.getFirestore = () => ({}); win.doc = (...args) => args;
-  win.getDoc = async () => ({exists:()=>Object.keys(store.value).length>0,data:()=>structuredClone(store.value)});
+  win.getDoc = async ref => {
+    if(ref[1] === 'coachComments') {
+      if(store.commentError) throw new Error('permission-denied');
+      return {exists:()=>Boolean(store.comment),data:()=>structuredClone(store.comment)};
+    }
+    return {exists:()=>Object.keys(store.value).length>0,data:()=>structuredClone(store.value)};
+  };
   win.arrayUnion = value => ({__union:value});
   const merge = (target, patch) => {
     for (const [key,value] of Object.entries(patch)) {
@@ -143,4 +149,25 @@ test('foods with the same name use the selected master category for points', asy
     assert.match(app.q('#pointPreview').textContent,/1\.00点/);
     assert.deepEqual(app.failures,[]);
   } finally {app.dom.window.close()}
+});
+
+test('coach comment is read from the separate path, and an owner-writable field is ignored', async () => {
+  const profile={name:'テスト',age:45,heightCm:170,startWeight:70,waist:85,goalPercent:5,startDate:tokyoDate(new Date())};
+  const store={value:{profile,coachComments:{status:'published',message:'偽のコメント'}},comment:{status:'published',message:'今週も記録できました。\n次はご飯の量を見てみましょう。'}};
+  const app=await openApp(store);
+  try {
+    await pause();
+    assert.match(app.q('#home').textContent,/今週も記録できました/);
+    assert.doesNotMatch(app.q('#home').textContent,/偽のコメント/);
+    assert.equal(app.q('#home .coach-head').parentElement.querySelectorAll('br').length,1);
+    assert.deepEqual(app.failures,[]);
+  } finally {app.dom.window.close()}
+  store.commentError=true;
+  const blocked=await openApp(store);
+  try {
+    await pause();
+    assert.match(blocked.q('#home').textContent,/まだ届いていません/);
+    assert.doesNotMatch(blocked.q('#home').textContent,/偽のコメント/);
+    assert.deepEqual(blocked.failures,[]);
+  } finally {blocked.dom.window.close()}
 });

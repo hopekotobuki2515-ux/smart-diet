@@ -19,6 +19,7 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const today = () => new Intl.DateTimeFormat('sv-SE', {timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 let state = {}, user = null, mealType = '朝食', page = 'home', sampleCategory = '自炊';
+let coachComment = null;
 let foodMaster = [], photoUrls = [];
 const foodId = x => JSON.stringify([x.name,x.category,x.gramsPerPoint]);
 const foodFromId = id => foodMaster.find(x=>foodId(x)===id);
@@ -50,7 +51,23 @@ function graph(){
   return `<svg class="chart" viewBox="0 0 300 130" role="img" aria-label="直近の体重の推移"><line x1="10" y1="112" x2="290" y2="112"/><polyline points="${points}"/></svg><p class="muted">一日の増減より、長い流れを見ていきましょう。</p>`;
 }
 function comment(){
-  return `<div class="card"><div class="coach-head"><img src="./coach.svg" alt="男性コーチのイラスト"><div><span class="eyebrow">村田コーチより</span><h2>HOPEからのコメント</h2></div></div><p>コメントの送受信は準備中です。記録だけでも続けていきましょう。</p></div>`;
+  const body = coachComment?.status === 'published' && typeof coachComment.message === 'string'
+    ? esc(coachComment.message).replace(/\n/g, '<br>')
+    : 'コメントはまだ届いていません。記録だけでも続けていきましょう。';
+  return `<div class="card"><div class="coach-head"><img src="./coach.svg" alt="男性コーチのイラスト"><div><span class="eyebrow">村田コーチより</span><h2>HOPEからのコメント</h2></div></div><p>${body}</p></div>`;
+}
+async function loadCoachComment(account, weekNumber){
+  coachComment = null;
+  try {
+    const snap = await getDoc(doc(db, 'coachComments', account.uid, 'weeks', String(weekNumber)));
+    if (user?.uid !== account.uid || week() !== weekNumber) return;
+    coachComment = snap.exists() ? snap.data() : null;
+  } catch (error) {
+    // This separate path remains denied until the reviewed rules are deployed.
+    if (user?.uid !== account.uid || week() !== weekNumber) return;
+    coachComment = null;
+  }
+  render();
 }
 function renderSample(){
   let body='';
@@ -149,10 +166,10 @@ $('#signIn').onclick=async()=>{
   catch(e){message('ログインできませんでした。メールアドレスとパスワードを確認してください。',true)}
 };
 onAuthStateChanged(auth,async u=>{
-  user=u;
+  user=u;coachComment=null;
   if(!u){$('#login').hidden=false;$('#app').hidden=true;return}
   $('#login').hidden=true;$('#app').hidden=false;message('記録を読み込んでいます…');
-  try{const snap=await getDoc(doc(db,'users',u.uid,'appData','hopeProgram'));state=snap.exists()?snap.data():{};message('');startProfile()}
+  try{const snap=await getDoc(doc(db,'users',u.uid,'appData','hopeProgram'));state=snap.exists()?snap.data():{};message('');startProfile();if(state.profile)loadCoachComment(u,week())}
   catch(e){message('記録を読み込めませんでした。通信と権限を確認してください。',true);$('#workspace').hidden=true}
 });
 fetch('./food-master.json').then(r=>{if(!r.ok)throw new Error('master');return r.json()}).then(v=>{foodMaster=v.foods||[];if($('#sampleCard'))$('#sampleCard').outerHTML=renderSample()}).catch(()=>{message('食品マスターを読み込めませんでした。自由入力は使えます。',true)});
