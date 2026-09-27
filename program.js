@@ -29,7 +29,15 @@ const questions = [
   { id:'causes', title:'最近、体重が増えた原因として思い当たることは？', multiple:true, options:['食べる量が増えた','間食が増えた','外食が増えた','お酒が増えた','運動量が減った','生活時間が不規則','ストレスで食べる','よく分からない','その他'] },
   { id:'style', title:'普段の食事スタイルは？', multiple:true, options:['自炊','外食','コンビニ','スーパーの弁当・惣菜','ファストフード','冷凍食品・冷凍弁当','その他'] }
 ];
-function message(s, error=false){ $('#status').textContent=s; $('#status').classList.toggle('error', error); }
+let statusTimer;
+function message(s, error=false){
+  clearTimeout(statusTimer);
+  $('#status').textContent=s;
+  $('#status').classList.toggle('error', error);
+  if(s==='保存しました') statusTimer=setTimeout(()=>{
+    if($('#status').textContent===s) $('#status').textContent='';
+  },3500);
+}
 async function persist(next, patch = next){
   if (!user) throw new Error('ログインが必要です');
   const { coachComments, ...writable } = patch;
