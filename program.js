@@ -20,6 +20,8 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 const today = () => new Intl.DateTimeFormat('sv-SE', {timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 let state = {}, user = null, mealType = '朝食', page = 'home', sampleCategory = '自炊';
 let foodMaster = [], photoUrls = [];
+const foodId = x => JSON.stringify([x.name,x.category,x.gramsPerPoint]);
+const foodFromId = id => foodMaster.find(x=>foodId(x)===id);
 const meals = ['朝食','昼食','夕食','間食','飲み物','飲酒'];
 const questions = [
   { id:'reason', title:'今回始めようと思った一番の理由は？', multiple:false, options:['体重が増えた','お腹まわりが気になる','脚・二の腕など見た目が気になる','健康診断の結果が気になる','体力をつけたい','食生活を整えたい','その他'] },
@@ -205,29 +207,39 @@ document.addEventListener('input',e=>{
     const query=e.target.value.trim().toLocaleLowerCase('ja');
     const matches=query.length>=2?foodMaster.filter(x=>x.name.toLocaleLowerCase('ja').includes(query)).slice(0,8):[];
     $('#foodResults').replaceChildren(...matches.map(x=>{
-      const b=document.createElement('button');b.type='button';b.textContent=`${x.name}（${x.group} / 1点 ${x.gramsPerPoint}g）`;
-      b.onclick=()=>{selectFood(x.name);$('#foodResults').replaceChildren()};
+      const b=document.createElement('button');b.type='button';b.textContent=`${x.name}（${x.category}・${x.group} / 1点 ${x.gramsPerPoint}g）`;
+      b.onclick=()=>{selectFood(x);$('#foodResults').replaceChildren()};
       return b;
     }));
   }
-  if(e.target.name==='food' && f.dataset.masterName!==e.target.value){delete f.dataset.masterName;$('#riceAmounts').hidden=true}
+  if(e.target.name==='food' && f.dataset.masterName!==e.target.value){delete f.dataset.masterId;delete f.dataset.masterName;$('#riceAmounts').hidden=true}
   if(e.target.name==='grams'||e.target.name==='food')updatePoints();
 });
-function selectFood(name){
-  const f=$('#mealForm'),x=foodMaster.find(x=>x.name===name);
+function selectFood(candidate){
+  const f=$('#mealForm'),name=typeof candidate==='string'?candidate:candidate.name;
+  const matches=typeof candidate==='string'?foodMaster.filter(x=>x.name===name):[candidate];
+  const x=matches.length===1?matches[0]:null;
   f.elements.food.value=name;
-  if(x){f.dataset.masterName=name;$('#selectedFood').textContent=`${name}｜${x.group}｜1点 ${x.gramsPerPoint}g`}
-  else {delete f.dataset.masterName;$('#selectedFood').textContent='自由入力の食品です。点数は未計算のまま記録します。'}
-  $('#riceAmounts').hidden=name!=='めし・水稲・精白米';
+  if(x){f.dataset.masterName=name;f.dataset.masterId=foodId(x);$('#selectedFood').textContent=`${name}｜${x.category}｜${x.group}｜1点 ${x.gramsPerPoint}g`}
+  else {delete f.dataset.masterName;delete f.dataset.masterId;$('#selectedFood').textContent=matches.length>1?'同じ名前の食品が複数あります。検索結果から分類を選んでください。':'自由入力の食品です。点数は未計算のまま記録します。'}
+  $('#riceAmounts').hidden=x?.name!=='めし・水稲・精白米';
   updatePoints();
 }
 function renderFoodShortcuts(){
-  const recent=[...new Set((state.meals||[]).map(x=>x.food).filter(Boolean).reverse())].slice(0,5);
-  for(const [selector,label,names] of [['#recentFoods','最近使った食品',recent],['#savedFoods','登録済み食品',state.savedFoods||[]]]){
+  const seen=new Set(),recent=[];
+  for(const entry of [...(state.meals||[])].reverse()){
+    if(!entry.food)continue;
+    const key=entry.masterId||entry.food;
+    if(seen.has(key))continue;
+    seen.add(key);recent.push({name:entry.food,master:foodFromId(entry.masterId)});
+    if(recent.length===5)break;
+  }
+  const saved=(state.savedFoods||[]).map(name=>({name,master:null}));
+  for(const [selector,label,items] of [['#recentFoods','最近使った食品',recent],['#savedFoods','登録済み食品',saved]]){
     const box=$(selector);box.replaceChildren();
-    if(!names.length)continue;
+    if(!items.length)continue;
     const title=document.createElement('p');title.className='muted';title.textContent=label;box.append(title);
-    for(const name of names){const b=document.createElement('button');b.type='button';b.textContent=name;b.onclick=()=>selectFood(name);box.append(b)}
+    for(const item of items){const b=document.createElement('button');b.type='button';b.textContent=item.master?`${item.name}（${item.master.category}）`:item.name;b.onclick=()=>selectFood(item.master||item.name);box.append(b)}
   }
 }
 document.addEventListener('click',async e=>{
@@ -238,7 +250,7 @@ document.addEventListener('click',async e=>{
   try{await persist(next,{savedFoods:arrayUnion(name)})}catch(err){message('食品を登録できませんでした。',true)}
 });
 function updatePoints(){
-  const f=$('#mealForm'), x=foodMaster.find(x=>x.name===f.dataset.masterName), grams=Number(f.elements.grams.value);
+  const f=$('#mealForm'), x=foodFromId(f.dataset.masterId), grams=Number(f.elements.grams.value);
   $('#pointPreview').textContent=x && grams>0?`${x.group}：${foodPoints(grams,x.gramsPerPoint).toFixed(2)}点 / 約${Math.round(grams/x.gramsPerPoint*PROGRAM.kcalPerPoint)}kcal（マスターの1点重量から計算）`:'';
 }
 document.addEventListener('submit',async e=>{
@@ -253,8 +265,8 @@ document.addEventListener('submit',async e=>{
       if(file && (!file.type.startsWith('image/') || file.size>15*1024*1024))throw new Error('15MB以下の画像を選んでください。');
       photoId=file?crypto.randomUUID():null;
       if(file)await savePhoto(photoId,file);
-      const master=foodMaster.find(x=>x.name===f.dataset.masterName && x.name===food),grams=f.elements.grams.value?Number(f.elements.grams.value):null;
-      const entry={id:crypto.randomUUID(),date:f.elements.date.value,type:mealType,food,amount,memo,photoId,grams,group:master?.group||null,points:master&&grams?foodPoints(grams,master.gramsPerPoint):null,createdAt:new Date().toISOString()};
+      const selected=foodFromId(f.dataset.masterId),master=selected?.name===food?selected:null,grams=f.elements.grams.value?Number(f.elements.grams.value):null;
+      const entry={id:crypto.randomUUID(),date:f.elements.date.value,type:mealType,food,amount,memo,photoId,grams,masterId:master?foodId(master):null,category:master?.category||null,group:master?.group||null,points:master&&grams?foodPoints(grams,master.gramsPerPoint):null,createdAt:new Date().toISOString()};
       next.meals=[...(next.meals||[]),entry];writePatch={meals:arrayUnion(entry)};
     } else if(f.id==='measurementForm'){
       const values={};

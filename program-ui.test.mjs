@@ -117,3 +117,30 @@ test('weeks advance without requiring the lesson and the final week shows more t
     assert.deepEqual(final.failures,[]);
   } finally {final.dom.window.close()}
 });
+
+test('foods with the same name use the selected master category for points', async () => {
+  const profile={name:'テスト',age:45,heightCm:170,startWeight:70,waist:85,goalPercent:5,startDate:tokyoDate(new Date())};
+  const store={value:{profile,meals:[],savedFoods:['ひき肉']}};
+  const app=await openApp(store);
+  try {
+    app.q('[data-page="record"]').click();
+    app.q('#savedFoods button').click();
+    app.fill('#mealForm [name="grams"]','50');
+    assert.match(app.q('#selectedFood').textContent,/分類を選んで/);
+    assert.equal(app.q('#pointPreview').textContent,'');
+    app.fill('#foodSearch','ひき肉');
+    const candidates=[...app.win.document.querySelectorAll('#foodResults button')];
+    assert.equal(candidates.length,3);
+    assert.match(candidates[2].textContent,/鶏肉/);
+    candidates[2].click();
+    assert.match(app.q('#pointPreview').textContent,/1\.00点/);
+    app.submit('#mealForm');await pause();
+    assert.equal(store.value.meals[0].points,1);
+    assert.match(store.value.meals[0].category,/鶏肉/);
+    assert.match(app.q('#recentFoods button').textContent,/鶏肉/);
+    app.q('#recentFoods button').click();
+    app.fill('#mealForm [name="grams"]','50');
+    assert.match(app.q('#pointPreview').textContent,/1\.00点/);
+    assert.deepEqual(app.failures,[]);
+  } finally {app.dom.window.close()}
+});
