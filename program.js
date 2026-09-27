@@ -1,7 +1,8 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js';
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js';
 import { getFirestore, doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js';
-import { PROGRAM, WEEK_TITLES, WEEK_INTROS, WEEK_SOURCES, goalWeight, bmi, currentWeek, foodPoints } from './program-config.js';
+import { PROGRAM, WEEK_TITLES, WEEK_SOURCES, goalWeight, bmi, currentWeek, foodPoints } from './program-config.js';
+import { CURRICULUM } from './program-curriculum.js';
 
 // Same Firebase project and sign-in as the existing index.html; separate document to preserve legacy records.
 const firebaseConfig = {
@@ -48,6 +49,19 @@ function graph(){
 function comment(){
   return `<div class="card"><div class="coach-head"><img src="./coach.svg" alt="男性コーチのイラスト"><div><span class="eyebrow">村田コーチより</span><h2>HOPEからのコメント</h2></div></div><p>コメントの送受信は準備中です。記録だけでも続けていきましょう。</p></div>`;
 }
+function finalSummary(){
+  const p=state.profile, logs=Object.entries(state.measurements||{}).sort(([a],[b])=>a.localeCompare(b));
+  const weights=logs.filter(([,v])=>Number(v.weight)>0), waists=logs.filter(([,v])=>Number(v.waist)>0);
+  const latestWeight=weights.at(-1)?.[1].weight, latestWaist=waists.at(-1)?.[1].waist;
+  return `<div class="card"><h2>3か月の振り返り</h2>
+    <div class="row"><span>開始時の体重</span><strong>${p.startWeight.toFixed(1)}kg</strong></div>
+    <div class="row"><span>最近記録した体重</span><strong>${latestWeight?Number(latestWeight).toFixed(1)+'kg':'記録なし'}</strong></div>
+    <div class="row"><span>開始時の腹囲</span><strong>${p.waist.toFixed(1)}cm</strong></div>
+    <div class="row"><span>最近記録した腹囲</span><strong>${latestWaist?Number(latestWaist).toFixed(1)+'cm':'記録なし'}</strong></div>
+    <div class="row"><span>食事を記録した日</span><strong>${daysRecorded()}日</strong></div>
+    <p>数字とあわせて、食品量、点数、外食での選び方、身体を動かす習慣も振り返りましょう。</p>
+    <div class="note">体重を保つ時期の食事量は、活動量や生活状況を見て村田コーチと確認します。減量中の設定を自動で続けることはしません。</div></div>`;
+}
 function renderHome(){
   const w=week(), n=daysRecorded(), bars=Array.from({length:12},(_,i)=>`<i class="${i<w?'done':''}"></i>`).join('');
   $('#home').innerHTML=`
@@ -58,18 +72,14 @@ function renderHome(){
     <div class="card"><h2>1日の食事例</h2><p>食品マスターとの照合後に、量・食品グループ・点数を示した見本を掲載します。この通り食べる必要はありません。</p></div>`;
 }
 function renderWeek(){
-  const w=week(), q=state.answers?.[1]||{}, source=`https://docs.google.com/document/d/${WEEK_SOURCES[w-1]}/edit`;
+  const w=week(), q=state.answers?.[1]||{}, lesson=CURRICULUM[w-1], source=`https://docs.google.com/document/d/${WEEK_SOURCES[w-1]}/edit`;
   $('#week').innerHTML=`<div class="card"><span class="eyebrow">第${w}週 / 12週間</span><h1>${esc(WEEK_TITLES[w-1])}</h1><p class="muted">学ぶ → やってみる → 記録する → コメントを受け取る → 振り返る</p></div>
-    <div class="card"><span class="eyebrow">今週のお話</span>${w===1?`
-      <h2>まず今の自分を知ろう</h2>
-      <p>こんにちは。HOPEの村田です。SMART Dietの3か月プログラム、今日から始めていきましょう。</p>
-      <p>いきなり完璧な食事に変えなくて大丈夫です。始める理由は人それぞれ。でも最初にやることは同じです。まず今の自分を知ることから始めます。</p>
-      <p class="lead">今週は「変える」より「知る」。</p>
-      <p>何を、どのくらい、何時ごろ食べているか。間食・飲み物・お酒も含めて、今の状態をそのまま見ていきましょう。今週は採点しません。</p>
-      <div class="soft">村田コーチより：詳しく考えず、いつもの生活で大丈夫です。</div>`:`<p>こんにちは。HOPEの村田です。</p><p>${esc(WEEK_INTROS[w-1])}</p><p class="muted">詳しい本文は元資料との照合を進めています。食事と体重の記録は続けられます。</p>`}
+    <div class="card"><span class="eyebrow">今週のお話</span><h2>${esc(WEEK_TITLES[w-1])}</h2>${lesson.lesson.map(x=>`<p>${esc(x)}</p>`).join('')}
       <p class="source">元資料：<a href="${source}" target="_blank" rel="noopener noreferrer">第${w}週のGoogleドキュメント</a></p></div>
-    <div class="card"><h2>今週やってみること</h2><p>${w===1?'いつもの食事を3日間記録しましょう。平日2日と休日1日がおすすめです。朝食・昼食・夕食・間食・飲み物・飲酒を写真中心に残してください。':'食事記録を続けながら、今週のお話を参考にしてください。'}</p><button class="button" data-go="record">食事を記録する</button></div>
+    <div class="card"><h2>今週やってみること</h2><p>${esc(lesson.task)}</p><button class="button" data-go="record">食事を記録する</button></div>
     ${w===1?`<div class="card"><h2>今週の質問</h2><p class="muted">選ぶだけでも大丈夫です。付け足す言葉は任意です。</p><form id="questionForm">${questions.map(item=>`<h3>${item.title}</h3><div class="choice">${item.options.map(o=>`<label><input type="${item.multiple?'checkbox':'radio'}" name="${item.id}" value="${esc(o)}" ${(q[item.id]||[]).includes(o)?'checked':''}>${esc(o)}</label>`).join('')}</div><label>自分の言葉で付け足したいことがあれば<textarea name="${item.id}Text" maxlength="500">${esc(q[item.id+'Text']||'')}</textarea></label>`).join('')}<h3>3か月後、どんな自分でいたいですか？</h3><textarea name="future" maxlength="500" aria-label="3か月後の自分">${esc(q.future||'')}</textarea><button class="button" type="submit">回答を保存する</button></form></div>`:''}
+    ${w>1?`<div class="card"><h2>今週の質問</h2><p>選択肢から選び、付け足したいことだけ入力してください。</p><form id="weeklyQuestionForm"><h3>${esc(lesson.question.title)}</h3><div class="choice">${lesson.question.options.map(o=>`<label><input type="${lesson.question.multiple||lesson.question.max?'checkbox':'radio'}" name="answer" value="${esc(o)}" ${(state.answers?.[w]?.choices||[]).includes(o)?'checked':''}>${esc(o)}</label>`).join('')}</div><label>自分の言葉で付け足したいことがあれば<textarea name="freeText" maxlength="500">${esc(state.answers?.[w]?.freeText||'')}</textarea></label><button class="button" type="submit">回答を保存する</button></form></div>`:''}
+    ${w===12?finalSummary():''}
     ${comment()}
     <div class="card"><h2>週末の振り返り</h2><p>今週、気づいたことを一つ残しましょう。</p><form id="reflectionForm"><textarea name="reflection" maxlength="1000" aria-label="今週の振り返り">${esc(state.reflections?.[w]||'')}</textarea><button class="button" type="submit">振り返りを保存する</button></form></div>
     <div class="card"><h2>次の週へ</h2><p>今週のお話を読まなくても、週が進むと次のテーマを見られます。</p></div>`;
@@ -82,7 +92,9 @@ function renderRecord(){
     <label>食品・料理名（任意）<input name="food" maxlength="120" placeholder="例：ご飯、焼き魚、みそ汁"></label>
     <label>食品マスターから探す（任意）<input id="foodSearch" type="search" autocomplete="off" placeholder="例：めし・水稲・精白米"></label>
     <div id="foodResults" class="food-results" aria-live="polite"></div>
+    <div id="recentFoods" class="food-shortcuts"></div><div id="savedFoods" class="food-shortcuts"></div>
     <p id="selectedFood" class="muted">食品を選ぶと量から点数を計算できます。第1週は不要です。</p>
+    <button id="saveFood" type="button" class="small-button">この食品を登録する</button>
     <label>量（分かる範囲で・任意）<input name="amount" maxlength="80" placeholder="例：ご飯150g"></label>
     <label>実測した量（g・任意）<input name="grams" type="number" min="0.1" max="10000" step="0.1" inputmode="decimal"></label><p id="pointPreview" class="muted"></p>
     <label>ひとこと（任意）<textarea name="memo" maxlength="500"></textarea></label>
@@ -96,6 +108,7 @@ function renderRecord(){
     <label>メモ<textarea name="memo" maxlength="500"></textarea></label><button class="button" type="submit">体重・体調を保存する</button></form></div>`;
   for(const url of photoUrls)URL.revokeObjectURL(url);photoUrls=[];
   loadVisiblePhotos();
+  renderFoodShortcuts();
 }
 function renderMore(){
   const p=state.profile,g=state.goals||[],current=g.at(-1)||{percent:p.goalPercent,target:goalWeight(p.startWeight,p.goalPercent)};
@@ -172,19 +185,42 @@ document.addEventListener('input',e=>{
     const matches=query.length>=2?foodMaster.filter(x=>x.name.toLocaleLowerCase('ja').includes(query)).slice(0,8):[];
     $('#foodResults').replaceChildren(...matches.map(x=>{
       const b=document.createElement('button');b.type='button';b.textContent=`${x.name}（${x.group} / 1点 ${x.gramsPerPoint}g）`;
-      b.onclick=()=>{f.dataset.masterName=x.name;f.elements.food.value=x.name;$('#selectedFood').textContent=`${x.name}｜${x.group}｜1点 ${x.gramsPerPoint}g`;$('#foodResults').replaceChildren();updatePoints()};
+      b.onclick=()=>{selectFood(x.name);$('#foodResults').replaceChildren()};
       return b;
     }));
   }
   if(e.target.name==='food' && f.dataset.masterName!==e.target.value)delete f.dataset.masterName;
   if(e.target.name==='grams'||e.target.name==='food')updatePoints();
 });
+function selectFood(name){
+  const f=$('#mealForm'),x=foodMaster.find(x=>x.name===name);
+  f.elements.food.value=name;
+  if(x){f.dataset.masterName=name;$('#selectedFood').textContent=`${name}｜${x.group}｜1点 ${x.gramsPerPoint}g`}
+  else {delete f.dataset.masterName;$('#selectedFood').textContent='自由入力の食品です。点数は未計算のまま記録します。'}
+  updatePoints();
+}
+function renderFoodShortcuts(){
+  const recent=[...new Set((state.meals||[]).map(x=>x.food).filter(Boolean).reverse())].slice(0,5);
+  for(const [selector,label,names] of [['#recentFoods','最近使った食品',recent],['#savedFoods','登録済み食品',state.savedFoods||[]]]){
+    const box=$(selector);box.replaceChildren();
+    if(!names.length)continue;
+    const title=document.createElement('p');title.className='muted';title.textContent=label;box.append(title);
+    for(const name of names){const b=document.createElement('button');b.type='button';b.textContent=name;b.onclick=()=>selectFood(name);box.append(b)}
+  }
+}
+document.addEventListener('click',async e=>{
+  if(e.target.id!=='saveFood')return;
+  const name=$('#mealForm')?.elements.food.value.trim();
+  if(!name){message('登録する食品名を入力してください。',true);return}
+  const next=copy();next.savedFoods=[...new Set([...(next.savedFoods||[]),name])];
+  try{await persist(next)}catch(err){message('食品を登録できませんでした。',true)}
+});
 function updatePoints(){
   const f=$('#mealForm'), x=foodMaster.find(x=>x.name===f.dataset.masterName), grams=Number(f.elements.grams.value);
   $('#pointPreview').textContent=x && grams>0?`${x.group}：${foodPoints(grams,x.gramsPerPoint).toFixed(2)}点 / 約${Math.round(grams/x.gramsPerPoint*PROGRAM.kcalPerPoint)}kcal（マスターの1点重量から計算）`:'';
 }
 document.addEventListener('submit',async e=>{
-  if(!['mealForm','measurementForm','questionForm','reflectionForm','goalForm'].includes(e.target.id))return;
+  if(!['mealForm','measurementForm','questionForm','weeklyQuestionForm','reflectionForm','goalForm'].includes(e.target.id))return;
   e.preventDefault();const f=e.target,next=copy(),w=week();
   const button=f.querySelector('button[type=submit]');button.disabled=true;message('保存中…');
   let photoId=null;
@@ -206,6 +242,11 @@ document.addEventListener('submit',async e=>{
     } else if(f.id==='questionForm'){
       const a={};for(const q of questions){a[q.id]=Array.from(f.querySelectorAll(`[name="${q.id}"]:checked`)).map(x=>x.value);a[q.id+'Text']=f.elements[q.id+'Text'].value.trim()}
       a.future=f.elements.future.value.trim();next.answers={...(next.answers||{}),1:a};
+    } else if(f.id==='weeklyQuestionForm'){
+      const choices=[...f.querySelectorAll('[name="answer"]:checked')].map(x=>x.value);
+      const limit=CURRICULUM[w-1].question.max;
+      if(limit && choices.length>limit)throw new Error(`選択は${limit}個までにしてください。`);
+      next.answers={...(next.answers||{}),[w]:{choices,freeText:f.elements.freeText.value.trim()}};
     } else if(f.id==='reflectionForm')next.reflections={...(next.reflections||{}),[w]:f.elements.reflection.value.trim()};
     else if(f.id==='goalForm'){
       const percent=Number(f.elements.percent.value), last=next.goals.at(-1);

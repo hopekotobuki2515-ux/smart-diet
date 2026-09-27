@@ -13,4 +13,5 @@ label{display:block;font-size:14px;font-weight:700;margin:13px 0 5px}input,selec
 .photo{max-width:100%;max-height:220px;border-radius:14px;display:block;margin:10px auto}.source{font-size:12px}.source a{color:#397b5d}.auth{margin:20px 16px}
 .food-results{display:grid;gap:4px}.food-results button{background:#f2f7f1;border:0;border-radius:9px;padding:11px;text-align:left;color:#17315a;font:inherit}.meal-entry{padding:12px 0;border-bottom:1px solid #edf0ea;line-height:1.6}
 .coach-head{display:flex;gap:12px;align-items:center}.coach-head img{width:60px;height:60px;border-radius:50%;flex:0 0 60px}.coach-head h2{margin:3px 0}
+.food-shortcuts{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}.food-shortcuts p{width:100%;margin:5px 0 0}.food-shortcuts button,.small-button{border:1px solid #d5e5d9;background:#f4f9f2;color:#286d4f;border-radius:12px;padding:9px;font:inherit;font-size:13px}.small-button{margin:5px 0}
 @media(max-width:370px){main{padding-left:11px;padding-right:11px}.card{padding:15px}.two{grid-template-columns:1fr}}

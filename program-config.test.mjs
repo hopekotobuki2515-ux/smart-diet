@@ -2,10 +2,16 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { PROGRAM, WEEK_TITLES, WEEK_SOURCES, goalWeight, bmi, currentWeek, foodPoints } from './program-config.js';
+import { CURRICULUM } from './program-curriculum.js';
 
 test('12 weeks and goals match the confirmed program values', () => {
   assert.equal(WEEK_TITLES.length, 12);
   assert.equal(WEEK_SOURCES.length, 12);
+  assert.equal(CURRICULUM.length, 12);
+  for (const [index, entry] of CURRICULUM.entries()) {
+    assert.ok(entry.lesson.length && entry.task);
+    if (index > 0) assert.ok(entry.question?.options?.includes('その他'));
+  }
   assert.deepEqual(PROGRAM.dailyPoints, { female: 15, male: 21 });
   assert.deepEqual(PROGRAM.goalPercents.map(p => goalWeight(70, p)), [66.5, 64.4, 63, 59.5]);
   assert.equal(bmi(170, 70), 24.2);
