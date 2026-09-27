@@ -20,16 +20,16 @@
   </section>
   <main id="app" hidden>
     <section id="setup" class="card" hidden>
-      <span class="eyebrow">はじめの設定</span><h1>あなたの現在地を教えてください</h1>
+      <span class="eyebrow">はじめの設定</span><h1>今のあなたを教えてください</h1>
       <p>今の時点での目標で大丈夫です。途中で変更できます。</p>
       <form id="setupForm">
         <label>名前<input name="name" autocomplete="name" required maxlength="60"></label>
         <label>年齢<input name="age" type="number" inputmode="numeric" min="1" max="120" required></label>
         <div class="two"><label>身長（cm）<input name="heightCm" type="number" inputmode="decimal" min="50" max="250" step="0.1" required></label>
         <label>スタート時の体重（kg）<input name="startWeight" type="number" inputmode="decimal" min="10" max="500" step="0.1" required></label></div>
-        <label>腹囲（おへその高さ・cm）<input name="waist" type="number" inputmode="decimal" min="20" max="300" step="0.1" required></label>
+        <label>腹囲（おへその高さ）<input name="waist" type="number" inputmode="decimal" min="20" max="300" step="0.1" placeholder="cm" required></label>
         <label>3か月で目指す減量率<select name="goalPercent"><option value="5">5％</option><option value="8">8％</option><option value="10">10％</option><option value="15">15％</option></select></label>
-        <div id="goalPreview" class="soft"></div>
+        <div id="goalPreview" class="soft">身長と体重を入力すると、目標体重とBMIを表示します。</div>
         <button class="button" type="submit">この内容で始める</button>
       </form>
     </section>
