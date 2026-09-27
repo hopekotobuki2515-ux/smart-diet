@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f9f8f2">
+<title>12週間プログラム | SMART Diet</title>
+<link rel="stylesheet" href="./program.css">
+</head>
+<body>
+<div class="shell">
+  <header class="top"><a href="./index.html" aria-label="従来の記録画面へ">‹</a><strong>SM<span>A</span>RT <em>Diet</em></strong><small>12週間</small></header>
+  <div id="status" class="status" role="status" aria-live="polite"></div>
+  <section id="login" class="card auth">
+    <h1>おかえりなさい</h1><p>現在のSMART Dietと同じアカウントでログインします。</p>
+    <label>メールアドレス<input id="email" type="email" autocomplete="username"></label>
+    <label>パスワード<input id="password" type="password" autocomplete="current-password"></label>
+    <button id="signIn" class="button">ログイン</button>
+    <p class="muted">初めての方は従来の画面でアカウントを作成してください。</p>
+  </section>
+  <main id="app" hidden>
+    <section id="setup" class="card" hidden>
+      <span class="eyebrow">はじめの設定</span><h1>あなたの現在地を教えてください</h1>
+      <p>今の時点での目標で大丈夫です。途中で変更できます。</p>
+      <form id="setupForm">
+        <label>名前<input name="name" autocomplete="name" required maxlength="60"></label>
+        <label>年齢<input name="age" type="number" inputmode="numeric" min="1" max="120" required></label>
+        <div class="two"><label>身長（cm）<input name="heightCm" type="number" inputmode="decimal" min="50" max="250" step="0.1" required></label>
+        <label>スタート時の体重（kg）<input name="startWeight" type="number" inputmode="decimal" min="10" max="500" step="0.1" required></label></div>
+        <label>腹囲（おへその高さ・cm）<input name="waist" type="number" inputmode="decimal" min="20" max="300" step="0.1" required></label>
+        <label>3か月で目指す減量率<select name="goalPercent"><option value="5">5％</option><option value="8">8％</option><option value="10">10％</option><option value="15">15％</option></select></label>
+        <div id="goalPreview" class="soft"></div>
+        <button class="button" type="submit">この内容で始める</button>
+      </form>
+    </section>
+    <div id="workspace" hidden>
+      <section id="home" class="panel"></section>
+      <section id="week" class="panel" hidden></section>
+      <section id="record" class="panel" hidden></section>
+      <section id="more" class="panel" hidden></section>
+      <nav class="nav" aria-label="アプリ内メニュー">
+        <button data-page="home" class="selected">⌂<small>ホーム</small></button>
+        <button data-page="week">▤<small>今週</small></button>
+        <button data-page="record">♧<small>食事・体重</small></button>
+        <button data-page="more">◯<small>マイページ</small></button>
+      </nav>
+    </div>
+  </main>
+</div>
+<script type="module" src="./program.js"></script>
+</body></html>

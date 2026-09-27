@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-labelledby="title">
+<title id="title">村田コーチをイメージした男性のイラスト</title>
+<circle cx="60" cy="60" r="58" fill="#e9f2e8"/>
+<path d="M15 114c4-27 20-38 45-38s41 11 45 38" fill="#679a7b"/>
+<path d="M42 81l18 25 18-25-10-10H52z" fill="#fffdf8"/>
+<path d="M44 51c-4-16 1-30 16-32 15 2 20 16 16 32v9c0 15-9 25-16 25S44 75 44 60z" fill="#f4caa8" stroke="#8c6959" stroke-width="1.5"/>
+<path d="M39 46c-4-20 7-32 22-34 13-3 26 8 24 26-2 8-5 12-8 16l-4-13c-10 4-21 1-27-4l-3 17z" fill="#4d403e"/>
+<path d="M48 60h8m9 0h8" stroke="#51423f" stroke-width="2" stroke-linecap="round"/>
+<path d="M56 71q4 4 9 0" stroke="#a3685b" stroke-width="2" fill="none" stroke-linecap="round"/>
+</svg>
