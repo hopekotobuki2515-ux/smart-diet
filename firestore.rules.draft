@@ -1,0 +1,45 @@
+// Review-only proposal. This file is not wired to firebase.json and is not deployed.
+// Provision coachAssignments/{clientUid} from a trusted administrator, never the client app.
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Preserve the currently published owner-only rule for the existing app.
+    match /users/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Example assignment: { coachUid: "<verified Firebase Auth UID>" }.
+    // Clients cannot add themselves or change their assigned coach.
+    match /coachAssignments/{clientUid} {
+      allow read, write: if false;
+    }
+
+    match /coachComments/{clientUid}/weeks/{weekId} {
+      function assignedCoach() {
+        return request.auth != null
+          && exists(/databases/$(database)/documents/coachAssignments/$(clientUid))
+          && get(/databases/$(database)/documents/coachAssignments/$(clientUid)).data.coachUid == request.auth.uid;
+      }
+
+      function validComment() {
+        return request.resource.data.keys().hasAll(['message', 'status', 'authorUid', 'updatedAt'])
+          && request.resource.data.keys().hasOnly(['message', 'status', 'authorUid', 'updatedAt'])
+          && request.resource.data.message is string
+          && request.resource.data.message.size() > 0
+          && request.resource.data.message.size() <= 1500
+          && request.resource.data.status in ['draft', 'published']
+          && request.resource.data.authorUid == request.auth.uid
+          && request.resource.data.updatedAt is timestamp;
+      }
+
+      // A client sees only a published comment for their own UID.
+      allow get: if (request.auth != null
+            && request.auth.uid == clientUid
+            && resource.data.status == 'published')
+          || assignedCoach();
+      allow list: if false;
+      allow create, update: if assignedCoach() && validComment();
+      allow delete: if false;
+    }
+  }
+}

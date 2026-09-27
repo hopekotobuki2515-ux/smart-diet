@@ -5,6 +5,7 @@
 - このリポジトリの `index.html` は、Firebase Authentication と Firestore `users/{uid}/appData/smartDiet` を使用する。既存記録、診断、目標は変更しない。
 - 別リポジトリ `smart-diet-diary` は食事写真をブラウザの localStorage に保持する試作版で、Firebase は未接続。両者のデータは未統合。
 - Firebase のプロジェクト ID は `smart-diet-a5d4e`。2026-09-27の管理画面写真でFirestore `(default)` の公開済みルールを確認。`rules_version = '2'`、`match /users/{userId}/{document=**}` の `allow read, write` は認証済みかつ `request.auth.uid == userId` の場合。認証プロバイダ設定と実アカウントでの読み書きは未検証。
+- 同日のAuthentication画面写真でメール認証の利用者が複数登録されていることを確認。UID欄は省略表示であり、村田コーチ本人の行は特定できない。本人のアカウントと完全なUIDを照合するまではコーチ権限を付与しない。
 - 同日のStorage画面は「プロジェクトをアップグレード」と表示し、Storageを使用するには請求先アカウント（Blaze）が必要と案内。バケットとStorageルールは表示されず、現時点ではStorage未設定として扱う。
 - 12週のGoogleドキュメントをそれぞれ確認。12週分の短いアプリ用本文・課題・質問を設置した。原文教材は公開GitHub Pagesの静的ファイルに複製せず、利用者画面から非公開Googleドキュメントへ直接リンクしない。対応する文書IDは開発用の `WEEK_SOURCES` に記録。
 - 食品マスター「80キロカロリー早見表_自動計算」の「早見表マスター」タブを読み、686件の食品名・群・分類・1点重量を `food-master.json` に写した。元シートの追加・修正を反映する自動同期は未実装。
@@ -25,6 +26,7 @@
 - 食品マスターで同名の「ひき肉」は牛・豚・鶏の分類を検索結果に表示して区別する。分類が未選択の同名食品は点数を計算せず、選んだ分類と重量を記録に残す。
 - HOPEコメント欄は表示枠だけ。真正なトレーナーコメントと利用者記録を権限で分離できるまで、送受信は有効にしない。
 - 現行Firestoreルールでは利用者自身が `users/{uid}` 配下の全文書を書ける。HOPEコメントを同配下に追加しても本人による書き換えを防げないため、トレーナー専用の書き込み先と認可方法の確定が必要。
+- `firestore.rules.draft` に別領域 `coachComments/{clientUid}/weeks/{weekId}` と管理者だけが設定する `coachAssignments/{clientUid}` のルール案を追加。本人は公開済みコメントの取得のみ、割り当て済みコーチは作成・更新のみを想定。既存の本人用ルールを維持する案であり、Firebase設定には接続せず未公開。コーチUID・担当関係を確認し、Firebase Emulatorで許可・拒否の両方を検証してから適用する。
 
 ## 実装計画と未完了の確認
 
