@@ -60,7 +60,9 @@ test('initial setup, master calculation, records and goal history survive reload
     assert.equal(store.value.profile.name,'テスト');
     assert.match(app.q('#sampleCard').textContent,/15\.00点/);
     app.q('#sampleCard [data-sample="コンビニ"]').click();
-    assert.match(app.q('#sampleCard').textContent,/確認してから掲載/);
+    assert.match(app.q('#sampleCard').textContent,/コンビニの見本は確認中/);
+    assert.equal(app.q('#sampleCard [data-sample="コンビニ"]').getAttribute('aria-selected'),'true');
+    assert.equal(app.q('#sampleCard [data-sample="ファストフード"]').textContent,'ファストフード');
     app.q('[data-page="record"]').click();
     store.value.meals=[{id:'from-another-device',date:tokyoDate(new Date()),type:'昼食',food:'普通牛乳',amount:'120g',points:1,photoId:null}];
     app.fill('#foodSearch','めし・水稲・精白米');
