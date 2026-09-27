@@ -17,3 +17,12 @@ SMART Diet公式資料にある「1点に相当する量」を入力して使い
 
 ## 公開
 GitHub Pagesなどの静的ホスティングに、index.html / manifest.json / sw.js を置けば公開できます。
+
+## HOPE SMART Diet 12週間プログラム
+
+- 利用者画面: `program.html`
+- 村田コーチ画面: `coach.html`
+- 認証・記録・担当設定・コメント返却: Firebase Authentication / Cloud Firestore
+- 食事写真: 現在は利用者端末のIndexedDBに保存。Firebase Storageは未使用
+
+利用者画面とコーチ画面は同じFirebase認証を使います。それぞれのマイページまたは担当者一覧にある「別のアカウントでログイン」から安全に切り替えられます。
