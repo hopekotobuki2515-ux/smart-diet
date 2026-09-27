@@ -33,7 +33,9 @@ test('only assigned clients appear; coach can draft and publish a separate comme
   };
   win.setDoc = async (ref,data) => writes.push({ref,data});
   win.signInWithEmailAndPassword = async () => {};
-  win.onAuthStateChanged = (_auth,callback) => queueMicrotask(()=>callback({uid:'verified-coach'}));
+  let authChanged;
+  win.onAuthStateChanged = (_auth,callback) => {authChanged=callback;queueMicrotask(()=>callback({uid:'verified-coach'}));};
+  win.signOut = async () => authChanged(null);
   win.eval(source);
   try {
     await pause();
@@ -51,6 +53,9 @@ test('only assigned clients appear; coach can draft and publish a separate comme
     const published = win.document.querySelector('#commentForm');
     published.dispatchEvent(new win.SubmitEvent('submit',{bubbles:true,cancelable:true,submitter:published.querySelector('[value="published"]')}));await pause();
     assert.equal(writes[1].data.status,'published');
+    win.document.querySelector('#switchAccount').click();await pause();
+    assert.equal(win.document.querySelector('#login').hidden,false);
+    assert.equal(win.document.querySelector('#coachApp').hidden,true);
     assert.deepEqual(failures,[]);
   } finally {dom.window.close()}
 });

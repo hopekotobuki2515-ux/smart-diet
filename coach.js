@@ -1,5 +1,5 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js';
-import { getAuth, onAuthStateChanged, signInWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js';
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js';
 import { getFirestore, collection, query, where, getDocs, doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js';
 import { currentWeek } from './program-config.js';
 
@@ -65,10 +65,15 @@ $('#signIn').onclick = async () => {
   try { await signInWithEmailAndPassword(auth, $('#email').value.trim(), $('#password').value); }
   catch (error) { message('ログインできませんでした。メールアドレスとパスワードを確認してください。', true); }
 };
+$('#switchAccount').onclick = async () => {
+  message('アカウントを切り替えています…');
+  try { await signOut(auth); }
+  catch (error) { message('ログアウトできませんでした。もう一度お試しください。', true); }
+};
 onAuthStateChanged(auth, async account => {
   coach = account;clients = new Map();clientUid = null;comment = null;
   $('#login').hidden = Boolean(account);$('#coachApp').hidden = !account;$('#clientDetail').hidden = true;
-  if (!account) return;
+  if (!account) {message('');return;}
   message('担当者を読み込んでいます…');
   try {
     const assigned = await getDocs(query(collection(db, 'coachAssignments'), where('coachUid', '==', account.uid)));
