@@ -57,6 +57,12 @@ function renderAnswers(answer, weekNumber) {
     ? rows.map(([title, value]) => `<p><strong>${esc(title)}</strong><br>${esc(value)}</p>`).join('')
     : '<p class="muted">回答はありません。</p>';
 }
+function renderMeal(meal) {
+  const details = [meal.food, meal.amount, meal.group, meal.points != null ? `${meal.points}点` : ''].filter(Boolean).map(esc);
+  const photo = meal.photoId ? '<br><span class="muted">写真記録あり（利用者の端末内に保存）</span>' : '';
+  const memo = meal.memo ? `<br>${esc(meal.memo)}` : '';
+  return `<p><strong>${esc(meal.date)} ${esc(meal.type)}</strong><br>${details.join(' / ') || '写真・メモの記録'}${memo}${photo}</p>`;
+}
 function renderDetail() {
   const record = clients.get(clientUid), profile = record?.profile;
   if (!profile) return;
@@ -66,7 +72,7 @@ function renderDetail() {
   $('#clientDetail').hidden = false;
   $('#clientDetail').innerHTML = `<div class="card"><span class="eyebrow">担当利用者</span><h2>${esc(profile.name)}さん　第${selectedWeek}週</h2>
     <label>コメントする週<select id="coachWeek">${Array.from({length:12},(_,i)=>`<option value="${i+1}" ${i+1===selectedWeek?'selected':''}>第${i+1}週</option>`).join('')}</select></label>
-    <h3>最近の食事記録</h3>${recentMeals.length ? recentMeals.map(x=>`<p>${esc(x.date)} ${esc(x.type)}：${esc(x.food || '写真・メモの記録')} ${esc(x.amount || '')} ${esc(x.memo || '')}</p>`).join('') : '<p class="muted">まだ記録がありません。</p>'}
+    <h3>最近の食事記録</h3>${recentMeals.length ? recentMeals.map(renderMeal).join('') : '<p class="muted">まだ記録がありません。</p>'}
     <h3>最近の体重・腹囲</h3>${latest.length ? latest.map(([date,x])=>`<p>${esc(date)}：${x.weight ? esc(x.weight)+'kg' : '体重なし'} / ${x.waist ? esc(x.waist)+'cm' : '腹囲なし'}</p>`).join('') : '<p class="muted">まだ記録がありません。</p>'}
     <h3>今週の回答</h3>${renderAnswers(answers, selectedWeek)}<h3>今週の振り返り</h3><p>${esc(record.reflections?.[selectedWeek] || '振り返りはありません。')}</p></div>
     <div class="card"><h2>HOPEからのコメント</h2><p class="muted">できていること、今週気づいてほしいこと、次にやることを一つずつ短く伝えます。</p>
