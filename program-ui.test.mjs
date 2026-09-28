@@ -153,6 +153,27 @@ test('foods with the same name use the selected master category for points', asy
   } finally {app.dom.window.close()}
 });
 
+test('a client can record a food group and points without a master match', async () => {
+  const profile={name:'テスト',age:45,heightCm:170,startWeight:70,waist:85,goalPercent:5,startDate:tokyoDate(new Date())};
+  const store={value:{profile,meals:[]}};
+  const app=await openApp(store);
+  try {
+    app.q('[data-page="record"]').click();
+    app.fill('#mealForm [name="food"]','野菜炒め');
+    app.fill('#mealForm [name="amount"]','小皿1杯');
+    app.fill('#mealForm [name="group"]','第4群');
+    app.fill('#mealForm [name="points"]','2.5');
+    app.submit('#mealForm');await pause();
+    assert.equal(store.value.meals[0].food,'野菜炒め');
+    assert.equal(store.value.meals[0].group,'第4群');
+    assert.equal(store.value.meals[0].points,2.5);
+    assert.equal(store.value.meals[0].pointSource,'user');
+    assert.match(app.q('#mealList').textContent,/第4群/);
+    assert.match(app.q('#mealList').textContent,/2\.5点/);
+    assert.deepEqual(app.failures,[]);
+  } finally {app.dom.window.close()}
+});
+
 test('coach comment is read from the separate path, and an owner-writable field is ignored', async () => {
   const profile={name:'テスト',age:45,heightCm:170,startWeight:70,waist:85,goalPercent:5,startDate:tokyoDate(new Date())};
   const store={value:{profile,coachComments:{status:'published',message:'偽のコメント'}},comment:{status:'published',message:'今週も記録できました。\n次はご飯の量を見てみましょう。'}};
