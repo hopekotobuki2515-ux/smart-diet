@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { JSDOM } from 'jsdom';
 import { currentWeek } from './program-config.js';
+import { CURRICULUM } from './program-curriculum.js';
 
 const html = readFileSync(new URL('./coach.html', import.meta.url), 'utf8');
 const source = readFileSync(new URL('./coach.js', import.meta.url), 'utf8').replace(/^import .*;\n/gm, '');
@@ -14,6 +15,7 @@ test('only assigned clients appear; coach can draft and publish a separate comme
   const profile = {name:'テスト',startDate:new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())};
   win.addEventListener('error', e => failures.push(e.message));
   win.currentWeek = currentWeek;
+  win.CURRICULUM = CURRICULUM;
   win.initializeApp = value => value;
   win.getAuth = () => ({});
   win.getFirestore = () => ({});
@@ -27,7 +29,12 @@ test('only assigned clients appear; coach can draft and publish a separate comme
   };
   win.getDoc = async ref => {
     reads.push(ref);
-    if (ref[0] === 'users') return {exists:()=>true,data:()=>({profile,meals:[{date:'2026-09-27',type:'昼食',food:'おにぎり'}]})};
+    if (ref[0] === 'users') return {exists:()=>true,data:()=>({
+      profile,
+      meals:[{date:'2026-09-27',type:'昼食',food:'おにぎり',amount:'1個',group:'第4群',points:2,photoId:'local-photo'}],
+      answers:{1:{reason:['食生活を整えたい'],reasonText:'朝食から見直したい'}},
+      reflections:{1:'写真を撮ると量に気づけた'}
+    })};
     if (ref[0] === 'coachComments') return {exists:()=>false};
     throw new Error('unexpected path');
   };
@@ -43,6 +50,13 @@ test('only assigned clients appear; coach can draft and publish a separate comme
     assert.deepEqual(reads[0],['users','assigned-client','appData','hopeProgram']);
     win.document.querySelector('#clients button').click();await pause();
     assert.match(win.document.querySelector('#clientDetail').textContent,/おにぎり/);
+    assert.match(win.document.querySelector('#clientDetail').textContent,/第4群/);
+    assert.match(win.document.querySelector('#clientDetail').textContent,/2点/);
+    assert.match(win.document.querySelector('#clientDetail').textContent,/利用者の端末内に保存/);
+    assert.match(win.document.querySelector('#clientDetail').textContent,/食生活を整えたい/);
+    assert.match(win.document.querySelector('#clientDetail').textContent,/朝食から見直したい/);
+    assert.match(win.document.querySelector('#clientDetail').textContent,/写真を撮ると量に気づけた/);
+    assert.doesNotMatch(win.document.querySelector('#clientDetail').textContent,/\{"reason"/);
     const form = win.document.querySelector('#commentForm');
     form.elements.message.value='記録を続けられました。次は夕食を見てみましょう。';
     const draft = form.querySelector('[value="draft"]');
