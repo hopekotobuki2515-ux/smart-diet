@@ -136,9 +136,9 @@ function renderWeek(){
 }
 function renderRecord(){
   const list=(state.meals||[]).slice(-20).reverse();
-  $('#record').innerHTML=`<div class="card"><span class="eyebrow">食事記録</span><h1>いつもの食事を残しましょう</h1><p>第1週は写真と簡単なメモだけで大丈夫。点数や食品群の入力は必要ありません。</p>
+  $('#record').innerHTML=`<div class="card"><span class="eyebrow">食事記録</span><h1>いつもの食事を残しましょう</h1><p>第1週は写真と簡単なメモだけで大丈夫。点数や食品グループの入力は必要ありません。学習が進んだら、自分で食品と量を確かめながら記録していきます。</p>
     <form id="mealForm"><label>日付<input id="mealDate" name="date" type="date" value="${today()}" required></label><div class="tabs" role="group" aria-label="食事の種類">${meals.map(t=>`<button type="button" data-meal="${t}" class="${t===mealType?'selected':''}">${t}</button>`).join('')}</div>
-    <label>写真（任意・この端末だけに保存）<input name="photo" type="file" accept="image/*"></label><p class="muted">写真は現段階では端末内保存です。他の端末には表示されません。</p>
+    <label>写真（任意・この端末だけに保存）<input name="photo" type="file" accept="image/*"></label><p class="muted">写真はこのiPhoneのブラウザ内だけに保存します。コーチ画面や別の端末には表示されません。</p>
     <label>食品・料理名（任意）<input name="food" maxlength="120" placeholder="例：ご飯、焼き魚、みそ汁"></label>
     <label>食品マスターから探す（任意）<input id="foodSearch" type="search" autocomplete="off" placeholder="例：めし・水稲・精白米"></label>
     <div id="foodResults" class="food-results" aria-live="polite"></div>
@@ -147,10 +147,12 @@ function renderRecord(){
     <button id="saveFood" type="button" class="small-button">この食品を登録する</button>
     <label>量（分かる範囲で・任意）<input name="amount" maxlength="80" placeholder="例：ご飯150g"></label>
     <label>実測した量（g・任意）<input name="grams" type="number" min="0.1" max="10000" step="0.1" inputmode="decimal"></label><p id="pointPreview" class="muted"></p>
+    <div class="two"><label>食品グループ（任意）<select name="group"><option value="">まだ選ばない</option>${[1,2,3,4].map(n=>`<option value="第${n}群">第${n}群</option>`).join('')}</select></label><label>点数（任意）<input name="points" type="number" min="0" max="1000" step="0.01" inputmode="decimal" placeholder="例：1.5"></label></div>
+    <p class="muted">食品マスターから選ぶと計算結果を確認できます。食品名・量・グループ・点数を自分で確かめてから保存しましょう。</p>
     <div id="riceAmounts" class="amount-guide" hidden><p>ご飯の量の目安（計量した値を優先）</p><div class="amount-options">${[100,150,200,260].map(g=>`<button type="button" data-rice-grams="${g}">${g}g</button>`).join('')}</div><p class="muted">このボタンは入力の補助です。実物写真による量の見本は準備中です。</p></div>
     <label>ひとこと（任意）<textarea name="memo" maxlength="500"></textarea></label>
     <button class="button" type="submit">この食事を保存する</button></form></div>
-    <div class="card"><h2>記録した食事</h2><div id="mealList">${list.length?list.map(x=>`<div class="meal-entry"><strong>${esc(x.date)}・${esc(x.type)}</strong><br>${esc(x.food||'写真・メモの記録')}${x.amount?' / '+esc(x.amount):''}${x.points!=null?' / '+x.points+'点':''}${x.photoId?`<div data-photo-id="${esc(x.photoId)}"></div>`:''}</div>`).join(''):'<p class="muted">まだ記録はありません。</p>'}</div></div>
+    <div class="card"><h2>記録した食事</h2><div id="mealList">${list.length?list.map(x=>`<div class="meal-entry"><strong>${esc(x.date)}・${esc(x.type)}</strong><br>${esc(x.food||'写真・メモの記録')}${x.amount?' / '+esc(x.amount):''}${x.group?' / '+esc(x.group):''}${x.points!=null?' / '+esc(x.points)+'点':''}${x.photoId?`<div data-photo-id="${esc(x.photoId)}"></div>`:''}</div>`).join(''):'<p class="muted">まだ記録はありません。</p>'}</div></div>
     <div class="card"><h2>体重・体調を記録する</h2><p class="muted">全部入力しなくても大丈夫です。</p><form id="measurementForm">
     <label>日付<input name="date" type="date" value="${today()}" required></label><div class="two"><label>体重（kg）<input name="weight" type="number" min="10" max="500" step="0.1" inputmode="decimal"></label><label>腹囲（おへその高さ）<input name="waist" type="number" min="20" max="300" step="0.1" inputmode="decimal" placeholder="cm"></label></div>
     <label>体調<select name="condition"><option value="">選択しない</option><option>とても良い</option><option>良い</option><option>普通</option><option>やや不調</option><option>不調</option></select></label>
@@ -267,7 +269,7 @@ function selectFood(candidate){
   const matches=typeof candidate==='string'?foodMaster.filter(x=>x.name===name):[candidate];
   const x=matches.length===1?matches[0]:null;
   f.elements.food.value=name;
-  if(x){f.dataset.masterName=name;f.dataset.masterId=foodId(x);$('#selectedFood').textContent=`${name}｜${x.category}｜${x.group}｜1点 ${x.gramsPerPoint}g`}
+  if(x){f.dataset.masterName=name;f.dataset.masterId=foodId(x);f.elements.group.value=x.group;$('#selectedFood').textContent=`${name}｜${x.category}｜${x.group}｜1点 ${x.gramsPerPoint}g`}
   else {delete f.dataset.masterName;delete f.dataset.masterId;$('#selectedFood').textContent=matches.length>1?'同じ名前の食品が複数あります。検索結果から分類を選んでください。':'自由入力の食品です。点数は未計算のまま記録します。'}
   $('#riceAmounts').hidden=x?.name!=='めし・水稲・精白米';
   updatePoints();
@@ -313,7 +315,10 @@ document.addEventListener('submit',async e=>{
       photoId=file?crypto.randomUUID():null;
       if(file)await savePhoto(photoId,file);
       const selected=foodFromId(f.dataset.masterId),master=selected?.name===food?selected:null,grams=f.elements.grams.value?Number(f.elements.grams.value):null;
-      const entry={id:crypto.randomUUID(),date:f.elements.date.value,type:mealType,food,amount,memo,photoId,grams,masterId:master?foodId(master):null,category:master?.category||null,group:master?.group||null,points:master&&grams?foodPoints(grams,master.gramsPerPoint):null,createdAt:new Date().toISOString()};
+      const manualPoints=f.elements.points.value.trim()===''?null:Number(f.elements.points.value);
+      if(manualPoints!=null && (!Number.isFinite(manualPoints) || manualPoints<0))throw new Error('点数は0以上の数値で入力してください。');
+      const points=manualPoints!=null?manualPoints:(master&&grams?foodPoints(grams,master.gramsPerPoint):null);
+      const entry={id:crypto.randomUUID(),date:f.elements.date.value,type:mealType,food,amount,memo,photoId,grams,masterId:master?foodId(master):null,category:master?.category||null,group:f.elements.group.value||master?.group||null,points,pointSource:manualPoints!=null?'user':(master&&grams?'master':null),createdAt:new Date().toISOString()};
       next.meals=[...(next.meals||[]),entry];writePatch={meals:arrayUnion(entry)};
     } else if(f.id==='measurementForm'){
       const values={};
