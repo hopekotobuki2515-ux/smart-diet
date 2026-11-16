@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash, webcrypto } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { JSDOM } from 'jsdom';
@@ -18,12 +19,15 @@ async function openApp(store) {
   win.addEventListener('error', event => failures.push(event.message));
   win.scrollTo = () => {};
   win.structuredClone = structuredClone;
+  win.TextEncoder = TextEncoder;
+  Object.defineProperty(win.crypto, 'subtle', {value:webcrypto.subtle});
   win.crypto.randomUUID = () => Math.random().toString(36).slice(2);
   win.fetch = async () => ({ok:true,json:async()=>master});
   Object.assign(win, config, {CURRICULUM,SAMPLE_CATEGORIES,resolveSample});
   win.initializeApp = x => x; win.getAuth = () => ({currentUser:{uid:'test-user'}});
   win.getFirestore = () => ({}); win.doc = (...args) => args;
   win.getDoc = async ref => {
+    if (ref[1] === 'programAdmissions') return {exists:()=>Boolean(store.admitted)};
     if(ref[1] === 'coachComments') {
       if(store.commentError) throw new Error('permission-denied');
       return {exists:()=>Boolean(store.comment),data:()=>structuredClone(store.comment)};
@@ -39,7 +43,17 @@ async function openApp(store) {
     }
     return target;
   };
-  win.setDoc = async (_ref,patch) => {store.value=merge(store.value,structuredClone(patch))};
+  win.setDoc = async (ref,patch) => {
+    if (ref[1] === 'programAdmissions') {
+      const expected = createHash('sha256').update('test-only invite').digest('hex');
+      if (patch.digest !== expected || store.admitted) {
+        throw Object.assign(new Error('denied'), {code:'permission-denied'});
+      }
+      store.admitted = true;
+    } else {
+      store.value=merge(store.value,structuredClone(patch));
+    }
+  };
   win.signInWithEmailAndPassword = async () => {};
   win.onAuthStateChanged = (_auth, callback) => queueMicrotask(()=>callback({uid:'test-user'}));
   win.eval(source);
@@ -53,11 +67,24 @@ async function openApp(store) {
 test('initial setup, master calculation, records and goal history survive reload', async () => {
   const store = {value:{}}, app = await openApp(store);
   try {
+    assert.equal(app.q('#invite').hidden,false);
+    assert.equal(app.q('#setup').hidden,true);
+    app.fill('#inviteForm input','wrong code');
+    app.submit('#inviteForm');await pause();
+    assert.equal(app.q('#setup').hidden,true);
+    assert.match(app.q('#status').textContent,/共通パスワードを確認してください/);
+    app.fill('#inviteForm input','test-only invite');
+    app.submit('#inviteForm');await pause();
+    assert.equal(app.q('#invite').hidden,true);
     assert.equal(app.q('#setup').hidden,false);
+    assert.equal(store.admitted,true);
     for(const [name,value] of Object.entries({name:'テスト',age:'45',heightCm:'170',startWeight:'70',waist:'85'})) app.fill(`[name="${name}"]`,value);
     assert.match(app.q('#goalPreview').textContent,/66\.5kg/);
     app.submit('#setupForm');await pause();
     assert.equal(store.value.profile.name,'テスト');
+    assert.equal(store.value.onboarding.mode,'observe');
+    app.q('[data-mode="program"]').click();await pause();
+    assert.equal(store.value.onboarding.programStartDate,tokyoDate(new Date()));
     assert.match(app.q('#sampleCard').textContent,/15\.00点/);
     app.q('#sampleCard [data-sample="コンビニ"]').click();
     assert.match(app.q('#sampleCard').textContent,/コンビニの見本は確認中/);
@@ -107,6 +134,13 @@ test('weeks advance without requiring the lesson and the final week shows more t
   try {
     app.q('[data-page="week"]').click();
     assert.match(app.q('#week').textContent,/第2週/);
+    app.q('[data-page="learn"]').click();
+    assert.equal(app.win.document.querySelectorAll('#learn li').length,12);
+    assert.equal(app.win.document.querySelectorAll('#learn details').length,2);
+    app.q('#learn details').open=true;
+    assert.match(app.q('#learn details').textContent,/まず今の自分を知ろう/);
+    app.q('#learn [data-go="week"]').click();
+    assert.equal(app.q('#week').hidden,false);
     const options=app.win.document.querySelectorAll('#weeklyQuestionForm [name="answer"]');
     options[0].click();options[1].click();options[2].click();
     app.submit('#weeklyQuestionForm');await pause();
@@ -193,4 +227,35 @@ test('coach comment is read from the separate path, and an owner-writable field 
     assert.doesNotMatch(blocked.q('#home').textContent,/偽のコメント/);
     assert.deepEqual(blocked.failures,[]);
   } finally {blocked.dom.window.close()}
+});
+
+test('three distinct meal dates unlock diary mode and the choice survives reload', async () => {
+  const startDate=tokyoDate(new Date(Date.now()-9*86400000));
+  const profile={name:'テスト',age:45,heightCm:170,startWeight:70,waist:85,goalPercent:5,startDate};
+  const store={value:{profile,onboarding:{mode:'observe'},meals:[]}};
+  const app=await openApp(store);
+  try {
+    assert.equal(app.q('[data-mode="diary"]'),null);
+    assert.equal(app.q('[data-page="learn"]').hidden,true);
+    for (const dayOffset of [0, 0, 1, 2]) {
+      app.q('[data-page="record"]').click();
+      app.fill('#mealDate',tokyoDate(new Date(Date.now()-(9-dayOffset)*86400000)));
+      app.fill('#mealForm [name="food"]','ご飯');
+      app.submit('#mealForm');await pause();
+      if (dayOffset < 2) assert.equal(app.q('[data-mode="diary"]'),null);
+    }
+    app.q('[data-page="home"]').click();
+    app.q('[data-mode="diary"]').click();await pause();
+    assert.equal(store.value.onboarding.mode,'diary');
+  } finally {app.dom.window.close()}
+  const reloaded=await openApp(store);
+  try {
+    assert.match(reloaded.q('#home').textContent,/いつもの食事を記録/);
+    reloaded.q('[data-mode="program"]').click();await pause();
+    assert.equal(store.value.profile.startDate,startDate);
+    assert.equal(store.value.meals.length,4);
+    assert.match(reloaded.q('#home').textContent,/第1週/);
+    assert.equal(reloaded.q('[data-page="learn"]').hidden,false);
+    assert.deepEqual(reloaded.failures,[]);
+  } finally {reloaded.dom.window.close()}
 });

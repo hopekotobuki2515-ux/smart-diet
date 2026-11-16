@@ -45,12 +45,26 @@ async function persist(next, patch = next){
   state = next; message('保存しました'); render();
 }
 function copy(){ return structuredClone(state); }
-function startProfile(){
-  if (!state.profile) { $('#setup').hidden=false; $('#workspace').hidden=true; return; }
+function startProfile(admitted = false){
+  $('#invite').hidden = Boolean(state.profile) || admitted;
+  if (!state.profile) { $('#setup').hidden=!admitted; $('#workspace').hidden=true; return; }
   $('#setup').hidden=true; $('#workspace').hidden=false; render();
 }
-function week(){ return currentWeek(state.profile.startDate); }
-function daysRecorded(){ return new Set((state.meals||[]).filter(x=>x.date >= state.profile.startDate && x.date <= today()).map(x=>x.date)).size; }
+function mode(){ return state.onboarding?.mode ?? 'program'; }
+function week(){ return currentWeek(state.onboarding?.programStartDate ?? state.profile.startDate); }
+function recordedDates(){
+  const end = today();
+  return [...new Set((state.meals || [])
+    .filter(meal => meal.date >= state.profile.startDate && meal.date <= end)
+    .map(meal => meal.date))].sort();
+}
+function daysRecorded(){ return recordedDates().length; }
+function observationSummary(){
+  const dates = new Set(recordedDates().slice(0, 3));
+  const entries = (state.meals || []).filter(meal => dates.has(meal.date));
+  const rows = meals.map(type => `<li>${type} ${entries.filter(meal => meal.type === type).length}件</li>`).join('');
+  return `<div class="card"><h2>最初の3日分を振り返る</h2><p>${[...dates].map(esc).join('、')}に保存した記録を集計しました。</p><ul>${rows}</ul></div>`;
+}
 function graph(){
   const logs = Object.entries(state.measurements||{}).filter(([,v])=>Number(v.weight)>0).sort(([a],[b])=>a.localeCompare(b)).slice(-30);
   if(logs.length<2) return '<p class="muted">体重を2回以上記録すると、流れを表示します。</p>';
@@ -62,20 +76,22 @@ function comment(){
   const body = coachComment?.status === 'published' && typeof coachComment.message === 'string'
     ? esc(coachComment.message).replace(/\n/g, '<br>')
     : 'コメントはまだ届いていません。記録だけでも続けていきましょう。';
-  return `<div class="card"><div class="coach-head"><img src="./coach.svg" alt="男性コーチのイラスト"><div><span class="eyebrow">村田コーチより</span><h2>HOPEからのコメント</h2></div></div><p>${body}</p></div>`;
+  return `<div class="card coach-comment"><div class="coach-head"><img src="./coach.svg" alt="男性コーチのイラスト"><div><span class="eyebrow">村田コーチより</span><h2>HOPEからのコメント</h2></div></div><p>${body}</p></div>`;
 }
 async function loadCoachComment(account, weekNumber){
   coachComment = null;
   try {
     const snap = await getDoc(doc(db, 'coachComments', account.uid, 'weeks', String(weekNumber)));
-    if (user?.uid !== account.uid || week() !== weekNumber) return;
+    if (user !== account || week() !== weekNumber) return;
     coachComment = snap.exists() ? snap.data() : null;
   } catch (error) {
     // This separate path remains denied until the reviewed rules are deployed.
-    if (user?.uid !== account.uid || week() !== weekNumber) return;
+    if (user !== account || week() !== weekNumber) return;
     coachComment = null;
   }
-  render();
+  for (const card of document.querySelectorAll('#home .coach-comment, #week .coach-comment')) {
+    card.outerHTML = comment();
+  }
 }
 function renderSample(){
   let body='';
@@ -115,6 +131,20 @@ function finalSummary(){
     <div class="note">体重を保つ時期の食事量は、活動量や生活状況を見て村田コーチと確認します。減量中の設定を自動で続けることはしません。</div></div>`;
 }
 function renderHome(){
+  if (mode() !== 'program') {
+    const n = daysRecorded();
+    const observing = mode() === 'observe';
+    $('#home').innerHTML = `
+      <div class="card"><h1>${observing ? 'まずは普段の食事を記録' : 'いつもの食事を記録'}</h1>
+      ${observing ? `<p>最初の3日間は、いつも通りの食事を記録します。点数の入力は任意です。</p><p>食事を記録した日 <strong>${Math.min(n, 3)} / 3日</strong></p>` : '<p>食事や体重の記録を続けられます。</p>'}
+      <button class="button" data-go="record">食事を記録する</button></div>
+      ${observing && n >= 3 ? observationSummary() : ''}
+      <div class="card"><h2>12週間のSMART Diet</h2><p>食事を記録しながら、毎週の教材で食品の量や食事の組み立て方を学びます。</p>
+      <button type="button" class="button ghost" data-mode="program">SMART Dietを始める</button>
+      ${observing && n >= 3 ? '<button type="button" class="button ghost" data-mode="diary">食事記録だけを続ける</button>' : ''}
+      </div><div class="card"><h2>体重の流れ</h2>${graph()}</div>`;
+    return;
+  }
   const w=week(), n=daysRecorded(), bars=Array.from({length:12},(_,i)=>`<i class="${i<w?'done':''}"></i>`).join('');
   $('#home').innerHTML=`
     <div class="card"><span class="eyebrow">こんにちは、${esc(state.profile.name)}さん</span><h1>今日も、自分のペースで。</h1><p>第${w}週 / 12週間</p><div class="progress" aria-label="12週間中${w}週目">${bars}</div></div>
@@ -134,11 +164,25 @@ function renderWeek(){
     <div class="card"><h2>週末の振り返り</h2><p>今週、気づいたことを一つ残しましょう。</p><form id="reflectionForm"><textarea name="reflection" maxlength="1000" aria-label="今週の振り返り">${esc(state.reflections?.[w]||'')}</textarea><button class="button" type="submit">振り返りを保存する</button></form></div>
     <div class="card"><h2>次の週へ</h2><p>今週のお話を読まなくても、週が進むと次のテーマを見られます。</p></div>`;
 }
+function renderLearn(){
+  const w = week();
+  $('#learn').innerHTML = `<div class="card"><h1>学び</h1>
+    <p>12週間のテーマを確認できます。今週のお話と、すでに進んだ週の教材を読み返せます。</p>
+    <button class="button ghost" data-go="week">今週のお話を見る</button></div>
+    <div class="card"><h2>12週間のテーマ</h2><ol class="lesson-list">
+    ${WEEK_TITLES.map((title, index) => {
+      const number = index + 1;
+      const label = `第${number}週　${esc(title)}`;
+      return number <= w
+        ? `<li><details><summary>${label}${number === w ? '（今週）' : ''}</summary>${CURRICULUM[index].lesson.map(paragraph => `<p>${esc(paragraph)}</p>`).join('')}<p><strong>やってみること</strong><br>${esc(CURRICULUM[index].task)}</p></details></li>`
+        : `<li><span>${label}</span></li>`;
+    }).join('')}</ol></div>`;
+}
 function renderRecord(){
   const list=(state.meals||[]).slice(-20).reverse();
   $('#record').innerHTML=`<div class="card"><span class="eyebrow">食事記録</span><h1>いつもの食事を残しましょう</h1><p>第1週は写真と簡単なメモだけで大丈夫。点数や食品グループの入力は必要ありません。学習が進んだら、自分で食品と量を確かめながら記録していきます。</p>
     <form id="mealForm"><label>日付<input id="mealDate" name="date" type="date" value="${today()}" required></label><div class="tabs" role="group" aria-label="食事の種類">${meals.map(t=>`<button type="button" data-meal="${t}" class="${t===mealType?'selected':''}">${t}</button>`).join('')}</div>
-    <label>写真（任意・この端末だけに保存）<input name="photo" type="file" accept="image/*"></label><p class="muted">写真はこのiPhoneのブラウザ内だけに保存します。コーチ画面や別の端末には表示されません。</p>
+    <label>写真（任意・この端末だけに保存）<input name="photo" type="file" accept="image/*"></label><p class="muted">写真はこの端末のブラウザ内だけに保存します。コーチ画面や別の端末には表示されません。</p>
     <label>食品・料理名（任意）<input name="food" maxlength="120" placeholder="例：ご飯、焼き魚、みそ汁"></label>
     <label>食品マスターから探す（任意）<input id="foodSearch" type="search" autocomplete="off" placeholder="例：めし・水稲・精白米"></label>
     <div id="foodResults" class="food-results" aria-live="polite"></div>
@@ -173,7 +217,14 @@ function renderMore(){
 }
 function render(){
   if(!state.profile)return;
-  renderHome();renderWeek();renderRecord();renderMore();
+  const active = mode() === 'program';
+  if (!active && (page === 'week' || page === 'learn')) page = 'home';
+  renderHome();renderRecord();renderMore();
+  if (active) { renderWeek(); renderLearn(); }
+  for (const name of ['week', 'learn']) {
+    document.querySelector(`[data-page="${name}"]`).hidden = !active;
+    if (!active) $(`#${name}`).replaceChildren();
+  }
   document.querySelectorAll('.panel').forEach(el=>el.hidden=el.id!==page);
   document.querySelectorAll('[data-page]').forEach(el=>el.classList.toggle('selected',el.dataset.page===page));
 }
@@ -183,12 +234,63 @@ $('#signIn').onclick=async()=>{
   try{await signInWithEmailAndPassword(auth,$('#email').value.trim(),$('#password').value);message('')}
   catch(e){message('ログインできませんでした。メールアドレスとパスワードを確認してください。',true)}
 };
-onAuthStateChanged(auth,async u=>{
-  user=u;coachComment=null;
-  if(!u){$('#login').hidden=false;$('#app').hidden=true;return}
-  $('#login').hidden=true;$('#app').hidden=false;message('記録を読み込んでいます…');
-  try{const snap=await getDoc(doc(db,'users',u.uid,'appData','hopeProgram'));state=snap.exists()?snap.data():{};message('');startProfile();if(state.profile)loadCoachComment(u,week())}
-  catch(e){message('記録を読み込めませんでした。通信と権限を確認してください。',true);$('#workspace').hidden=true}
+onAuthStateChanged(auth, async account => {
+  user = account;
+  state = {};
+  page = 'home';
+  coachComment = null;
+  $('#login').hidden = Boolean(account);
+  $('#app').hidden = !account;
+  $('#invite').hidden = true;
+  $('#inviteForm').reset();
+  $('#setup').hidden = true;
+  $('#workspace').hidden = true;
+  if (!account) return;
+  message('記録を読み込んでいます…');
+  try {
+    const snap = await getDoc(doc(db, 'users', account.uid, 'appData', 'hopeProgram'));
+    if (user !== account) return;
+    state = snap.exists() ? snap.data() : {};
+    const admission = state.profile ? null : await getDoc(doc(db, 'programAdmissions', account.uid));
+    if (user !== account) return;
+    message('');
+    startProfile(admission?.exists());
+    if (state.profile && mode() === 'program') loadCoachComment(account, week());
+  } catch {
+    if (user === account) message('記録を読み込めませんでした。通信と権限を確認してください。', true);
+  }
+});
+$('#inviteForm').addEventListener('submit', async event => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const button = form.querySelector('button');
+  const account = user;
+  const code = form.elements.invite.value;
+  if (!account || !code || button.disabled) return;
+  button.disabled = true;
+  message('共通パスワードを確認しています…');
+  try {
+    const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(code));
+    const digest = Array.from(new Uint8Array(bytes), byte => byte.toString(16).padStart(2, '0')).join('');
+    const admission = doc(db, 'programAdmissions', account.uid);
+    try {
+      await setDoc(admission, {digest});
+    } catch (error) {
+      // Another tab may have completed enrollment while this form was open.
+      if (error.code !== 'permission-denied' || !(await getDoc(admission)).exists()) throw error;
+    }
+    if (user !== account) return;
+    message('');
+    startProfile(true);
+  } catch (error) {
+    if (user !== account) return;
+    message(error.code === 'permission-denied'
+      ? '共通パスワードを確認してください。'
+      : '確認できませんでした。通信を確認して、もう一度お試しください。', true);
+  } finally {
+    form.reset();
+    button.disabled = false;
+  }
 });
 fetch('./food-master.json').then(r=>{if(!r.ok)throw new Error('master');return r.json()}).then(v=>{foodMaster=v.foods||[];if($('#sampleCard'))$('#sampleCard').outerHTML=renderSample()}).catch(()=>{message('食品マスターを読み込めませんでした。自由入力は使えます。',true)});
 $('#setupForm').addEventListener('input',()=>{
@@ -200,7 +302,7 @@ $('#setupForm').addEventListener('submit',async e=>{
   if(!f.reportValidity())return;
   const p={name:f.elements.name.value.trim(),age:Number(f.elements.age.value),heightCm:Number(f.elements.heightCm.value),startWeight:Number(f.elements.startWeight.value),waist:Number(f.elements.waist.value),goalPercent:Number(f.elements.goalPercent.value),startDate:today()};
   if(!p.name || !Number.isFinite(p.startWeight) || !Number.isFinite(p.heightCm))return;
-  const next=copy();next.profile=p;next.goals=[{percent:p.goalPercent,target:goalWeight(p.startWeight,p.goalPercent),reviewStatus:'pending',changedAt:new Date().toISOString()}];
+  const next=copy();next.profile=p;next.onboarding={mode:'observe'};next.goals=[{percent:p.goalPercent,target:goalWeight(p.startWeight,p.goalPercent),reviewStatus:'pending',changedAt:new Date().toISOString()}];
   try{await persist(next);startProfile()}catch(e){message('初回設定を保存できませんでした。通信と権限を確認してください。',true)}
 });
 document.addEventListener('click',async e=>{
@@ -215,6 +317,26 @@ document.addEventListener('click',async e=>{
       message('利用するアカウントでログインしてください。');
     }catch(error){
       switchAccount.disabled=false;message('ログアウトできませんでした。もう一度お試しください。',true);
+    }
+    return;
+  }
+  const selection = e.target.closest('[data-mode]');
+  if (selection) {
+    if (mode() === 'program') return;
+    const selectedMode = selection.dataset.mode;
+    if (selectedMode !== 'program' && (selectedMode !== 'diary' || mode() !== 'observe' || daysRecorded() < 3)) return;
+    const account = user;
+    selection.parentElement.querySelectorAll('[data-mode]').forEach(button => button.disabled = true);
+    const next = copy();
+    next.onboarding = selectedMode === 'program'
+      ? {mode:'program', programStartDate:today()}
+      : {mode:'diary'};
+    try {
+      await persist(next, {onboarding:next.onboarding});
+      if (selectedMode === 'program' && user === account) loadCoachComment(account, week());
+    } catch {
+      message('利用方法を保存できませんでした。通信と権限を確認してください。', true);
+      selection.parentElement.querySelectorAll('[data-mode]').forEach(button => button.disabled = false);
     }
     return;
   }
