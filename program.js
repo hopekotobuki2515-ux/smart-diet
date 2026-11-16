@@ -45,8 +45,9 @@ async function persist(next, patch = next){
   state = next; message('保存しました'); render();
 }
 function copy(){ return structuredClone(state); }
-function startProfile(){
-  if (!state.profile) { $('#setup').hidden=false; $('#workspace').hidden=true; return; }
+function startProfile(admitted = false){
+  $('#invite').hidden = Boolean(state.profile) || admitted;
+  if (!state.profile) { $('#setup').hidden=!admitted; $('#workspace').hidden=true; return; }
   $('#setup').hidden=true; $('#workspace').hidden=false; render();
 }
 function mode(){ return state.onboarding?.mode ?? 'program'; }
@@ -240,6 +241,8 @@ onAuthStateChanged(auth, async account => {
   coachComment = null;
   $('#login').hidden = Boolean(account);
   $('#app').hidden = !account;
+  $('#invite').hidden = true;
+  $('#inviteForm').reset();
   $('#setup').hidden = true;
   $('#workspace').hidden = true;
   if (!account) return;
@@ -248,11 +251,45 @@ onAuthStateChanged(auth, async account => {
     const snap = await getDoc(doc(db, 'users', account.uid, 'appData', 'hopeProgram'));
     if (user !== account) return;
     state = snap.exists() ? snap.data() : {};
+    const admission = state.profile ? null : await getDoc(doc(db, 'programAdmissions', account.uid));
+    if (user !== account) return;
     message('');
-    startProfile();
+    startProfile(admission?.exists());
     if (state.profile && mode() === 'program') loadCoachComment(account, week());
   } catch {
     if (user === account) message('記録を読み込めませんでした。通信と権限を確認してください。', true);
+  }
+});
+$('#inviteForm').addEventListener('submit', async event => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const button = form.querySelector('button');
+  const account = user;
+  const code = form.elements.invite.value;
+  if (!account || !code || button.disabled) return;
+  button.disabled = true;
+  message('共通パスワードを確認しています…');
+  try {
+    const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(code));
+    const digest = Array.from(new Uint8Array(bytes), byte => byte.toString(16).padStart(2, '0')).join('');
+    const admission = doc(db, 'programAdmissions', account.uid);
+    try {
+      await setDoc(admission, {digest});
+    } catch (error) {
+      // Another tab may have completed enrollment while this form was open.
+      if (error.code !== 'permission-denied' || !(await getDoc(admission)).exists()) throw error;
+    }
+    if (user !== account) return;
+    message('');
+    startProfile(true);
+  } catch (error) {
+    if (user !== account) return;
+    message(error.code === 'permission-denied'
+      ? '共通パスワードを確認してください。'
+      : '確認できませんでした。通信を確認して、もう一度お試しください。', true);
+  } finally {
+    form.reset();
+    button.disabled = false;
   }
 });
 fetch('./food-master.json').then(r=>{if(!r.ok)throw new Error('master');return r.json()}).then(v=>{foodMaster=v.foods||[];if($('#sampleCard'))$('#sampleCard').outerHTML=renderSample()}).catch(()=>{message('食品マスターを読み込めませんでした。自由入力は使えます。',true)});

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash, webcrypto } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { JSDOM } from 'jsdom';
@@ -18,12 +19,15 @@ async function openApp(store) {
   win.addEventListener('error', event => failures.push(event.message));
   win.scrollTo = () => {};
   win.structuredClone = structuredClone;
+  win.TextEncoder = TextEncoder;
+  Object.defineProperty(win.crypto, 'subtle', {value:webcrypto.subtle});
   win.crypto.randomUUID = () => Math.random().toString(36).slice(2);
   win.fetch = async () => ({ok:true,json:async()=>master});
   Object.assign(win, config, {CURRICULUM,SAMPLE_CATEGORIES,resolveSample});
   win.initializeApp = x => x; win.getAuth = () => ({currentUser:{uid:'test-user'}});
   win.getFirestore = () => ({}); win.doc = (...args) => args;
   win.getDoc = async ref => {
+    if (ref[1] === 'programAdmissions') return {exists:()=>Boolean(store.admitted)};
     if(ref[1] === 'coachComments') {
       if(store.commentError) throw new Error('permission-denied');
       return {exists:()=>Boolean(store.comment),data:()=>structuredClone(store.comment)};
@@ -39,7 +43,17 @@ async function openApp(store) {
     }
     return target;
   };
-  win.setDoc = async (_ref,patch) => {store.value=merge(store.value,structuredClone(patch))};
+  win.setDoc = async (ref,patch) => {
+    if (ref[1] === 'programAdmissions') {
+      const expected = createHash('sha256').update('test-only invite').digest('hex');
+      if (patch.digest !== expected || store.admitted) {
+        throw Object.assign(new Error('denied'), {code:'permission-denied'});
+      }
+      store.admitted = true;
+    } else {
+      store.value=merge(store.value,structuredClone(patch));
+    }
+  };
   win.signInWithEmailAndPassword = async () => {};
   win.onAuthStateChanged = (_auth, callback) => queueMicrotask(()=>callback({uid:'test-user'}));
   win.eval(source);
@@ -53,7 +67,17 @@ async function openApp(store) {
 test('initial setup, master calculation, records and goal history survive reload', async () => {
   const store = {value:{}}, app = await openApp(store);
   try {
+    assert.equal(app.q('#invite').hidden,false);
+    assert.equal(app.q('#setup').hidden,true);
+    app.fill('#inviteForm input','wrong code');
+    app.submit('#inviteForm');await pause();
+    assert.equal(app.q('#setup').hidden,true);
+    assert.match(app.q('#status').textContent,/共通パスワードを確認してください/);
+    app.fill('#inviteForm input','test-only invite');
+    app.submit('#inviteForm');await pause();
+    assert.equal(app.q('#invite').hidden,true);
     assert.equal(app.q('#setup').hidden,false);
+    assert.equal(store.admitted,true);
     for(const [name,value] of Object.entries({name:'テスト',age:'45',heightCm:'170',startWeight:'70',waist:'85'})) app.fill(`[name="${name}"]`,value);
     assert.match(app.q('#goalPreview').textContent,/66\.5kg/);
     app.submit('#setupForm');await pause();

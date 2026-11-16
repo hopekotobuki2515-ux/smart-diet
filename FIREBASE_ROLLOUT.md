@@ -1,4 +1,31 @@
-# Firebase 本番適用手順（未実施）
+# Firebase 本番適用手順
+
+## 共通パスワードの導入（公開候補）
+
+既存の個別ログインに加え、12週間プログラムを初めて利用するアカウントで共通パスワードを確認する。開始済みの利用者と従来の食習慣ナビは既存の権限で利用できる。
+
+1. 本番の現行ルールを控え、`npm test` と `npm run test:rules` を実行する。
+2. 運営者がパスワード管理ツールで十分に長いランダムな共通パスワードを生成する。個別ログインのパスワードと使い回さない。
+3. 共通パスワードを UTF-8 の SHA-256 に変換する。Windows PowerShell では、次を実行すると入力を伏せたまま小文字の16進数を表示できる。
+
+   ```powershell
+   $smartDietSecret = Read-Host 'SMART Dietの共通パスワード' -AsSecureString
+   $smartDietPlain = [System.Net.NetworkCredential]::new('', $smartDietSecret).Password
+   $smartDietHasher = [System.Security.Cryptography.SHA256]::Create()
+   try {
+     [BitConverter]::ToString($smartDietHasher.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($smartDietPlain))).Replace('-', '').ToLowerInvariant()
+   } finally {
+     $smartDietHasher.Dispose()
+     Remove-Variable smartDietSecret,smartDietPlain,smartDietHasher
+   }
+   ```
+
+4. Firestore のデータ画面で `programInvites` コレクションを作り、64文字の変換結果をドキュメント ID に設定する。フィールドは `active`（boolean）= `true`。パスワードも変換結果もリポジトリやチャットに貼らない。
+5. 本番での切替時に `firestore.rules.draft` を公開し、公開候補版を GitHub Pages に反映する。この間、初回設定だけ一時的に利用できない場合がある。
+6. テスト用アカウントで誤ったパスワードの拒否と、正しいパスワードでの初回設定・保存を確認する。既存利用者の記録、担当コーチの表示も確認する。
+7. パスワードを変更するときは、新しい変換結果のドキュメントを有効化し、旧ドキュメントを `active: false` にする。登録済みの利用者は引き続き利用できる。
+
+## 既存のコーチ機能を導入した際の手順（履歴）
 
 対象プロジェクト: `smart-diet-a5d4e` / Cloud Firestore `(default)`。
 実UIDは公開リポジトリに保存しない。Authentication画面でコーチと対象利用者を確認してから管理者が設定する。

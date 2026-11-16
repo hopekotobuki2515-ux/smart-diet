@@ -19,6 +19,14 @@
     <p class="muted">初めての方は<a href="./index.html">アカウントを作成</a>してください。</p>
   </section>
   <main id="app" hidden>
+    <section id="invite" class="card" hidden>
+      <h1>SMART Dietを利用する</h1>
+      <p>初めて利用する方は、村田コーチから案内された共通パスワードを入力してください。</p>
+      <form id="inviteForm">
+        <label>共通パスワード<input name="invite" type="password" maxlength="256" autocomplete="off" required></label>
+        <button class="button" type="submit">利用を開始する</button>
+      </form>
+    </section>
     <section id="setup" class="card" hidden>
       <span class="eyebrow">はじめの設定</span><h1>今のあなたを教えてください</h1>
       <p>今の時点での目標で大丈夫です。途中で変更できます。</p>
@@ -49,5 +57,5 @@
     </div>
   </main>
 </div>
-<script type="module" src="./program.js?v=20261116-1"></script>
+<script type="module" src="./program.js?v=20261116-2"></script>
 </body></html>
