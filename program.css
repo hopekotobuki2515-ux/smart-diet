@@ -24,3 +24,67 @@ label{display:block;font-size:14px;font-weight:700;margin:13px 0 5px}input,selec
 .lesson-list summary{cursor:pointer}
 .lesson-list li>span{display:block;color:#526477}
 [data-mode]+[data-mode]{margin-top:8px}
+
+/* Participant screens share the program palette without changing the coach screen. */
+.program-app {
+  --program-green: #276247;
+  --program-tint: #eef5ee;
+  --program-border: #dce7df;
+  --program-ink: #20352f;
+  color: var(--program-ink);
+}
+.program-app .shell { background: #f8f8f1; }
+.program-app .top {
+  background: #fffdf8;
+  border-color: var(--program-border);
+}
+.program-app .top strong { color: #17315a; }
+.program-app .top small {
+  color: var(--program-green);
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: var(--program-tint);
+}
+.program-app .card {
+  padding: clamp(16px, 5vw, 26px);
+  border-color: var(--program-border);
+  box-shadow: 0 3px 12px #2946320a;
+}
+.program-app :is(h1, h2, h3) { line-break: strict; }
+.program-app h1 { font-size: clamp(22px, 5.8vw, 28px); }
+.program-app p { line-height: 1.8; }
+.program-app .eyebrow { color: var(--program-green); }
+.program-app :is(.muted, .tab-hint) { color: #4e6258; }
+.program-app :is(#home, #learn) > .card:first-child {
+  background: linear-gradient(150deg, #e6f0e7, #fcfdf8 88%);
+}
+.program-app :is(input, select, textarea) {
+  border-color: #b5c9bc;
+  accent-color: var(--program-green);
+}
+.program-app :is(a, button, input, select, textarea, summary):focus-visible {
+  outline: 2px solid var(--program-green);
+  outline-offset: 3px;
+}
+.program-app .button { background: var(--program-green); }
+.program-app .button.ghost {
+  color: var(--program-green);
+  background: var(--program-tint);
+  border: 1px solid #c8dcd0;
+}
+.program-app .nav {
+  gap: 4px;
+  border-color: var(--program-border);
+  box-shadow: 0 -3px 12px #2946320a;
+}
+.program-app .nav button { color: #4e6258; }
+.program-app .nav button small { font-weight: 700; white-space: nowrap; }
+.program-app .nav button.selected {
+  color: var(--program-green);
+  background: #e4f0e7;
+}
+.program-app .lesson-list summary {
+  min-height: 44px;
+  color: var(--program-green);
+  font-weight: 700;
+}

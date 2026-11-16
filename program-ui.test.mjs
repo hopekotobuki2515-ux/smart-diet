@@ -55,7 +55,15 @@ async function openApp(store) {
     }
   };
   win.signInWithEmailAndPassword = async () => {};
-  win.onAuthStateChanged = (_auth, callback) => queueMicrotask(()=>callback({uid:'test-user'}));
+  let authChanged;
+  win.createUserWithEmailAndPassword = async (_auth, email, password) => {
+    store.registration = {email,password};
+    await authChanged({uid:'test-user'});
+  };
+  win.onAuthStateChanged = (_auth, callback) => {
+    authChanged = callback;
+    queueMicrotask(()=>callback(store.signedOut ? null : {uid:'test-user'}));
+  };
   win.eval(source);
   await pause();
   const q = selector => win.document.querySelector(selector);
@@ -258,4 +266,23 @@ test('three distinct meal dates unlock diary mode and the choice survives reload
     assert.equal(reloaded.q('[data-page="learn"]').hidden,false);
     assert.deepEqual(reloaded.failures,[]);
   } finally {reloaded.dom.window.close()}
+});
+
+test('register directly in SMART Diet and proceed to the shared password', async () => {
+  const store={value:{},signedOut:true};
+  const app=await openApp(store);
+  try {
+    assert.equal(app.q('#login').hidden,false);
+    assert.equal(app.q('a[href="./index.html"]'),null);
+    app.q('#authMode').click();
+    assert.equal(app.q('#password').autocomplete,'new-password');
+    app.fill('#email','test@example.test');
+    app.fill('#password','test-password');
+    app.submit('#authForm');await pause();
+    assert.deepEqual(store.registration,{email:'test@example.test',password:'test-password'});
+    assert.equal(app.q('#login').hidden,true);
+    assert.equal(app.q('#invite').hidden,false);
+    assert.equal(app.q('#setup').hidden,true);
+    assert.deepEqual(app.failures,[]);
+  } finally {app.dom.window.close()}
 });

@@ -1,5 +1,5 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js';
-import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js';
+import { createUserWithEmailAndPassword, getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js';
 import { getFirestore, doc, getDoc, setDoc, arrayUnion } from 'https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js';
 import { PROGRAM, WEEK_TITLES, goalWeight, bmi, currentWeek, foodPoints } from './program-config.js';
 import { CURRICULUM } from './program-curriculum.js';
@@ -213,7 +213,7 @@ function renderMore(){
     <div class="card"><h2>目標を変更する</h2><p class="muted">最初の目標と変更履歴は残ります。体重目標は村田コーチとも確認してください。</p><form id="goalForm"><label>減量率<select name="percent">${PROGRAM.goalPercents.map(v=>`<option value="${v}" ${v===current.percent?'selected':''}>${v}％</option>`).join('')}</select></label><button class="button" type="submit">変更を記録する</button></form></div>
     <div class="card"><h2>変更履歴</h2>${g.length?g.map(x=>`<div class="row"><span>${esc(x.changedAt.slice(0,10))}</span><strong>${x.percent}％ / ${x.target.toFixed(1)}kg</strong></div>`).join(''):'<p class="muted">変更はありません。</p>'}</div>
     <div class="card"><h2>アカウント</h2><p class="muted">利用者と村田コーチの画面を切り替える時に使います。保存済みの記録は消えません。</p><button id="switchProgramAccount" class="button ghost" type="button">別のアカウントでログイン</button></div>
-    <div class="card"><h2>この画面について</h2><p>この12週間の記録は、従来のSMART Dietの記録とは別に保存しています。従来の記録は上部の戻るボタンから確認できます。</p><p class="muted">HOPEコメントは公開済みのものだけを表示します。写真はこの端末内のみです。</p></div>`;
+    <div class="card"><h2>この画面について</h2><p class="muted">HOPEコメントは公開済みのものだけを表示します。写真はこの端末内のみです。</p></div>`;
 }
 function render(){
   if(!state.profile)return;
@@ -229,11 +229,48 @@ function render(){
   document.querySelectorAll('[data-page]').forEach(el=>el.classList.toggle('selected',el.dataset.page===page));
 }
 function open(pageName){page=pageName;render();window.scrollTo(0,0)}
-$('#signIn').onclick=async()=>{
-  message('ログイン中…');
-  try{await signInWithEmailAndPassword(auth,$('#email').value.trim(),$('#password').value);message('')}
-  catch(e){message('ログインできませんでした。メールアドレスとパスワードを確認してください。',true)}
+let creatingAccount = false;
+function setAuthMode(create) {
+  creatingAccount = create;
+  $('#authTitle').textContent = create ? 'アカウントを作成' : 'ログイン';
+  $('#authIntro').textContent = create
+    ? 'メールアドレスと、6文字以上の個別パスワードを設定します。登録後に共通パスワードを入力します。'
+    : 'メールアドレスと個別パスワードでログインします。';
+  $('#password').value = '';
+  $('#password').autocomplete = create ? 'new-password' : 'current-password';
+  $('#password').minLength = create ? 6 : 0;
+  $('#authSubmit').textContent = create ? '登録する' : 'ログイン';
+  $('#authMode').textContent = create ? 'ログインに戻る' : 'アカウントを作成';
+}
+$('#authMode').onclick = () => {
+  setAuthMode(!creatingAccount);
+  message('');
+  $('#email').focus();
 };
+$('#authForm').addEventListener('submit', async event => {
+  event.preventDefault();
+  const submit = $('#authSubmit'), toggle = $('#authMode');
+  if (submit.disabled || !event.currentTarget.reportValidity()) return;
+  const action = creatingAccount ? createUserWithEmailAndPassword : signInWithEmailAndPassword;
+  submit.disabled = toggle.disabled = true;
+  message(creatingAccount ? 'アカウントを作成しています…' : 'ログイン中…');
+  try {
+    await action(auth, $('#email').value.trim(), $('#password').value);
+    $('#password').value = '';
+  } catch (error) {
+    const feedback = {
+      'auth/email-already-in-use': 'このメールアドレスは登録済みです。「ログインに戻る」からお入りください。',
+      'auth/weak-password': '個別パスワードは6文字以上で設定してください。',
+      'auth/network-request-failed': '通信できませんでした。接続を確認して、もう一度お試しください。',
+      'auth/too-many-requests': 'しばらく時間をおいて、もう一度お試しください。'
+    };
+    message(feedback[error.code] || (creatingAccount
+      ? '登録できませんでした。メールアドレスと個別パスワードを確認してください。'
+      : 'ログインできませんでした。メールアドレスと個別パスワードを確認してください。'), true);
+  } finally {
+    submit.disabled = toggle.disabled = false;
+  }
+});
 onAuthStateChanged(auth, async account => {
   user = account;
   state = {};
@@ -245,7 +282,7 @@ onAuthStateChanged(auth, async account => {
   $('#inviteForm').reset();
   $('#setup').hidden = true;
   $('#workspace').hidden = true;
-  if (!account) return;
+  if (!account) { setAuthMode(false); return; }
   message('記録を読み込んでいます…');
   try {
     const snap = await getDoc(doc(db, 'users', account.uid, 'appData', 'hopeProgram'));
