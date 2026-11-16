@@ -58,6 +58,9 @@ test('initial setup, master calculation, records and goal history survive reload
     assert.match(app.q('#goalPreview').textContent,/66\.5kg/);
     app.submit('#setupForm');await pause();
     assert.equal(store.value.profile.name,'テスト');
+    assert.equal(store.value.onboarding.mode,'observe');
+    app.q('[data-mode="program"]').click();await pause();
+    assert.equal(store.value.onboarding.programStartDate,tokyoDate(new Date()));
     assert.match(app.q('#sampleCard').textContent,/15\.00点/);
     app.q('#sampleCard [data-sample="コンビニ"]').click();
     assert.match(app.q('#sampleCard').textContent,/コンビニの見本は確認中/);
@@ -107,6 +110,13 @@ test('weeks advance without requiring the lesson and the final week shows more t
   try {
     app.q('[data-page="week"]').click();
     assert.match(app.q('#week').textContent,/第2週/);
+    app.q('[data-page="learn"]').click();
+    assert.equal(app.win.document.querySelectorAll('#learn li').length,12);
+    assert.equal(app.win.document.querySelectorAll('#learn details').length,2);
+    app.q('#learn details').open=true;
+    assert.match(app.q('#learn details').textContent,/まず今の自分を知ろう/);
+    app.q('#learn [data-go="week"]').click();
+    assert.equal(app.q('#week').hidden,false);
     const options=app.win.document.querySelectorAll('#weeklyQuestionForm [name="answer"]');
     options[0].click();options[1].click();options[2].click();
     app.submit('#weeklyQuestionForm');await pause();
@@ -193,4 +203,35 @@ test('coach comment is read from the separate path, and an owner-writable field 
     assert.doesNotMatch(blocked.q('#home').textContent,/偽のコメント/);
     assert.deepEqual(blocked.failures,[]);
   } finally {blocked.dom.window.close()}
+});
+
+test('three distinct meal dates unlock diary mode and the choice survives reload', async () => {
+  const startDate=tokyoDate(new Date(Date.now()-9*86400000));
+  const profile={name:'テスト',age:45,heightCm:170,startWeight:70,waist:85,goalPercent:5,startDate};
+  const store={value:{profile,onboarding:{mode:'observe'},meals:[]}};
+  const app=await openApp(store);
+  try {
+    assert.equal(app.q('[data-mode="diary"]'),null);
+    assert.equal(app.q('[data-page="learn"]').hidden,true);
+    for (const dayOffset of [0, 0, 1, 2]) {
+      app.q('[data-page="record"]').click();
+      app.fill('#mealDate',tokyoDate(new Date(Date.now()-(9-dayOffset)*86400000)));
+      app.fill('#mealForm [name="food"]','ご飯');
+      app.submit('#mealForm');await pause();
+      if (dayOffset < 2) assert.equal(app.q('[data-mode="diary"]'),null);
+    }
+    app.q('[data-page="home"]').click();
+    app.q('[data-mode="diary"]').click();await pause();
+    assert.equal(store.value.onboarding.mode,'diary');
+  } finally {app.dom.window.close()}
+  const reloaded=await openApp(store);
+  try {
+    assert.match(reloaded.q('#home').textContent,/いつもの食事を記録/);
+    reloaded.q('[data-mode="program"]').click();await pause();
+    assert.equal(store.value.profile.startDate,startDate);
+    assert.equal(store.value.meals.length,4);
+    assert.match(reloaded.q('#home').textContent,/第1週/);
+    assert.equal(reloaded.q('[data-page="learn"]').hidden,false);
+    assert.deepEqual(reloaded.failures,[]);
+  } finally {reloaded.dom.window.close()}
 });

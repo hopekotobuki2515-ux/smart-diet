@@ -81,14 +81,16 @@ function renderDetail() {
     <div class="two"><button class="button ghost" type="submit" name="action" value="draft">下書き保存</button><button class="button" type="submit" name="action" value="published">公開する</button></div></form></div>`;
 }
 async function selectClient(uid, weekNumber) {
-  if (!clients.get(uid)?.profile?.startDate || !coach) return;
+  const record = clients.get(uid);
+  if (!record?.profile?.startDate || !coach) return;
+  const requestedWeek = weekNumber || currentWeek(record.onboarding?.programStartDate ?? record.profile.startDate);
   clientUid = uid;
-  selectedWeek = weekNumber || currentWeek(clients.get(uid).profile.startDate);
+  selectedWeek = requestedWeek;
   comment = null;$('#clientDetail').hidden = true;
   message('コメントを読み込んでいます…');
   try {
     const snap = await getDoc(doc(db, 'coachComments', uid, 'weeks', String(selectedWeek)));
-    if (clientUid !== uid || selectedWeek !== (weekNumber || currentWeek(clients.get(uid).profile.startDate)) || !coach) return;
+    if (clientUid !== uid || selectedWeek !== requestedWeek || !coach) return;
     comment = snap.exists() ? snap.data() : null;
     message('');renderDetail();
   } catch (error) { message('コメントを読み込めませんでした。担当設定と権限を確認してください。', true); }
