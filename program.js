@@ -502,7 +502,7 @@ const foodAliases = new Map([
   ...['ご飯','ごはん','白ご飯','白ごはん'].map(name=>[name,'めし水稲精白米']),
   ['ささみ','ささ身'],['ササミ','ささ身']
 ]);
-function findFoods(value){
+function findFoods(value, foods=foodMaster, limit=15){
   const typed=searchKey(value);
   const spelling=typed.replace(/\(乾麺\)$/,'');
   const spaghettiQuery=Boolean(spelling)&&['スパゲティ','スパゲッティ'].some(name=>name.startsWith(spelling));
@@ -510,7 +510,11 @@ function findFoods(value){
   const pastaQuery=spelling==='パスタ';
   const query=spaghettiQuery||pastaQuery?searchKey(dryPasta):(foodAliases.get(spelling)??spelling);
   const searchLabel=spaghettiQuery?drySpaghettiLabel:macaroniQuery?dryMacaroniLabel:null;
-  return query?foodMaster.filter(x=>searchKey(x.name).includes(query)).slice(0,15).flatMap(food=>{
+  const rank=name=>name===query?0:name.startsWith(query)?1:2;
+  return query?foods.map(food=>({food,key:searchKey(food.name)}))
+    .filter(({key})=>key.includes(query))
+    .sort((a,b)=>rank(a.key)-rank(b.key))
+    .slice(0,limit).flatMap(({food})=>{
     const labels=food.name===dryPasta
       ? searchLabel?[searchLabel]:[drySpaghettiLabel,dryMacaroniLabel]
       : [food.name];
@@ -527,6 +531,7 @@ function exactFood(value,candidates){
 }
 function mountFoodCatalog(catalog,onSelect){
   catalog.innerHTML=`<summary>食品マスターから選ぶ</summary>
+    <label>食品マスター内を検索<input type="search" placeholder="例：ご飯、豆腐、牛乳" autocomplete="off"></label>
     <label>食品群で絞る<select><option value="">すべて</option>${groups.map(group=>`<option>${group}</option>`).join('')}</select></label>
     <p class="muted" data-catalog-status aria-live="polite"></p>
     <div class="food-results" data-catalog-results></div>
@@ -535,6 +540,7 @@ function mountFoodCatalog(catalog,onSelect){
       <button type="button" class="small-button" data-catalog-next>次へ</button>
     </div>`;
   const group=catalog.querySelector('select');
+  const search=catalog.querySelector('input[type=search]');
   const status=catalog.querySelector('[data-catalog-status]');
   const results=catalog.querySelector('[data-catalog-results]');
   const prev=catalog.querySelector('[data-catalog-prev]');
@@ -544,30 +550,39 @@ function mountFoodCatalog(catalog,onSelect){
   function renderCatalog(){
     if(!catalog.open)return;
     const foods=foodMaster.filter(food=>!group.value||food.group===group.value);
+    const query=search.value.trim();
+    const matches=query?findFoods(query,foods,Infinity):null;
+    const count=matches?new Set(matches.map(({food})=>foodId(food))).size:foods.length;
+    const available=matches?.length??foods.length;
     const start=page*size;
     status.textContent=masterStatus==='ready'
-      ? `${foods.length}件中 ${foods.length?start+1:0}〜${Math.min(start+size,foods.length)}件`
+      ? query?`${count}件見つかりました。${count?'':'食品群を「すべて」にするか、食品名を変えて検索してください。'}`
+        : `${foods.length}件中 ${foods.length?start+1:0}〜${Math.min(start+size,foods.length)}件`
       : masterStatus==='loading'?'食品マスターを読み込み中です。':'食品マスターを読み込めませんでした。ページを再読み込みしてください。';
-    results.replaceChildren(...foods.slice(start,start+size).flatMap(food=>{
+    const rows=matches?matches.slice(start,start+size):foods.slice(start,start+size).flatMap(food=>{
       const labels=food.name===dryPasta?[drySpaghettiLabel,dryMacaroniLabel]:[food.name];
-      return labels.map(label=>{
-        const button=document.createElement('button');
-        button.type='button';
-        button.textContent=`${label}｜${food.group}｜${food.gramsPerPoint}gで1点`;
-        button.onclick=()=>{
-          catalog.open=false;
-          onSelect({food,label});
-        };
-        return button;
-      });
+      return labels.map(label=>({food,label}));
+    });
+    results.replaceChildren(...rows.map(({food,label})=>{
+      const button=document.createElement('button');
+      button.type='button';
+      const familiarName=foodAliases.get(searchKey(query))===searchKey(food.name)?query:'';
+      button.textContent=`${familiarName?`${familiarName}（${label}）`:label}｜${food.group}｜${food.gramsPerPoint}gで1点`;
+      button.onclick=()=>{
+        catalog.open=false;
+        onSelect({food,label});
+      };
+      return button;
     }));
     prev.disabled=page===0;
-    next.disabled=start+size>=foods.length;
-    prev.parentElement.hidden=foods.length<=size;
+    next.disabled=start+size>=available;
+    prev.parentElement.hidden=available<=size;
   }
   catalog.addEventListener('toggle',renderCatalog);
   catalog.addEventListener('foodmasterchange',renderCatalog);
   group.onchange=()=>{page=0;renderCatalog();};
+  search.oninput=()=>{page=0;renderCatalog();};
+  search.onkeydown=event=>{if(event.key==='Enter'&&!event.isComposing)event.preventDefault();};
   prev.onclick=()=>{page-=1;renderCatalog();};
   next.onclick=()=>{page+=1;renderCatalog();};
 }
@@ -932,6 +947,7 @@ function mountSheetEntry(dialog, target, date, opener){
     form.querySelector('[data-sheet-custom-grams]').hidden=true;
   }
   form.addEventListener('input',event=>{
+    if(catalog.contains(event.target))return;
     saveAttempt=null;
     error.textContent='';
     if(event.target===form.elements.food){
