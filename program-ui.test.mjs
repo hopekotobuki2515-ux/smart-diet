@@ -423,6 +423,56 @@ test('dish name suggestions use master foods and prior selections without assign
   } finally {app.dom.window.close()}
 });
 
+test('normal meal entry previews a Japanese recipe after IME commit and opens its prefilled draft', async () => {
+  const date=tokyoDate(new Date());
+  const store={value:{profile:{name:'テスト',heightCm:170,startWeight:70,waist:85,goalPercent:5,startDate:date}}};
+  const app=await openApp(store);
+  try {
+    app.q('#home [data-go=record]').click();
+    app.q('#mealForm [data-meal="昼食"]').click();
+    const picker=app.q('#dishChoice');
+    picker.value='custom';
+    picker.dispatchEvent(new app.win.Event('change',{bubbles:true}));
+    app.fill('#mealForm [name=memo]','入力途中のメモ');
+    const name=app.q('#mealForm [name=dish]');
+    name.value='牛丼';
+    name.dispatchEvent(new app.win.CompositionEvent('compositionend',{bubbles:true,data:'牛丼'}));
+    const preview=app.q('#mealRecipePreview');
+    assert.equal(preview?.hidden,false);
+    assert.match(preview.textContent,/牛丼.*牛バラ肉（輸入牛）.*第2群/s);
+    preview.querySelector('button').click();
+    const sheet=app.q('#daySheet');
+    assert.equal(sheet.querySelector('#sheetEntryForm').previousElementSibling.dataset.sheetMeal,'昼食');
+    assert.equal(sheet.querySelector('#sheetEntryForm [name=food]').value,'牛丼');
+    assert.equal(sheet.querySelectorAll('[data-sheet-recipe-item]').length,5);
+    const sheetName=sheet.querySelector('#sheetEntryForm [name=food]');
+    sheetName.value='親子丼';
+    sheetName.dispatchEvent(new app.win.CompositionEvent('compositionend',{bubbles:true,data:'親子丼'}));
+    assert.match(sheet.querySelector('[data-sheet-recipe-name]').textContent,/親子丼/);
+    sheet.querySelector('header button').click();
+    const foodSearch=app.q('#foodSearch');
+    foodSearch.value='牛丼';
+    foodSearch.dispatchEvent(new app.win.CompositionEvent('compositionend',{bubbles:true,data:'牛丼'}));
+    const result=[...app.win.document.querySelectorAll('#foodResults button')].find(button=>button.textContent.includes('牛丼'));
+    assert.ok(result,'牛丼 appears in the main search results');
+    result.click();
+    assert.equal(sheet.querySelector('#sheetEntryForm [name=food]').value,'牛丼');
+    assert.equal(sheet.querySelectorAll('[data-sheet-recipe-item]').length,5);
+    sheet.querySelector('header button').click();
+    const catalog=app.q('#foodCatalog');
+    catalog.open=true;
+    catalog.dispatchEvent(new app.win.Event('toggle'));
+    app.fill('#foodCatalog [type=search]','牛丼');
+    assert.match(catalog.querySelector('[data-catalog-status]').textContent,/一致する料理/);
+    catalog.querySelector('[data-catalog-results] button').click();
+    assert.equal(sheet.querySelector('#sheetEntryForm [name=food]').value,'牛丼');
+    sheet.querySelector('header button').click();
+    assert.equal(app.q('#mealForm [name=memo]').value,'入力途中のメモ');
+    assert.equal(store.value.meals?.length??0,0);
+    assert.deepEqual(app.failures,[]);
+  } finally {app.dom.window.close()}
+});
+
 test('spaghetti names suggest the dry master entry without assuming the cooked weight', async () => {
   const startDate=tokyoDate(new Date());
   const store={value:{profile:{name:'テスト',heightCm:170,startWeight:70,waist:85,goalPercent:5,startDate}}};
