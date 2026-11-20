@@ -443,7 +443,9 @@ test('spaghetti names suggest the dry master entry without assuming the cooked w
       app.fill('#foodSearch',title);
       assert.ok(app.q('#foodResults button').textContent.startsWith('スパゲッティ（乾麺）'));
     }
-    app.q('#dishNameSuggestions button:nth-of-type(2)').click();
+    app.fill('[name=dish]','ナポ');
+    assert.deepEqual([...app.win.document.querySelectorAll('#dishNameSuggestions button')].map(button=>button.textContent),['ナポリタン']);
+    app.q('#dishNameSuggestions button').click();
     assert.equal(app.q('[name=dish]').value,'ナポリタン');
     assert.equal(app.q('#dishNameSuggestions').hidden,true);
     assert.equal(app.q('#dishSuggestions button').textContent,'スパゲッティ（乾麺）');
@@ -629,7 +631,15 @@ test('food master offers a browsable catalog and recipe ingredients in the direc
     direct.querySelector('[data-catalog-results] button').click();
     assert.equal(direct.open,false);
     assert.match(app.q('[data-sheet-points]').textContent,/第1群/);
-    app.fill('#sheetEntryForm [name=food]','味噌汁');
+    app.fill('#sheetEntryForm [name=food]','スパゲッティ');
+    const napolitan=[...app.win.document.querySelectorAll('[data-sheet-results] button')].find(button=>button.textContent==='ナポリタン');
+    assert.ok(napolitan);
+    napolitan.click();
+    assert.match(app.q('[data-sheet-results]').textContent,/この料理の食材候補.*スパゲッティ（乾麺）/);
+    app.fill('#sheetEntryForm [name=food]','味噌');
+    const soup=[...app.win.document.querySelectorAll('[data-sheet-results] button')].find(button=>button.textContent==='みそ汁');
+    assert.ok(soup);
+    soup.click();
     assert.match(app.q('[data-sheet-results] p').textContent,/この料理の食材候補/);
     const tofu=[...app.win.document.querySelectorAll('[data-sheet-results] button')].find(button=>button.textContent.startsWith('もめん豆腐'));
     tofu.click();
@@ -637,7 +647,7 @@ test('food master offers a browsable catalog and recipe ingredients in the direc
     app.fill('#sheetEntryForm [name=grams]','110');
     assert.match(app.q('[data-sheet-points]').textContent,/もめん豆腐.*第2群：1点/);
     app.submit('#sheetEntryForm');await pause();
-    assert.equal(store.value.meals[0].ingredients[0].dish,'味噌汁');
+    assert.equal(store.value.meals[0].ingredients[0].dish,'みそ汁');
     assert.equal(store.value.meals[0].points,1);
     assert.deepEqual(app.failures,[]);
   } finally {app.dom.window.close()}
