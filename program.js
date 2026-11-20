@@ -260,6 +260,8 @@ onAuthStateChanged(auth, async account => {
   ingredients = [];
   recordDate = '';
   mealType = meals[0];
+  const sheet = $('#daySheet');
+  if (sheet?.open) sheet.close();
   $('#record').replaceChildren();
   page = 'home';
   coachComment = null;
@@ -393,12 +395,20 @@ function openPhotoDB(){
     req.onupgradeneeded=()=>req.result.createObjectStore('photos');
     req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});
 }
-async function savePhoto(id,file){
-  const db=await openPhotoDB();
-  try{await new Promise((resolve,reject)=>{const tx=db.transaction('photos','readwrite');tx.objectStore('photos').put(file,id);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)})}
-  finally{db.close()}
+async function writePhoto(id,file){
+  const photoDB=await openPhotoDB();
+  try {
+    await new Promise((resolve,reject)=>{
+      const tx=photoDB.transaction('photos','readwrite');
+      tx.oncomplete=resolve;
+      tx.onabort=()=>reject(tx.error || new Error('写真の保存が中断されました。'));
+      tx.onerror=()=>reject(tx.error);
+      const photos=tx.objectStore('photos');
+      if(file)photos.put(file,id);
+      else photos.delete(id);
+    });
+  } finally {photoDB.close()}
 }
-async function deletePhoto(id){const db=await openPhotoDB();try{await new Promise((resolve,reject)=>{const tx=db.transaction('photos','readwrite');tx.objectStore('photos').delete(id);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)})}finally{db.close()}}
 async function loadVisiblePhotos(root = $('#mealList'), urls = photoUrls){
   const targets=[...root.querySelectorAll('[data-photo-id]')];
   if(!targets.length)return;
@@ -657,7 +667,7 @@ document.addEventListener('submit',async e=>{
         category:single?.category??null,group:single?.group??null,points:sumPoints(items),
         pointSource:single?.pointSource??null,ingredients:items,createdAt:new Date().toISOString()};
       f.inert=true;
-      if(file)await savePhoto(photoId,file);
+      if(file)await writePhoto(photoId,file);
       if(user!==account)throw new Error('ログインし直してください。');
       next.meals=[...(next.meals||[]),entry];writePatch={meals:arrayUnion(entry)};
     } else if(f.id==='measurementForm'){
@@ -691,6 +701,6 @@ document.addEventListener('submit',async e=>{
       ingredients=[];
       f.remove();
     }:undefined);
-  }catch(err){if(photoId)await deletePhoto(photoId).catch(()=>{});message(err.message?.includes('ください')||err.message?.includes('同じ')?err.message:'保存できませんでした。通信と権限を確認してください。',true)}
+  }catch(err){if(photoId)await writePhoto(photoId,null).catch(()=>{});message(err.message?.includes('ください')||err.message?.includes('同じ')?err.message:'保存できませんでした。通信と権限を確認してください。',true)}
   finally{button.disabled=false;f.inert=false}
 });

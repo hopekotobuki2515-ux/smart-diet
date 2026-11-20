@@ -23,6 +23,40 @@ async function openApp(store) {
   Object.defineProperty(win.crypto, 'subtle', {value:webcrypto.subtle});
   win.crypto.randomUUID = () => Math.random().toString(36).slice(2);
   win.fetch = async () => ({ok:true,json:async()=>master});
+  const objectUrls = new Map();
+  win.URL.createObjectURL = file => {
+    const url='blob:mock/'+win.crypto.randomUUID();
+    objectUrls.set(url,file);
+    return url;
+  };
+  win.URL.revokeObjectURL = url => objectUrls.delete(url);
+  if (store.photos) {
+    const db={
+      close(){},
+      transaction(){
+        const transaction={};
+        const write=action=>queueMicrotask(()=>{
+          if (store.abortPhoto) transaction.onabort();
+          else {action();transaction.oncomplete();}
+        });
+        transaction.objectStore=()=>({
+          put(file,id){write(()=>store.photos.set(id,file))},
+          delete(id){write(()=>store.photos.delete(id))},
+          get(id){
+            const request={result:store.photos.get(id)};
+            queueMicrotask(()=>request.onsuccess());
+            return request;
+          }
+        });
+        return transaction;
+      }
+    };
+    win.indexedDB={open(){
+      const request={result:db};
+      queueMicrotask(()=>request.onsuccess());
+      return request;
+    }};
+  }
   win.HTMLDialogElement.prototype.showModal = function(){this.setAttribute('open','')};
   win.HTMLDialogElement.prototype.close = function(){
     this.removeAttribute('open');
@@ -67,7 +101,7 @@ async function openApp(store) {
   const q = selector => win.document.querySelector(selector);
   const fill = (selector,value) => {const input=q(selector);input.value=value;input.dispatchEvent(new win.Event('input',{bubbles:true}))};
   const submit = selector => q(selector).dispatchEvent(new win.Event('submit',{bubbles:true,cancelable:true}));
-  return {dom,win,q,fill,submit,failures};
+  return {dom,win,q,fill,submit,failures,objectUrls};
 }
 
 test('initial setup, master calculation, records and goal history survive reload', async () => {
@@ -269,6 +303,59 @@ test('the day sheet combines legacy meals and a multi-ingredient draft, then res
       reloaded.q('#dayPreview').click();
       assert.match(reloaded.q('#daySheet tfoot').textContent,/3\.16点/);
       assert.match(reloaded.q('#daySheet').textContent,/ささみのソテー/);
+    } finally {reloaded.dom.window.close()}
+    assert.deepEqual(app.failures,[]);
+  } finally {app.dom.window.close()}
+});
+
+test('photo and memo survive retries after local and remote failures, with one final local copy', async () => {
+  const date=tokyoDate(new Date());
+  const profile={name:'テスト',age:45,heightCm:170,startWeight:70,waist:85,goalPercent:5,startDate:date};
+  const store={value:{profile,meals:[]},photos:new Map()};
+  const app=await openApp(store);
+  try {
+    app.q('#home [data-go=record]').click();
+    const input=app.q('#mealForm [name=photo]');
+    const pixel=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/WkQAAAAASUVORK5CYII=','base64');
+    const photo=new app.win.File([pixel],'sample.png',{type:'image/png'});
+    Object.defineProperty(input,'files',{value:[photo]});
+    app.fill('#mealForm [name=memo]','朝食のメモ');
+    app.q('#dayPreview').click();
+    const draftUrl=app.q('#daySheet img').getAttribute('src');
+    assert.equal(app.objectUrls.get(draftUrl),photo);
+    assert.match(app.q('#daySheet').textContent,/朝食のメモ/);
+    assert.equal(store.photos.size,0);
+    app.q('#daySheet button').click();
+    assert.equal(app.objectUrls.has(draftUrl),false);
+    store.abortPhoto=true;
+    app.submit('#mealForm');await pause();
+    assert.equal(app.q('#mealForm button[type=submit]').disabled,false);
+    assert.equal(store.value.meals.length,0);
+    assert.equal(store.photos.size,0);
+    store.abortPhoto=false;
+    store.failMeal=true;
+    app.submit('#mealForm');await pause();
+    assert.equal(store.value.meals.length,0);
+    assert.equal(store.photos.size,0);
+    assert.equal(input.files[0],photo);
+    store.failMeal=false;
+    app.submit('#mealForm');await pause();
+    assert.equal(store.value.meals.length,1);
+    const entry=store.value.meals[0];
+    assert.equal(store.photos.size,1);
+    assert.equal(store.photos.get(entry.photoId),photo);
+    assert.equal(entry.memo,'朝食のメモ');
+    assert.equal(entry.ingredients.length,0);
+    assert.equal(Object.values(entry).includes(photo),false);
+    const reloaded=await openApp(store);
+    try {
+      reloaded.q('[data-page=record]').click();
+      reloaded.q('#dayPreview').click();await pause();
+      const savedUrl=reloaded.q('#daySheet img').getAttribute('src');
+      assert.equal(reloaded.objectUrls.get(savedUrl),photo);
+      reloaded.q('#daySheet button').click();
+      assert.equal(reloaded.objectUrls.has(savedUrl),false);
+      assert.deepEqual(reloaded.failures,[]);
     } finally {reloaded.dom.window.close()}
     assert.deepEqual(app.failures,[]);
   } finally {app.dom.window.close()}
