@@ -654,6 +654,24 @@ function dishFoodChoices(value){
   }
   return [...foods.values()].slice(0,8).map(food=>({food,label:foodLabel(food.name,value)}));
 }
+function dishDraftFoods(value,choices){
+  const key=dishKey(value);
+  for(const meal of [...(state.meals??[])].reverse()){
+    const saved=new Set((meal.ingredients??[meal])
+      .filter(item=>typeof item.dish==='string' && dishKey(item.dish)===key)
+      .map(item=>item.masterId));
+    const recent=choices.filter(({food})=>saved.has(foodId(food)));
+    if(recent.length)return recent;
+  }
+  // The master lists several fish, misos, and tofus as alternatives.
+  const alternatives={
+    '焼き魚':['マサバ','シロサケ','マアジ'],
+    'みそ汁':['米みそ・淡色辛みそ','米みそ・赤色辛みそ','もめん豆腐','絹ごし豆腐']
+  };
+  const optional=alternatives[key]??[];
+  const registered=dishIngredients.get(key)??[];
+  return choices.filter(({food})=>registered.includes(food.name) && !optional.includes(food.name));
+}
 function renderDishSuggestions(){
   const dishInput=$('#mealForm').elements.dish;
   const dish=dishKey(dishInput.value);
@@ -913,13 +931,14 @@ function mountSheetEntry(dialog, target, date, opener){
     ${quickGrams.map(g=>`<option value="${g}">${g}g</option>`).join('')}
     <option value="custom">グラムを入力する</option>`;
   form.innerHTML=`
-    <label><span data-sheet-search-label>食材・料理名</span><input name="food" type="search" maxlength="120" autocomplete="off" placeholder="例：ご飯、味噌汁" required></label>
-    <div class="food-shortcuts" data-sheet-results aria-live="polite"></div>
-    <details data-sheet-catalog class="meal-options"></details>
+    <label>食材・料理名<input name="food" type="search" maxlength="120" autocomplete="off" placeholder="例：ご飯、味噌汁" required></label>
     <section data-sheet-recipe hidden>
       <p><strong data-sheet-recipe-name></strong></p>
+      <p data-sheet-recipe-hint class="muted">食べていない食材は外し、分かる量だけ入れてください。</p>
       <div data-sheet-recipe-items></div>
     </section>
+    <div class="food-shortcuts" data-sheet-results aria-live="polite"></div>
+    <details data-sheet-catalog class="meal-options"></details>
     <div data-sheet-amount hidden>
       <label>食べた量<select name="quickAmount">${amountOptions}</select></label>
       <div data-sheet-custom-grams hidden><label>食べた量（g）<input name="grams" type="number" min="0.1" max="10000" step="0.1" inputmode="decimal"></label></div>
@@ -957,18 +976,21 @@ function mountSheetEntry(dialog, target, date, opener){
     if(chosen && chosen.label!==master.name)item.foodLabel=chosen.label;
     return item;
   }
-  function addRecipeItem(candidate,dish){
-    if(!recipeDish){
-      recipeDish=dish;
-      recipe.hidden=false;
-      recipe.querySelector('[data-sheet-recipe-name]').textContent=recipeDish+'の食材';
-      form.querySelector('[data-sheet-manual]').hidden=true;
-      form.querySelector('[data-sheet-search-label]').textContent='この料理に食材を追加';
-      form.elements.food.required=false;
-      form.elements.food.placeholder='食材名を入力';
-      form.elements.food.value='';
-      submit.textContent='この料理を保存する';
+  function setRecipeDish(dish,choices){
+    const changed=dishKey(dish)!==dishKey(recipeDish);
+    recipeDish=dish;
+    recipe.hidden=!dish;
+    form.querySelector('[data-sheet-manual]').hidden=Boolean(dish);
+    submit.textContent=dish?'この料理を保存する':'保存して追加';
+    if(changed){
+      recipeItems.clear();
+      recipeList.replaceChildren();
+      if(dish)for(const candidate of dishDraftFoods(dish,choices))addRecipeItem(candidate);
     }
+    if(dish)recipe.querySelector('[data-sheet-recipe-name]').textContent=dish+'の下書き';
+    recipe.querySelector('[data-sheet-recipe-hint]').hidden=recipeItems.size===0;
+  }
+  function addRecipeItem(candidate){
     const key=candidateKey(candidate);
     if(recipeItems.has(key))return;
     const row=document.createElement('fieldset');
@@ -1006,13 +1028,12 @@ function mountSheetEntry(dialog, target, date, opener){
       recipeItems.delete(key);
       row.remove();
       renderCandidates();
-      form.elements.food.focus();
+      (results.querySelector('button:not([disabled])')||form.elements.food).focus();
     };
     recipeItems.set(key,{candidate,getGrams});
     recipeList.append(row);
     renderPoints();
-    renderCandidates();
-    (results.querySelector('button:not([disabled])')||quantity).focus();
+    return quantity;
   }
   const updateScore=()=>{
     const grams=gramsValue();
@@ -1029,11 +1050,13 @@ function mountSheetEntry(dialog, target, date, opener){
     form.querySelector('[data-sheet-points]').hidden=Boolean(recipeDish);
     updateScore();
   }
-  function chooseSheetFood(candidate,dish=''){
+  function chooseSheetFood(candidate){
     saveAttempt=null;
     error.textContent='';
-    if(recipeDish||dish){
-      addRecipeItem(candidate,recipeDish||dish);
+    if(recipeDish){
+      const quantity=addRecipeItem(candidate);
+      renderCandidates();
+      quantity?.focus();
       return;
     }
     if(selection && (selection.food!==candidate.food||selection.label!==candidate.label))resetSheetAmount();
@@ -1052,7 +1075,7 @@ function mountSheetEntry(dialog, target, date, opener){
     if(catalog.contains(event.target))return;
     saveAttempt=null;
     error.textContent='';
-    if(event.target===form.elements.food){
+    if(event.target===form.elements.food&&!event.isComposing){
       form.elements.group.value='';
       resetSheetAmount();
       renderCandidates();
@@ -1065,41 +1088,41 @@ function mountSheetEntry(dialog, target, date, opener){
     }
     updateScore();
   });
+  form.elements.food.addEventListener('keydown',event=>{
+    if(event.key==='Enter'&&!event.isComposing)event.preventDefault();
+  });
   form.addEventListener('foodmasterchange',renderCandidates);
   function renderCandidates(){
     const value=form.elements.food.value.trim();
     const matches=findFoods(value);
-    const titles=recipeDish?[]:findDishNames(value);
-    const exact=recipeDish||dishKey(value)==='スパゲティ'?null:exactFood(value,matches);
-    const fromDish=exact||(recipeDish&&value)?[]:dishFoodChoices(recipeDish||value);
+    const titles=findDishNames(value);
+    const exact=dishKey(value)==='スパゲティ'?null:exactFood(value,matches);
+    const fromDish=exact?[]:dishFoodChoices(value);
+    setRecipeDish(fromDish.length?value:'',fromDish);
     candidates=fromDish.length?fromDish:matches;
     setSheetSelection(exact,!fromDish.length&&!titles.length);
-    const foodButtons=candidates.filter(candidate=>candidate!==exact).map(candidate=>{
+    const foodButtons=candidates.filter(candidate=>candidate!==exact&&!recipeItems.has(candidateKey(candidate))).map(candidate=>{
       const button=document.createElement('button');
       button.type='button';
       button.textContent=candidate.label+'｜'+candidate.food.group;
-      if(recipeItems.has(candidateKey(candidate))){
-        button.disabled=true;
-        button.textContent+=' （追加済み）';
-      }
-      button.onclick=()=>chooseSheetFood(candidate,fromDish.length?value:'');
+      button.onclick=()=>chooseSheetFood(candidate);
       return button;
     });
     if(foodButtons.length && (fromDish.length||titles.length)){
       const caption=document.createElement('p');
-      caption.textContent=fromDish.length?'この料理の食材候補（食べたものをすべて選択）':'食材候補';
+      caption.textContent=fromDish.length?'必要な場合に追加する食材':'食材候補';
       foodButtons.unshift(caption);
     }
     const dishButtons=dishNameButtons(titles,title=>{
       form.elements.food.value=title;
       form.elements.food.dispatchEvent(new Event('input',{bubbles:true}));
-      (results.querySelector('button')||form.elements.food).focus();
+      (recipeList.querySelector('select')||results.querySelector('button')||form.elements.food).focus();
     });
     results.replaceChildren(...dishButtons,...foodButtons);
     if(value&&!candidates.length&&!titles.length){
       results.textContent=masterStatus==='loading'?'食品マスターを読み込み中です。'
         : masterStatus==='failed'?'食品マスターを読み込めませんでした。食材名だけで保存できます。'
-        : '食品マスターに候補がありません。食材名だけで保存できます。';
+        : '一致する料理・食材がありません。名前だけでも保存できます。';
     }
   }
   form.querySelector('[data-sheet-cancel]').onclick=()=>{
