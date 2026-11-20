@@ -26,6 +26,7 @@ const foodId = x => JSON.stringify([x.name,x.category,x.gramsPerPoint]);
 const foodFromId = id => foodMaster.find(x=>foodId(x)===id);
 const meals = ['朝食','昼食','夕食','間食','飲み物','飲酒'];
 const groups = ['第1群','第2群','第3群','第4群'];
+const exampleDishes = ['ご飯','焼き魚','みそ汁','アジフライ'];
 const quickGrams = [1,2,3,5,10,15,20,30,40,50,60,65,75,80,100,120,150,200,250,260,300];
 const pointFormat = new Intl.NumberFormat('ja-JP',{maximumFractionDigits:2});
 const formatPoints = points => points == null ? '—' : pointFormat.format(points)+'点';
@@ -190,13 +191,22 @@ function renderRecord(){
   const dates=[...new Set(list.map(entry=>entry.date))].sort().reverse();
   const date = recordDate || today();
   const previous = $('#mealForm');
+  const dishNames = [...new Set([...list.flatMap(meal => meal.ingredients || [meal])
+    .map(item => item.dish).filter(name => typeof name === 'string' && name.trim())
+    .slice(0,20), ...exampleDishes])].slice(0,12);
   const sheet = $('#daySheet');
   if (sheet?.open) sheet.close();
   $('#record').innerHTML=`<div class="card"><span class="eyebrow">食事記録</span><h1>食事ダイアリー</h1><p>食材と量を選び、続けて次の食材を選べます。最後にこの食事をまとめて保存します。写真やメモだけでも保存できます。</p>
     <form id="mealForm"><label>日付<input id="mealDate" name="date" type="date" value="${esc(date)}" required></label><div class="tabs diary-tabs" role="group" aria-label="食事の種類">${meals.map(t=>`<button type="button" data-meal="${t}" aria-pressed="${t===mealType}" class="${t===mealType?'selected':''}">${t}</button>`).join('')}</div>
     <label>食べた時刻（任意）<input name="time" type="time"></label>
     <label>写真（任意・この端末だけに保存）<input name="photo" type="file" accept="image/*"></label>
-    <label>料理名（任意）<input name="dish" maxlength="120" placeholder="例：アジフライ"></label>
+    <label>料理名（任意）<select id="dishChoice">
+      <option value="">料理名を付けない</option>
+      ${dishNames.map(name=>`<option value="name:${esc(name)}">${esc(name)}</option>`).join('')}
+      <option value="custom">料理名を入力する</option>
+    </select></label>
+    <div id="customDish" hidden><label>料理名を入力<input name="dish" maxlength="120" placeholder="例：ささみのソテー"></label></div>
+    <p class="muted">料理を選んでから食材を追加します。別の料理に切り替えると、入力中の食材は前の料理に残ります。</p>
     <label>食材を探す<input id="foodSearch" type="search" autocomplete="off" placeholder="例：ご飯、ささみ、ごま油"></label>
     <div id="foodResults" class="food-results" aria-live="polite"></div>
     <div id="recentFoods" class="food-shortcuts"></div><div id="savedFoods" class="food-shortcuts"></div>
@@ -500,6 +510,24 @@ function selectFood(candidate){
   $('#foodResults').replaceChildren();
   updatePoints();
 }
+document.addEventListener('change',e=>{
+  if(e.target.id!=='dishChoice')return;
+  const form=e.target.form, field=form.elements.dish;
+  const previous=field.value;
+  const custom=e.target.value==='custom';
+  const next=custom?'':e.target.value.replace(/^name:/,'');
+  const inputBox=$('#customDish');
+  if(form.elements.food.value.trim() && (custom || next!==previous)){
+    if(!form.reportValidity()){
+      e.target.value=inputBox.hidden?(previous?'name:'+previous:''):'custom';
+      return;
+    }
+    addCurrentIngredient(form);
+  }
+  field.value=next;
+  inputBox.hidden=!custom;
+  if(custom)field.focus();
+});
 function renderFoodShortcuts(){
   const seen=new Set(),recent=[];
   for(const entry of [...(state.meals||[])].reverse().flatMap(meal=>meal.ingredients || [meal])){

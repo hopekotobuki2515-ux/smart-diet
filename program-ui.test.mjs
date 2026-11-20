@@ -342,6 +342,41 @@ test('selecting another food keeps the first portion and resets the next amount 
   } finally {app.dom.window.close()}
 });
 
+test('dish choices keep ingredients in their respective dishes and remember a custom name after saving', async () => {
+  const date=tokyoDate(new Date());
+  const store={value:{profile:{name:'テスト',heightCm:170,startWeight:70,waist:85,goalPercent:5,startDate:date}}};
+  const app=await openApp(store);
+  try {
+    app.q('#home [data-go=record]').click();
+    const pickDish=value=>{
+      const picker=app.q('#dishChoice');
+      picker.value=value;
+      picker.dispatchEvent(new app.win.Event('change',{bubbles:true}));
+    };
+    const selectFood=query=>{
+      app.fill('#foodSearch',query);
+      app.q('#foodResults button').click();
+    };
+    assert.equal(app.q('#customDish').hidden,true);
+    pickDish('name:焼き魚');
+    selectFood('ささみ');
+    app.fill('#quickGrams','75');
+    pickDish('custom');
+    assert.match(app.q('#ingredientList').textContent,/焼き魚.*ささ身.*75g/);
+    assert.equal(app.q('#customDish').hidden,false);
+    assert.equal(app.q('#quickGrams').value,'');
+    app.fill('[name=dish]','うちの和え物');
+    selectFood('ごま油');
+    app.q('#dayPreview').click();
+    assert.deepEqual([...app.win.document.querySelectorAll('.sheet-dish')].map(x=>x.textContent),['焼き魚','うちの和え物']);
+    app.q('#daySheet button').click();
+    app.submit('#mealForm');await pause();
+    assert.deepEqual(store.value.meals[0].ingredients.map(x=>x.dish),['焼き魚','うちの和え物']);
+    assert.ok([...app.q('#dishChoice').options].some(option=>option.textContent==='うちの和え物'));
+    assert.deepEqual(app.failures,[]);
+  } finally {app.dom.window.close()}
+});
+
 test('photo and memo survive retries after local and remote failures, with one final local copy', async () => {
   const date=tokyoDate(new Date());
   const profile={name:'テスト',age:45,heightCm:170,startWeight:70,waist:85,goalPercent:5,startDate:date};
