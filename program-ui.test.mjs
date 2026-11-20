@@ -441,7 +441,7 @@ test('spaghetti names suggest the dry master entry without assuming the cooked w
       assert.equal(app.q('#dishSuggestions button').textContent,label);
       assert.match(app.q('#dishSuggestions').textContent,/ゆでる前の量/);
       app.fill('#foodSearch',title);
-      assert.ok(app.q('#foodResults button').textContent.startsWith(label));
+      assert.ok(app.q('#foodResults button').textContent.startsWith('スパゲッティ（乾麺）'));
     }
     app.q('#dishNameSuggestions button:nth-of-type(2)').click();
     assert.equal(app.q('[name=dish]').value,'ナポリタン');
@@ -462,6 +462,44 @@ test('spaghetti names suggest the dry master entry without assuming the cooked w
     assert.equal(store.value.meals[0].ingredients[0].food,name);
     assert.equal(store.value.meals[0].ingredients[0].points,1);
     assert.match(app.q('#mealList').textContent,/スパゲッティ（乾麺）/);
+    assert.deepEqual(app.failures,[]);
+  } finally {app.dom.window.close()}
+});
+
+test('food search displays and saves spaghetti and macaroni as distinct labels for the same master entry', async () => {
+  const startDate=tokyoDate(new Date());
+  const store={value:{profile:{name:'テスト',heightCm:170,startWeight:70,waist:85,goalPercent:5,startDate}}};
+  const app=await openApp(store);
+  try {
+    app.q('#home [data-go=record]').click();
+    const spaghetti='スパゲッティ（乾麺）', macaroni='マカロニ（乾麺）';
+    const results=()=>[...app.win.document.querySelectorAll('#foodResults button')];
+    app.fill('#foodSearch','スパゲ');
+    assert.equal(results().length,1);
+    assert.ok(results()[0].textContent.startsWith(spaghetti));
+    app.fill('#foodSearch','マカロニ');
+    assert.ok(results()[0].textContent.startsWith(macaroni));
+    app.fill('#foodSearch','マカロニ・スパゲッティ・乾');
+    assert.equal(results().length,2);
+    assert.ok(results()[0].textContent.startsWith(spaghetti));
+    assert.ok(results()[1].textContent.startsWith(macaroni));
+    results()[0].click();
+    assert.equal(app.q('#foodSearch').value,spaghetti);
+    app.fill('#quickGrams','custom');
+    app.fill('[name=grams]','21');
+    app.fill('#foodSearch','マカロニ');
+    results()[0].click();
+    assert.equal(app.q('#foodSearch').value,macaroni);
+    assert.equal(app.q('#quickGrams').value,'');
+    app.fill('#quickGrams','custom');
+    app.fill('[name=grams]','42');
+    app.submit('#mealForm');await pause();
+    const [first,second]=store.value.meals[0].ingredients;
+    assert.deepEqual([first.foodLabel,second.foodLabel],[spaghetti,macaroni]);
+    assert.equal(first.masterId,second.masterId);
+    assert.deepEqual([first.points,second.points],[1,2]);
+    app.q('#mealList [data-saved-diary]').click();
+    assert.match(app.q('#daySheet').textContent,/スパゲッティ（乾麺） 21g.*マカロニ（乾麺） 42g/s);
     assert.deepEqual(app.failures,[]);
   } finally {app.dom.window.close()}
 });
