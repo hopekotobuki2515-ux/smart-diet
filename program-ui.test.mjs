@@ -423,6 +423,30 @@ test('dish name suggestions use master foods and prior selections without assign
   } finally {app.dom.window.close()}
 });
 
+test('spaghetti names suggest the dry master entry without assuming the cooked weight', async () => {
+  const startDate=tokyoDate(new Date());
+  const store={value:{profile:{name:'テスト',heightCm:170,startWeight:70,waist:85,goalPercent:5,startDate}}};
+  const app=await openApp(store);
+  try {
+    app.q('#home [data-go=record]').click();
+    const picker=app.q('#dishChoice');
+    picker.value='custom';
+    picker.dispatchEvent(new app.win.Event('change',{bubbles:true}));
+    const name='マカロニ・スパゲッティ・乾';
+    for(const title of ['スパゲティ','スパゲッティ','パスタ']){
+      app.fill('[name=dish]',title);
+      assert.equal(app.q('#dishSuggestions button').textContent,name);
+      assert.match(app.q('#dishSuggestions').textContent,/ゆでる前の量/);
+      app.fill('#foodSearch',title);
+      assert.match(app.q('#foodResults button').textContent,/マカロニ・スパゲッティ・乾/);
+    }
+    app.q('#dishSuggestions button').click();
+    assert.equal(app.q('#quickGrams').value,'');
+    assert.match(app.q('#pointPreview').textContent,/第4群：○（量不明）/);
+    assert.deepEqual(app.failures,[]);
+  } finally {app.dom.window.close()}
+});
+
 test('photo and memo survive retries after local and remote failures, with one final local copy', async () => {
   const date=tokyoDate(new Date());
   const profile={name:'テスト',age:45,heightCm:170,startWeight:70,waist:85,goalPercent:5,startDate:date};
