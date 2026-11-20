@@ -32,14 +32,50 @@ const drySpaghettiLabel = 'スパゲッティ（乾麺）';
 const dryMacaroniLabel = 'マカロニ（乾麺）';
 const dryPastaLabels = [drySpaghettiLabel,dryMacaroniLabel,'パスタ（乾麺）'];
 const pastaDishes = ['ミートソーススパゲティ','ナポリタン','カルボナーラ','ペペロンチーノ'];
+const recipeFoodNames = new Map([
+  ['牛ひき肉',['ひき肉','肉類・牛肉（脂身つき）']],
+  ['鶏もも肉（皮つき）',['もも・皮つき','肉類・鶏肉（若鶏）・鶏の副生物']],
+  ['豚バラ肉',['ばら','肉類・豚肉（大型種脂身つき）']],
+  ['豚ロース肉',['ロース','肉類・豚肉（大型種脂身つき）']],
+  ['牛バラ肉（輸入牛）',['ばら・輸入牛','肉類・牛肉（脂身つき）']],
+  ['牛もも肉（輸入牛）',['もも・輸入牛','肉類・牛肉（脂身つき）']]
+]);
 const dishIngredients = new Map([
   ['ご飯',['めし・水稲・精白米']],
   ['焼き魚',['マサバ','シロサケ','マアジ']],
   ['みそ汁',['米みそ・淡色辛みそ','米みそ・赤色辛みそ','もめん豆腐','絹ごし豆腐','カットわかめ','油揚げ','こねぎ']],
   ['アジフライ',['マアジ','小麦粉・薄力粉','鶏卵・全卵・生','パン粉・乾燥','調合油']],
   ['スパゲティ',[dryPasta]],
-  ...pastaDishes.map(dish=>[dish,[dryPasta]])
+  // Recipe sources identify suggested foods only. The master supplies all groups and point weights.
+  // https://www.kagome.co.jp/products/recipe/10037/
+  ['ミートソーススパゲティ',[dryPasta,'牛ひき肉','トマト・缶詰・ホール','玉ねぎ','にんじん','セロリ','にんにく','オリーブ油']],
+  // https://www.kagome.co.jp/products/recipe/Z6900/
+  ['ナポリタン',[dryPasta,'ウインナーソーセージ','玉ねぎ','青ピーマン','トマトケチャップ','調合油']],
+  // https://www.nisshin-seifun-welna.com/index/recipe/detail/p-1193.html
+  ['カルボナーラ',[dryPasta,'ベーコン','鶏卵・卵黄・生','パルメザンチーズ','普通牛乳','オリーブ油']],
+  // https://housefoods.jp/recipe/rcp_00025666.html
+  ['ペペロンチーノ',[dryPasta,'にんにく','とうがらし','オリーブ油']],
+  // https://www.kikkoman.co.jp/homecook/search/recipe/00054362/
+  ['親子丼',['めし・水稲・精白米','鶏もも肉（皮つき）','鶏卵・全卵・生','玉ねぎ','しょうゆ・濃い口しょうゆ']],
+  // https://www.marukome.co.jp/recipe/detail/koji_405/
+  ['豚汁',['豚バラ肉','大根','にんじん','ごぼう','板こんにゃく・精粉','根深ねぎ','米みそ・淡色辛みそ','米みそ・赤色辛みそ']],
+  // https://www.kikkoman.co.jp/homecook/search/recipe/00007345/
+  ['肉じゃが',['じゃが芋','玉ねぎ','にんじん','しらたき','しょうゆ・濃い口しょうゆ','上白糖','牛バラ肉（輸入牛）','牛もも肉（輸入牛）']],
+  // https://housefoods.jp/recipe/rcp_00008909.html
+  ['カレーライス',['めし・水稲・精白米','玉ねぎ','じゃが芋','にんじん','カレールウ','調合油','豚ロース肉']]
 ]);
+const misoOptions = ['米みそ・淡色辛みそ','米みそ・赤色辛みそ'];
+const dishOptionalIngredients = new Map([
+  ['焼き魚',['マサバ','シロサケ','マアジ']],
+  ['みそ汁',[...misoOptions,'もめん豆腐','絹ごし豆腐']],
+  ['豚汁',misoOptions],
+  ['肉じゃが',['牛バラ肉（輸入牛）','牛もも肉（輸入牛）']],
+  ['カレーライス',['豚ロース肉']]
+]);
+function recipeFoodMatches(food,ingredient){
+  const [name,category]=recipeFoodNames.get(ingredient)??[ingredient];
+  return food.name===name&&(!category||food.category===category);
+}
 const quickGrams = [1,2,3,5,10,15,20,30,40,50,60,65,75,80,100,120,150,200,250,260,300];
 const pointFormat = new Intl.NumberFormat('ja-JP',{maximumFractionDigits:2});
 const formatPoints = points => points == null ? '—' : pointFormat.format(points)+'点';
@@ -480,21 +516,23 @@ const dishAliases = new Map([
   ['味噌汁','みそ汁'],['味噌しる','みそ汁'],['みそしる','みそ汁'],
   ['あじフライ','アジフライ'],['鯵フライ','アジフライ'],
   ['スパゲッティ','スパゲティ'],['パスタ','スパゲティ'],
-  ['ミートソーススパゲッティ','ミートソーススパゲティ']
+  ['ミートソーススパゲッティ','ミートソーススパゲティ'],['ミートソース','ミートソーススパゲティ'],
+  ['おやこ丼','親子丼'],['とん汁','豚汁'],['とんじる','豚汁'],['ぶた汁','豚汁'],
+  ['肉ジャガ','肉じゃが'],['カレー','カレーライス']
 ]);
 const dishKey = name => {
   const key=searchKey(name);
   return dishAliases.get(key)??key;
 };
 function foodLabel(name, dish='', explicitLabel){
-  if(name!==dryPasta)return name;
+  if(name!==dryPasta)return recipeFoodNames.get(explicitLabel)?.[0]===name?explicitLabel:name;
   if(dryPastaLabels.includes(explicitLabel))return explicitLabel;
   if(searchKey(dish)==='パスタ')return 'パスタ（乾麺）';
   const key=dishKey(dish);
   return key==='スパゲティ'||pastaDishes.includes(key)?drySpaghettiLabel:name;
 }
 function foodDescription(food, label){
-  return label===food.name
+  return food.name!==dryPasta||label===food.name
     ? `${label}｜${food.category}｜${food.group}｜1点 ${food.gramsPerPoint}g`
     : `${label}｜食品群：${food.group}｜乾麺${food.gramsPerPoint}gで1点`;
 }
@@ -622,7 +660,7 @@ function findDishNames(value){
   }
   return [...matches].sort((a,b)=>a[1]-b[1]).slice(0,8).map(([key])=>names.get(key));
 }
-function dishNameButtons(titles,onSelect){
+function dishNameButtons(titles,onSelect,showCaption=true){
   if(!titles.length)return [];
   const caption=document.createElement('p');
   caption.className='muted';
@@ -634,7 +672,7 @@ function dishNameButtons(titles,onSelect){
     button.onclick=()=>onSelect(title);
     return button;
   });
-  return [caption,...buttons];
+  return showCaption?[caption,...buttons]:buttons;
 }
 function dishFoodChoices(value){
   const dish=dishKey(value);
@@ -649,10 +687,13 @@ function dishFoodChoices(value){
     if(foods.size>=8)break;
   }
   for(const name of dishIngredients.get(dish)??[]){
-    const matches=foodMaster.filter(food=>food.name===name);
+    const matches=foodMaster.filter(food=>recipeFoodMatches(food,name));
     if(matches.length===1)foods.set(foodId(matches[0]),matches[0]);
   }
-  return [...foods.values()].slice(0,8).map(food=>({food,label:foodLabel(food.name,value)}));
+  return [...foods.values()].slice(0,8).map(food=>{
+    const recipeLabel=[...recipeFoodNames.keys()].find(name=>recipeFoodMatches(food,name));
+    return {food,label:foodLabel(food.name,value,recipeLabel)};
+  });
 }
 function dishDraftFoods(value,choices){
   const key=dishKey(value);
@@ -661,16 +702,15 @@ function dishDraftFoods(value,choices){
       .filter(item=>typeof item.dish==='string' && dishKey(item.dish)===key)
       .map(item=>item.masterId));
     const recent=choices.filter(({food})=>saved.has(foodId(food)));
-    if(recent.length)return recent;
+    if(!recent.length)continue;
+    // Older pasta drafts only offered dry noodles. Use the expanded template for those records.
+    if(!meal.recipeReviewed && pastaDishes.includes(key) && recent.every(({food})=>food.name===dryPasta))break;
+    return recent;
   }
-  // The master lists several fish, misos, and tofus as alternatives.
-  const alternatives={
-    '焼き魚':['マサバ','シロサケ','マアジ'],
-    'みそ汁':['米みそ・淡色辛みそ','米みそ・赤色辛みそ','もめん豆腐','絹ごし豆腐']
-  };
-  const optional=alternatives[key]??[];
+  const optional=dishOptionalIngredients.get(key)??[];
   const registered=dishIngredients.get(key)??[];
-  return choices.filter(({food})=>registered.includes(food.name) && !optional.includes(food.name));
+  return choices.filter(({food})=>registered.some(ingredient=>recipeFoodMatches(food,ingredient))
+    && !optional.some(ingredient=>recipeFoodMatches(food,ingredient)));
 }
 function renderDishSuggestions(){
   const dishInput=$('#mealForm').elements.dish;
@@ -696,7 +736,7 @@ function renderDishSuggestions(){
     const button=document.createElement('button');
     button.type='button';
     button.textContent=label;
-    button.onclick=()=>{if(selectFood(food))$('#quickGrams').focus();};
+    button.onclick=()=>{if(selectFood(food,label))$('#quickGrams').focus();};
     return button;
   });
   box.replaceChildren(caption,...buttons);
@@ -938,6 +978,10 @@ function mountSheetEntry(dialog, target, date, opener){
       <div data-sheet-recipe-items></div>
     </section>
     <div class="food-shortcuts" data-sheet-results aria-live="polite"></div>
+    <details data-sheet-dish-list class="meal-options">
+      <summary>登録済みの料理から選ぶ</summary>
+      <div class="food-shortcuts" data-sheet-dish-buttons></div>
+    </details>
     <details data-sheet-catalog class="meal-options"></details>
     <div data-sheet-amount hidden>
       <label>食べた量<select name="quickAmount">${amountOptions}</select></label>
@@ -963,10 +1007,16 @@ function mountSheetEntry(dialog, target, date, opener){
   const results=form.querySelector('[data-sheet-results]');
   const error=form.querySelector('[data-sheet-error]');
   const catalog=form.querySelector('[data-sheet-catalog]');
+  const dishList=form.querySelector('[data-sheet-dish-list]');
+  dishList.querySelector('[data-sheet-dish-buttons]').replaceChildren(...dishNameButtons(
+    [...dishIngredients.keys()],title=>{
+      dishList.open=false;
+      chooseRecipe(title);
+    },false));
   const recipe=form.querySelector('[data-sheet-recipe]');
   const recipeList=form.querySelector('[data-sheet-recipe-items]');
   const submit=form.querySelector('[type=submit]');
-  const candidateKey=({food,label})=>JSON.stringify([foodId(food),label]);
+  const candidateKey=({food,label})=>food.name===dryPasta?JSON.stringify([foodId(food),label]):foodId(food);
   function sheetItem(name,dish,grams,chosen,manualGroup=null){
     const master=chosen?.food;
     const item={food:master?.name??name,dish,grams,group:master?.group||manualGroup,
@@ -1113,17 +1163,18 @@ function mountSheetEntry(dialog, target, date, opener){
       caption.textContent=fromDish.length?'必要な場合に追加する食材':'食材候補';
       foodButtons.unshift(caption);
     }
-    const dishButtons=dishNameButtons(titles,title=>{
-      form.elements.food.value=title;
-      form.elements.food.dispatchEvent(new Event('input',{bubbles:true}));
-      (recipeList.querySelector('select')||results.querySelector('button')||form.elements.food).focus();
-    });
+    const dishButtons=dishNameButtons(titles,chooseRecipe);
     results.replaceChildren(...dishButtons,...foodButtons);
     if(value&&!candidates.length&&!titles.length){
       results.textContent=masterStatus==='loading'?'食品マスターを読み込み中です。'
         : masterStatus==='failed'?'食品マスターを読み込めませんでした。食材名だけで保存できます。'
         : '一致する料理・食材がありません。名前だけでも保存できます。';
     }
+  }
+  function chooseRecipe(title){
+    form.elements.food.value=title;
+    form.elements.food.dispatchEvent(new Event('input',{bubbles:true}));
+    (recipeList.querySelector('select')||results.querySelector('button')||form.elements.food).focus();
   }
   form.querySelector('[data-sheet-cancel]').onclick=()=>{
     form.remove();
@@ -1147,7 +1198,10 @@ function mountSheetEntry(dialog, target, date, opener){
       }
       items=[sheetItem(name,form.elements.dish.value.trim(),gramsValue(),selection,form.elements.group.value||null)];
     }
-    const entry=saveAttempt??=makeMealEntry({date,type,items});
+    const entry=saveAttempt??={
+      ...makeMealEntry({date,type,items}),
+      ...(recipeDish?{recipeReviewed:true}:{})
+    };
     const next=copy();
     next.meals=[...(next.meals||[]),entry];
     submit.disabled=true;

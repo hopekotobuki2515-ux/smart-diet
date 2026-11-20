@@ -636,7 +636,32 @@ test('food master offers a browsable catalog and recipe ingredients in the direc
     assert.ok(napolitan);
     napolitan.click();
     const autoRows=()=>[...app.win.document.querySelectorAll('[data-sheet-recipe-item] legend')].map(row=>row.textContent);
-    assert.deepEqual(autoRows(),['スパゲッティ（乾麺）']);
+    assert.deepEqual(autoRows(),['スパゲッティ（乾麺）','ウインナーソーセージ','玉ねぎ','青ピーマン','トマトケチャップ','調合油']);
+    for(const [dish,ingredient,group] of [
+      ['カルボナーラ','ベーコン','第2群'],['ミートソース','牛ひき肉','第2群'],
+      ['ペペロンチーノ','にんにく','第3群'],['親子丼','鶏もも肉（皮つき）','第2群'],
+      ['豚汁','豚バラ肉','第2群'],['肉じゃが','じゃが芋','第3群'],
+      ['カレーライス','カレールウ','第4群']
+    ]){
+      app.fill('#sheetEntryForm [name=food]',dish);
+      assert.ok(autoRows().length>=3,dish);
+      const row=[...app.win.document.querySelectorAll('[data-sheet-recipe-item]')].find(item=>item.querySelector('legend').textContent===ingredient);
+      assert.equal(row?.querySelector('[data-recipe-points]').textContent,group+'：○',dish);
+    }
+    const knownDishes=openCatalog('[data-sheet-dish-list]');
+    const tonjiru=[...knownDishes.querySelectorAll('button')].find(button=>button.textContent==='豚汁');
+    tonjiru.click();
+    assert.equal(knownDishes.open,false);
+    assert.ok(autoRows().includes('豚バラ肉'));
+    const beforeCatalogChoice=autoRows();
+    openCatalog('[data-sheet-catalog]');
+    group.value='';
+    group.dispatchEvent(new app.win.Event('change'));
+    app.fill('[data-sheet-catalog] input[type=search]','ばら');
+    [...direct.querySelectorAll('[data-catalog-results] button')].find(button=>button.textContent.startsWith('ばら｜')).click();
+    assert.deepEqual(autoRows(),beforeCatalogChoice);
+    app.fill('#sheetEntryForm [name=food]','登録されていない料理');
+    assert.deepEqual(autoRows(),[]);
     app.fill('#sheetEntryForm [name=food]','味噌');
     const soup=[...app.win.document.querySelectorAll('[data-sheet-results] button')].find(button=>button.textContent==='みそ汁');
     assert.ok(soup);
@@ -668,6 +693,7 @@ test('food master offers a browsable catalog and recipe ingredients in the direc
       ['みそ汁','カットわかめ',null,null],['みそ汁','もめん豆腐',110,1]
     ]);
     assert.equal(store.value.meals[0].points,1);
+    assert.equal(store.value.meals[0].recipeReviewed,true);
     assert.match(app.q('#daySheet').textContent,/みそ汁.*カットわかめ.*もめん豆腐 110g/s);
     if(!app.q('#sheetEntryForm'))app.q('[data-sheet-meal="昼食"]').click();
     app.fill('#sheetEntryForm [name=food]','みそ汁');
@@ -676,6 +702,28 @@ test('food master offers a browsable catalog and recipe ingredients in the direc
     assert.equal(store.value.meals.length,1);
     assert.deepEqual(app.failures,[]);
   } finally {app.dom.window.close()}
+});
+
+test('expanded pasta recipes replace legacy dry-noodle-only drafts and respect reviewed ingredients', async () => {
+  const date=tokyoDate(new Date());
+  const profile={name:'テスト',heightCm:170,startWeight:70,waist:85,goalPercent:5,startDate:date};
+  const pasta=master.foods.find(food=>food.name==='マカロニ・スパゲッティ・乾');
+  const saved={date,type:'朝食',ingredients:[{dish:'ナポリタン',food:pasta.name,group:pasta.group,grams:21,points:1,
+    masterId:JSON.stringify([pasta.name,pasta.category,pasta.gramsPerPoint])}]};
+  for(const recipeReviewed of [false,true]){
+    const app=await openApp({value:{profile,meals:[{...saved,recipeReviewed}]}});
+    try {
+      app.q('#home [data-go=record]').click();
+      app.q('#editDaySheet').click();
+      app.q('[data-sheet-meal="昼食"]').click();
+      app.fill('#sheetEntryForm [name=food]','ナポリタン');
+      const rows=[...app.win.document.querySelectorAll('[data-sheet-recipe-item] legend')].map(row=>row.textContent);
+      assert.equal(rows.includes('玉ねぎ'),!recipeReviewed);
+      assert.ok(rows.includes('スパゲッティ（乾麺）'));
+      assert.equal(app.q('[data-recipe-quantity]').value,'');
+      assert.deepEqual(app.failures,[]);
+    } finally {app.dom.window.close()}
+  }
 });
 
 test('paper-style diary accepts ingredients directly in the selected meal and refreshes the saved totals', async () => {
