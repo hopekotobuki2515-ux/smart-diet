@@ -954,3 +954,55 @@ test('three distinct meal dates unlock diary mode and the choice survives reload
     assert.deepEqual(reloaded.failures,[]);
   } finally {reloaded.dom.window.close()}
 });
+
+test('breakfast portions entered in familiar units are saved and shown after reload', async () => {
+  const date=tokyoDate(new Date());
+  const store={value:{profile:{name:'テスト',heightCm:170,startWeight:70,waist:85,goalPercent:5,startDate:date}}};
+  const portions=[['食パン','1枚'],['ヨーグルト','1個'],['コーヒー','1杯']];
+  const app=await openApp(store);
+  try {
+    app.q('#home [data-go=record]').click();
+    app.q('[data-meal="朝食"]').click();
+    for(const [food,amount] of portions){
+      app.q(`[data-portion-food="${food}"]`).click();
+      const quantity=app.q('#quickGrams');
+      assert.equal(app.win.document.activeElement,quantity);
+      assert.equal(quantity.value,'');
+      assert.equal(quantity.querySelector('[data-portion-options]').textContent.includes(amount),true);
+      app.fill('#quickGrams','portion:'+amount);
+      assert.match(app.q('#pointPreview').textContent,/点数は未計算/);
+    }
+    assert.equal(store.value.meals,undefined);
+    app.q('#dayPreview').click();
+    for(const [food,amount] of portions)assert.ok(app.q('#daySheet').textContent.includes(food+' '+amount));
+    app.q('#daySheet').close();
+    app.submit('#mealForm');
+    await pause();
+    assert.equal(store.value.meals.length,1);
+    const [meal]=store.value.meals;
+    assert.equal(meal.type,'朝食');
+    assert.deepEqual(meal.ingredients.map(item=>[item.food,item.amount,item.grams,item.points]),
+      portions.map(([food,amount])=>[food,amount,null,null]));
+    assert.equal(meal.points,null);
+    assert.deepEqual(app.failures,[]);
+  } finally {app.dom.window.close()}
+
+  const reloaded=await openApp(store);
+  try {
+    reloaded.q('[data-page=record]').click();
+    reloaded.q('[data-saved-diary]').click();
+    for(const [food,amount] of portions)assert.ok(reloaded.q('#daySheet').textContent.includes(food+' '+amount));
+    reloaded.q('#daySheet').close();
+    reloaded.q('[data-portion-food="食パン"]').click();
+    reloaded.fill('#quickGrams','portion:1枚');
+    reloaded.fill('#quickGrams','60');
+    assert.match(reloaded.q('#pointPreview').textContent,/2\.00点/);
+    reloaded.submit('#mealForm');
+    await pause();
+    const weighed=store.value.meals[1].ingredients[0];
+    assert.equal(weighed.amount,'');
+    assert.equal(weighed.grams,60);
+    assert.equal(weighed.points,2);
+    assert.deepEqual(reloaded.failures,[]);
+  } finally {reloaded.dom.window.close()}
+});

@@ -80,6 +80,7 @@ function recipeFoodMatches(food,ingredient){
   const [name,category]=recipeFoodNames.get(ingredient)??[ingredient];
   return food.name===name&&(!category||food.category===category);
 }
+const diaryPortionUnits = new Map([['食パン','枚'],['ヨーグルト','個'],['コーヒー','杯']]);
 const quickGrams = [1,2,3,5,10,15,20,30,40,50,60,65,75,80,100,120,150,200,250,260,300];
 const pointFormat = new Intl.NumberFormat('ja-JP',{maximumFractionDigits:2});
 const formatPoints = points => points == null ? '—' : pointFormat.format(points)+'点';
@@ -255,6 +256,9 @@ function renderRecord(){
     <div class="tabs diary-tabs" role="group" aria-label="食事の種類">${meals.map(t=>`<button type="button" data-meal="${t}" aria-pressed="${t===mealType}" class="${t===mealType?'selected':''}">${t}</button>`).join('')}</div>
     <label>食材・料理を探す<input id="foodSearch" type="search" autocomplete="off" placeholder="例：牛丼、ご飯、ささみ"></label>
     <div id="foodResults" class="food-results" aria-live="polite"></div>
+    <div class="food-shortcuts" role="group" aria-label="よく使う食品">
+      ${[...diaryPortionUnits.keys()].map(name=>`<button type="button" data-portion-food="${esc(name)}">${esc(name)}</button>`).join('')}
+    </div>
     <p id="selectedFood" class="muted" aria-live="polite"></p>
     <div id="ingredientEditor" hidden>
     <label>食べた量<select id="quickGrams"><option value="">量がわからない</option>${quickGrams.map(g=>`<option value="${g}">${g}g</option>`).join('')}<option value="custom">グラムを入力する</option></select></label>
@@ -869,7 +873,7 @@ document.addEventListener('input',e=>{
   if(e.target.id==='quickGrams'){
     const custom=e.target.value==='custom';
     $('#exactGrams').hidden=!custom;
-    f.elements.grams.value=custom?'':e.target.value;
+    f.elements.grams.value=custom||selectedPortion(e.target)?'':e.target.value;
     if(custom) f.elements.grams.focus();
   }
   if(e.target===f.elements.food && f.dataset.masterName!==e.target.value){
@@ -918,8 +922,11 @@ function selectFood(candidate, explicitLabel){
   }
   else {
     delete f.dataset.masterName;delete f.dataset.masterId;
-    $('#manualFood').open=true;
-    $('#selectedFood').textContent=matches.length>1?'同じ名前の食品が複数あります。検索結果から分類を選んでください。':'自由入力の食品です。';
+    if(diaryPortionUnits.has(name))$('#selectedFood').textContent=name;
+    else{
+      $('#manualFood').open=true;
+      $('#selectedFood').textContent=matches.length>1?'同じ名前の食品が複数あります。検索結果から分類を選んでください。':'自由入力の食品です。';
+    }
   }
   $('#foodSearch').value=label;
   $('#foodResults').replaceChildren();
@@ -976,14 +983,37 @@ document.addEventListener('click',async e=>{
   const next=copy();next.savedFoods=[...new Set([...(next.savedFoods||[]),name])];
   try{await persist(next,{savedFoods:arrayUnion(name)})}catch(err){message('食品を登録できませんでした。',true)}
 });
+function selectedPortion(select){
+  return select.selectedOptions[0]?.dataset.portion||'';
+}
+function updatePortionOptions(select, name){
+  const unit=diaryPortionUnits.get(name)||'';
+  if((select.dataset.portionUnit||'')===unit)return;
+  if(selectedPortion(select))select.value='';
+  select.querySelector('[data-portion-options]')?.remove();
+  select.dataset.portionUnit=unit;
+  if(!unit)return;
+  const portions=document.createElement('optgroup');
+  portions.label='枚・個・杯で入力';
+  portions.setAttribute('data-portion-options','');
+  for(const count of [0.5,1,2,3]){
+    const label=count+unit;
+    const option=new Option(label,'portion:'+label);
+    option.dataset.portion=label;
+    portions.append(option);
+  }
+  select.options[0].after(portions);
+}
 function updatePoints(){
   const f=$('#mealForm'), x=foodFromId(f.dataset.masterId), grams=Number(f.elements.grams.value);
-  const hasIngredient=Boolean(f.elements.food.value.trim());
-  $('#ingredientEditor').hidden=!hasIngredient;
-  f.elements.grams.disabled=!hasIngredient;
-  $('#pointPreview').textContent=x
-    ? grams>0?`${x.group}：${foodPoints(grams,x.gramsPerPoint).toFixed(2)}点`:`${x.group}：○（量不明）`
-    : '';
+  const name=f.elements.food.value.trim();
+  const quantity=$('#quickGrams');
+  updatePortionOptions(quantity,name);
+  $('#ingredientEditor').hidden=!name;
+  f.elements.grams.disabled=!name;
+  $('#pointPreview').textContent=selectedPortion(quantity)
+    ? '枚・個・杯で記録します。点数は未計算です。'
+    : x ? grams>0?`${x.group}：${foodPoints(grams,x.gramsPerPoint).toFixed(2)}点`:`${x.group}：○（量不明）` : '';
 }
 
 function readIngredient(form){
@@ -993,7 +1023,7 @@ function readIngredient(form){
   const master=foodFromId(form.dataset.masterId);
   const weight=grams.value?Number(grams.value):null;
   const manual=points.value===''?null:Number(points.value);
-  return {food:name,dish:dish.value.trim(),amount:amount.value.trim(),grams:weight,
+  return {food:name,dish:dish.value.trim(),amount:selectedPortion(form.querySelector('#quickGrams'))||amount.value.trim(),grams:weight,
     ...(form.dataset.foodLabel?{foodLabel:form.dataset.foodLabel}:{}),
     masterId:master?foodId(master):null,category:master?.category||null,group:group.value||master?.group||null,
     points:manual ?? (master&&weight?foodPoints(weight,master.gramsPerPoint):null),
@@ -1411,6 +1441,8 @@ const validPhoto = file => file.type.startsWith('image/') && file.size<=15*1024*
 
 document.addEventListener('click',e=>{
   const form=$('#mealForm');
+  const portionFood=e.target.closest('[data-portion-food]');
+  if(portionFood && selectFood(portionFood.dataset.portionFood))$('#quickGrams').focus();
   if(e.target.id==='addIngredient'){
     if(!form.reportValidity())return;
     if(addCurrentIngredient(form))$('#foodSearch').focus();
