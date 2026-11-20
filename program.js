@@ -28,12 +28,14 @@ const meals = ['朝食','昼食','夕食','間食','飲み物','飲酒'];
 const groups = ['第1群','第2群','第3群','第4群'];
 const exampleDishes = ['ご飯','焼き魚','みそ汁','アジフライ','スパゲティ'];
 const dryPasta = 'マカロニ・スパゲッティ・乾';
+const pastaDishes = ['ミートソーススパゲティ','ナポリタン','カルボナーラ','ペペロンチーノ'];
 const dishIngredients = new Map([
   ['ご飯',['めし・水稲・精白米']],
   ['焼き魚',['マサバ','シロサケ','マアジ']],
   ['みそ汁',['米みそ・淡色辛みそ','米みそ・赤色辛みそ','もめん豆腐','絹ごし豆腐','カットわかめ','油揚げ','こねぎ']],
   ['アジフライ',['マアジ','小麦粉・薄力粉','鶏卵・全卵・生','パン粉・乾燥','調合油']],
-  ['スパゲティ',[dryPasta]]
+  ['スパゲティ',[dryPasta]],
+  ...pastaDishes.map(dish=>[dish,[dryPasta]])
 ]);
 const quickGrams = [1,2,3,5,10,15,20,30,40,50,60,65,75,80,100,120,150,200,250,260,300];
 const pointFormat = new Intl.NumberFormat('ja-JP',{maximumFractionDigits:2});
@@ -215,6 +217,7 @@ function renderRecord(){
     </select></label>
     <div id="customDish" hidden><label>料理名を入力<input name="dish" maxlength="120" placeholder="例：ささみのソテー"></label></div>
     <p class="muted">料理を選んでから食材を追加します。別の料理に切り替えると、入力中の食材は前の料理に残ります。</p>
+    <div id="dishNameSuggestions" class="food-shortcuts" aria-live="polite" hidden></div>
     <div id="dishSuggestions" class="food-shortcuts" aria-live="polite" hidden></div>
     <label>食材を探す<input id="foodSearch" type="search" autocomplete="off" placeholder="例：ご飯、ささみ、ごま油"></label>
     <div id="foodResults" class="food-results" aria-live="polite"></div>
@@ -460,7 +463,8 @@ const dishAliases = new Map([
   ['白ご飯','ご飯'],['ごはん','ご飯'],['白ごはん','ご飯'],
   ['味噌汁','みそ汁'],['味噌しる','みそ汁'],['みそしる','みそ汁'],
   ['あじフライ','アジフライ'],['鯵フライ','アジフライ'],
-  ['スパゲッティ','スパゲティ'],['パスタ','スパゲティ']
+  ['スパゲッティ','スパゲティ'],['パスタ','スパゲティ'],
+  ['ミートソーススパゲッティ','ミートソーススパゲティ']
 ]);
 const dishKey = name => {
   const key=searchKey(name);
@@ -484,8 +488,31 @@ function searchFoods(){
   if(query && !matches.length && masterStatus==='ready') $('#foodResults').textContent='該当する食材がありません。検索語を変えるか、下の手入力欄を使えます。';
 }
 function renderDishSuggestions(){
+  const dishInput=$('#mealForm').elements.dish;
+  const dish=dishKey(dishInput.value);
+  const names=$('#dishNameSuggestions');
+  names.hidden=dish!=='スパゲティ';
+  if(names.hidden)names.replaceChildren();
+  else {
+    const caption=document.createElement('p');
+    caption.className='muted';
+    caption.textContent='料理候補';
+    const buttons=pastaDishes.map(title=>{
+      const button=document.createElement('button');
+      button.type='button';
+      button.textContent=title;
+      button.onclick=()=>{
+        $('#dishChoice').value='custom';
+        $('#customDish').hidden=false;
+        dishInput.value=title;
+        renderDishSuggestions();
+        $('#dishSuggestions button')?.focus();
+      };
+      return button;
+    });
+    names.replaceChildren(caption,...buttons);
+  }
   const box=$('#dishSuggestions');
-  const dish=dishKey($('#mealForm').elements.dish.value);
   box.hidden=!dish || masterStatus!=='ready';
   if(box.hidden){box.replaceChildren();return}
   const foods=new Map();
@@ -515,7 +542,7 @@ function renderDishSuggestions(){
     return button;
   });
   box.replaceChildren(caption,...buttons);
-  if(dish==='スパゲティ' && [...foods.values()].some(food=>food.name===dryPasta)){
+  if((dish==='スパゲティ'||pastaDishes.includes(dish)) && [...foods.values()].some(food=>food.name===dryPasta)){
     const note=document.createElement('p');
     note.className='muted';
     note.textContent='「乾」はゆでる前の量です。乾麺の量がわからないときは「量がわからない」で記録できます。';

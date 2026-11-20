@@ -435,14 +435,23 @@ test('spaghetti names suggest the dry master entry without assuming the cooked w
     const name='マカロニ・スパゲッティ・乾';
     for(const title of ['スパゲティ','スパゲッティ','パスタ']){
       app.fill('[name=dish]',title);
+      assert.deepEqual([...app.win.document.querySelectorAll('#dishNameSuggestions button')].map(button=>button.textContent),
+        ['ミートソーススパゲティ','ナポリタン','カルボナーラ','ペペロンチーノ']);
       assert.equal(app.q('#dishSuggestions button').textContent,name);
       assert.match(app.q('#dishSuggestions').textContent,/ゆでる前の量/);
       app.fill('#foodSearch',title);
       assert.match(app.q('#foodResults button').textContent,/マカロニ・スパゲッティ・乾/);
     }
+    app.q('#dishNameSuggestions button:nth-of-type(2)').click();
+    assert.equal(app.q('[name=dish]').value,'ナポリタン');
+    assert.equal(app.q('#dishNameSuggestions').hidden,true);
+    assert.equal(app.q('#dishSuggestions button').textContent,name);
+    assert.equal(app.q('#ingredientList').children.length,0);
     app.q('#dishSuggestions button').click();
     assert.equal(app.q('#quickGrams').value,'');
     assert.match(app.q('#pointPreview').textContent,/第4群：○（量不明）/);
+    app.submit('#mealForm');await pause();
+    assert.equal(store.value.meals[0].ingredients[0].dish,'ナポリタン');
     assert.deepEqual(app.failures,[]);
   } finally {app.dom.window.close()}
 });
