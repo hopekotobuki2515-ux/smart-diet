@@ -21,9 +21,14 @@ const today = () => new Intl.DateTimeFormat('sv-SE', {timeZone:'Asia/Tokyo',year
 let state = {}, user = null, mealType = '朝食', page = 'home', sampleCategory = '自炊';
 let coachComment = null;
 let foodMaster = [], photoUrls = [];
+let masterStatus = 'loading', recordDate = '', ingredients = [];
 const foodId = x => JSON.stringify([x.name,x.category,x.gramsPerPoint]);
 const foodFromId = id => foodMaster.find(x=>foodId(x)===id);
 const meals = ['朝食','昼食','夕食','間食','飲み物','飲酒'];
+const groups = ['第1群','第2群','第3群','第4群'];
+const quickGrams = [1,2,3,5,10,15,20,30,40,50,60,65,75,80,100,120,150,200,250,260,300];
+const pointFormat = new Intl.NumberFormat('ja-JP',{maximumFractionDigits:2});
+const formatPoints = points => points == null ? '—' : pointFormat.format(points)+'点';
 const questions = [
   { id:'reason', title:'今回始めようと思った一番の理由は？', multiple:false, options:['体重が増えた','お腹まわりが気になる','脚・二の腕など見た目が気になる','健康診断の結果が気になる','体力をつけたい','食生活を整えたい','その他'] },
   { id:'causes', title:'最近、体重が増えた原因として思い当たることは？', multiple:true, options:['食べる量が増えた','間食が増えた','外食が増えた','お酒が増えた','運動量が減った','生活時間が不規則','ストレスで食べる','よく分からない','その他'] },
@@ -38,11 +43,13 @@ function message(s, error=false){
     if($('#status').textContent===s) $('#status').textContent='';
   },3500);
 }
-async function persist(next, patch = next){
+async function persist(next, patch = next, afterWrite){
   if (!user) throw new Error('ログインが必要です');
+  const account = user;
   const { coachComments, ...writable } = patch;
-  await setDoc(doc(db,'users',user.uid,'appData','hopeProgram'), writable, {merge:true});
-  state = next; message('保存しました'); render();
+  await setDoc(doc(db,'users',account.uid,'appData','hopeProgram'), writable, {merge:true});
+  if (user !== account) return;
+  state = next; afterWrite?.(); message('保存しました'); render();
 }
 function copy(){ return structuredClone(state); }
 function startProfile(admitted = false){
@@ -149,7 +156,7 @@ function renderHome(){
   $('#home').innerHTML=`
     <div class="card"><span class="eyebrow">こんにちは、${esc(state.profile.name)}さん</span><h1>今日も、自分のペースで。</h1><p>第${w}週 / 12週間</p><div class="progress" aria-label="12週間中${w}週目">${bars}</div></div>
     <div class="card"><span class="eyebrow">今週のお話</span><h2>第${w}週　${esc(WEEK_TITLES[w-1])}</h2><p>読むことは任意です。食事の記録から始めても大丈夫です。</p><button class="button ghost" data-go="week">今週のお話を見る</button></div>
-    <div class="card"><h2>今日やること</h2><div class="row"><span>${w===1?'いつもの食事を写真で記録':'食事を記録する'}</span><button data-go="record">記録する</button></div><div class="row"><span>体重・体調を残す（任意）</span><button data-go="record">入力する</button></div>${w===1?`<p class="muted">第1週は3日間、できれば平日2日と休日1日。現在 ${n}日分です。採点はしません。</p>`:''}</div>
+    <div class="card"><h2>今日やること</h2><div class="row"><span>${w===1?'いつもの食事を記録':'食事を記録する'}</span><button data-go="record">記録する</button></div><div class="row"><span>体重・体調を残す（任意）</span><button data-go="record">入力する</button></div>${w===1?`<p class="muted">第1週は3日間、できれば平日2日と休日1日。現在 ${n}日分です。写真やメモだけでも記録できます。</p>`:''}</div>
     <div class="card"><h2>体重の流れ</h2>${graph()}</div>${comment()}${renderSample()}`;
 }
 function renderWeek(){
@@ -180,32 +187,45 @@ function renderLearn(){
 }
 function renderRecord(){
   const list=(state.meals||[]).slice(-20).reverse();
-  $('#record').innerHTML=`<div class="card"><span class="eyebrow">食事記録</span><h1>いつもの食事を残しましょう</h1><p>第1週は写真と簡単なメモだけで大丈夫。点数や食品グループの入力は必要ありません。学習が進んだら、自分で食品と量を確かめながら記録していきます。</p>
-    <form id="mealForm"><label>日付<input id="mealDate" name="date" type="date" value="${today()}" required></label><div class="tabs" role="group" aria-label="食事の種類">${meals.map(t=>`<button type="button" data-meal="${t}" class="${t===mealType?'selected':''}">${t}</button>`).join('')}</div>
-    <label>写真（任意・この端末だけに保存）<input name="photo" type="file" accept="image/*"></label><p class="muted">写真はこの端末のブラウザ内だけに保存します。コーチ画面や別の端末には表示されません。</p>
-    <label>食品・料理名（任意）<input name="food" maxlength="120" placeholder="例：ご飯、焼き魚、みそ汁"></label>
-    <label>食品マスターから探す（任意）<input id="foodSearch" type="search" autocomplete="off" placeholder="例：めし・水稲・精白米"></label>
+  const date = recordDate || today();
+  const previous = $('#mealForm');
+  const sheet = $('#daySheet');
+  if (sheet?.open) sheet.close();
+  $('#record').innerHTML=`<div class="card"><span class="eyebrow">食事記録</span><h1>食事ダイアリー</h1><p>食材と量を選ぶと食品群と点数が入ります。写真やメモだけでも保存できます。</p>
+    <form id="mealForm"><label>日付<input id="mealDate" name="date" type="date" value="${esc(date)}" required></label><div class="tabs diary-tabs" role="group" aria-label="食事の種類">${meals.map(t=>`<button type="button" data-meal="${t}" aria-pressed="${t===mealType}" class="${t===mealType?'selected':''}">${t}</button>`).join('')}</div>
+    <label>食べた時刻（任意）<input name="time" type="time"></label>
+    <label>写真（任意・この端末だけに保存）<input name="photo" type="file" accept="image/*"></label>
+    <label>料理名（任意）<input name="dish" maxlength="120" placeholder="例：アジフライ"></label>
+    <label>食材を探す<input id="foodSearch" type="search" autocomplete="off" placeholder="例：ご飯、ささみ、ごま油"></label>
     <div id="foodResults" class="food-results" aria-live="polite"></div>
     <div id="recentFoods" class="food-shortcuts"></div><div id="savedFoods" class="food-shortcuts"></div>
-    <p id="selectedFood" class="muted">食品を選ぶと量から点数を計算できます。第1週は不要です。</p>
-    <button id="saveFood" type="button" class="small-button">この食品を登録する</button>
-    <label>量（分かる範囲で・任意）<input name="amount" maxlength="80" placeholder="例：ご飯150g"></label>
-    <label>実測した量（g・任意）<input name="grams" type="number" min="0.1" max="10000" step="0.1" inputmode="decimal"></label><p id="pointPreview" class="muted"></p>
-    <div class="two"><label>食品グループ（任意）<select name="group"><option value="">まだ選ばない</option>${[1,2,3,4].map(n=>`<option value="第${n}群">第${n}群</option>`).join('')}</select></label><label>点数（任意）<input name="points" type="number" min="0" max="1000" step="0.01" inputmode="decimal" placeholder="例：1.5"></label></div>
-    <p class="muted">食品マスターから選ぶと計算結果を確認できます。食品名・量・グループ・点数を自分で確かめてから保存しましょう。</p>
-    <div id="riceAmounts" class="amount-guide" hidden><p>ご飯の量の目安（計量した値を優先）</p><div class="amount-options">${[100,150,200,260].map(g=>`<button type="button" data-rice-grams="${g}">${g}g</button>`).join('')}</div><p class="muted">このボタンは入力の補助です。実物写真による量の見本は準備中です。</p></div>
+    <p id="selectedFood" class="muted" aria-live="polite"></p>
+    <label>食べた量<select id="quickGrams"><option value="">量がわからない</option>${quickGrams.map(g=>`<option value="${g}">${g}g</option>`).join('')}<option value="custom">グラムを入力する</option></select></label>
+    <label id="exactGrams" hidden>食べた量（g）<input name="grams" type="number" min="0.1" max="10000" step="0.1" inputmode="decimal"></label><p id="pointPreview" class="muted" aria-live="polite"></p>
+    <details class="manual-food"><summary>食材名・食品群・点数を手入力</summary>
+    <label>食材名<input name="food" maxlength="120"></label><label>量のメモ<input name="amount" maxlength="80"></label>
+    <div class="two"><label>食品群<select name="group"><option value="">未選択</option>${groups.map(g=>`<option>${g}</option>`).join('')}</select></label><label>点数<input name="points" type="number" min="0" max="1000" step="0.01" inputmode="decimal"></label></div>
+    <button id="saveFood" type="button" class="small-button">この食品を登録する</button></details>
+    <button id="addIngredient" type="button" class="button ghost">この食材を追加</button>
+    <ul id="ingredientList" class="ingredient-list" aria-label="追加した食材"></ul>
     <label>ひとこと（任意）<textarea name="memo" maxlength="500"></textarea></label>
-    <button class="button" type="submit">この食事を保存する</button></form></div>
+    <div id="mealFeedback" class="muted" role="status"></div>
+    <button class="button" type="submit">この食事を保存する</button>
+    <button id="dayPreview" class="button ghost" type="button">1日のダイアリーをプレビュー</button></form>
+    <dialog id="daySheet" aria-labelledby="daySheetTitle"></dialog></div>
     <div class="card"><h2>記録した食事</h2><div id="mealList">${list.length?list.map(x=>`<div class="meal-entry"><strong>${esc(x.date)}・${esc(x.type)}</strong><br>${esc(x.food||'写真・メモの記録')}${x.amount?' / '+esc(x.amount):''}${x.group?' / '+esc(x.group):''}${x.points!=null?' / '+esc(x.points)+'点':''}${x.photoId?`<div data-photo-id="${esc(x.photoId)}"></div>`:''}</div>`).join(''):'<p class="muted">まだ記録はありません。</p>'}</div></div>
     <div class="card"><h2>体重・体調を記録する</h2><p class="muted">全部入力しなくても大丈夫です。</p><form id="measurementForm">
-    <label>日付<input name="date" type="date" value="${today()}" required></label><div class="two"><label>体重（kg）<input name="weight" type="number" min="10" max="500" step="0.1" inputmode="decimal"></label><label>腹囲（おへその高さ）<input name="waist" type="number" min="20" max="300" step="0.1" inputmode="decimal" placeholder="cm"></label></div>
+    <label>日付<input name="date" type="date" value="${esc(date)}" required></label><div class="two"><label>体重（kg）<input name="weight" type="number" min="10" max="500" step="0.1" inputmode="decimal"></label><label>腹囲（おへその高さ）<input name="waist" type="number" min="20" max="300" step="0.1" inputmode="decimal" placeholder="cm"></label></div>
     <label>体調<select name="condition"><option value="">選択しない</option><option>とても良い</option><option>良い</option><option>普通</option><option>やや不調</option><option>不調</option></select></label>
     <label>気分<select name="mood"><option value="">選択しない</option><option>😊 良い</option><option>🙂 まあまあ</option><option>😐 普通</option><option>😟 気になる</option></select></label>
     <div class="two"><label>便通<select name="bowel"><option value="">選択しない</option><option>あり</option><option>なし</option></select></label><label>水分（L）<input name="water" type="number" min="0" max="20" step="0.1" inputmode="decimal"></label></div>
     <label>メモ<textarea name="memo" maxlength="500"></textarea></label><button class="button" type="submit">体重・体調を保存する</button></form></div>`;
   for(const url of photoUrls)URL.revokeObjectURL(url);photoUrls=[];
   loadVisiblePhotos();
+  if (previous) $('#mealForm').replaceWith(previous);
   renderFoodShortcuts();
+  renderIngredients();
+  if (!$('#mealForm').elements.food.value) showMasterStatus();
 }
 function renderMore(){
   const p=state.profile,g=state.goals||[],current=g.at(-1)||{percent:p.goalPercent,target:goalWeight(p.startWeight,p.goalPercent)};
@@ -237,6 +257,10 @@ $('#signIn').onclick=async()=>{
 onAuthStateChanged(auth, async account => {
   user = account;
   state = {};
+  ingredients = [];
+  recordDate = '';
+  mealType = meals[0];
+  $('#record').replaceChildren();
   page = 'home';
   coachComment = null;
   $('#login').hidden = Boolean(account);
@@ -292,7 +316,17 @@ $('#inviteForm').addEventListener('submit', async event => {
     button.disabled = false;
   }
 });
-fetch('./food-master.json').then(r=>{if(!r.ok)throw new Error('master');return r.json()}).then(v=>{foodMaster=v.foods||[];if($('#sampleCard'))$('#sampleCard').outerHTML=renderSample()}).catch(()=>{message('食品マスターを読み込めませんでした。自由入力は使えます。',true)});
+fetch('./food-master.json')
+  .then(r=>{if(!r.ok)throw new Error('master');return r.json()})
+  .then(v=>{
+    if (!Array.isArray(v.foods) || !v.foods.length) throw new Error('master');
+    foodMaster=v.foods;
+    masterStatus='ready';
+    if($('#sampleCard'))$('#sampleCard').outerHTML=renderSample();
+    if($('#mealForm'))renderFoodShortcuts();
+  })
+  .catch(()=>{masterStatus='failed'})
+  .finally(()=>{if($('#foodSearch')){showMasterStatus();searchFoods();}});
 $('#setupForm').addEventListener('input',()=>{
   const f=$('#setupForm'),h=Number(f.elements.heightCm.value),w=Number(f.elements.startWeight.value),p=Number(f.elements.goalPercent.value);
   $('#goalPreview').textContent=h>0&&w>0?`目標体重 ${goalWeight(w,p).toFixed(1)}kg　/　BMI ${bmi(h,w).toFixed(1)}`:'身長と体重を入力すると、目標体重とBMIを表示します。';
@@ -342,11 +376,16 @@ document.addEventListener('click',async e=>{
   }
   const sample=e.target.closest('[data-sample]');
   if(sample){sampleCategory=sample.dataset.sample;$('#sampleCard').outerHTML=renderSample();revealSelectedSample();return}
-  const rice=e.target.closest('[data-rice-grams]');
-  if(rice){$('#mealForm').elements.grams.value=rice.dataset.riceGrams;updatePoints();return}
   const nav=e.target.closest('[data-page],[data-go],[data-meal]');
   if(!nav)return;
-  if(nav.dataset.meal){mealType=nav.dataset.meal;document.querySelectorAll('[data-meal]').forEach(x=>x.classList.toggle('selected',x.dataset.meal===mealType))}
+  if(nav.dataset.meal){
+    mealType=nav.dataset.meal;
+    document.querySelectorAll('[data-meal]').forEach(button=>{
+      const selected=button.dataset.meal===mealType;
+      button.classList.toggle('selected',selected);
+      button.setAttribute('aria-pressed',String(selected));
+    });
+  }
   else open(nav.dataset.page||nav.dataset.go);
 });
 function openPhotoDB(){
@@ -360,45 +399,87 @@ async function savePhoto(id,file){
   finally{db.close()}
 }
 async function deletePhoto(id){const db=await openPhotoDB();try{await new Promise((resolve,reject)=>{const tx=db.transaction('photos','readwrite');tx.objectStore('photos').delete(id);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)})}finally{db.close()}}
-async function loadVisiblePhotos(){
-  const targets=[...document.querySelectorAll('#record [data-photo-id]')];
+async function loadVisiblePhotos(root = $('#mealList'), urls = photoUrls){
+  const targets=[...root.querySelectorAll('[data-photo-id]')];
   if(!targets.length)return;
+  let photoDB;
   try{
-    const photoDB=await openPhotoDB();
+    photoDB=await openPhotoDB();
     for(const el of targets){
       const file=await new Promise((resolve,reject)=>{const tx=photoDB.transaction('photos','readonly');const req=tx.objectStore('photos').get(el.dataset.photoId);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});
-      if(file && el.isConnected){const url=URL.createObjectURL(file);photoUrls.push(url);const img=document.createElement('img');img.src=url;img.alt='記録した食事の写真';img.className='photo';el.append(img)}
+      if(file && el.isConnected){const url=URL.createObjectURL(file);urls.push(url);const img=document.createElement('img');img.src=url;img.alt='記録した食事の写真';img.className='photo';el.append(img)}
+      else if(el.isConnected) el.textContent='写真は撮影・選択した端末で表示されます。';
     }
-    photoDB.close();
   }catch(e){message('この端末の写真を読み込めませんでした。',true)}
+  finally {photoDB?.close()}
+}
+function showMasterStatus(){
+  $('#selectedFood').textContent=({loading:'食品マスターを読み込んでいます。',failed:'食品マスターを読み込めませんでした。食材名は手入力できます。',ready:''})[masterStatus];
+}
+const searchKey = value => value.normalize('NFKC').toLocaleLowerCase('ja').replace(/[\s・]/g,'');
+const foodAliases = new Map([
+  ...['ご飯','ごはん','白ご飯','白ごはん'].map(name=>[name,'めし水稲精白米']),
+  ['ささみ','ささ身'],['ササミ','ささ身']
+]);
+function searchFoods(){
+  const typed=searchKey($('#foodSearch').value);
+  const query=foodAliases.get(typed)??typed;
+  const matches=query?foodMaster.filter(x=>searchKey(x.name).includes(query)).slice(0,15):[];
+  $('#foodResults').replaceChildren(...matches.map(x=>{
+    const button=document.createElement('button');
+    button.type='button';
+    button.textContent=`${x.name}（${x.category}・${x.group} / 1点 ${x.gramsPerPoint}g）`;
+    button.onclick=()=>selectFood(x);
+    return button;
+  }));
+  if(query && !matches.length && masterStatus==='ready') $('#foodResults').textContent='該当する食材がありません。検索語を変えるか、下の手入力欄を使えます。';
 }
 document.addEventListener('input',e=>{
   const f=$('#mealForm');if(!f)return;
-  if(e.target.id==='foodSearch'){
-    const query=e.target.value.trim().toLocaleLowerCase('ja');
-    const matches=query.length>=2?foodMaster.filter(x=>x.name.toLocaleLowerCase('ja').includes(query)).slice(0,8):[];
-    $('#foodResults').replaceChildren(...matches.map(x=>{
-      const b=document.createElement('button');b.type='button';b.textContent=`${x.name}（${x.category}・${x.group} / 1点 ${x.gramsPerPoint}g）`;
-      b.onclick=()=>{selectFood(x);$('#foodResults').replaceChildren()};
-      return b;
-    }));
+  if(e.target===f.elements.date && e.target.value){
+    recordDate=e.target.value;
+    $('#measurementForm').elements.date.value=recordDate;
   }
-  if(e.target.name==='food' && f.dataset.masterName!==e.target.value){delete f.dataset.masterId;delete f.dataset.masterName;$('#riceAmounts').hidden=true}
-  if(e.target.name==='grams'||e.target.name==='food')updatePoints();
+  if(e.target.id==='foodSearch'){
+    if(f.dataset.masterName && e.target.value!==f.dataset.masterName){
+      for(const name of ['food','group','points'])f.elements[name].value='';
+      delete f.dataset.masterId;delete f.dataset.masterName;
+      showMasterStatus();
+    }
+    searchFoods();
+  }
+  if(e.target.id==='quickGrams'){
+    const custom=e.target.value==='custom';
+    $('#exactGrams').hidden=!custom;
+    f.elements.grams.value=custom?'':e.target.value;
+    if(custom) f.elements.grams.focus();
+  }
+  if(e.target===f.elements.food && f.dataset.masterName!==e.target.value){
+    delete f.dataset.masterId;delete f.dataset.masterName;
+    showMasterStatus();
+  }
+  if(f.contains(e.target)) updatePoints();
 });
 function selectFood(candidate){
   const f=$('#mealForm'),name=typeof candidate==='string'?candidate:candidate.name;
   const matches=typeof candidate==='string'?foodMaster.filter(x=>x.name===name):[candidate];
   const x=matches.length===1?matches[0]:null;
   f.elements.food.value=name;
-  if(x){f.dataset.masterName=name;f.dataset.masterId=foodId(x);f.elements.group.value=x.group;$('#selectedFood').textContent=`${name}｜${x.category}｜${x.group}｜1点 ${x.gramsPerPoint}g`}
-  else {delete f.dataset.masterName;delete f.dataset.masterId;$('#selectedFood').textContent=matches.length>1?'同じ名前の食品が複数あります。検索結果から分類を選んでください。':'自由入力の食品です。点数は未計算のまま記録します。'}
-  $('#riceAmounts').hidden=x?.name!=='めし・水稲・精白米';
+  f.elements.group.value=x?.group||'';
+  f.elements.points.value='';
+  if(x){f.dataset.masterName=name;f.dataset.masterId=foodId(x);$('#selectedFood').textContent=`${name}｜${x.category}｜${x.group}｜1点 ${x.gramsPerPoint}g`}
+  else {
+    delete f.dataset.masterName;delete f.dataset.masterId;
+    f.querySelector('details').open=true;
+    $('#selectedFood').textContent=matches.length>1?'同じ名前の食品が複数あります。検索結果から分類を選んでください。':'自由入力の食品です。';
+  }
+  $('#foodSearch').value=name;
+  $('#foodResults').replaceChildren();
   updatePoints();
 }
 function renderFoodShortcuts(){
   const seen=new Set(),recent=[];
-  for(const entry of [...(state.meals||[])].reverse()){
+  for(const entry of [...(state.meals||[])].reverse().flatMap(meal=>meal.ingredients || [meal])){
     if(!entry.food)continue;
     const key=entry.masterId||entry.food;
     if(seen.has(key))continue;
@@ -422,25 +503,162 @@ document.addEventListener('click',async e=>{
 });
 function updatePoints(){
   const f=$('#mealForm'), x=foodFromId(f.dataset.masterId), grams=Number(f.elements.grams.value);
-  $('#pointPreview').textContent=x && grams>0?`${x.group}：${foodPoints(grams,x.gramsPerPoint).toFixed(2)}点 / 約${Math.round(grams/x.gramsPerPoint*PROGRAM.kcalPerPoint)}kcal（マスターの1点重量から計算）`:'';
+  $('#pointPreview').textContent=x
+    ? grams>0?`${x.group}：${foodPoints(grams,x.gramsPerPoint).toFixed(2)}点`:`${x.group}：○（量不明）`
+    : '';
 }
+
+function readIngredient(form){
+  const {food, dish, amount, grams, group, points}=form.elements;
+  const name=food.value.trim();
+  if(!name)return null;
+  const master=foodFromId(form.dataset.masterId);
+  const weight=grams.value?Number(grams.value):null;
+  const manual=points.value===''?null:Number(points.value);
+  return {food:name,dish:dish.value.trim(),amount:amount.value.trim(),grams:weight,
+    masterId:master?foodId(master):null,category:master?.category||null,group:group.value||master?.group||null,
+    points:manual ?? (master&&weight?foodPoints(weight,master.gramsPerPoint):null),
+    pointSource:manual!=null?'user':(master&&weight?'master':null)};
+}
+function ingredientAmount(item){
+  return item.grams!=null?item.grams+'g':item.amount||(item.group&&item.points==null?'量不明':'');
+}
+function renderIngredients(){
+  $('#ingredientList').innerHTML=ingredients.map((item,index)=>
+    `<li><span>${[item.dish,item.food,ingredientAmount(item),item.group,item.points==null?'':formatPoints(item.points)].filter(Boolean).map(esc).join(' / ')}</span>
+    <button type="button" class="small-button" data-remove-ingredient="${index}" aria-label="${esc(item.food)}を削除">削除</button></li>`).join('');
+}
+function clearIngredient(form){
+  for(const name of ['food','amount','grams','group','points'])form.elements[name].value='';
+  delete form.dataset.masterId;delete form.dataset.masterName;
+  $('#exactGrams').hidden=true;
+  $('#quickGrams').value='';
+  $('#foodSearch').value='';
+  $('#foodResults').replaceChildren();
+  showMasterStatus();
+  updatePoints();
+}
+
+function formIngredients(form){
+  const pending=readIngredient(form);
+  return pending?[...ingredients,pending]:[...ingredients];
+}
+function sumPoints(items){
+  const scores=items.map(item=>item.points).filter(Number.isFinite);
+  return scores.length?Math.round(scores.reduce((a,b)=>a+b,0)*100)/100:null;
+}
+function scoreCells(items){
+  return groups.map(group=>formatPoints(sumPoints(items.filter(item=>item.group===group))));
+}
+function sheetRow(label, values, className=''){
+  return `<tr class="${className}"><th scope="row">${esc(label)}</th>${values.map(value=>`<td>${esc(value)}</td>`).join('')}</tr>`;
+}
+function mealItems(entry){
+  return entry.ingredients ?? (entry.food || entry.points!=null || entry.group?[entry]:[]);
+}
+function sheetMeal(entries, type){
+  const html=entries.map(entry=>{
+    let previousDish='';
+    const rows=mealItems(entry).map(item=>{
+      const heading=item.dish && item.dish!==previousDish?`<tr class="sheet-dish"><td colspan="5">${esc(item.dish)}</td></tr>`:'';
+      previousDish=item.dish;
+      const classified=groups.includes(item.group);
+      const label=[item.food,ingredientAmount(item),!classified&&item.points!=null?formatPoints(item.points):''].filter(Boolean).join(' ');
+      return heading+sheetRow(label,groups.map(group=>group===item.group?(item.points==null?'○':formatPoints(item.points)):''),item.dish?'sheet-ingredient':'');
+    }).join('');
+    return `${entry.time?`<tr><td colspan="5"><time>${esc(entry.time)}</time></td></tr>`:''}
+      ${entry.photoId?`<tr><td colspan="5" data-photo-id="${esc(entry.photoId)}"></td></tr>`:''}
+      ${entry.previewPhoto?`<tr><td colspan="5"><img class="photo" src="${esc(entry.previewPhoto)}" alt="${esc(type)}の写真"></td></tr>`:''}
+      ${rows}${entry.memo?`<tr class="sheet-note"><td colspan="5">${esc(entry.memo)}</td></tr>`:''}`;
+  }).join('');
+  const items=entries.flatMap(mealItems);
+  return `<tbody><tr class="sheet-band"><th colspan="5" scope="rowgroup">${type}</th></tr>
+    ${html || '<tr><td colspan="5">記録なし</td></tr>'}
+    ${sheetRow('小計 '+formatPoints(sumPoints(items)),scoreCells(items),'sheet-subtotal')}</tbody>`;
+}
+function showDayPreview(form){
+  if (!form.reportValidity()) return;
+  const date=form.elements.date.value;
+  const draft=formIngredients(form);
+  const memo=form.elements.memo.value.trim();
+  const file=form.elements.photo.files[0];
+  if (file && !validPhoto(file)) {
+    $('#mealFeedback').textContent='15MB以下の画像を選んでください。';
+    return;
+  }
+  const previewPhoto=file?.type.startsWith('image/')?URL.createObjectURL(file):null;
+  const urls=previewPhoto?[previewPhoto]:[];
+  const entries=(state.meals||[]).filter(entry=>entry.date===date);
+  if(draft.length || memo || previewPhoto) entries.push({type:mealType,ingredients:draft,memo,time:form.elements.time.value,previewPhoto});
+  const items=entries.flatMap(mealItems);
+  const m=state.measurements?.[date]||{};
+  const stats=[['体重',m.weight,'kg'],['腹囲',m.waist,'cm'],['体調',m.condition],['気分',m.mood],['便通',m.bowel],['水分',m.water,'L']].filter(([,value])=>value!=null&&value!=='');
+  const dialog=$('#daySheet');
+  dialog.innerHTML=`<header><h2 id="daySheetTitle">食事ダイアリー</h2><button type="button" class="small-button" autofocus>閉じる</button></header>
+    <div class="sheet-content"><p class="sheet-date">${esc(date)}</p>
+    ${stats.length?`<dl>${stats.map(([label,value,unit])=>`<div><dt>${label}</dt><dd>${esc(value)}${unit?' '+unit:''}</dd></div>`).join('')}</dl>`:''}
+    <table aria-label="食材と食品群の点数"><colgroup><col class="sheet-item-col"><col span="4"></colgroup>
+    <thead><tr><th scope="col">メニュー・食材</th>${groups.map(group=>`<th scope="col">${group}</th>`).join('')}</tr></thead>
+    ${meals.filter((type,index)=>index<4||entries.some(entry=>entry.type===type)).map(type=>sheetMeal(entries.filter(entry=>entry.type===type),type)).join('')}
+    <tfoot>${sheetRow('1日の合計 '+formatPoints(sumPoints(items)),scoreCells(items))}</tfoot></table>
+    <p class="muted">1点＝${PROGRAM.kcalPerPoint}kcal。○は食品群の記録です。点数が確認できた分を集計しています。</p>
+    ${m.memo?`<p class="sheet-note"><strong>今日のひと言</strong><br>${esc(m.memo)}</p>`:''}</div>`;
+  dialog.querySelector('button').onclick=()=>dialog.close();
+  dialog.addEventListener('close',()=>{
+    for(const url of urls)URL.revokeObjectURL(url);
+    dialog.replaceChildren();
+    $('#dayPreview')?.focus();
+  },{once:true});
+  dialog.showModal();
+  loadVisiblePhotos(dialog,urls);
+}
+const validPhoto = file => file.type.startsWith('image/') && file.size<=15*1024*1024;
+
+document.addEventListener('click',e=>{
+  const form=$('#mealForm');
+  if(e.target.id==='addIngredient'){
+    if(!form.reportValidity())return;
+    const item=readIngredient(form);
+    if(!item){$('#mealFeedback').textContent='食材を選ぶか、食材名を手入力してください。';return}
+    ingredients.push(item);
+    renderIngredients();
+    clearIngredient(form);
+    $('#mealFeedback').textContent=item.food+'を追加しました。';
+    $('#foodSearch').focus();
+  }
+  const remove=e.target.closest('[data-remove-ingredient]');
+  if(remove){
+    ingredients.splice(Number(remove.dataset.removeIngredient),1);
+    renderIngredients();
+    $('#mealFeedback').textContent='食材を削除しました。';
+    $('#addIngredient').focus();
+  }
+  if(e.target.id==='dayPreview')showDayPreview(form);
+});
 document.addEventListener('submit',async e=>{
   if(!['mealForm','measurementForm','questionForm','weeklyQuestionForm','reflectionForm','goalForm'].includes(e.target.id))return;
   e.preventDefault();const f=e.target,next=copy(),w=week();
-  const button=f.querySelector('button[type=submit]');button.disabled=true;message('保存中…');
+  const button=f.querySelector('button[type=submit]');
+  if(button.disabled||!f.reportValidity())return;
+  button.disabled=true;message('保存中…');
   let photoId=null, writePatch=null;
   try{
     if(f.id==='mealForm'){
-      const file=f.elements.photo.files[0], food=f.elements.food.value.trim(), amount=f.elements.amount.value.trim(), memo=f.elements.memo.value.trim();
-      if(!file&&!food&&!memo)throw new Error('写真、食品名、メモのいずれかを入力してください。');
-      if(file && (!file.type.startsWith('image/') || file.size>15*1024*1024))throw new Error('15MB以下の画像を選んでください。');
+      const file=f.elements.photo.files[0], memo=f.elements.memo.value.trim(), items=formIngredients(f);
+      if($('#foodSearch').value.trim()&&!f.elements.food.value.trim())throw new Error('検索結果から食材を選んでください。');
+      if(!file&&!items.length&&!memo)throw new Error('写真、食材、メモのいずれかを入力してください。');
+      if(file && !validPhoto(file))throw new Error('15MB以下の画像を選んでください。');
+      const single=items.length===1?items[0]:null;
+      const account=user;
       photoId=file?crypto.randomUUID():null;
+      const entry={id:crypto.randomUUID(),date:f.elements.date.value,type:mealType,time:f.elements.time.value,
+        food:single?.food || [...new Set(items.map(item=>item.dish||item.food))].join('、').slice(0,120),
+        amount:single?.amount||'',memo,photoId,grams:single?.grams??null,masterId:single?.masterId??null,
+        category:single?.category??null,group:single?.group??null,points:sumPoints(items),
+        pointSource:single?.pointSource??null,ingredients:items,createdAt:new Date().toISOString()};
+      f.inert=true;
       if(file)await savePhoto(photoId,file);
-      const selected=foodFromId(f.dataset.masterId),master=selected?.name===food?selected:null,grams=f.elements.grams.value?Number(f.elements.grams.value):null;
-      const manualPoints=f.elements.points.value.trim()===''?null:Number(f.elements.points.value);
-      if(manualPoints!=null && (!Number.isFinite(manualPoints) || manualPoints<0))throw new Error('点数は0以上の数値で入力してください。');
-      const points=manualPoints!=null?manualPoints:(master&&grams?foodPoints(grams,master.gramsPerPoint):null);
-      const entry={id:crypto.randomUUID(),date:f.elements.date.value,type:mealType,food,amount,memo,photoId,grams,masterId:master?foodId(master):null,category:master?.category||null,group:f.elements.group.value||master?.group||null,points,pointSource:manualPoints!=null?'user':(master&&grams?'master':null),createdAt:new Date().toISOString()};
+      if(user!==account)throw new Error('ログインし直してください。');
       next.meals=[...(next.meals||[]),entry];writePatch={meals:arrayUnion(entry)};
     } else if(f.id==='measurementForm'){
       const values={};
@@ -468,7 +686,11 @@ document.addEventListener('submit',async e=>{
       const goal={percent,target:goalWeight(next.profile.startWeight,percent),reviewStatus:'pending',changedAt:new Date().toISOString()};
       next.goals.push(goal);writePatch={goals:arrayUnion(goal)};
     }
-    await persist(next,writePatch);
+    await persist(next,writePatch,f.id==='mealForm'?()=>{
+      photoId=null;
+      ingredients=[];
+      f.remove();
+    }:undefined);
   }catch(err){if(photoId)await deletePhoto(photoId).catch(()=>{});message(err.message?.includes('ください')||err.message?.includes('同じ')?err.message:'保存できませんでした。通信と権限を確認してください。',true)}
-  finally{button.disabled=false}
+  finally{button.disabled=false;f.inert=false}
 });
