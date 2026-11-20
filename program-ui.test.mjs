@@ -591,6 +591,49 @@ test('photo and memo survive retries after local and remote failures, with one f
   } finally {app.dom.window.close()}
 });
 
+test('food master offers a browsable catalog and recipe ingredients in the direct diary', async () => {
+  const date=tokyoDate(new Date());
+  const store={value:{profile:{name:'テスト',heightCm:170,startWeight:70,waist:85,goalPercent:5,startDate:date},meals:[]}};
+  const app=await openApp(store);
+  try {
+    app.q('#home [data-go=record]').click();
+    const openCatalog=selector=>{
+      const panel=app.q(selector);
+      panel.open=true;
+      panel.dispatchEvent(new app.win.Event('toggle'));
+      return panel;
+    };
+    const catalog=openCatalog('#foodCatalog');
+    assert.match(catalog.querySelector('[data-catalog-status]').textContent,/686件中 1〜12件/);
+    catalog.querySelector('[data-catalog-next]').click();
+    assert.match(catalog.querySelector('[data-catalog-status]').textContent,/13〜24件/);
+    catalog.querySelector('[data-catalog-results] button').click();
+    assert.equal(catalog.open,false);
+    assert.equal(app.q('#ingredientEditor').hidden,false);
+    app.q('#clearSelectedFood').click();
+    app.q('#editDaySheet').click();
+    app.q('[data-sheet-meal="昼食"]').click();
+    const direct=openCatalog('[data-sheet-catalog]');
+    const group=direct.querySelector('select');
+    group.value='第1群';
+    group.dispatchEvent(new app.win.Event('change'));
+    direct.querySelector('[data-catalog-results] button').click();
+    assert.equal(direct.open,false);
+    assert.match(app.q('[data-sheet-points]').textContent,/第1群/);
+    app.fill('#sheetEntryForm [name=food]','味噌汁');
+    assert.match(app.q('[data-sheet-results] p').textContent,/この料理の食材候補/);
+    const tofu=[...app.win.document.querySelectorAll('[data-sheet-results] button')].find(button=>button.textContent.startsWith('もめん豆腐'));
+    tofu.click();
+    app.fill('#sheetEntryForm [name=quickAmount]','custom');
+    app.fill('#sheetEntryForm [name=grams]','110');
+    assert.match(app.q('[data-sheet-points]').textContent,/もめん豆腐.*第2群：1点/);
+    app.submit('#sheetEntryForm');await pause();
+    assert.equal(store.value.meals[0].ingredients[0].dish,'味噌汁');
+    assert.equal(store.value.meals[0].points,1);
+    assert.deepEqual(app.failures,[]);
+  } finally {app.dom.window.close()}
+});
+
 test('paper-style diary accepts ingredients directly in the selected meal and refreshes the saved totals', async () => {
   const date=tokyoDate(new Date());
   const store={value:{profile:{name:'テスト',heightCm:170,startWeight:70,waist:85,goalPercent:5,startDate:date},meals:[]}};
