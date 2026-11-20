@@ -57,6 +57,13 @@ label{display:block;font-size:14px;font-weight:700;margin:13px 0 5px}input,selec
 .sheet-content .sheet-ingredient th{padding-left:12px}
 .sheet-content .photo{max-height:115px;margin:3px 0}
 .sheet-note{white-space:pre-wrap;overflow-wrap:anywhere}
+#sheetEntryForm{padding:6px 5px 2px;text-align:left}
+#sheetEntryForm label{margin-top:7px}
+#sheetEntryForm input,#sheetEntryForm select{padding:8px}
+#sheetEntryForm button,[data-sheet-meal]{min-height:44px}
+#sheetEntryForm p:empty{display:none}
+#sheetEntryForm [data-sheet-error]{color:#a43d27}
+#editDaySheet{margin:8px 0 12px}
 .amount-guide{background:#f3f7ef;border-radius:14px;padding:10px 12px}.amount-guide p{margin:5px 0}.amount-options{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.amount-options button{min-height:44px;border:1px solid #b6d5bf;border-radius:10px;background:#fff;color:#286d4f;font:inherit;font-weight:700}
 @media(max-width:370px){main{padding-left:11px;padding-right:11px}.card{padding:15px}h1{font-size:20px}.two{grid-template-columns:1fr}}
 
