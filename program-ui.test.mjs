@@ -23,6 +23,45 @@ async function openApp(store) {
   Object.defineProperty(win.crypto, 'subtle', {value:webcrypto.subtle});
   win.crypto.randomUUID = () => Math.random().toString(36).slice(2);
   win.fetch = async () => ({ok:true,json:async()=>master});
+  const objectUrls = new Map();
+  win.URL.createObjectURL = file => {
+    const url='blob:mock/'+win.crypto.randomUUID();
+    objectUrls.set(url,file);
+    return url;
+  };
+  win.URL.revokeObjectURL = url => objectUrls.delete(url);
+  if (store.photos) {
+    const db={
+      close(){},
+      transaction(){
+        const transaction={};
+        const write=action=>queueMicrotask(()=>{
+          if (store.abortPhoto) transaction.onabort();
+          else {action();transaction.oncomplete();}
+        });
+        transaction.objectStore=()=>({
+          put(file,id){write(()=>store.photos.set(id,file))},
+          delete(id){write(()=>store.photos.delete(id))},
+          get(id){
+            const request={result:store.photos.get(id)};
+            queueMicrotask(()=>request.onsuccess());
+            return request;
+          }
+        });
+        return transaction;
+      }
+    };
+    win.indexedDB={open(){
+      const request={result:db};
+      queueMicrotask(()=>request.onsuccess());
+      return request;
+    }};
+  }
+  win.HTMLDialogElement.prototype.showModal = function(){this.setAttribute('open','')};
+  win.HTMLDialogElement.prototype.close = function(){
+    this.removeAttribute('open');
+    this.dispatchEvent(new win.Event('close'));
+  };
   Object.assign(win, config, {CURRICULUM,SAMPLE_CATEGORIES,resolveSample});
   win.initializeApp = x => x; win.getAuth = () => ({currentUser:{uid:'test-user'}});
   win.getFirestore = () => ({}); win.doc = (...args) => args;
@@ -44,6 +83,7 @@ async function openApp(store) {
     return target;
   };
   win.setDoc = async (ref,patch) => {
+    if(store.failMeal && patch.meals)throw new Error('write failed');
     if (ref[1] === 'programAdmissions') {
       const expected = createHash('sha256').update('test-only invite').digest('hex');
       if (patch.digest !== expected || store.admitted) {
@@ -61,7 +101,7 @@ async function openApp(store) {
   const q = selector => win.document.querySelector(selector);
   const fill = (selector,value) => {const input=q(selector);input.value=value;input.dispatchEvent(new win.Event('input',{bubbles:true}))};
   const submit = selector => q(selector).dispatchEvent(new win.Event('submit',{bubbles:true,cancelable:true}));
-  return {dom,win,q,fill,submit,failures};
+  return {dom,win,q,fill,submit,failures,objectUrls};
 }
 
 test('initial setup, master calculation, records and goal history survive reload', async () => {
@@ -94,8 +134,7 @@ test('initial setup, master calculation, records and goal history survive reload
     store.value.meals=[{id:'from-another-device',date:tokyoDate(new Date()),type:'昼食',food:'普通牛乳',amount:'120g',points:1,photoId:null}];
     app.fill('#foodSearch','めし・水稲・精白米');
     app.q('#foodResults button').click();
-    assert.equal(app.q('#riceAmounts').hidden,false);
-    app.q('[data-rice-grams="150"]').click();
+    app.fill('#quickGrams','150');
     assert.equal(app.q('#mealForm [name="grams"]').value,'150');
     assert.match(app.q('#pointPreview').textContent,/3\.00点/);
     app.submit('#mealForm');await pause();
@@ -204,6 +243,151 @@ test('a client can record a food group and points without a master match', async
     assert.equal(store.value.meals[0].pointSource,'user');
     assert.match(app.q('#mealList').textContent,/第4群/);
     assert.match(app.q('#mealList').textContent,/2\.5点/);
+    assert.deepEqual(app.failures,[]);
+  } finally {app.dom.window.close()}
+});
+
+test('the day sheet combines legacy meals and a multi-ingredient draft, then restores it after retry and reload', async () => {
+  const date=tokyoDate(new Date());
+  const profile={name:'テスト',age:45,heightCm:170,startWeight:70,waist:85,goalPercent:5,startDate:date};
+  const store={value:{profile,meals:[
+    {date,type:'朝食',food:'普通牛乳',group:'第1群',points:1}
+  ],measurements:{[date]:{weight:69.5,condition:'良い',memo:'今日の記録'}}}};
+  const app=await openApp(store);
+  try {
+    app.q('#home [data-go=record]').click();
+    app.q('[data-meal="夕食"]').click();
+    app.fill('#mealForm [name=time]','19:15');
+    function add(query, grams){
+      app.fill('#foodSearch',query);
+      app.q('#foodResults button').click();
+      app.fill('#quickGrams',grams);
+      app.q('#addIngredient').click();
+    }
+    add('ご飯','80');
+    app.fill('#mealForm [name=dish]','ささみのソテー');
+    app.fill('#foodSearch','ささみ');
+    app.q('#foodResults button').click();
+    app.fill('#quickGrams','custom');
+    app.fill('#mealForm [name=grams]','42');
+    app.q('#addIngredient').click();
+    add('ごま油','');
+    assert.equal(app.q('#ingredientList').children.length,3);
+    app.q('#dayPreview').click();
+    assert.equal(app.q('#daySheet').open,true);
+    assert.match(app.q('#daySheet').textContent,/69.5 kg/);
+    assert.match(app.q('#daySheet').textContent,/今日の記録/);
+    assert.match(app.q('#daySheet tbody').textContent,/普通牛乳/);
+    const dinner=app.q('#daySheet tbody:nth-of-type(3)');
+    assert.equal(dinner.querySelector('time').textContent,'19:15');
+    assert.equal(dinner.querySelectorAll('.sheet-dish').length,1);
+    assert.equal([...dinner.rows].find(row=>row.textContent.includes('ごま油')).cells[4].textContent,'○');
+    assert.match(dinner.querySelector('.sheet-subtotal').textContent,/2\.16点/);
+    assert.match(app.q('#daySheet tfoot').textContent,/3\.16点/);
+    assert.equal(store.value.meals.length,1);
+    app.q('#daySheet button').click();
+    assert.equal(app.q('#daySheet').open,false);
+    store.failMeal=true;
+    app.submit('#mealForm');await pause();
+    assert.equal(store.value.meals.length,1);
+    assert.equal(app.q('#ingredientList').children.length,3);
+    store.failMeal=false;
+    app.submit('#mealForm');await pause();
+    assert.equal(store.value.meals.length,2);
+    assert.deepEqual(store.value.meals[1].ingredients.map(item=>item.points),[1.6,0.56,null]);
+    assert.equal(store.value.meals[1].ingredients[2].group,'第4群');
+    assert.equal(app.q('#ingredientList').children.length,0);
+    const reloaded=await openApp(store);
+    try {
+      reloaded.q('[data-page=record]').click();
+      reloaded.q('#dayPreview').click();
+      assert.match(reloaded.q('#daySheet tfoot').textContent,/3\.16点/);
+      assert.match(reloaded.q('#daySheet').textContent,/ささみのソテー/);
+    } finally {reloaded.dom.window.close()}
+    assert.deepEqual(app.failures,[]);
+  } finally {app.dom.window.close()}
+});
+
+test('photo and memo survive retries after local and remote failures, with one final local copy', async () => {
+  const date=tokyoDate(new Date());
+  const profile={name:'テスト',age:45,heightCm:170,startWeight:70,waist:85,goalPercent:5,startDate:date};
+  const store={value:{profile,meals:[]},photos:new Map()};
+  const app=await openApp(store);
+  try {
+    app.q('#home [data-go=record]').click();
+    const input=app.q('#mealForm [name=photo]');
+    const pixel=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/WkQAAAAASUVORK5CYII=','base64');
+    const photo=new app.win.File([pixel],'sample.png',{type:'image/png'});
+    Object.defineProperty(input,'files',{value:[photo]});
+    app.fill('#mealForm [name=memo]','朝食のメモ');
+    app.q('#dayPreview').click();
+    const draftUrl=app.q('#daySheet img').getAttribute('src');
+    assert.equal(app.objectUrls.get(draftUrl),photo);
+    assert.match(app.q('#daySheet').textContent,/朝食のメモ/);
+    assert.equal(store.photos.size,0);
+    app.q('#daySheet button').click();
+    assert.equal(app.objectUrls.has(draftUrl),false);
+    store.abortPhoto=true;
+    app.submit('#mealForm');await pause();
+    assert.equal(app.q('#mealForm button[type=submit]').disabled,false);
+    assert.equal(store.value.meals.length,0);
+    assert.equal(store.photos.size,0);
+    store.abortPhoto=false;
+    store.failMeal=true;
+    app.submit('#mealForm');await pause();
+    assert.equal(store.value.meals.length,0);
+    assert.equal(store.photos.size,0);
+    assert.equal(input.files[0],photo);
+    store.failMeal=false;
+    app.submit('#mealForm');await pause();
+    assert.equal(store.value.meals.length,1);
+    const entry=store.value.meals[0];
+    assert.equal(store.photos.size,1);
+    assert.equal(store.photos.get(entry.photoId),photo);
+    assert.equal(entry.memo,'朝食のメモ');
+    assert.equal(entry.ingredients.length,0);
+    assert.equal(Object.values(entry).includes(photo),false);
+    const reloaded=await openApp(store);
+    try {
+      reloaded.q('[data-page=record]').click();
+      reloaded.q('#dayPreview').click();await pause();
+      const savedUrl=reloaded.q('#daySheet img').getAttribute('src');
+      assert.equal(reloaded.objectUrls.get(savedUrl),photo);
+      reloaded.q('#daySheet button').click();
+      assert.equal(reloaded.objectUrls.has(savedUrl),false);
+      assert.deepEqual(reloaded.failures,[]);
+    } finally {reloaded.dom.window.close()}
+    assert.deepEqual(app.failures,[]);
+  } finally {app.dom.window.close()}
+});
+
+test('saved days reopen without mixing in a draft, and the home measurement button focuses the measurement form', async () => {
+  const date=tokyoDate(new Date());
+  const oldDate='2026-08-20';
+  const profile={name:'テスト',age:45,heightCm:170,startWeight:70,waist:85,goalPercent:5,startDate:date};
+  const store={value:{profile,meals:[
+    {date,type:'朝食',food:'普通牛乳',group:'第1群',points:1},
+    {date,type:'昼食',food:'ご飯',group:'第4群',points:1.6},
+    {date:oldDate,type:'間食',food:'別の日の記録'}
+  ],measurements:{[date]:{weight:69.5}}}};
+  const app=await openApp(store);
+  try {
+    app.q('#home [data-measurement]').click();
+    assert.equal(app.win.document.activeElement,app.q('#measurementTitle'));
+    app.fill('#mealForm [name=memo]','保存前のメモ');
+    const opener=app.q(`[data-saved-diary="${date}"]`);
+    assert.equal(app.win.document.querySelectorAll('[data-saved-diary]').length,2);
+    assert.equal(app.q('[data-saved-diary]'),opener);
+    opener.click();
+    assert.match(app.q('#daySheet').textContent,/69.5 kg/);
+    assert.match(app.q('#daySheet tfoot').textContent,/2\.6点/);
+    assert.doesNotMatch(app.q('#daySheet').textContent,/保存前のメモ|別の日の記録/);
+    app.q('#daySheet button').click();
+    assert.equal(app.win.document.activeElement,opener);
+    assert.equal(app.q('#mealForm [name=memo]').value,'保存前のメモ');
+    app.q('#dayPreview').click();
+    assert.match(app.q('#daySheet').textContent,/保存前のメモ/);
+    assert.equal(store.value.meals.length,3);
     assert.deepEqual(app.failures,[]);
   } finally {app.dom.window.close()}
 });
