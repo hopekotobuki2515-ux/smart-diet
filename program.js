@@ -192,7 +192,7 @@ function renderRecord(){
   const previous = $('#mealForm');
   const sheet = $('#daySheet');
   if (sheet?.open) sheet.close();
-  $('#record').innerHTML=`<div class="card"><span class="eyebrow">食事記録</span><h1>食事ダイアリー</h1><p>食材と量を選ぶと食品群と点数が入ります。写真やメモだけでも保存できます。</p>
+  $('#record').innerHTML=`<div class="card"><span class="eyebrow">食事記録</span><h1>食事ダイアリー</h1><p>食材と量を選び、続けて次の食材を選べます。最後にこの食事をまとめて保存します。写真やメモだけでも保存できます。</p>
     <form id="mealForm"><label>日付<input id="mealDate" name="date" type="date" value="${esc(date)}" required></label><div class="tabs diary-tabs" role="group" aria-label="食事の種類">${meals.map(t=>`<button type="button" data-meal="${t}" aria-pressed="${t===mealType}" class="${t===mealType?'selected':''}">${t}</button>`).join('')}</div>
     <label>食べた時刻（任意）<input name="time" type="time"></label>
     <label>写真（任意・この端末だけに保存）<input name="photo" type="file" accept="image/*"></label>
@@ -201,6 +201,7 @@ function renderRecord(){
     <div id="foodResults" class="food-results" aria-live="polite"></div>
     <div id="recentFoods" class="food-shortcuts"></div><div id="savedFoods" class="food-shortcuts"></div>
     <p id="selectedFood" class="muted" aria-live="polite"></p>
+    <button id="clearSelectedFood" type="button" class="small-button" hidden>選んだ食材を取り消す</button>
     <label>食べた量<select id="quickGrams"><option value="">量がわからない</option>${quickGrams.map(g=>`<option value="${g}">${g}g</option>`).join('')}<option value="custom">グラムを入力する</option></select></label>
     <label id="exactGrams" hidden>食べた量（g）<input name="grams" type="number" min="0.1" max="10000" step="0.1" inputmode="decimal"></label><p id="pointPreview" class="muted" aria-live="polite"></p>
     <details class="manual-food"><summary>食材名・食品群・点数を手入力</summary>
@@ -208,9 +209,10 @@ function renderRecord(){
     <div class="two"><label>食品群<select name="group"><option value="">未選択</option>${groups.map(g=>`<option>${g}</option>`).join('')}</select></label><label>点数<input name="points" type="number" min="0" max="1000" step="0.01" inputmode="decimal"></label></div>
     <button id="saveFood" type="button" class="small-button">この食品を登録する</button></details>
     <button id="addIngredient" type="button" class="button ghost">この食材を追加</button>
+    <div id="mealFeedback" class="muted" role="status"></div>
+    <p id="ingredientCount" class="muted" hidden></p>
     <ul id="ingredientList" class="ingredient-list" aria-label="追加した食材"></ul>
     <label>ひとこと（任意）<textarea name="memo" maxlength="500"></textarea></label>
-    <div id="mealFeedback" class="muted" role="status"></div>
     <button class="button" type="submit">この食事を保存する</button>
     <button id="dayPreview" class="button ghost" type="button">1日のダイアリーをプレビュー</button></form>
     <dialog id="daySheet" aria-labelledby="daySheetTitle"></dialog></div>
@@ -457,14 +459,7 @@ document.addEventListener('input',e=>{
     recordDate=e.target.value;
     $('#measurementForm').elements.date.value=recordDate;
   }
-  if(e.target.id==='foodSearch'){
-    if(f.dataset.masterName && e.target.value!==f.dataset.masterName){
-      for(const name of ['food','group','points'])f.elements[name].value='';
-      delete f.dataset.masterId;delete f.dataset.masterName;
-      showMasterStatus();
-    }
-    searchFoods();
-  }
+  if(e.target.id==='foodSearch')searchFoods();
   if(e.target.id==='quickGrams'){
     const custom=e.target.value==='custom';
     $('#exactGrams').hidden=!custom;
@@ -481,6 +476,17 @@ function selectFood(candidate){
   const f=$('#mealForm'),name=typeof candidate==='string'?candidate:candidate.name;
   const matches=typeof candidate==='string'?foodMaster.filter(x=>x.name===name):[candidate];
   const x=matches.length===1?matches[0]:null;
+  const previousName=f.elements.food.value.trim();
+  const previousMaster=f.dataset.masterId;
+  const differentFood=previousName!==name || (previousMaster && x && previousMaster!==foodId(x));
+  if(previousName && differentFood){
+    if(!f.reportValidity())return;
+    addCurrentIngredient(f);
+  } else if(previousMaster && (!x || previousMaster===foodId(x))) {
+    $('#foodSearch').value=previousName;
+    $('#foodResults').replaceChildren();
+    return;
+  }
   f.elements.food.value=name;
   f.elements.group.value=x?.group||'';
   f.elements.points.value='';
@@ -520,6 +526,7 @@ document.addEventListener('click',async e=>{
 });
 function updatePoints(){
   const f=$('#mealForm'), x=foodFromId(f.dataset.masterId), grams=Number(f.elements.grams.value);
+  $('#clearSelectedFood').hidden=!f.elements.food.value.trim();
   $('#pointPreview').textContent=x
     ? grams>0?`${x.group}：${foodPoints(grams,x.gramsPerPoint).toFixed(2)}点`:`${x.group}：○（量不明）`
     : '';
@@ -541,6 +548,9 @@ function ingredientAmount(item){
   return item.grams!=null?item.grams+'g':item.amount||(item.group&&item.points==null?'量不明':'');
 }
 function renderIngredients(){
+  const count=$('#ingredientCount');
+  count.hidden=!ingredients.length;
+  count.textContent='追加した食材 '+ingredients.length+'品';
   $('#ingredientList').innerHTML=ingredients.map((item,index)=>
     `<li><span>${[item.dish,item.food,ingredientAmount(item),item.group,item.points==null?'':formatPoints(item.points)].filter(Boolean).map(esc).join(' / ')}</span>
     <button type="button" class="small-button" data-remove-ingredient="${index}" aria-label="${esc(item.food)}を削除">削除</button></li>`).join('');
@@ -554,6 +564,18 @@ function clearIngredient(form){
   $('#foodResults').replaceChildren();
   showMasterStatus();
   updatePoints();
+}
+function addCurrentIngredient(form){
+  const item=readIngredient(form);
+  if(!item){
+    $('#mealFeedback').textContent='食材を選ぶか、食材名を手入力してください。';
+    return false;
+  }
+  ingredients.push(item);
+  renderIngredients();
+  clearIngredient(form);
+  $('#mealFeedback').textContent=item.food+'を追加しました。';
+  return true;
 }
 
 function formIngredients(form){
@@ -640,12 +662,11 @@ document.addEventListener('click',e=>{
   const form=$('#mealForm');
   if(e.target.id==='addIngredient'){
     if(!form.reportValidity())return;
-    const item=readIngredient(form);
-    if(!item){$('#mealFeedback').textContent='食材を選ぶか、食材名を手入力してください。';return}
-    ingredients.push(item);
-    renderIngredients();
+    if(addCurrentIngredient(form))$('#foodSearch').focus();
+  }
+  if(e.target.id==='clearSelectedFood'){
     clearIngredient(form);
-    $('#mealFeedback').textContent=item.food+'を追加しました。';
+    $('#mealFeedback').textContent='食材の選択を取り消しました。';
     $('#foodSearch').focus();
   }
   const remove=e.target.closest('[data-remove-ingredient]');
@@ -669,7 +690,8 @@ document.addEventListener('submit',async e=>{
   try{
     if(f.id==='mealForm'){
       const file=f.elements.photo.files[0], memo=f.elements.memo.value.trim(), items=formIngredients(f);
-      if($('#foodSearch').value.trim()&&!f.elements.food.value.trim())throw new Error('検索結果から食材を選んでください。');
+      const query=$('#foodSearch').value.trim(), selected=f.elements.food.value.trim();
+      if(query && (!selected || (f.dataset.masterId && query!==selected)))throw new Error('検索結果から食材を選んでください。');
       if(!file&&!items.length&&!memo)throw new Error('写真、食材、メモのいずれかを入力してください。');
       if(file && !validPhoto(file))throw new Error('15MB以下の画像を選んでください。');
       const single=items.length===1?items[0]:null;
