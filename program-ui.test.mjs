@@ -648,6 +648,15 @@ test('food master offers a browsable catalog and recipe ingredients in the direc
       const row=[...app.win.document.querySelectorAll('[data-sheet-recipe-item]')].find(item=>item.querySelector('legend').textContent===ingredient);
       assert.equal(row?.querySelector('[data-recipe-points]').textContent,group+'：○',dish);
     }
+    for(const name of ['牛丼','ぎゅうどん']){
+      app.fill('#sheetEntryForm [name=food]',name);
+      assert.deepEqual(autoRows(),['めし・水稲・精白米','牛バラ肉（輸入牛）','玉ねぎ','しょうゆ・濃い口しょうゆ','上白糖']);
+      assert.match(app.q('[data-sheet-results]').textContent,/牛肩ロース（輸入牛）/);
+    }
+    const beefRice='[data-sheet-recipe-item]:first-child';
+    app.fill(beefRice+' [data-recipe-quantity]','150');
+    assert.equal(app.q(beefRice+' [data-recipe-points]').textContent,'第4群：3点');
+    assert.equal(store.value.meals.length,0);
     const knownDishes=openCatalog('[data-sheet-dish-list]');
     const tonjiru=[...knownDishes.querySelectorAll('button')].find(button=>button.textContent==='豚汁');
     tonjiru.click();
