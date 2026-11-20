@@ -643,12 +643,34 @@ test('food master offers a browsable catalog and recipe ingredients in the direc
     assert.match(app.q('[data-sheet-results] p').textContent,/この料理の食材候補/);
     const tofu=[...app.win.document.querySelectorAll('[data-sheet-results] button')].find(button=>button.textContent.startsWith('もめん豆腐'));
     tofu.click();
-    app.fill('#sheetEntryForm [name=quickAmount]','custom');
-    app.fill('#sheetEntryForm [name=grams]','110');
-    assert.match(app.q('[data-sheet-points]').textContent,/もめん豆腐.*第2群：1点/);
+    const wakame=[...app.win.document.querySelectorAll('[data-sheet-results] button')].find(button=>button.textContent.startsWith('カットわかめ'));
+    assert.ok(wakame,'the other recipe ingredients remain available');
+    wakame.click();
+    const greenOnion=[...app.win.document.querySelectorAll('[data-sheet-results] button')].find(button=>button.textContent.startsWith('こねぎ'));
+    greenOnion.click();
+    const currentGreenOnion=()=>[...app.win.document.querySelectorAll('[data-sheet-results] button')].find(button=>button.textContent.startsWith('こねぎ'));
+    assert.equal(currentGreenOnion().disabled,true);
+    app.q('[aria-label="こねぎを外す"]').click();
+    assert.equal(currentGreenOnion().disabled,false);
+    assert.equal(app.win.document.querySelectorAll('[data-sheet-recipe-item]').length,2);
+    assert.equal(store.value.meals.length,0);
+    app.fill('[data-sheet-recipe-item] [data-recipe-quantity]','custom');
+    app.fill('[data-sheet-recipe-item] [data-recipe-grams]','110');
+    assert.match(app.q('[data-sheet-recipe-item] [data-recipe-points]').textContent,/第2群：1点/);
+    assert.match(app.q('[data-sheet-recipe-item]:nth-child(2) [data-recipe-points]').textContent,/第3群：○/);
+    store.failMeal=true;
     app.submit('#sheetEntryForm');await pause();
-    assert.equal(store.value.meals[0].ingredients[0].dish,'みそ汁');
+    assert.equal(store.value.meals.length,0);
+    assert.equal(app.q('[data-recipe-grams]').value,'110');
+    assert.equal(app.win.document.querySelectorAll('[data-sheet-recipe-item]').length,2);
+    store.failMeal=false;
+    app.submit('#sheetEntryForm');await pause();
+    assert.equal(store.value.meals.length,1);
+    assert.deepEqual(store.value.meals[0].ingredients.map(({dish,food,grams,points})=>[dish,food,grams,points]),[
+      ['みそ汁','もめん豆腐',110,1],['みそ汁','カットわかめ',null,null]
+    ]);
     assert.equal(store.value.meals[0].points,1);
+    assert.match(app.q('#daySheet').textContent,/みそ汁.*もめん豆腐 110g.*カットわかめ/s);
     assert.deepEqual(app.failures,[]);
   } finally {app.dom.window.close()}
 });

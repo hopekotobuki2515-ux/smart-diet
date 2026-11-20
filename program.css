@@ -64,6 +64,9 @@ label{display:block;font-size:14px;font-weight:700;margin:13px 0 5px}input,selec
 #sheetEntryForm p:empty{display:none}
 #sheetEntryForm [hidden]{display:none}
 #sheetEntryForm [data-sheet-error]{color:#a43d27}
+#sheetEntryForm [data-sheet-recipe-item]{margin:8px 0;min-width:0;border:1px solid #d5e5d9;border-radius:10px;padding:6px 10px}
+#sheetEntryForm [data-sheet-recipe-item] legend{padding:0 4px;font-weight:700}
+#sheetEntryForm [data-sheet-results] button:disabled{opacity:.65}
 .food-catalog-pages{display:flex;justify-content:space-between}
 .food-catalog-pages[hidden]{display:none}
 [data-catalog-results] button{min-height:44px;overflow-wrap:anywhere}
