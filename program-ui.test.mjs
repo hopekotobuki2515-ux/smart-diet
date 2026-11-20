@@ -591,6 +591,47 @@ test('photo and memo survive retries after local and remote failures, with one f
   } finally {app.dom.window.close()}
 });
 
+test('paper-style diary accepts ingredients directly in the selected meal and refreshes the saved totals', async () => {
+  const date=tokyoDate(new Date());
+  const store={value:{profile:{name:'テスト',heightCm:170,startWeight:70,waist:85,goalPercent:5,startDate:date},meals:[]}};
+  const app=await openApp(store);
+  try {
+    app.q('#home [data-go=record]').click();
+    app.fill('#mealForm [name=memo]','入力途中のメモ');
+    app.q('#editDaySheet').click();
+    assert.equal(app.win.document.querySelectorAll('[data-sheet-meal]').length,4);
+    const lunch=app.q('[data-sheet-meal="昼食"]');
+    lunch.click();
+    const form=app.q('#sheetEntryForm');
+    assert.equal(form.closest('tbody'),lunch.closest('tbody'));
+    app.fill('#sheetEntryForm [name=food]','ご飯');
+    app.q('[data-sheet-results] button').click();
+    app.fill('#sheetEntryForm [name=grams]','80');
+    assert.match(app.q('[data-sheet-points]').textContent,/第4群：1\.6点/);
+    store.failMeal=true;
+    app.submit('#sheetEntryForm');await pause();
+    assert.match(app.q('[data-sheet-error]').textContent,/保存できませんでした/);
+    assert.equal(form.elements.grams.value,'80');
+    store.failMeal=false;
+    app.submit('#sheetEntryForm');await pause();
+    assert.equal(store.value.meals.length,1);
+    assert.equal(store.value.meals[0].type,'昼食');
+    assert.equal(store.value.meals[0].points,1.6);
+    assert.match(app.q('#daySheet tfoot').textContent,/1\.6点/);
+    app.q('[data-sheet-meal="夕食"]').click();
+    app.fill('#sheetEntryForm [name=food]','ごま油');
+    app.q('[data-sheet-results] button').click();
+    app.submit('#sheetEntryForm');await pause();
+    assert.equal(store.value.meals[1].type,'夕食');
+    assert.equal(store.value.meals[1].points,null);
+    assert.equal(store.value.meals[1].group,'第4群');
+    assert.match(app.q('#daySheet tfoot').textContent,/1\.6点/);
+    app.q('#daySheet header button').click();
+    assert.equal(app.q('#mealForm [name=memo]').value,'入力途中のメモ');
+    assert.deepEqual(app.failures,[]);
+  } finally {app.dom.window.close()}
+});
+
 test('saved days reopen without mixing in a draft, and the home measurement button focuses the measurement form', async () => {
   const date=tokyoDate(new Date());
   const oldDate='2026-08-20';
