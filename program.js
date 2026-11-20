@@ -366,7 +366,10 @@ fetch('./food-master.json')
     if($('#mealForm'))renderFoodShortcuts();
   })
   .catch(()=>{masterStatus='failed'})
-  .finally(()=>{if($('#foodSearch')){showMasterStatus();searchFoods();renderDishSuggestions();}});
+  .finally(()=>{
+    if($('#foodSearch')){showMasterStatus();searchFoods();renderDishSuggestions();}
+    $('#sheetEntryForm')?.dispatchEvent(new Event('foodmasterchange'));
+  });
 $('#setupForm').addEventListener('input',()=>{
   const f=$('#setupForm'),h=Number(f.elements.heightCm.value),w=Number(f.elements.startWeight.value),p=Number(f.elements.goalPercent.value);
   $('#goalPreview').textContent=h>0&&w>0?`目標体重 ${goalWeight(w,p).toFixed(1)}kg　/　BMI ${bmi(h,w).toFixed(1)}`:'身長と体重を入力すると、目標体重とBMIを表示します。';
@@ -509,6 +512,14 @@ function findFoods(value){
       : [food.name];
     return labels.map(label=>({food,label}));
   }):[];
+}
+function exactFood(value,candidates){
+  const key=searchKey(value);
+  const canonical=foodAliases.get(key)??key;
+  const exact=candidates.filter(({food,label})=>searchKey(food.name)===canonical
+    || searchKey(label).replace(/\(乾麺\)$/,'')===key || searchKey(label)===key
+    || (key==='スパゲティ'&&label===drySpaghettiLabel));
+  return exact.length===1?exact[0]:null;
 }
 function searchFoods(){
   const value=$('#foodSearch').value;
@@ -802,14 +813,20 @@ function mountSheetEntry(dialog, target, date, opener){
   const form=document.createElement('form');
   form.id='sheetEntryForm';
   form.innerHTML=`
-    <label>料理名（任意）<input name="dish" maxlength="120"></label>
-    <label>食材名<input name="food" type="search" maxlength="120" autocomplete="off" required></label>
+    <label>食材名<input name="food" type="search" maxlength="120" autocomplete="off" placeholder="例：ご飯、豆腐" required></label>
     <div class="food-shortcuts" data-sheet-results aria-live="polite"></div>
-    <div class="two">
-      <label>食べた量（g・任意）<input name="grams" type="number" min="0.1" max="10000" step="0.1" inputmode="decimal"></label>
-      <label>食品群<select name="group"><option value="">未確認</option>${groups.map(group=>`<option>${group}</option>`).join('')}</select></label>
+    <div data-sheet-amount hidden>
+      <label>食べた量<select name="quickAmount">
+        <option value="">量がわからない</option>
+        ${quickGrams.map(g=>`<option value="${g}">${g}g</option>`).join('')}
+        <option value="custom">グラムを入力する</option></select></label>
+      <div data-sheet-custom-grams hidden><label>食べた量（g）<input name="grams" type="number" min="0.1" max="10000" step="0.1" inputmode="decimal"></label></div>
     </div>
     <p data-sheet-points class="muted" aria-live="polite"></p>
+    <details class="meal-options"><summary>料理名・食品群を手入力（任意）</summary>
+      <label>料理名<input name="dish" maxlength="120"></label>
+      <label data-sheet-manual-group>食品群<select name="group"><option value="">未確認</option>${groups.map(group=>`<option>${group}</option>`).join('')}</select></label>
+    </details>
     <p data-sheet-error class="muted" role="status"></p>
     <button type="submit" class="small-button">保存して追加</button>
     <button type="button" class="small-button" data-sheet-cancel>取り消す</button>`;
@@ -818,41 +835,66 @@ function mountSheetEntry(dialog, target, date, opener){
   form.elements.food.focus();
   let selection=null;
   let saveAttempt=null;
+  let candidates=[];
+  const gramsValue=()=>Number(form.elements.quickAmount.value==='custom'?form.elements.grams.value:form.elements.quickAmount.value)||null;
+  const results=form.querySelector('[data-sheet-results]');
+  const error=form.querySelector('[data-sheet-error]');
   const updateScore=()=>{
-    const grams=Number(form.elements.grams.value);
-    const group=form.elements.group.value;
-    form.querySelector('[data-sheet-points]').textContent=!group?'':selection&&grams>0
-      ? group+'：'+formatPoints(foodPoints(grams,selection.food.gramsPerPoint))
-      : group+'：○';
+    const grams=gramsValue();
+    const group=selection?.food.group||form.elements.group.value;
+    const score=!group?'':selection&&grams>0
+      ? group+'：'+formatPoints(foodPoints(grams,selection.food.gramsPerPoint)) : group+'：○';
+    form.querySelector('[data-sheet-points]').textContent=selection?`${selection.label}｜${score}`:score;
   };
+  function setSheetSelection(candidate){
+    selection=candidate;
+    form.querySelector('[data-sheet-manual-group]').hidden=Boolean(candidate);
+    if(candidate)form.elements.group.value='';
+    form.querySelector('[data-sheet-amount]').hidden=!form.elements.food.value.trim();
+    updateScore();
+  }
   form.addEventListener('input',event=>{
     saveAttempt=null;
+    error.textContent='';
     if(event.target===form.elements.food){
-      selection=null;
       form.elements.group.value='';
-      form.elements.group.disabled=false;
+      form.elements.quickAmount.value='';
+      form.elements.grams.value='';
+      form.querySelector('[data-sheet-custom-grams]').hidden=true;
       renderCandidates();
+    }
+    if(event.target===form.elements.quickAmount){
+      const custom=event.target.value==='custom';
+      form.querySelector('[data-sheet-custom-grams]').hidden=!custom;
+      if(custom)form.elements.grams.focus();
+      else form.elements.grams.value='';
     }
     updateScore();
   });
+  form.addEventListener('foodmasterchange',renderCandidates);
   function renderCandidates(){
-    const results=form.querySelector('[data-sheet-results]');
-    results.replaceChildren(...findFoods(form.elements.food.value).map(candidate=>{
+    const value=form.elements.food.value.trim();
+    candidates=findFoods(value);
+    const exact=exactFood(value,candidates);
+    setSheetSelection(exact);
+    results.replaceChildren(...candidates.filter(candidate=>candidate!==exact).map(candidate=>{
       const button=document.createElement('button');
       button.type='button';
       button.textContent=candidate.label+'｜'+candidate.food.group;
       button.onclick=()=>{
-        selection=candidate;
         saveAttempt=null;
         form.elements.food.value=candidate.label;
-        form.elements.group.value=candidate.food.group;
-        form.elements.group.disabled=true;
+        setSheetSelection(candidate);
         results.replaceChildren();
-        updateScore();
-        form.elements.grams.focus();
+        form.elements.quickAmount.focus();
       };
       return button;
     }));
+    if(value&&!candidates.length){
+      results.textContent=masterStatus==='loading'?'食品マスターを読み込み中です。'
+        : masterStatus==='failed'?'食品マスターを読み込めませんでした。食材名だけで保存できます。'
+        : '食品マスターに候補がありません。食材名だけで保存できます。';
+    }
   }
   form.querySelector('[data-sheet-cancel]').onclick=()=>{
     form.remove();
@@ -862,14 +904,17 @@ function mountSheetEntry(dialog, target, date, opener){
   form.addEventListener('submit',async event=>{
     event.preventDefault();
     const submit=form.querySelector('[type=submit]');
-    const error=form.querySelector('[data-sheet-error]');
     if(submit.disabled||!form.reportValidity())return;
     const name=form.elements.food.value.trim();
     if(!name){error.textContent='食材名を入力してください。';return}
-    const grams=form.elements.grams.value?Number(form.elements.grams.value):null;
+    if(masterStatus==='loading'){error.textContent='食品マスターの読み込みをお待ちください。';return}
+    if(!selection && candidates.length && !form.elements.group.value){
+      error.textContent='食材候補から選んでください。';return;
+    }
+    const grams=gramsValue();
     const master=selection?.food;
     const item={food:master?.name??name,dish:form.elements.dish.value.trim(),grams,
-      group:form.elements.group.value||null,masterId:master?foodId(master):null,
+      group:master?.group||form.elements.group.value||null,masterId:master?foodId(master):null,
       category:master?.category??null,amount:'',
       points:master&&grams?foodPoints(grams,master.gramsPerPoint):null,
       pointSource:master&&grams?'master':null};
