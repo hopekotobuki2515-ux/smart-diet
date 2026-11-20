@@ -308,6 +308,40 @@ test('the day sheet combines legacy meals and a multi-ingredient draft, then res
   } finally {app.dom.window.close()}
 });
 
+test('selecting another food keeps the first portion and resets the next amount before one meal save', async () => {
+  const date=tokyoDate(new Date());
+  const store={value:{profile:{name:'テスト',heightCm:170,startWeight:70,waist:85,goalPercent:5,startDate:date}}};
+  const app=await openApp(store);
+  try {
+    app.q('#home [data-go=record]').click();
+    const select = query => {
+      app.fill('#foodSearch',query);
+      app.q('#foodResults button').click();
+    };
+    select('ご飯');
+    app.fill('#quickGrams','80');
+    app.fill('#foodSearch','ごま油');
+    assert.match(app.q('#selectedFood').textContent,/精白米/);
+    app.q('#foodResults button').click();
+    assert.match(app.q('#ingredientList').textContent,/精白米.*80g.*1\.6点/);
+    assert.match(app.q('#ingredientCount').textContent,/1品/);
+    assert.equal(app.q('#quickGrams').value,'');
+    assert.match(app.q('#pointPreview').textContent,/量不明/);
+    select('ごま油');
+    assert.equal(app.q('#ingredientList').children.length,1);
+    select('ささみ');
+    app.q('#clearSelectedFood').click();
+    assert.equal(app.q('#ingredientList').children.length,2);
+    assert.equal(app.q('#pointPreview').textContent,'');
+    select('ささみ');
+    app.fill('#quickGrams','75');
+    app.submit('#mealForm');await pause();
+    assert.equal(store.value.meals.length,1);
+    assert.deepEqual(store.value.meals[0].ingredients.map(item=>[item.grams,item.points]),[[80,1.6],[null,null],[75,1]]);
+    assert.deepEqual(app.failures,[]);
+  } finally {app.dom.window.close()}
+});
+
 test('photo and memo survive retries after local and remote failures, with one final local copy', async () => {
   const date=tokyoDate(new Date());
   const profile={name:'テスト',age:45,heightCm:170,startWeight:70,waist:85,goalPercent:5,startDate:date};
