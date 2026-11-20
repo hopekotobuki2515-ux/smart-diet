@@ -466,6 +466,40 @@ test('spaghetti names suggest the dry master entry without assuming the cooked w
   } finally {app.dom.window.close()}
 });
 
+test('meal entry opens quantity only for a selected ingredient and keeps the simplified flow through save', async () => {
+  const startDate=tokyoDate(new Date());
+  const store={value:{profile:{name:'テスト',heightCm:170,startWeight:70,waist:85,goalPercent:5,startDate}}};
+  const app=await openApp(store);
+  try {
+    app.q('#home [data-go=record]').click();
+    const editor=app.q('#ingredientEditor');
+    assert.equal(editor.hidden,true);
+    assert.equal(app.q('#foodShortcuts').hidden,true);
+    const extras=app.q('[name=memo]').closest('details');
+    assert.equal(extras.open,false);
+    app.fill('#foodSearch','ご飯');
+    app.q('#foodResults button').click();
+    assert.equal(editor.hidden,false);
+    assert.equal(app.q('#exactGrams').hidden,true);
+    assert.equal(app.win.document.activeElement,app.q('#quickGrams'));
+    app.fill('#quickGrams','80');
+    app.q('#addIngredient').click();
+    assert.equal(editor.hidden,true);
+    assert.match(app.q('#ingredientList').textContent,/80g.*1\.6点/);
+    assert.equal(app.win.document.activeElement,app.q('#foodSearch'));
+    extras.open=true;
+    app.fill('[name=time]','12:30');
+    app.fill('[name=memo]','食事のメモ');
+    app.submit('#mealForm');await pause();
+    assert.equal(store.value.meals[0].ingredients[0].points,1.6);
+    assert.equal(store.value.meals[0].time,'12:30');
+    assert.equal(store.value.meals[0].memo,'食事のメモ');
+    assert.equal(app.q('#foodShortcuts').hidden,false);
+    assert.equal(app.q('#foodShortcuts').open,false);
+    assert.deepEqual(app.failures,[]);
+  } finally {app.dom.window.close()}
+});
+
 test('food search displays and saves spaghetti and macaroni as distinct labels for the same master entry', async () => {
   const startDate=tokyoDate(new Date());
   const store={value:{profile:{name:'テスト',heightCm:170,startWeight:70,waist:85,goalPercent:5,startDate}}};
