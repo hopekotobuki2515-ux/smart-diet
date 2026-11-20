@@ -607,7 +607,11 @@ test('food master offers a browsable catalog and recipe ingredients in the direc
     assert.match(catalog.querySelector('[data-catalog-status]').textContent,/686件中 1〜12件/);
     catalog.querySelector('[data-catalog-next]').click();
     assert.match(catalog.querySelector('[data-catalog-status]').textContent,/13〜24件/);
-    catalog.querySelector('[data-catalog-results] button').click();
+    app.fill('#foodCatalog input[type=search]','ご飯');
+    assert.match(catalog.querySelector('[data-catalog-status]').textContent,/1件見つかりました/);
+    const rice=catalog.querySelector('[data-catalog-results] button');
+    assert.match(rice.textContent,/^ご飯（.*精白米.*第4群.*50gで1点/);
+    rice.click();
     assert.equal(catalog.open,false);
     assert.equal(app.q('#ingredientEditor').hidden,false);
     app.q('#clearSelectedFood').click();
@@ -617,6 +621,11 @@ test('food master offers a browsable catalog and recipe ingredients in the direc
     const group=direct.querySelector('select');
     group.value='第1群';
     group.dispatchEvent(new app.win.Event('change'));
+    app.fill('[data-sheet-catalog] input[type=search]','牛乳');
+    assert.match(direct.querySelector('[data-catalog-results] button').textContent,/牛乳.*第1群/);
+    app.fill('[data-sheet-catalog] input[type=search]','ご飯');
+    assert.match(direct.querySelector('[data-catalog-status]').textContent,/0件.*すべて/);
+    app.fill('[data-sheet-catalog] input[type=search]','牛乳');
     direct.querySelector('[data-catalog-results] button').click();
     assert.equal(direct.open,false);
     assert.match(app.q('[data-sheet-points]').textContent,/第1群/);
