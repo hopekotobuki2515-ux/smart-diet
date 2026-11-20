@@ -361,6 +361,37 @@ test('photo and memo survive retries after local and remote failures, with one f
   } finally {app.dom.window.close()}
 });
 
+test('saved days reopen without mixing in a draft, and the home measurement button focuses the measurement form', async () => {
+  const date=tokyoDate(new Date());
+  const oldDate='2026-08-20';
+  const profile={name:'テスト',age:45,heightCm:170,startWeight:70,waist:85,goalPercent:5,startDate:date};
+  const store={value:{profile,meals:[
+    {date,type:'朝食',food:'普通牛乳',group:'第1群',points:1},
+    {date,type:'昼食',food:'ご飯',group:'第4群',points:1.6},
+    {date:oldDate,type:'間食',food:'別の日の記録'}
+  ],measurements:{[date]:{weight:69.5}}}};
+  const app=await openApp(store);
+  try {
+    app.q('#home [data-measurement]').click();
+    assert.equal(app.win.document.activeElement,app.q('#measurementTitle'));
+    app.fill('#mealForm [name=memo]','保存前のメモ');
+    const opener=app.q(`[data-saved-diary="${date}"]`);
+    assert.equal(app.win.document.querySelectorAll('[data-saved-diary]').length,2);
+    assert.equal(app.q('[data-saved-diary]'),opener);
+    opener.click();
+    assert.match(app.q('#daySheet').textContent,/69.5 kg/);
+    assert.match(app.q('#daySheet tfoot').textContent,/2\.6点/);
+    assert.doesNotMatch(app.q('#daySheet').textContent,/保存前のメモ|別の日の記録/);
+    app.q('#daySheet button').click();
+    assert.equal(app.win.document.activeElement,opener);
+    assert.equal(app.q('#mealForm [name=memo]').value,'保存前のメモ');
+    app.q('#dayPreview').click();
+    assert.match(app.q('#daySheet').textContent,/保存前のメモ/);
+    assert.equal(store.value.meals.length,3);
+    assert.deepEqual(app.failures,[]);
+  } finally {app.dom.window.close()}
+});
+
 test('coach comment is read from the separate path, and an owner-writable field is ignored', async () => {
   const profile={name:'テスト',age:45,heightCm:170,startWeight:70,waist:85,goalPercent:5,startDate:tokyoDate(new Date())};
   const store={value:{profile,coachComments:{status:'published',message:'偽のコメント'}},comment:{status:'published',message:'今週も記録できました。\n次はご飯の量を見てみましょう。'}};

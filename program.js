@@ -156,7 +156,7 @@ function renderHome(){
   $('#home').innerHTML=`
     <div class="card"><span class="eyebrow">こんにちは、${esc(state.profile.name)}さん</span><h1>今日も、自分のペースで。</h1><p>第${w}週 / 12週間</p><div class="progress" aria-label="12週間中${w}週目">${bars}</div></div>
     <div class="card"><span class="eyebrow">今週のお話</span><h2>第${w}週　${esc(WEEK_TITLES[w-1])}</h2><p>読むことは任意です。食事の記録から始めても大丈夫です。</p><button class="button ghost" data-go="week">今週のお話を見る</button></div>
-    <div class="card"><h2>今日やること</h2><div class="row"><span>${w===1?'いつもの食事を記録':'食事を記録する'}</span><button data-go="record">記録する</button></div><div class="row"><span>体重・体調を残す（任意）</span><button data-go="record">入力する</button></div>${w===1?`<p class="muted">第1週は3日間、できれば平日2日と休日1日。現在 ${n}日分です。写真やメモだけでも記録できます。</p>`:''}</div>
+    <div class="card"><h2>今日やること</h2><div class="row"><span>${w===1?'いつもの食事を記録':'食事を記録する'}</span><button data-go="record">記録する</button></div><div class="row"><span>体重・体調を残す（任意）</span><button data-go="record" data-measurement>入力する</button></div>${w===1?`<p class="muted">第1週は3日間、できれば平日2日と休日1日。現在 ${n}日分です。写真やメモだけでも記録できます。</p>`:''}</div>
     <div class="card"><h2>体重の流れ</h2>${graph()}</div>${comment()}${renderSample()}`;
 }
 function renderWeek(){
@@ -187,6 +187,7 @@ function renderLearn(){
 }
 function renderRecord(){
   const list=(state.meals||[]).slice(-20).reverse();
+  const dates=[...new Set(list.map(entry=>entry.date))].sort().reverse();
   const date = recordDate || today();
   const previous = $('#mealForm');
   const sheet = $('#daySheet');
@@ -213,8 +214,11 @@ function renderRecord(){
     <button class="button" type="submit">この食事を保存する</button>
     <button id="dayPreview" class="button ghost" type="button">1日のダイアリーをプレビュー</button></form>
     <dialog id="daySheet" aria-labelledby="daySheetTitle"></dialog></div>
-    <div class="card"><h2>記録した食事</h2><div id="mealList">${list.length?list.map(x=>`<div class="meal-entry"><strong>${esc(x.date)}・${esc(x.type)}</strong><br>${esc(x.food||'写真・メモの記録')}${x.amount?' / '+esc(x.amount):''}${x.group?' / '+esc(x.group):''}${x.points!=null?' / '+esc(x.points)+'点':''}${x.photoId?`<div data-photo-id="${esc(x.photoId)}"></div>`:''}</div>`).join(''):'<p class="muted">まだ記録はありません。</p>'}</div></div>
-    <div class="card"><h2>体重・体調を記録する</h2><p class="muted">全部入力しなくても大丈夫です。</p><form id="measurementForm">
+    <div class="card"><h2>記録した食事</h2><div id="mealList">${dates.length?dates.map(date=>`
+      <section class="saved-diary"><h3><time datetime="${esc(date)}">${esc(date)}</time></h3>
+      ${list.filter(entry=>entry.date===date).map(x=>`<div class="meal-entry"><strong>${esc(x.type)}</strong><br>${esc(x.food||'写真・メモの記録')}${x.amount?' / '+esc(x.amount):''}${x.group?' / '+esc(x.group):''}${x.points!=null?' / '+esc(x.points)+'点':''}${x.photoId?`<div data-photo-id="${esc(x.photoId)}"></div>`:''}</div>`).join('')}
+      <button type="button" class="small-button" data-saved-diary="${esc(date)}" aria-label="${esc(date)}のダイアリーを開く">この日のダイアリーを開く</button></section>`).join(''):'<p class="muted">まだ記録はありません。</p>'}</div></div>
+    <div class="card"><h2 id="measurementTitle" tabindex="-1">体重・体調を記録する</h2><p class="muted">全部入力しなくても大丈夫です。</p><form id="measurementForm">
     <label>日付<input name="date" type="date" value="${esc(date)}" required></label><div class="two"><label>体重（kg）<input name="weight" type="number" min="10" max="500" step="0.1" inputmode="decimal"></label><label>腹囲（おへその高さ）<input name="waist" type="number" min="20" max="300" step="0.1" inputmode="decimal" placeholder="cm"></label></div>
     <label>体調<select name="condition"><option value="">選択しない</option><option>とても良い</option><option>良い</option><option>普通</option><option>やや不調</option><option>不調</option></select></label>
     <label>気分<select name="mood"><option value="">選択しない</option><option>😊 良い</option><option>🙂 まあまあ</option><option>😐 普通</option><option>😟 気になる</option></select></label>
@@ -388,7 +392,10 @@ document.addEventListener('click',async e=>{
       button.setAttribute('aria-pressed',String(selected));
     });
   }
-  else open(nav.dataset.page||nav.dataset.go);
+  else {
+    open(nav.dataset.page||nav.dataset.go);
+    if(nav.hasAttribute('data-measurement')) $('#measurementTitle').focus();
+  }
 });
 function openPhotoDB(){
   return new Promise((resolve,reject)=>{const req=indexedDB.open('hope-program-photos',1);
@@ -586,20 +593,25 @@ function sheetMeal(entries, type){
     ${html || '<tr><td colspan="5">記録なし</td></tr>'}
     ${sheetRow('小計 '+formatPoints(sumPoints(items)),scoreCells(items),'sheet-subtotal')}</tbody>`;
 }
-function showDayPreview(form){
-  if (!form.reportValidity()) return;
-  const date=form.elements.date.value;
-  const draft=formIngredients(form);
+function previewDraft(form, opener){
+  if(!form.reportValidity())return;
+  const ingredients=formIngredients(form);
   const memo=form.elements.memo.value.trim();
   const file=form.elements.photo.files[0];
   if (file && !validPhoto(file)) {
     $('#mealFeedback').textContent='15MB以下の画像を選んでください。';
     return;
   }
-  const previewPhoto=file?.type.startsWith('image/')?URL.createObjectURL(file):null;
-  const urls=previewPhoto?[previewPhoto]:[];
+  const previewPhoto=file?URL.createObjectURL(file):null;
+  const draft=ingredients.length || memo || previewPhoto
+    ? {type:mealType,ingredients,memo,time:form.elements.time.value,previewPhoto}
+    : null;
+  showDayPreview(form.elements.date.value,opener,draft);
+}
+function showDayPreview(date, opener, draft = null){
+  const urls=draft?.previewPhoto?[draft.previewPhoto]:[];
   const entries=(state.meals||[]).filter(entry=>entry.date===date);
-  if(draft.length || memo || previewPhoto) entries.push({type:mealType,ingredients:draft,memo,time:form.elements.time.value,previewPhoto});
+  if(draft)entries.push(draft);
   const items=entries.flatMap(mealItems);
   const m=state.measurements?.[date]||{};
   const stats=[['体重',m.weight,'kg'],['腹囲',m.waist,'cm'],['体調',m.condition],['気分',m.mood],['便通',m.bowel],['水分',m.water,'L']].filter(([,value])=>value!=null&&value!=='');
@@ -617,7 +629,7 @@ function showDayPreview(form){
   dialog.addEventListener('close',()=>{
     for(const url of urls)URL.revokeObjectURL(url);
     dialog.replaceChildren();
-    $('#dayPreview')?.focus();
+    if(opener.isConnected)opener.focus();
   },{once:true});
   dialog.showModal();
   loadVisiblePhotos(dialog,urls);
@@ -643,7 +655,9 @@ document.addEventListener('click',e=>{
     $('#mealFeedback').textContent='食材を削除しました。';
     $('#addIngredient').focus();
   }
-  if(e.target.id==='dayPreview')showDayPreview(form);
+  if(e.target.id==='dayPreview')previewDraft(form,e.target);
+  const saved=e.target.closest('[data-saved-diary]');
+  if(saved)showDayPreview(saved.dataset.savedDiary,saved);
 });
 document.addEventListener('submit',async e=>{
   if(!['mealForm','measurementForm','questionForm','weeklyQuestionForm','reflectionForm','goalForm'].includes(e.target.id))return;

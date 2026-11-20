@@ -22,12 +22,15 @@ label{display:block;font-size:14px;font-weight:700;margin:13px 0 5px}input,selec
 .ingredient-list:empty{display:none}
 .ingredient-list li{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 8px;border-bottom:1px solid #e6ebe5;overflow-wrap:anywhere}
 .ingredient-list button{flex:none;min-height:44px}
+.saved-diary+.saved-diary{border-top:1px solid #e6ebe5;margin-top:12px}
+.saved-diary .small-button{min-height:44px;margin-top:8px}
+#measurementTitle{scroll-margin-top:82px}
 #mealFeedback:empty,#selectedFood:empty,#pointPreview:empty{display:none}
 #daySheet{width:min(680px,calc(100% - 16px));max-width:none;max-height:calc(100dvh - 20px);padding:0;border:1px solid #b9c8bb;border-radius:14px;background:#fffdf8;color:#17315a;overscroll-behavior:contain}
 #daySheet::backdrop{background:#14242aaf}
 #daySheet header{position:sticky;top:0;display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 12px;background:#edf5ef;border-bottom:1px solid #b9c8bb}
 #daySheet header h2{margin:0;white-space:nowrap}
-#daySheet header button{min-height:44px;white-space:nowrap}
+#daySheet header button{flex:0 0 auto;width:auto;min-height:44px;white-space:nowrap}
 .sheet-content{padding:10px 10px 14px}
 .sheet-date{font-weight:700}
 .sheet-content dl{display:flex;flex-wrap:wrap;gap:4px 14px;margin:0 0 10px;font-size:13px}
