@@ -423,6 +423,43 @@ test('dish name suggestions use master foods and prior selections without assign
   } finally {app.dom.window.close()}
 });
 
+test('typing beef records group 2 without a cut or invented points', async () => {
+  const date=tokyoDate(new Date());
+  const profile={name:'テスト',heightCm:170,startWeight:70,waist:85,goalPercent:5,startDate:date};
+  const store={value:{profile,meals:[]}};
+  const app=await openApp(store);
+  try {
+    app.q('#home [data-go=record]').click();
+    const foodSearch=app.q('#foodSearch');
+    const photo=app.q('#mealForm [name=photo]');
+    assert.ok(foodSearch.compareDocumentPosition(photo)&app.win.Node.DOCUMENT_POSITION_FOLLOWING);
+    assert.equal(photo.closest('details').open,false);
+    app.fill('#foodSearch','牛肉');
+    assert.match(app.q('#foodResults').textContent,/牛肉.*第2群/);
+    assert.match(app.q('#foodResults').textContent,/ばら・輸入牛.*第2群/);
+    app.submit('#mealForm');await pause();
+    assert.equal(store.value.meals.length,1);
+    const [first]=store.value.meals[0].ingredients;
+    assert.deepEqual([first.food,first.group,first.points,first.masterId],['牛肉','第2群',null,null]);
+    app.q('#editDaySheet').click();
+    app.q('[data-sheet-meal="昼食"]').click();
+    app.fill('#sheetEntryForm [name=food]','ぎゅうにく');
+    assert.match(app.q('[data-sheet-points]').textContent,/第2群：○/);
+    app.submit('#sheetEntryForm');await pause();
+    assert.equal(store.value.meals.length,2);
+    const [second]=store.value.meals[1].ingredients;
+    assert.deepEqual([second.food,second.group,second.points],['牛肉','第2群',null]);
+    if(!app.q('#sheetEntryForm'))app.q('[data-sheet-meal="昼食"]').click();
+    app.fill('#sheetEntryForm [name=food]','牛肉');
+    const cut=[...app.win.document.querySelectorAll('[data-sheet-results] button')].find(button=>button.textContent.startsWith('ばら・輸入牛'));
+    cut.click();
+    app.fill('#sheetEntryForm [name=quickAmount]','custom');
+    app.fill('#sheetEntryForm [name=grams]','22');
+    assert.match(app.q('[data-sheet-points]').textContent,/第2群：1点/);
+    assert.deepEqual(app.failures,[]);
+  } finally {app.dom.window.close()}
+});
+
 test('normal meal entry previews a Japanese recipe after IME commit and opens its prefilled draft', async () => {
   const date=tokyoDate(new Date());
   const store={value:{profile:{name:'テスト',heightCm:170,startWeight:70,waist:85,goalPercent:5,startDate:date}}};
