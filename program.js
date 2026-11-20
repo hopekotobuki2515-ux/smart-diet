@@ -253,21 +253,8 @@ function renderRecord(){
     <form id="mealForm"><label>日付<input id="mealDate" name="date" type="date" value="${esc(date)}" required></label>
     <button id="editDaySheet" class="button ghost" type="button">ダイアリーに直接入力</button>
     <div class="tabs diary-tabs" role="group" aria-label="食事の種類">${meals.map(t=>`<button type="button" data-meal="${t}" aria-pressed="${t===mealType}" class="${t===mealType?'selected':''}">${t}</button>`).join('')}</div>
-    <label>写真（任意・この端末だけに保存）<input name="photo" type="file" accept="image/*"></label>
-    <label>料理名（任意）<select id="dishChoice">
-      <option value="">料理名を付けない</option>
-      ${dishNames.map(name=>`<option value="name:${esc(name)}">${esc(name)}</option>`).join('')}
-      <option value="custom">料理名を入力する</option>
-    </select></label>
-    <div id="customDish" hidden><label>料理名を入力<input name="dish" maxlength="120" placeholder="例：牛丼、ナポリタン"></label></div>
-    <div id="dishNameSuggestions" class="food-shortcuts" aria-live="polite" hidden></div>
-    <div id="mealRecipePreview" aria-live="polite" hidden></div>
-    <div id="dishSuggestions" class="food-shortcuts" aria-live="polite" hidden></div>
     <label>食材・料理を探す<input id="foodSearch" type="search" autocomplete="off" placeholder="例：牛丼、ご飯、ささみ"></label>
     <div id="foodResults" class="food-results" aria-live="polite"></div>
-    <details id="foodCatalog" class="meal-options"></details>
-    <details id="foodShortcuts" class="meal-options" hidden><summary>最近使った食材・登録済みの食材</summary>
-    <div id="recentFoods" class="food-shortcuts"></div><div id="savedFoods" class="food-shortcuts"></div></details>
     <p id="selectedFood" class="muted" aria-live="polite"></p>
     <div id="ingredientEditor" hidden>
     <label>食べた量<select id="quickGrams"><option value="">量がわからない</option>${quickGrams.map(g=>`<option value="${g}">${g}g</option>`).join('')}<option value="custom">グラムを入力する</option></select></label>
@@ -278,6 +265,22 @@ function renderRecord(){
     <div id="mealFeedback" class="muted" role="status"></div>
     <p id="ingredientCount" class="muted" hidden></p>
     <ul id="ingredientList" class="ingredient-list" aria-label="追加した食材"></ul>
+    <button class="button" type="submit">この食事を保存する</button>
+    <details class="meal-options"><summary>写真・料理名を手入力（任意）</summary>
+    <label>写真（任意・この端末だけに保存）<input name="photo" type="file" accept="image/*"></label>
+    <label>料理名（任意）<select id="dishChoice">
+      <option value="">料理名を付けない</option>
+      ${dishNames.map(name=>`<option value="name:${esc(name)}">${esc(name)}</option>`).join('')}
+      <option value="custom">料理名を入力する</option>
+    </select></label>
+    <div id="customDish" hidden><label>料理名を入力<input name="dish" maxlength="120" placeholder="例：牛丼、ナポリタン"></label></div>
+    <div id="dishNameSuggestions" class="food-shortcuts" aria-live="polite" hidden></div>
+    <div id="mealRecipePreview" aria-live="polite" hidden></div>
+    <div id="dishSuggestions" class="food-shortcuts" aria-live="polite" hidden></div>
+    </details>
+    <details id="foodCatalog" class="meal-options"></details>
+    <details id="foodShortcuts" class="meal-options" hidden><summary>最近使った食材・登録済みの食材</summary>
+    <div id="recentFoods" class="food-shortcuts"></div><div id="savedFoods" class="food-shortcuts"></div></details>
     <details id="manualFood" class="meal-options"><summary>食材名・食品群・点数を手入力</summary>
     <label>食材名<input name="food" maxlength="120"></label><label>量のメモ<input name="amount" maxlength="80"></label>
     <div class="two"><label>食品群<select name="group"><option value="">未選択</option>${groups.map(g=>`<option>${g}</option>`).join('')}</select></label><label>点数<input name="points" type="number" min="0" max="1000" step="0.01" inputmode="decimal"></label></div>
@@ -285,7 +288,6 @@ function renderRecord(){
     <details class="meal-options"><summary>時刻・メモを追加（任意）</summary>
     <label>食べた時刻<input name="time" type="time"></label>
     <label>ひとこと<textarea name="memo" maxlength="500"></textarea></label></details>
-    <button class="button" type="submit">この食事を保存する</button>
     <button id="dayPreview" class="button ghost" type="button">1日のダイアリーをプレビュー</button></form>
     <dialog id="daySheet" aria-labelledby="daySheetTitle"></dialog></div>
     <div class="card"><h2>記録した食事</h2><div id="mealList">${dates.length?dates.map(date=>`
@@ -546,7 +548,30 @@ const foodAliases = new Map([
   ...['ご飯','ごはん','白ご飯','白ごはん'].map(name=>[name,'めし水稲精白米']),
   ['ささみ','ささ身'],['ササミ','ささ身']
 ]);
+const isBeefQuery = value => ['牛肉','ぎゅうにく','ギュウニク'].includes(searchKey(value));
+const isBeefCut = food => food.category.startsWith('肉類・牛肉');
+function beefGroupOnly(value){
+  if(masterStatus!=='ready'||!isBeefQuery(value))return null;
+  const cuts=foodMaster.filter(isBeefCut);
+  const group=cuts[0]?.group;
+  return group && cuts.every(food=>food.group===group)?{food:'牛肉',group}:null;
+}
+function unmeasuredGroupItem(food,dish){
+  return {...food,dish,grams:null,amount:'',masterId:null,category:null,points:null,pointSource:null};
+}
+function beefCutOptions(buttons){
+  const details=document.createElement('details');
+  details.className='meal-options';
+  const summary=document.createElement('summary');
+  summary.textContent='部位を選んで点数を計算';
+  const choices=document.createElement('div');
+  choices.className='food-results';
+  choices.append(...buttons);
+  details.append(summary,choices);
+  return details;
+}
 function findFoods(value, foods=foodMaster, limit=15){
+  if(isBeefQuery(value))return foods.filter(isBeefCut).slice(0,limit).map(food=>({food,label:food.name}));
   const typed=searchKey(value);
   const spelling=typed.replace(/\(乾麺\)$/,'');
   const spaghettiQuery=Boolean(spelling)&&['スパゲティ','スパゲッティ'].some(name=>name.startsWith(spelling));
@@ -652,6 +677,23 @@ function searchFoods(){
   });
   const recipeButtons=matches.length?[]:recipeSearchButtons(value,openRecipeFromMainSearch);
   const results=$('#foodResults');
+  const generic=beefGroupOnly(value);
+  if(generic){
+    const quick=document.createElement('button');
+    quick.type='button';
+    quick.textContent=generic.food+'｜'+generic.group+'で追加（部位不明）';
+    quick.onclick=()=>{
+      const form=search.form;
+      ingredients.push(unmeasuredGroupItem(generic,form.elements.dish.value.trim()));
+      search.value=form.dataset.foodLabel??form.elements.food.value;
+      results.replaceChildren();
+      renderIngredients();
+      $('#mealFeedback').textContent='牛肉を'+generic.group+'に追加しました。';
+      search.focus();
+    };
+    results.replaceChildren(quick,beefCutOptions(foodButtons));
+    return;
+  }
   results.replaceChildren(...foodButtons,...recipeButtons);
   if(value.trim() && !foodButtons.length && !recipeButtons.length){
     results.textContent=masterStatus==='loading'?'食品マスターを読み込み中です。'
@@ -993,7 +1035,13 @@ function addCurrentIngredient(form){
 
 function formIngredients(form){
   const pending=readIngredient(form);
-  return pending?[...ingredients,pending]:[...ingredients];
+  const generic=beefGroupOnly($('#foodSearch').value);
+  const items=pending?[...ingredients,pending]:[...ingredients];
+  if(generic){
+    if(pending?.food===generic.food)pending.group ||= generic.group;
+    else items.push(unmeasuredGroupItem(generic,form.elements.dish.value.trim()));
+  }
+  return items;
 }
 function sumPoints(items){
   const scores=items.map(item=>item.points).filter(Number.isFinite);
@@ -1227,10 +1275,13 @@ function mountSheetEntry(dialog, target, date, opener, initialDish=''){
     const matches=findFoods(value);
     const titles=findDishNames(value);
     const exact=dishKey(value)==='スパゲティ'?null:exactFood(value,matches);
-    const fromDish=exact?[]:dishFoodChoices(value);
+    const generic=beefGroupOnly(value);
+    const fromDish=exact||generic?[]:dishFoodChoices(value);
     setRecipeDish(fromDish.length?value:'',fromDish);
     candidates=fromDish.length?fromDish:matches;
+    if(generic)form.elements.group.value=generic.group;
     setSheetSelection(exact,!fromDish.length&&!titles.length);
+    if(generic)form.querySelector('[data-sheet-manual-group]').hidden=true;
     const foodButtons=candidates.filter(candidate=>candidate!==exact&&!recipeItems.has(candidateKey(candidate))).map(candidate=>{
       const button=document.createElement('button');
       button.type='button';
@@ -1244,6 +1295,12 @@ function mountSheetEntry(dialog, target, date, opener, initialDish=''){
       foodButtons.unshift(caption);
     }
     const dishButtons=dishNameButtons(titles,chooseRecipe);
+    if(generic){
+      const caption=document.createElement('p');
+      caption.textContent=generic.food+'｜'+generic.group+'（部位不明）';
+      results.replaceChildren(caption,beefCutOptions(foodButtons));
+      return;
+    }
     results.replaceChildren(...dishButtons,...foodButtons);
     if(value&&!candidates.length&&!titles.length){
       results.textContent=masterStatus==='loading'?'食品マスターを読み込み中です。'
@@ -1276,7 +1333,8 @@ function mountSheetEntry(dialog, target, date, opener, initialDish=''){
       if(!selection && candidates.length && !form.elements.group.value){
         error.textContent='食材候補から選んでください。';return;
       }
-      items=[sheetItem(name,form.elements.dish.value.trim(),gramsValue(),selection,form.elements.group.value||null)];
+      const generic=beefGroupOnly(name);
+      items=[sheetItem(generic?.food??name,form.elements.dish.value.trim(),gramsValue(),selection,form.elements.group.value||null)];
     }
     const entry=saveAttempt??={
       ...makeMealEntry({date,type,items}),
@@ -1387,7 +1445,7 @@ document.addEventListener('submit',async e=>{
     if(f.id==='mealForm'){
       const file=f.elements.photo.files[0], memo=f.elements.memo.value.trim(), items=formIngredients(f);
       const query=$('#foodSearch').value.trim(), selected=f.elements.food.value.trim();
-      if(query && (!selected || (f.dataset.masterId && query!==selected && query!==f.dataset.foodLabel)))throw new Error('検索結果から食材を選んでください。');
+      if(query && !beefGroupOnly(query) && (!selected || (f.dataset.masterId && query!==selected && query!==f.dataset.foodLabel)))throw new Error('検索結果から食材を選んでください。');
       if(!file&&!items.length&&!memo)throw new Error('写真、食材、メモのいずれかを入力してください。');
       if(file && !validPhoto(file))throw new Error('15MB以下の画像を選んでください。');
       const account=user;
