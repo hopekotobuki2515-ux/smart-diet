@@ -26,7 +26,7 @@ const foodId = x => JSON.stringify([x.name,x.category,x.gramsPerPoint]);
 const foodFromId = id => foodMaster.find(x=>foodId(x)===id);
 const meals = ['朝食','昼食','夕食','間食','飲み物','飲酒'];
 const groups = ['第1群','第2群','第3群','第4群'];
-const exampleDishes = ['ご飯','焼き魚','みそ汁','アジフライ','スパゲティ'];
+const exampleDishes = ['ご飯','焼き魚','みそ汁','アジフライ','スパゲティ','牛丼'];
 const dryPasta = 'マカロニ・スパゲッティ・乾';
 const drySpaghettiLabel = 'スパゲッティ（乾麺）';
 const dryMacaroniLabel = 'マカロニ（乾麺）';
@@ -259,10 +259,11 @@ function renderRecord(){
       ${dishNames.map(name=>`<option value="name:${esc(name)}">${esc(name)}</option>`).join('')}
       <option value="custom">料理名を入力する</option>
     </select></label>
-    <div id="customDish" hidden><label>料理名を入力<input name="dish" maxlength="120" placeholder="例：ささみのソテー"></label></div>
+    <div id="customDish" hidden><label>料理名を入力<input name="dish" maxlength="120" placeholder="例：牛丼、ナポリタン"></label></div>
     <div id="dishNameSuggestions" class="food-shortcuts" aria-live="polite" hidden></div>
+    <div id="mealRecipePreview" aria-live="polite" hidden></div>
     <div id="dishSuggestions" class="food-shortcuts" aria-live="polite" hidden></div>
-    <label>食材を探す<input id="foodSearch" type="search" autocomplete="off" placeholder="例：ご飯、ささみ、ごま油"></label>
+    <label>食材・料理を探す<input id="foodSearch" type="search" autocomplete="off" placeholder="例：牛丼、ご飯、ささみ"></label>
     <div id="foodResults" class="food-results" aria-live="polite"></div>
     <details id="foodCatalog" class="meal-options"></details>
     <details id="foodShortcuts" class="meal-options" hidden><summary>最近使った食材・登録済みの食材</summary>
@@ -301,7 +302,8 @@ function renderRecord(){
   loadVisiblePhotos();
   if (previous) $('#mealForm').replaceWith(previous);
   const catalog=$('#foodCatalog');
-  if(!catalog.firstChild)mountFoodCatalog(catalog,({food,label})=>{if(selectFood(food,label))$('#quickGrams').focus();});
+  if(!catalog.firstChild)mountFoodCatalog(catalog,
+    ({food,label})=>{if(selectFood(food,label))$('#quickGrams').focus();},openRecipeFromMainSearch);
   renderFoodShortcuts();
   renderDishSuggestions();
   renderIngredients();
@@ -571,7 +573,7 @@ function exactFood(value,candidates){
     || (key==='スパゲティ'&&label===drySpaghettiLabel));
   return exact.length===1?exact[0]:null;
 }
-function mountFoodCatalog(catalog,onSelect){
+function mountFoodCatalog(catalog,onSelect,onSelectRecipe){
   catalog.innerHTML=`<summary>食品マスターから選ぶ</summary>
     <label>食品マスター内を検索<input type="search" placeholder="例：ご飯、豆腐、牛乳" autocomplete="off"></label>
     <label>食品群で絞る<select><option value="">すべて</option>${groups.map(group=>`<option>${group}</option>`).join('')}</select></label>
@@ -616,6 +618,13 @@ function mountFoodCatalog(catalog,onSelect){
       };
       return button;
     }));
+    if(onSelectRecipe&&query&&!available){
+      const recipes=recipeSearchButtons(query,onSelectRecipe);
+      if(recipes.length){
+        status.textContent='一致する料理';
+        results.append(...recipes);
+      }
+    }
     prev.disabled=page===0;
     next.disabled=start+size>=available;
     prev.parentElement.hidden=available<=size;
@@ -623,22 +632,52 @@ function mountFoodCatalog(catalog,onSelect){
   catalog.addEventListener('toggle',renderCatalog);
   catalog.addEventListener('foodmasterchange',renderCatalog);
   group.onchange=()=>{page=0;renderCatalog();};
-  search.oninput=()=>{page=0;renderCatalog();};
+  const updateSearch=()=>{page=0;renderCatalog();};
+  search.oninput=event=>{if(!event.isComposing)updateSearch();};
+  search.addEventListener('compositionend',updateSearch);
   search.onkeydown=event=>{if(event.key==='Enter'&&!event.isComposing)event.preventDefault();};
   prev.onclick=()=>{page-=1;renderCatalog();};
   next.onclick=()=>{page+=1;renderCatalog();};
 }
 function searchFoods(){
-  const value=$('#foodSearch').value;
+  const search=$('#foodSearch');
+  const value=search.value;
   const matches=findFoods(value);
-  $('#foodResults').replaceChildren(...matches.map(({food:x,label})=>{
-      const button=document.createElement('button');
-      button.type='button';
-      button.textContent=label===x.name?`${x.name}（${x.category}・${x.group} / 1点 ${x.gramsPerPoint}g）`:foodDescription(x,label);
-    button.onclick=()=>{if(selectFood(x,label))$('#quickGrams').focus();};
-      return button;
-  }));
-  if(value.trim() && !matches.length && masterStatus==='ready') $('#foodResults').textContent='該当する食材がありません。検索語を変えるか、下の手入力欄を使えます。';
+  const foodButtons=matches.map(({food,label})=>{
+    const button=document.createElement('button');
+    button.type='button';
+    button.textContent=label===food.name?`${food.name}（${food.category}・${food.group} / 1点 ${food.gramsPerPoint}g）`:foodDescription(food,label);
+    button.onclick=()=>{if(selectFood(food,label))$('#quickGrams').focus();};
+    return button;
+  });
+  const recipeButtons=matches.length?[]:recipeSearchButtons(value,openRecipeFromMainSearch);
+  const results=$('#foodResults');
+  results.replaceChildren(...foodButtons,...recipeButtons);
+  if(value.trim() && !foodButtons.length && !recipeButtons.length){
+    results.textContent=masterStatus==='loading'?'食品マスターを読み込み中です。'
+      :masterStatus==='failed'?'食品マスターを読み込めませんでした。ページを再読み込みしてください。'
+      :'一致する食材・料理がありません。検索語を変えるか、下の手入力欄を使えます。';
+  }
+}
+function openRecipeFromMainSearch(title){
+  const search=$('#foodSearch');
+  const form=search.form;
+  if(!form.elements.date.reportValidity())return;
+  search.value=form.dataset.foodLabel??form.elements.food.value;
+  $('#foodResults').replaceChildren();
+  $('#foodCatalog').open=false;
+  showDayPreview(form.elements.date.value,search,null,mealType,title);
+}
+function recipeSearchButtons(value,onSelect){
+  const titles=findDishNames(value);
+  const exact=dishFoodChoices(value).length?value.trim():'';
+  return [...new Set([exact,...titles].filter(Boolean))].map(title=>{
+    const button=document.createElement('button');
+    button.type='button';
+    button.textContent=title+'の下書きを開く';
+    button.onclick=()=>onSelect(title);
+    return button;
+  });
 }
 function findDishNames(value){
   const query=searchKey(value);
@@ -731,6 +770,32 @@ function renderDishSuggestions(){
   }));
   const box=$('#dishSuggestions');
   const foods=dishFoodChoices(dishInput.value);
+  const preview=$('#mealRecipePreview');
+  const draft=foods.length?dishDraftFoods(dishInput.value,foods):[];
+  preview.hidden=draft.length===0;
+  preview.replaceChildren();
+  if(draft.length){
+    const heading=document.createElement('p');
+    const title=document.createElement('strong');
+    title.textContent=dishInput.value.trim()+'の下書き';
+    heading.append(title);
+    const list=document.createElement('ul');
+    for(const {food,label} of draft){
+      const item=document.createElement('li');
+      item.textContent=label+'｜'+food.group;
+      list.append(item);
+    }
+    const edit=document.createElement('button');
+    edit.type='button';
+    edit.className='button ghost';
+    edit.textContent='下書きに分量を入れる';
+    edit.onclick=()=>{
+      if(dishInput.form.elements.date.reportValidity()){
+        showDayPreview(dishInput.form.elements.date.value,edit,null,mealType,dishInput.value.trim());
+      }
+    };
+    preview.append(heading,list,edit);
+  }
   box.hidden=!dish || masterStatus!=='ready' || (!foods.length && titles.length>0);
   if(box.hidden){box.replaceChildren();return}
   const caption=document.createElement('p');
@@ -757,8 +822,8 @@ document.addEventListener('input',e=>{
     recordDate=e.target.value;
     $('#measurementForm').elements.date.value=recordDate;
   }
-  if(e.target.id==='foodSearch')searchFoods();
-  if(e.target===f.elements.dish)renderDishSuggestions();
+  if(e.target.id==='foodSearch'&&!e.isComposing)searchFoods();
+  if(e.target===f.elements.dish&&!e.isComposing)renderDishSuggestions();
   if(e.target.id==='quickGrams'){
     const custom=e.target.value==='custom';
     $('#exactGrams').hidden=!custom;
@@ -770,6 +835,13 @@ document.addEventListener('input',e=>{
     showMasterStatus();
   }
   if(f.contains(e.target)) updatePoints();
+});
+document.addEventListener('compositionend',event=>{
+  if(event.target.id==='foodSearch')searchFoods();
+  if(event.target===$('#mealForm')?.elements.dish)renderDishSuggestions();
+});
+document.addEventListener('keydown',event=>{
+  if(event.key==='Enter'&&!event.isComposing && (event.target.id==='foodSearch'||event.target===$('#mealForm')?.elements.dish))event.preventDefault();
 });
 function selectFood(candidate, explicitLabel){
   const f=$('#mealForm'),name=typeof candidate==='string'?candidate:candidate.name;
@@ -965,7 +1037,7 @@ function makeMealEntry({date,type,time='',memo='',photoId=null,items}){
     category:single?.category??null,group:single?.group??null,points:sumPoints(items),
     pointSource:single?.pointSource??null,ingredients:items,createdAt:new Date().toISOString()};
 }
-function mountSheetEntry(dialog, target, date, opener){
+function mountSheetEntry(dialog, target, date, opener, initialDish=''){
   const previous=dialog.querySelector('#sheetEntryForm');
   if(previous){previous.querySelector('[name=food]').focus();return}
   const type=target.dataset.sheetMeal;
@@ -1129,11 +1201,7 @@ function mountSheetEntry(dialog, target, date, opener){
     if(catalog.contains(event.target))return;
     saveAttempt=null;
     error.textContent='';
-    if(event.target===form.elements.food&&!event.isComposing){
-      form.elements.group.value='';
-      resetSheetAmount();
-      renderCandidates();
-    }
+    if(event.target===form.elements.food&&!event.isComposing)updateSheetQuery();
     if(event.target===form.elements.quickAmount){
       const custom=event.target.value==='custom';
       form.querySelector('[data-sheet-custom-grams]').hidden=!custom;
@@ -1142,6 +1210,14 @@ function mountSheetEntry(dialog, target, date, opener){
     }
     updateScore();
   });
+  function updateSheetQuery(){
+    saveAttempt=null;
+    error.textContent='';
+    form.elements.group.value='';
+    resetSheetAmount();
+    renderCandidates();
+  }
+  form.elements.food.addEventListener('compositionend',updateSheetQuery);
   form.elements.food.addEventListener('keydown',event=>{
     if(event.key==='Enter'&&!event.isComposing)event.preventDefault();
   });
@@ -1222,6 +1298,7 @@ function mountSheetEntry(dialog, target, date, opener){
       form.inert=false;
     }
   });
+  if(initialDish)chooseRecipe(initialDish);
 }
 function previewDraft(form, opener){
   if(!form.reportValidity())return;
@@ -1238,7 +1315,7 @@ function previewDraft(form, opener){
     : null;
   showDayPreview(form.elements.date.value,opener,draft);
 }
-function showDayPreview(date, opener, draft = null, editing = false){
+function showDayPreview(date, opener, draft = null, editing = false, initialDish=''){
   const urls=draft?.previewPhoto?[draft.previewPhoto]:[];
   const entries=(state.meals||[]).filter(entry=>entry.date===date);
   if(draft)entries.push(draft);
@@ -1251,7 +1328,7 @@ function showDayPreview(date, opener, draft = null, editing = false){
     ${stats.length?`<dl>${stats.map(([label,value,unit])=>`<div><dt>${label}</dt><dd>${esc(value)}${unit?' '+unit:''}</dd></div>`).join('')}</dl>`:''}
     <table aria-label="食材と食品群の点数"><colgroup><col class="sheet-item-col"><col span="4"></colgroup>
     <thead><tr><th scope="col">メニュー・食材</th>${groups.map(group=>`<th scope="col">${group}</th>`).join('')}</tr></thead>
-    ${meals.filter((type,index)=>index<4||entries.some(entry=>entry.type===type)).map(type=>sheetMeal(entries.filter(entry=>entry.type===type),type,editing)).join('')}
+    ${meals.filter((type,index)=>index<4||type===editing||entries.some(entry=>entry.type===type)).map(type=>sheetMeal(entries.filter(entry=>entry.type===type),type,editing)).join('')}
     <tfoot>${sheetRow('1日の合計 '+formatPoints(sumPoints(items)),scoreCells(items))}</tfoot></table>
     <p class="muted">1点＝${PROGRAM.kcalPerPoint}kcal。○は食品群の記録です。点数が確認できた分を集計しています。</p>
     ${m.memo?`<p class="sheet-note"><strong>今日のひと言</strong><br>${esc(m.memo)}</p>`:''}</div>`;
@@ -1265,7 +1342,11 @@ function showDayPreview(date, opener, draft = null, editing = false){
     if(opener.isConnected)opener.focus();
   },{once:true});
   dialog.showModal();
-  if(typeof editing==='string')dialog.querySelector(`[data-sheet-meal="${editing}"]`)?.focus();
+  if(typeof editing==='string'){
+    const target=dialog.querySelector(`[data-sheet-meal="${editing}"]`);
+    if(target&&initialDish)mountSheetEntry(dialog,target,date,opener,initialDish);
+    else target?.focus();
+  }
   loadVisiblePhotos(dialog,urls);
 }
 const validPhoto = file => file.type.startsWith('image/') && file.size<=15*1024*1024;
