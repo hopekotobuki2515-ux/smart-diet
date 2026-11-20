@@ -229,7 +229,8 @@ function renderLearn(){
   const w = week();
   $('#learn').innerHTML = `<div class="card"><h1>学び</h1>
     <p>12週間のテーマを確認できます。今週のお話と、すでに進んだ週の教材を読み返せます。</p>
-    <button class="button ghost" data-go="week">今週のお話を見る</button></div>
+    <button class="button ghost" data-go="week">今週のお話を見る</button>
+    <p><a href="./sato-12-weeks.html">佐藤さんの12週間を読む</a></p></div>
     <div class="card"><h2>12週間のテーマ</h2><ol class="lesson-list">
     ${WEEK_TITLES.map((title, index) => {
       const number = index + 1;

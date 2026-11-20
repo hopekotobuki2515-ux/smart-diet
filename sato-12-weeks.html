@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="架空の参加者・佐藤さんとトレーナーの村田健作の会話で、食事記録、四群点数法、運動、体重維持までの全12回を紹介します。">
+<meta name="robots" content="noindex">
+<title>スマートダイエット教室｜佐藤さんの12週間</title>
+<style>
+  #smart-diet-chat {
+    --ink: #29362e;
+    --green: #235541;
+    --mint: #edf5ef;
+    --line: #dce5de;
+    color: var(--ink);
+    background: #fff;
+    border-top: 4px solid var(--green);
+    font: 16px/1.85 "Inter", "Noto Sans CJK JP", "Hiragino Sans", "Yu Gothic", sans-serif;
+    line-break: strict;
+  }
+  #smart-diet-chat, #smart-diet-chat * { box-sizing: border-box; }
+  #smart-diet-chat :is(h1, h2, p) { margin: 0; }
+  #smart-diet-chat .diet-inner {
+    width: min(100% - clamp(24px, 7vw, 72px), 780px);
+    margin-inline: auto;
+    padding-block: clamp(30px, 6vw, 64px) 42px;
+  }
+  #smart-diet-chat .diet-opening { text-align: center; }
+  #smart-diet-chat h1 {
+    color: var(--green);
+    font-size: clamp(25px, 4.5vw, 42px);
+    font-weight: 730;
+    line-height: 1.4;
+    letter-spacing: .015em;
+  }
+  #smart-diet-chat h1 span { display: block; font-size: .74em; margin-top: 6px; }
+  #smart-diet-chat h1::after, #smart-diet-chat .diet-panel h2::after {
+    display: block;
+    content: "";
+    width: 32px;
+    height: 3px;
+    margin: 12px auto 0;
+    border-radius: 3px;
+    background: #d77936;
+  }
+  #smart-diet-chat .diet-opening p {
+    max-width: 46ch;
+    margin: 18px auto 24px;
+    text-align: start;
+  }
+  #smart-diet-chat .diet-panel {
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: clamp(14px, 3.5vw, 28px);
+    background: #fff;
+  }
+  #smart-diet-chat .diet-panel + .diet-panel { margin-top: 14px; }
+  #smart-diet-chat h2 {
+    color: var(--green);
+    font-size: clamp(17px, 2.8vw, 23px);
+    font-weight: 700;
+    line-height: 1.5;
+    text-align: center;
+    text-wrap: balance;
+  }
+  #smart-diet-chat .diet-week { white-space: nowrap; }
+  #smart-diet-chat .diet-overview { margin-bottom: 24px; background: #f8fbf8; }
+  #smart-diet-chat .diet-overview p { margin: 14px auto 0; max-width: 48ch; }
+  #smart-diet-chat .diet-dialogue {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 18px;
+    padding-inline: 7px;
+  }
+  #smart-diet-chat .diet-message {
+    max-width: min(88%, 32em);
+    min-width: 0;
+    font-size: 1rem;
+    overflow-wrap: anywhere;
+  }
+  #smart-diet-chat .diet-message--sato {
+    --bubble-fill: #f0f2f4;
+    align-self: flex-start;
+  }
+  #smart-diet-chat .diet-message--murata {
+    --bubble-fill: #dcf3d9;
+    align-self: flex-end;
+  }
+  #smart-diet-chat .diet-speaker {
+    display: block;
+    margin: 0 4px 3px;
+    color: #47584f;
+    font-size: .8125rem;
+    line-height: 1.45;
+  }
+  #smart-diet-chat .diet-message--murata .diet-speaker {
+    color: var(--green);
+    text-align: end;
+  }
+  #smart-diet-chat .diet-bubble {
+    display: block;
+    position: relative;
+    padding: 9px 13px;
+    border-radius: 15px;
+    background: var(--bubble-fill);
+    line-height: 1.75;
+  }
+  #smart-diet-chat .diet-bubble::before {
+    position: absolute;
+    top: 4px;
+    width: 9px;
+    height: 11px;
+    background: var(--bubble-fill);
+    content: "";
+  }
+  #smart-diet-chat .diet-message--sato .diet-bubble::before {
+    left: -6px;
+    clip-path: polygon(0 0, 100% 24%, 100% 100%);
+  }
+  #smart-diet-chat .diet-message--murata .diet-bubble::before {
+    right: -6px;
+    clip-path: polygon(100% 0, 0 24%, 0 100%);
+  }
+  #smart-diet-chat .diet-close {
+    margin-top: 24px;
+    padding: 18px clamp(14px, 3.5vw, 28px);
+    border-radius: 16px;
+    background: var(--mint);
+    text-align: center;
+  }
+
+  body { margin: 0; }
+  #smart-diet-chat .diet-bmi {
+    margin: 18px 0 0;
+    padding: 12px 15px;
+    border-radius: 12px;
+    background: #f4f8f4;
+  }
+  #smart-diet-chat .diet-bmi p + p { margin-top: 5px; }
+  #smart-diet-chat .diet-bmi a { color: var(--green); text-underline-offset: .18em; }
+
+  #smart-diet-chat .diet-contents {
+    margin-bottom: 14px;
+    background: #f8fbf8;
+  }
+  #smart-diet-chat .diet-contents ol {
+    margin: 14px auto 0;
+    max-width: 39em;
+    padding-inline-start: 2.3em;
+  }
+  #smart-diet-chat .diet-contents li::marker { color: var(--green); }
+  #smart-diet-chat .diet-contents a {
+    display: block;
+    padding: 5px 0;
+  }
+  #smart-diet-chat .diet-contents a,
+  #smart-diet-chat .diet-lesson a {
+    color: var(--green);
+    text-underline-offset: .16em;
+  }
+  #smart-diet-chat .diet-lesson {
+    margin: 18px 0 0;
+    padding: 14px clamp(12px, 3vw, 20px);
+    border-radius: 12px;
+    background: #f4f8f4;
+  }
+  #smart-diet-chat .diet-lesson h3 {
+    margin: 0 0 8px;
+    color: var(--green);
+    font-size: 1.0625em;
+    line-height: 1.55;
+  }
+  #smart-diet-chat .diet-lesson p + p { margin-top: 8px; }
+  #smart-diet-chat .diet-diary {
+    margin-block: 12px;
+    padding: 8px 12px;
+    border-inline-start: 3px solid #79a68a;
+    background: #fff;
+  }
+  #smart-diet-chat .diet-diary dt { font-weight: 700; }
+  #smart-diet-chat .diet-diary dd { margin: 0 0 6px; }
+  #smart-diet-chat .diet-scale {
+    margin: 12px 0;
+    padding: 14px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #fff;
+    text-align: center;
+  }
+  #smart-diet-chat .diet-scale-body {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 124px;
+    min-height: 34px;
+    margin: 33px auto 8px;
+    border-radius: 8px;
+    background: #d5e1d9;
+  }
+  #smart-diet-chat .diet-scale-bowl {
+    position: absolute;
+    bottom: 100%;
+    width: 86px;
+    height: 28px;
+    border: 2px solid #54715f;
+    border-radius: 3px 3px 32px 32px;
+    background: #f4f8f4;
+  }
+  #smart-diet-chat .diet-scale-display {
+    padding: 1px 9px;
+    border-radius: 4px;
+    background: #f8fcf7;
+    color: #294936;
+    font: 700 17px/1.3 "Courier New", monospace;
+  }
+  #smart-diet-chat .diet-measure { padding-inline-start: 1.6em; }
+  #smart-diet-chat [id^="week-"] { scroll-margin-top: 14px; }
+</style>
+</head>
+<body>
+<main>
+<article id="smart-diet-chat" lang="ja" aria-labelledby="diet-chat-title">
+  <div class="diet-inner">
+    <header class="diet-opening">
+      <h1 id="diet-chat-title">スマートダイエット教室<span>佐藤さんの12週間</span></h1>
+      <p>健診をきっかけに、食事を見直したいと思った佐藤さん。架空の参加者・佐藤さんと、トレーナーの村田健作の会話を通して、教室の12週間をたどります。</p>
+    </header>
+    <section class="diet-panel diet-overview">
+      <h2>スマートダイエットとは</h2>
+      <p>筑波大学の田中喜代次研究室で開発された、食事の見直しを中心とした減量プログラムです。普段の食事を記録することから始め、食事の量や組み合わせ、続けやすい運動を学びます。</p>
+    </section>
+    <nav class="diet-panel diet-contents" aria-labelledby="diet-contents-title">
+      <h2 id="diet-contents-title">12週間の流れ</h2>
+      <ol>
+        <li><a href="#week-1">普段の食事を書いてみる</a></li>
+        <li><a href="#week-2">体重と腹囲を測り、目標を決める</a></li>
+        <li><a href="#week-3">ごはんを量り、四群点数法を学ぶ</a></li>
+        <li><a href="#week-4">献立を組み立て、点数を出す</a></li>
+        <li><a href="#week-5">食品の表示から点数を計算する</a></li>
+        <li><a href="#week-6">栄養素と調味料の使い方を学ぶ</a></li>
+        <li><a href="#week-7">味付けを食べ比べる</a></li>
+        <li><a href="#week-8">体重が停滞したら記録を見直す</a></li>
+        <li><a href="#week-9">忙しい日の工夫を持ち寄る</a></li>
+        <li><a href="#week-10">健診の項目と生活習慣を知る</a></li>
+        <li><a href="#week-11">もう一度測り、体を動かす</a></li>
+        <li><a href="#week-12">結果を受け取り、これからの食事を考える</a></li>
+      </ol>
+    </nav>
+    <section class="diet-panel" id="week-1">
+      <h2><span class="diet-week">第1週｜</span>普段の食事を書いてみる</h2>
+      <div class="diet-lesson">
+        <h3>ステップ1｜なぜ減量が必要か？</h3>
+        <p>皮膚のすぐ下につく脂肪を皮下脂肪、お腹の中で臓器のまわりにつく脂肪を内臓脂肪と呼びます。内臓脂肪がたまり、血圧・血糖・血中脂質の異常が重なると、心臓病や脳卒中のリスクが高まります。健診をきっかけに、体重とあわせて腹囲や検査結果にも目を向けてみましょう。</p>
+        <p><a href="https://kennet.mhlw.go.jp/information/information/metabolic/m-01-001">メタボリックシンドロームについて読む（厚生労働省）</a></p>
+      </div>
+      <div class="diet-dialogue">
+        <p class="diet-message diet-message--sato"><strong class="diet-speaker">佐藤さん</strong><span class="diet-bubble">「健診でお腹まわりを指摘されました。まず何から始めるんですか？」</span></p>
+        <p class="diet-message diet-message--murata"><strong class="diet-speaker">村田健作</strong><span class="diet-bubble">「内臓脂肪についてお話ししたあと、食事を記録します。飲み物やおやつも書いてみましょう」</span></p>
+      </div>
+          <div class="diet-lesson">
+        <h3>食事ダイアリーの書き方</h3>
+        <p>朝食・昼食・夕食・間食に分けて、口にしたものを普段どおりに記録します。飲み物も一緒に書き、量は分かる範囲で残しましょう。</p>
+        <dl class="diet-diary">
+          <dt>朝食</dt><dd>食パン1枚、ヨーグルト1個、コーヒー1杯</dd>
+          <dt>昼食</dt><dd>おにぎり2個、お茶1本</dd>
+          <dt>夕食</dt><dd>ご飯1杯、焼き魚1切れ、みそ汁1杯</dd>
+          <dt>間食</dt><dd>クッキー2枚</dd>
+        </dl>
+        <p>記録を見返して、食事や飲み物でよく選ぶものを一つ見つけてみましょう。<a href="#week-2">第2週では、体重と腹囲を測り、目標を決めます。</a></p>
+      </div>
+    </section>
+    <section class="diet-panel" id="week-2">
+      <h2><span class="diet-week">第2週｜</span>体重と腹囲を測り、目標を決める</h2>
+      <div class="diet-dialogue">
+        <p class="diet-message diet-message--sato"><strong class="diet-speaker">佐藤さん</strong><span class="diet-bubble">「お昼はおにぎりだけの日が多いです。ゆで卵を足すならできそうです」</span></p>
+        <p class="diet-message diet-message--murata"><strong class="diet-speaker">村田健作</strong><span class="diet-bubble">「今週の目標にしましょう。今日測った体重と腹囲は、最後に振り返るときにも使います」</span></p>
+      </div>
+      <aside class="diet-bmi" aria-label="BMIの計算方法">
+        <p><strong>BMI（体格指数）</strong>は、身長と体重から体格をみる目安です。</p>
+        <p>BMI ＝ 体重（kg）÷ 身長（m）÷ 身長（m）</p>
+        <p>身長165 cm、体重70 kgの場合は、70 ÷ 1.65 ÷ 1.65 ＝ 約25.7です。</p>
+        <p><a href="https://kennet.mhlw.go.jp/information/information/metabolic/bmi_check.html">BMIの見方を確認する（厚生労働省）</a></p>
+      </aside>
+    </section>
+    <section class="diet-panel" id="week-3">
+      <h2><span class="diet-week">第3週｜</span>ごはんを量り、四群点数法を学ぶ</h2>
+      <div class="diet-dialogue">
+        <p class="diet-message diet-message--sato"><strong class="diet-speaker">佐藤さん</strong><span class="diet-bubble">「先週の測定結果を受け取って、今日はごはんも量るんですね」</span></p>
+        <p class="diet-message diet-message--murata"><strong class="diet-speaker">村田健作</strong><span class="diet-bubble">「はい。食品を4つのグループに分け、80 kcalを1点とする『四群点数法』を学びます」</span></p>
+        <p class="diet-message diet-message--sato"><strong class="diet-speaker">佐藤さん</strong><span class="diet-bubble">「お茶碗ごと量るんですか？」</span></p>
+        <p class="diet-message diet-message--murata"><strong class="diet-speaker">村田健作</strong><span class="diet-bubble">「空のお茶碗をはかりに載せてゼロにしてから、ご飯を盛ります。表示された数字が、ご飯だけの重さです」</span></p>
+      </div>
+          <div class="diet-lesson">
+        <h3>お茶碗をはかりに載せてゼロにしてから量ります</h3>
+        <figure class="diet-scale">
+          <div class="diet-scale-body" aria-hidden="true">
+            <span class="diet-scale-bowl"></span>
+            <span class="diet-scale-display">0 g</span>
+          </div>
+          <figcaption>空のお茶碗を載せたまま、表示を「0 g」に合わせます。</figcaption>
+        </figure>
+        <ol class="diet-measure">
+          <li>空のお茶碗をはかりに載せます。</li>
+          <li>ゼロ表示にするボタンを押し、「0 g」になったことを確認します。</li>
+          <li>いつも食べる量のご飯を盛り、表示された重さをダイアリーに書きます。</li>
+        </ol>
+        <p><strong>記入例</strong>　夕食のご飯 150 g。これは書き方の例です。</p>
+        <p>四群点数法では、食品を4つのグループに分け、80 kcalを1点として食事を記録します。<a href="#week-4">第4週では、献立を組み立てて、食べる量から点数を計算します。</a></p>
+      </div>
+    </section>
+    <section class="diet-panel" id="week-4">
+      <h2><span class="diet-week">第4週｜</span>献立を組み立て、点数を出す</h2>
+      <div class="diet-dialogue">
+        <p class="diet-message diet-message--sato"><strong class="diet-speaker">佐藤さん</strong><span class="diet-bubble">「主食はごはん、主菜は焼き魚。副菜は小松菜のおひたしにします」</span></p>
+        <p class="diet-message diet-message--murata"><strong class="diet-speaker">村田健作</strong><span class="diet-bubble">「組み合わせが決まりましたね。食べる分の重さを、その食品の1点分の重さで割ってみましょう」</span></p>
+      </div>
+    </section>
+    <section class="diet-panel" id="week-5">
+      <h2><span class="diet-week">第5週｜</span>食品の表示から点数を計算する</h2>
+      <div class="diet-dialogue">
+        <p class="diet-message diet-message--sato"><strong class="diet-speaker">佐藤さん</strong><span class="diet-bubble">「『1袋あたり160 kcal』なら、全部で2点ですね」</span></p>
+        <p class="diet-message diet-message--murata"><strong class="diet-speaker">村田健作</strong><span class="diet-bubble">「そうです。表示の単位を確認したら、お惣菜の組み合わせもグループで考えてみましょう」</span></p>
+      </div>
+    </section>
+    <section class="diet-panel" id="week-6">
+      <h2><span class="diet-week">第6週｜</span>栄養素と調味料の使い方を学ぶ</h2>
+      <div class="diet-dialogue">
+        <p class="diet-message diet-message--sato"><strong class="diet-speaker">佐藤さん</strong><span class="diet-bubble">「たんぱく質や脂質の話を聞いて、いつもの料理に使う油の量も気になりました」</span></p>
+        <p class="diet-message diet-message--murata"><strong class="diet-speaker">村田健作</strong><span class="diet-bubble">「まずは普段かけるドレッシングを、計量スプーンで量ってみましょう」</span></p>
+      </div>
+    </section>
+    <section class="diet-panel" id="week-7">
+      <h2><span class="diet-week">第7週｜</span>味付けを食べ比べる</h2>
+      <div class="diet-dialogue">
+        <p class="diet-message diet-message--sato"><strong class="diet-speaker">佐藤さん</strong><span class="diet-bubble">「しょうゆを少なめにしてレモンを足すと、さっぱりしておいしいですね」</span></p>
+        <p class="diet-message diet-message--murata"><strong class="diet-speaker">村田健作</strong><span class="diet-bubble">「ほかの方の感想も聞いて、家で試してみたい味付けを一つ見つけましょう」</span></p>
+      </div>
+    </section>
+    <section class="diet-panel" id="week-8">
+      <h2><span class="diet-week">第8週｜</span>体重が停滞したら記録を見直す</h2>
+      <div class="diet-dialogue">
+        <p class="diet-message diet-message--sato"><strong class="diet-speaker">佐藤さん</strong><span class="diet-bubble">「ここ数日、体重があまり変わりません。何を見直せばいいですか？」</span></p>
+        <p class="diet-message diet-message--murata"><strong class="diet-speaker">村田健作</strong><span class="diet-bubble">「少し長い期間の体重と食事の記録を見てみましょう。今日は歩きやすいペースも試します」</span></p>
+      </div>
+    </section>
+    <section class="diet-panel" id="week-9">
+      <h2><span class="diet-week">第9週｜</span>忙しい日の工夫を持ち寄る</h2>
+      <div class="diet-dialogue">
+        <p class="diet-message diet-message--sato"><strong class="diet-speaker">佐藤さん</strong><span class="diet-bubble">「グループで聞いた、お惣菜に冷凍野菜を足す工夫。帰りが遅い日にもできそうです」</span></p>
+        <p class="diet-message diet-message--murata"><strong class="diet-speaker">村田健作</strong><span class="diet-bubble">「運動も生活に取り入れやすいものを試しましょう。今日は椅子に座ってできる体操です」</span></p>
+      </div>
+    </section>
+    <section class="diet-panel" id="week-10">
+      <h2><span class="diet-week">第10週｜</span>健診の項目と生活習慣を知る</h2>
+      <div class="diet-dialogue">
+        <p class="diet-message diet-message--sato"><strong class="diet-speaker">佐藤さん</strong><span class="diet-bubble">「健診では、体重の欄ばかり見ていました」</span></p>
+        <p class="diet-message diet-message--murata"><strong class="diet-speaker">村田健作</strong><span class="diet-bubble">「血圧・血糖・血中脂質と、生活習慣病との関わりを学びます。前回の体操もおさらいしましょう」</span></p>
+      </div>
+    </section>
+    <section class="diet-panel" id="week-11">
+      <h2><span class="diet-week">第11週｜</span>もう一度測り、体を動かす</h2>
+      <div class="diet-dialogue">
+        <p class="diet-message diet-message--sato"><strong class="diet-speaker">佐藤さん</strong><span class="diet-bubble">「今日は、第2週と同じように体重と腹囲を測るんですね」</span></p>
+        <p class="diet-message diet-message--murata"><strong class="diet-speaker">村田健作</strong><span class="diet-bubble">「はい。結果は来週お渡しします。測定のあとは、家でも続けやすい運動を試しましょう」</span></p>
+      </div>
+    </section>
+    <section class="diet-panel" id="week-12">
+      <h2><span class="diet-week">第12週｜</span>結果を受け取り、これからの食事を考える</h2>
+      <div class="diet-dialogue">
+        <p class="diet-message diet-message--sato"><strong class="diet-speaker">佐藤さん</strong><span class="diet-bubble">「最初と今回の結果を見比べられました。教室が終わったら、食事の記録はどうしましょう？」</span></p>
+        <p class="diet-message diet-message--murata"><strong class="diet-speaker">村田健作</strong><span class="diet-bubble">「昼食が偏りがちな日だけメモするなど、続けやすい形にしましょう。おにぎりに何を合わせるか考える習慣も、続けられそうですね」</span></p>
+      </div>
+    </section>
+    <footer class="diet-close">
+      <p>昨日のお昼は、何を食べて、何を飲みましたか？<br>まずは思い出せるものを一つ、書いてみましょう。</p>
+      <p><a href="./program.html">12週間プログラムに戻る</a></p>
+    </footer>
+  </div>
+</article>
+</main>
+</body>
+</html>
