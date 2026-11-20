@@ -17,9 +17,13 @@ label{display:block;font-size:14px;font-weight:700;margin:13px 0 5px}input,selec
 .food-shortcuts{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}.food-shortcuts p{width:100%;margin:5px 0 0}.food-shortcuts button,.small-button{border:1px solid #d5e5d9;background:#f4f9f2;color:#286d4f;border-radius:12px;padding:9px;font:inherit;font-size:13px}.small-button{margin:5px 0}
 #dishNameSuggestions[hidden],#dishSuggestions[hidden]{display:none}
 #dishNameSuggestions button,#dishSuggestions button{min-height:44px}
-.diary-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));overflow:visible}
-.diary-tabs button{min-width:0;min-height:44px;padding:6px}
-.manual-food summary{cursor:pointer;padding:10px 0;color:#286d4f}
+.diary-tabs{flex-wrap:wrap;overflow:visible}
+.diary-tabs button{flex:0 0 calc((100% - 10px)/3);min-width:0;min-height:44px;padding:6px}
+.meal-options summary{cursor:pointer;padding:10px 0;color:#286d4f}
+#mealForm [hidden]{display:none}
+#ingredientEditor{margin:12px 0;padding:12px;border-radius:12px;background:#f3f7ef}
+#ingredientEditor label:first-child{margin-top:0}
+#ingredientEditor .button{margin-top:8px}
 .ingredient-list{margin:12px 0;padding:0;list-style:none}
 .ingredient-list:empty{display:none}
 .ingredient-list li{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 8px;border-bottom:1px solid #e6ebe5;overflow-wrap:anywhere}
