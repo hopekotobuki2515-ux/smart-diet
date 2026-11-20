@@ -27,6 +27,12 @@ const foodFromId = id => foodMaster.find(x=>foodId(x)===id);
 const meals = ['朝食','昼食','夕食','間食','飲み物','飲酒'];
 const groups = ['第1群','第2群','第3群','第4群'];
 const exampleDishes = ['ご飯','焼き魚','みそ汁','アジフライ'];
+const dishIngredients = new Map([
+  ['ご飯',['めし・水稲・精白米']],
+  ['焼き魚',['マサバ','シロサケ','マアジ']],
+  ['みそ汁',['米みそ・淡色辛みそ','米みそ・赤色辛みそ','もめん豆腐','絹ごし豆腐','カットわかめ','油揚げ','こねぎ']],
+  ['アジフライ',['マアジ','小麦粉・薄力粉','鶏卵・全卵・生','パン粉・乾燥','調合油']]
+]);
 const quickGrams = [1,2,3,5,10,15,20,30,40,50,60,65,75,80,100,120,150,200,250,260,300];
 const pointFormat = new Intl.NumberFormat('ja-JP',{maximumFractionDigits:2});
 const formatPoints = points => points == null ? '—' : pointFormat.format(points)+'点';
@@ -207,6 +213,7 @@ function renderRecord(){
     </select></label>
     <div id="customDish" hidden><label>料理名を入力<input name="dish" maxlength="120" placeholder="例：ささみのソテー"></label></div>
     <p class="muted">料理を選んでから食材を追加します。別の料理に切り替えると、入力中の食材は前の料理に残ります。</p>
+    <div id="dishSuggestions" class="food-shortcuts" aria-live="polite" hidden></div>
     <label>食材を探す<input id="foodSearch" type="search" autocomplete="off" placeholder="例：ご飯、ささみ、ごま油"></label>
     <div id="foodResults" class="food-results" aria-live="polite"></div>
     <div id="recentFoods" class="food-shortcuts"></div><div id="savedFoods" class="food-shortcuts"></div>
@@ -240,6 +247,7 @@ function renderRecord(){
   loadVisiblePhotos();
   if (previous) $('#mealForm').replaceWith(previous);
   renderFoodShortcuts();
+  renderDishSuggestions();
   renderIngredients();
   if (!$('#mealForm').elements.food.value) showMasterStatus();
 }
@@ -344,7 +352,7 @@ fetch('./food-master.json')
     if($('#mealForm'))renderFoodShortcuts();
   })
   .catch(()=>{masterStatus='failed'})
-  .finally(()=>{if($('#foodSearch')){showMasterStatus();searchFoods();}});
+  .finally(()=>{if($('#foodSearch')){showMasterStatus();searchFoods();renderDishSuggestions();}});
 $('#setupForm').addEventListener('input',()=>{
   const f=$('#setupForm'),h=Number(f.elements.heightCm.value),w=Number(f.elements.startWeight.value),p=Number(f.elements.goalPercent.value);
   $('#goalPreview').textContent=h>0&&w>0?`目標体重 ${goalWeight(w,p).toFixed(1)}kg　/　BMI ${bmi(h,w).toFixed(1)}`:'身長と体重を入力すると、目標体重とBMIを表示します。';
@@ -446,6 +454,15 @@ function showMasterStatus(){
   $('#selectedFood').textContent=({loading:'食品マスターを読み込んでいます。',failed:'食品マスターを読み込めませんでした。食材名は手入力できます。',ready:''})[masterStatus];
 }
 const searchKey = value => value.normalize('NFKC').toLocaleLowerCase('ja').replace(/[\s・]/g,'');
+const dishAliases = new Map([
+  ['白ご飯','ご飯'],['ごはん','ご飯'],['白ごはん','ご飯'],
+  ['味噌汁','みそ汁'],['味噌しる','みそ汁'],['みそしる','みそ汁'],
+  ['あじフライ','アジフライ'],['鯵フライ','アジフライ']
+]);
+const dishKey = name => {
+  const key=searchKey(name);
+  return dishAliases.get(key)??key;
+};
 const foodAliases = new Map([
   ...['ご飯','ごはん','白ご飯','白ごはん'].map(name=>[name,'めし水稲精白米']),
   ['ささみ','ささ身'],['ササミ','ささ身']
@@ -463,6 +480,39 @@ function searchFoods(){
   }));
   if(query && !matches.length && masterStatus==='ready') $('#foodResults').textContent='該当する食材がありません。検索語を変えるか、下の手入力欄を使えます。';
 }
+function renderDishSuggestions(){
+  const box=$('#dishSuggestions');
+  const dish=dishKey($('#mealForm').elements.dish.value);
+  box.hidden=!dish || masterStatus!=='ready';
+  if(box.hidden){box.replaceChildren();return}
+  const foods=new Map();
+  for(const meal of [...(state.meals||[])].reverse()){
+    for(const item of meal.ingredients??[meal]){
+      if(typeof item.dish!=='string' || dishKey(item.dish)!==dish)continue;
+      const food=foodFromId(item.masterId);
+      if(food)foods.set(foodId(food),food);
+    }
+    if(foods.size>=8)break;
+  }
+  for(const name of dishIngredients.get(dish)??[]){
+    const matches=foodMaster.filter(food=>food.name===name);
+    if(matches.length===1)foods.set(foodId(matches[0]),matches[0]);
+  }
+  const caption=document.createElement('p');
+  caption.className='muted';
+  caption.textContent=foods.size?'食材候補（食べたものだけ選択）':'この料理の候補はありません。下の欄から食材を探せます。';
+  const buttons=[...foods.values()].slice(0,8).map(food=>{
+    const button=document.createElement('button');
+    button.type='button';
+    button.textContent=food.name;
+    button.onclick=()=>{
+      selectFood(food);
+      $('#quickGrams').focus();
+    };
+    return button;
+  });
+  box.replaceChildren(caption,...buttons);
+}
 document.addEventListener('input',e=>{
   const f=$('#mealForm');if(!f)return;
   if(e.target===f.elements.date && e.target.value){
@@ -470,6 +520,7 @@ document.addEventListener('input',e=>{
     $('#measurementForm').elements.date.value=recordDate;
   }
   if(e.target.id==='foodSearch')searchFoods();
+  if(e.target===f.elements.dish)renderDishSuggestions();
   if(e.target.id==='quickGrams'){
     const custom=e.target.value==='custom';
     $('#exactGrams').hidden=!custom;
@@ -526,6 +577,7 @@ document.addEventListener('change',e=>{
   }
   field.value=next;
   inputBox.hidden=!custom;
+  renderDishSuggestions();
   if(custom)field.focus();
 });
 function renderFoodShortcuts(){
