@@ -377,6 +377,52 @@ test('dish choices keep ingredients in their respective dishes and remember a cu
   } finally {app.dom.window.close()}
 });
 
+test('dish name suggestions use master foods and prior selections without assigning quantities', async () => {
+  const date=tokyoDate(new Date());
+  const sesame=master.foods.find(food=>food.name==='ごま油');
+  const masterId=JSON.stringify([sesame.name,sesame.category,sesame.gramsPerPoint]);
+  const store={value:{profile:{name:'テスト',heightCm:170,startWeight:70,waist:85,goalPercent:5,startDate:date},meals:[
+    {date,type:'朝食',ingredients:[{dish:'いつもの和え物',food:sesame.name,masterId,grams:5,points:0.56}]}
+  ]}};
+  const app=await openApp(store);
+  try {
+    app.q('#home [data-go=record]').click();
+    const picker=app.q('#dishChoice');
+    const pick=value=>{
+      picker.value=value;
+      picker.dispatchEvent(new app.win.Event('change',{bubbles:true}));
+    };
+    const options=()=>[...app.win.document.querySelectorAll('#dishSuggestions button')];
+    assert.equal(app.q('#dishSuggestions').hidden,true);
+    pick('name:ご飯');
+    assert.deepEqual(options().map(button=>button.textContent),['めし・水稲・精白米']);
+    pick('name:焼き魚');
+    assert.equal(options().length,3);
+    pick('name:アジフライ');
+    assert.equal(options().length,5);
+    assert.ok(options().some(button=>button.textContent==='調合油'));
+    pick('custom');
+    app.fill('[name=dish]','味噌汁');
+    assert.equal(options().length,7);
+    assert.equal(app.q('#ingredientList').children.length,0);
+    assert.equal(app.q('[name=food]').value,'');
+    options().find(button=>button.textContent==='もめん豆腐').click();
+    assert.equal(app.q('[name=food]').value,'もめん豆腐');
+    assert.equal(app.q('#quickGrams').value,'');
+    assert.equal(app.win.document.activeElement,app.q('#quickGrams'));
+    pick('name:いつもの和え物');
+    options()[0].click();
+    assert.equal(app.q('[name=food]').value,'ごま油');
+    assert.equal(app.q('[name=grams]').value,'');
+    pick('custom');
+    app.fill('[name=dish]','名前だけの料理');
+    assert.match(app.q('#dishSuggestions').textContent,/候補はありません/);
+    assert.equal(options().length,0);
+    assert.equal(store.value.meals.length,1);
+    assert.deepEqual(app.failures,[]);
+  } finally {app.dom.window.close()}
+});
+
 test('photo and memo survive retries after local and remote failures, with one final local copy', async () => {
   const date=tokyoDate(new Date());
   const profile={name:'テスト',age:45,heightCm:170,startWeight:70,waist:85,goalPercent:5,startDate:date};
