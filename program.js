@@ -26,12 +26,14 @@ const foodId = x => JSON.stringify([x.name,x.category,x.gramsPerPoint]);
 const foodFromId = id => foodMaster.find(x=>foodId(x)===id);
 const meals = ['朝食','昼食','夕食','間食','飲み物','飲酒'];
 const groups = ['第1群','第2群','第3群','第4群'];
-const exampleDishes = ['ご飯','焼き魚','みそ汁','アジフライ'];
+const exampleDishes = ['ご飯','焼き魚','みそ汁','アジフライ','スパゲティ'];
+const dryPasta = 'マカロニ・スパゲッティ・乾';
 const dishIngredients = new Map([
   ['ご飯',['めし・水稲・精白米']],
   ['焼き魚',['マサバ','シロサケ','マアジ']],
   ['みそ汁',['米みそ・淡色辛みそ','米みそ・赤色辛みそ','もめん豆腐','絹ごし豆腐','カットわかめ','油揚げ','こねぎ']],
-  ['アジフライ',['マアジ','小麦粉・薄力粉','鶏卵・全卵・生','パン粉・乾燥','調合油']]
+  ['アジフライ',['マアジ','小麦粉・薄力粉','鶏卵・全卵・生','パン粉・乾燥','調合油']],
+  ['スパゲティ',[dryPasta]]
 ]);
 const quickGrams = [1,2,3,5,10,15,20,30,40,50,60,65,75,80,100,120,150,200,250,260,300];
 const pointFormat = new Intl.NumberFormat('ja-JP',{maximumFractionDigits:2});
@@ -457,7 +459,8 @@ const searchKey = value => value.normalize('NFKC').toLocaleLowerCase('ja').repla
 const dishAliases = new Map([
   ['白ご飯','ご飯'],['ごはん','ご飯'],['白ごはん','ご飯'],
   ['味噌汁','みそ汁'],['味噌しる','みそ汁'],['みそしる','みそ汁'],
-  ['あじフライ','アジフライ'],['鯵フライ','アジフライ']
+  ['あじフライ','アジフライ'],['鯵フライ','アジフライ'],
+  ['スパゲッティ','スパゲティ'],['パスタ','スパゲティ']
 ]);
 const dishKey = name => {
   const key=searchKey(name);
@@ -469,7 +472,7 @@ const foodAliases = new Map([
 ]);
 function searchFoods(){
   const typed=searchKey($('#foodSearch').value);
-  const query=foodAliases.get(typed)??typed;
+  const query=dishKey(typed)==='スパゲティ'?searchKey(dryPasta):(foodAliases.get(typed)??typed);
   const matches=query?foodMaster.filter(x=>searchKey(x.name).includes(query)).slice(0,15):[];
   $('#foodResults').replaceChildren(...matches.map(x=>{
     const button=document.createElement('button');
@@ -512,6 +515,12 @@ function renderDishSuggestions(){
     return button;
   });
   box.replaceChildren(caption,...buttons);
+  if(dish==='スパゲティ' && [...foods.values()].some(food=>food.name===dryPasta)){
+    const note=document.createElement('p');
+    note.className='muted';
+    note.textContent='「乾」はゆでる前の量です。乾麺の量がわからないときは「量がわからない」で記録できます。';
+    box.append(note);
+  }
 }
 document.addEventListener('input',e=>{
   const f=$('#mealForm');if(!f)return;
