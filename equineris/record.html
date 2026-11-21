@@ -406,8 +406,13 @@ function save(field){
 }
 fields.forEach(f=>f.addEventListener(f.type==='checkbox'?'change':'input',()=>save(f)));
 tabs.forEach(tab=>tab.addEventListener('click',()=>{
- const day=Number(tab.dataset.day);if(!photoBusy&&day!==activeDay)loadDay(day);
+ const day=Number(tab.dataset.day);
+ if(!photoBusy&&day!==activeDay){
+  loadDay(day);
+  goMeal(0,false);
+ }
 }));
+dateField.addEventListener('change',()=>goMeal(0,false));
 photoInputs.forEach(input=>input.addEventListener('change',async()=>{
  const file=input.files&&input.files[0];if(!file)return;
  if(!file.type.startsWith('image/')){showPhotoStatus('画像ファイルを選んでください。',true);input.value='';return;}
