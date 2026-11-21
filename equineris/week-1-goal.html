@@ -157,6 +157,19 @@
     .future-presets button:disabled{color:#8c988e;border-color:#dfe7df;opacity:.7}
     .reference-info{font-size:11px;line-height:1.7;color:var(--muted);margin:6px 0 15px}
     @media(max-width:340px){.options{gap:5px}.option label{font-size:16px}.future-presets{gap:7px}.future-presets button{font-size:12px}}
+
+    /* 第1週の動機づけから目標設定へ：2枚の横スワイプ画面 */
+    .goal-slide-track{margin-top:0;transition:height .18s ease}
+    .goal-slide{width:100%;min-width:0}
+    .motivation-card{text-align:left}
+    .motivation-card h2{margin:0 0 20px;font-size:18px;line-height:1.55;color:var(--ink)}
+    .motivation-card p{margin:0 0 18px;color:var(--ink-light);font-size:14px;line-height:1.95;word-break:normal;overflow-wrap:break-word}
+    .motivation-card .opening{font-size:15px;font-weight:700;color:var(--ink)}
+    .motivation-card .motivation-question{font-size:17px;font-weight:800;line-height:1.7;color:var(--green)}
+    .motivation-card .closing{margin-bottom:0}
+    .slide-forward{margin-top:18px}
+    .goal-slide-back{display:inline-flex;align-items:center;min-height:44px;margin:0 0 9px;padding:6px 8px;border:0;background:transparent;color:var(--green);font-size:13px;font-weight:750;cursor:pointer}
+    @media(prefers-reduced-motion:reduce){.goal-slide-track{transition:none}}
 </style>
 </head>
 <body>
@@ -167,10 +180,33 @@
    <span class="step">WEEK 01</span>
   </nav>
   <p class="wordmark" aria-label="EQUINERIS">EQUI<span>NERIS</span></p>
-  <p class="eyebrow">YOUR FIRST GOAL</p>
-  <h1>スマートダイエットの<br>減量目標設定</h1>
-  <p class="lead">12週間後、あなたは何kgを目指したいですか？<br>まずは現在の体重から目標を考えましょう。</p>
-  <form id="goalForm" autocomplete="off">
+  <p class="eyebrow">SMART DIET · WEEK 01</p>
+  <h1 id="goalSlideHeading">なぜ、減量が必要なのか？</h1>
+  <p class="lead" id="goalSlideLead">減量を始める理由を考え、次の画面で目標を決めましょう。</p>
+  <div class="swipe-status" aria-live="polite">
+   <strong id="goalSlideStatus">1 / 2</strong>
+   <span>左右にスワイプして切り替え</span>
+  </div>
+  <div class="swipe-dots" role="group" aria-label="画面を選ぶ">
+   <button class="swipe-dot" type="button" data-goal-slide="0" aria-label="1枚目：動機づけ" aria-current="step"></button>
+   <button class="swipe-dot" type="button" data-goal-slide="1" aria-label="2枚目：減量目標設定"></button>
+  </div>
+  <div class="slide-track goal-slide-track" id="goalSlideTrack" role="region" aria-label="第1週の動機づけと目標設定（全2枚）" tabindex="0">
+   <section class="slide goal-slide" id="motivationSlide" aria-label="1枚目：減量の動機づけ">
+    <div class="card motivation-card">
+     <h2>なぜ、減量が必要なのか？</h2>
+     <p class="opening">「最近、体重が増えてきた」「好きな服を気持ちよく着たい」「健康診断の結果が気になる」。</p>
+     <p>減量を考えたきっかけは、人それぞれです。</p>
+     <p>大切なのは、ただ体重の数字を減らすことではありません。今の体重や食生活を知り、これからどんな自分になりたいかを考えることです。</p>
+     <p>最初から無理に食事を減らす必要はありません。</p>
+     <p class="motivation-question">3か月後、どんな自分になっていたいですか？</p>
+     <p class="closing">その思いを、次の画面で具体的な減量目標にしていきましょう。</p>
+    </div>
+    <button class="next slide-forward" id="toGoalSlide" type="button">目標設定へ進む <span class="arrow" aria-hidden="true">›</span></button>
+   </section>
+   <section class="slide goal-slide" id="targetSlide" aria-label="2枚目：スマートダイエットの減量目標設定">
+    <button class="goal-slide-back" id="backToMotivation" type="button">〈 動機づけを読み直す</button>
+    <form id="goalForm" autocomplete="off">
    <section class="card" aria-labelledby="goalCardTitle">
     <div class="sectionhead">
      <h2 id="goalCardTitle">12週間後の目標体重</h2>
@@ -228,6 +264,8 @@
     <a href="./setup.html" class="goal-link">現在の体重を登録・変更する</a>
    </div>
   </form>
+   </section>
+  </div>
  </div>
 </main>
 <script>'use strict';
@@ -377,6 +415,75 @@
   }
  });
  draw();
-})();</script>
+})();
+
+/* 1枚目：減量の動機づけ → 2枚目：元の減量目標設定フォーム */
+(()=>{
+ const track=document.getElementById('goalSlideTrack');
+ const slides=[...track.querySelectorAll('.goal-slide')];
+ const heading=document.getElementById('goalSlideHeading');
+ const lead=document.getElementById('goalSlideLead');
+ const status=document.getElementById('goalSlideStatus');
+ const dots=[...document.querySelectorAll('[data-goal-slide]')];
+ const forward=document.getElementById('toGoalSlide');
+ const backward=document.getElementById('backToMotivation');
+ const labels=[
+  {title:'なぜ、減量が必要なのか？',lead:'減量を始める理由を考え、次の画面で目標を決めましょう。'},
+  {title:'スマートダイエットの<br>減量目標設定',lead:'12週間後、あなたは何kgを目指したいですか？<br>まずは現在の体重から目標を考えましょう。'}
+ ];
+ let active=0;
+ let scrollPending=false;
+ function measure(){
+  const height=slides[active].offsetHeight;
+  if(height>0)track.style.height=height+'px';
+ }
+ function render(index){
+  active=Math.max(0,Math.min(slides.length-1,index));
+  heading.innerHTML=labels[active].title;
+  lead.innerHTML=labels[active].lead;
+  status.textContent=(active+1)+' / '+slides.length;
+  dots.forEach((dot,i)=>{
+   if(i===active)dot.setAttribute('aria-current','step');
+   else dot.removeAttribute('aria-current');
+  });
+  slides.forEach((slide,i)=>{slide.inert=i!==active;});
+  measure();
+ }
+ function go(index){
+  const safe=Math.max(0,Math.min(slides.length-1,index));
+  render(safe);
+  const left=safe*track.clientWidth;
+  if(typeof track.scrollTo==='function'){
+   const reduced=typeof window.matchMedia==='function'&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+   track.scrollTo({left,behavior:reduced?'auto':'smooth'});
+  }else{
+   track.scrollLeft=left;
+  }
+ }
+ forward.addEventListener('click',()=>go(1));
+ backward.addEventListener('click',()=>go(0));
+ dots.forEach((dot,i)=>dot.addEventListener('click',()=>go(i)));
+ track.addEventListener('scroll',()=>{
+  if(scrollPending)return;
+  scrollPending=true;
+  requestAnimationFrame(()=>{
+   scrollPending=false;
+   const width=track.clientWidth||1;
+   const index=Math.max(0,Math.min(slides.length-1,Math.round(track.scrollLeft/width)));
+   if(index!==active)render(index);
+  });
+ },{passive:true});
+ window.addEventListener('resize',()=>{
+  track.scrollLeft=active*track.clientWidth;
+  measure();
+ });
+ if(typeof ResizeObserver==='function'){
+  const observer=new ResizeObserver(measure);
+  slides.forEach(slide=>observer.observe(slide));
+ }
+ render(0);
+ requestAnimationFrame(measure);
+})();
+</script>
 </body>
 </html>
