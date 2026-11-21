@@ -254,6 +254,7 @@ function renderRecord(){
     <button id="editDaySheet" class="button ghost" type="button">ダイアリーに直接入力</button>
     <div class="tabs diary-tabs" role="group" aria-label="食事の種類">${meals.map(t=>`<button type="button" data-meal="${t}" aria-pressed="${t===mealType}" class="${t===mealType?'selected':''}">${t}</button>`).join('')}</div>
     <label>食材・料理を探す<input id="foodSearch" type="search" autocomplete="off" placeholder="例：牛丼、ご飯、ささみ"></label>
+    <p class="muted"><a href="./food-search.html">食品マスター全件を検索する（1点の重量・点数を確認）</a></p>
     <div id="foodResults" class="food-results" aria-live="polite"></div>
     <p id="selectedFood" class="muted" aria-live="polite"></p>
     <div id="ingredientEditor" hidden>
