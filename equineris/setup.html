@@ -57,8 +57,26 @@
     .unitwrap {position:relative}
     .unitwrap input {padding-right:54px}
     .unit {position:absolute;right:17px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;pointer-events:none}
-    .history-card {margin-top:16px}
-    .goal-card {margin-top:16px}
+    .history-card {margin-top:0}
+    .goal-card {margin-top:0}
+    .slide-track {
+      display:flex;align-items:flex-start;width:100%;overflow-x:auto;overflow-y:hidden;
+      scroll-snap-type:x mandatory;overscroll-behavior-inline:contain;
+      -webkit-overflow-scrolling:touch;scrollbar-width:none;
+    }
+    .slide-track::-webkit-scrollbar {display:none}
+    .slide-track > .slide {flex:0 0 100%;min-width:0;scroll-snap-align:start;scroll-snap-stop:always}
+    .swipe-status {display:flex;align-items:center;justify-content:space-between;gap:10px;margin:15px 2px 7px;font-size:12px;color:var(--muted)}
+    .swipe-status strong {color:var(--ink);font-size:13px;font-variant-numeric:tabular-nums}
+    .swipe-dots {display:flex;justify-content:center;align-items:center;gap:6px;margin:0 0 10px}
+    .swipe-dot {min-width:44px;min-height:44px;border:0;background:transparent;display:flex;align-items:center;justify-content:center}
+    .swipe-dot::before {content:"";width:7px;height:7px;border-radius:50%;background:#cdd9ce;transition:width .2s,background .2s}
+    .swipe-dot[aria-current="step"]::before {width:26px;border-radius:8px;background:var(--green)}
+    .slide-actions {display:flex;flex-wrap:wrap;gap:10px;margin-top:4px}
+    .slide-actions .next {flex:1 1 180px;width:auto}
+    .slide-prev {flex:0 0 84px;min-height:56px;border:1px solid #b7cbbd;border-radius:15px;background:#fffdfa;color:var(--ink-light);font-weight:700}
+    .slide-actions .after {flex:1 1 100%;margin-top:5px}
+    [hidden] {display:none!important}
     fieldset {border:0;padding:0;margin:0;min-width:0}
     legend {padding:0 0 5px;font-size:17px;font-weight:780;line-height:1.45}
     .goal-desc {color:var(--muted);font-size:12px;line-height:1.65;margin:0 0 16px}
@@ -125,7 +143,8 @@
     <p class="lead">今の自分を知ることから。<br>12週間の目標づくりを始めましょう。</p>
 
     <form id="setupForm" autocomplete="off">
-      <section class="card" aria-labelledby="basic-title">
+      <div class="slide-track" id="slideTrack" role="region" aria-label="初回設定の横スクロール" tabindex="0">
+      <section class="card slide" aria-labelledby="basic-title" data-slide="0">
         <div class="sectionhead">
           <h2 id="basic-title">基本情報</h2>
           <p>ご自身の現在の情報を入力してください。</p>
@@ -155,7 +174,7 @@
         </label>
       </section>
 
-      <section class="card history-card" aria-labelledby="history-title">
+      <section class="card history-card slide" aria-labelledby="history-title" data-slide="1">
         <div class="sectionhead">
           <h2 id="history-title">これまでの体重</h2>
           <p>これまでの体重を振り返ってみましょう。覚えていない項目は空欄で構いません。</p>
@@ -170,7 +189,7 @@
         </label>
       </section>
 
-      <section class="card goal-card" aria-labelledby="goal-title">
+      <section class="card goal-card slide" aria-labelledby="goal-title" data-slide="2">
         <fieldset>
           <legend id="goal-title">3か月後の減量目標</legend>
           <p class="goal-desc">減量率を選ぶと、3か月後の目標体重を計算して入力します。目標体重はご自身で変更できます。</p>
@@ -191,9 +210,22 @@
           <p class="goal-note">今の時点での目標で大丈夫です。途中で変更できます。<br>減量率は選択肢であり、安全性や達成を保証するものではありません。</p>
         </fieldset>
       </section>
+      </div>
 
-      <div class="action">
-        <button class="next" type="submit">次へ <span class="arrow" aria-hidden="true">›</span></button>
+      <div class="swipe-status" aria-live="polite">
+        <strong id="slideStatus">1 / 3</strong>
+        <span>左右にスワイプして切り替え</span>
+      </div>
+      <div class="swipe-dots" role="group" aria-label="入力画面を選択">
+        <button type="button" class="swipe-dot" data-goto="0" aria-label="基本情報へ" aria-current="step"></button>
+        <button type="button" class="swipe-dot" data-goto="1" aria-label="これまでの体重へ"></button>
+        <button type="button" class="swipe-dot" data-goto="2" aria-label="目標体重へ"></button>
+      </div>
+
+      <div class="action slide-actions">
+        <button class="slide-prev" type="button" id="slidePrev" hidden>前へ</button>
+        <button class="next" type="button" id="slideNext">次へ <span class="arrow" aria-hidden="true">›</span></button>
+        <button class="next" type="submit" id="slideSubmit" hidden>入力内容を確認 <span class="arrow" aria-hidden="true">›</span></button>
         <p class="after">入力内容はこの画面ではサーバーに保存されません。</p>
       </div>
     </form>
@@ -216,6 +248,57 @@ const weightInput=document.getElementById('weight');
 const bmiValue=document.getElementById('bmiValue');
 const bmi25Weight=document.getElementById('bmi25Weight');
 const threeMonthGoalInput=document.getElementById('threeMonthGoal');
+
+// 3つの入力カードを、縦方向のページは維持したまま横スワイプで切り替える。
+const slideTrack=document.getElementById('slideTrack');
+const slides=[...slideTrack.querySelectorAll('.slide')];
+const slideDots=[...document.querySelectorAll('.swipe-dot')];
+const slideStatus=document.getElementById('slideStatus');
+const slidePrev=document.getElementById('slidePrev');
+const slideNext=document.getElementById('slideNext');
+const slideSubmit=document.getElementById('slideSubmit');
+let activeSlide=0;
+function renderSlide(index){
+  activeSlide=Math.max(0,Math.min(slides.length-1,index));
+  slideStatus.textContent=(activeSlide+1)+' / '+slides.length;
+  slideDots.forEach((dot,i)=>{
+    if(i===activeSlide)dot.setAttribute('aria-current','step');
+    else dot.removeAttribute('aria-current');
+  });
+  slidePrev.hidden=activeSlide===0;
+  slideNext.hidden=activeSlide===slides.length-1;
+  slideSubmit.hidden=activeSlide!==slides.length-1;
+  slideTrack.style.height=slides[activeSlide].offsetHeight+'px';
+}
+function goToSlide(index,animate=true){
+  const safeIndex=Math.max(0,Math.min(slides.length-1,index));
+  slideTrack.scrollTo({left:slideTrack.clientWidth*safeIndex,behavior:animate?'smooth':'instant'});
+  renderSlide(safeIndex);
+}
+slidePrev.addEventListener('click',()=>goToSlide(activeSlide-1));
+slideNext.addEventListener('click',()=>goToSlide(activeSlide+1));
+slideDots.forEach((dot,i)=>dot.addEventListener('click',()=>goToSlide(i)));
+let slideScrollPending=false;
+slideTrack.addEventListener('scroll',()=>{
+  if(slideScrollPending)return;
+  slideScrollPending=true;
+  requestAnimationFrame(()=>{
+    slideScrollPending=false;
+    const width=slideTrack.clientWidth||1;
+    const actual=Math.round(slideTrack.scrollLeft/width);
+    if(actual!==activeSlide)renderSlide(actual);
+  });
+},{passive:true});
+window.addEventListener('resize',()=>{
+  slideTrack.scrollLeft=activeSlide*slideTrack.clientWidth;
+  renderSlide(activeSlide);
+});
+form.addEventListener('invalid',event=>{
+  const slide=event.target.closest('.slide');
+  if(!slide)return;
+  goToSlide(slides.indexOf(slide),false);
+},true);
+renderSlide(0);
 function fixed1(n){return Number.isFinite(n)?n.toFixed(1):'—';}
 function suggestTargetFromRate(){
   const rateInput=form.querySelector('input[name="rate"]:checked');
