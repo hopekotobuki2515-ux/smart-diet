@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fefdf8">
+<meta name="description" content="SMART Diet 12週間プログラムの最初の食習慣チェック。紙のチェック表に沿って、該当する項目に丸を付けて記録します。">
+<title>具体的な行動目標を考える | SMART Diet · EQUINERIS</title>
+<style>
+:root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;--ink:#24332d;--green:#285d4a;--muted:#5f6763;--line:#dededc}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;overflow-x:hidden}
+body{margin:0;min-width:280px;overflow-x:hidden;background:#efefec;color:var(--ink)}
+a,button,input{font:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid #a6844e;outline-offset:2px}
+.sheet-shell{width:min(100%,520px);margin:0 auto;padding:16px 14px max(32px,env(safe-area-inset-bottom));background:#f8f8f5;min-height:100svh}
+.sheet-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 2px 13px}
+.sheet-nav a{color:#3f5f50;text-decoration:none;font-size:13px;font-weight:700;min-height:44px;display:inline-flex;align-items:center}
+.sheet-nav small{font-size:10px;letter-spacing:.08em;font-weight:750;color:#666}
+.sheet{background:#fff;box-shadow:0 1px 8px rgba(20,30,22,.07);border:1px solid #e7e7e4;padding:19px 15px 24px}
+.paper-heading{margin:0 0 15px;border-bottom:7px solid #777;padding:0 0 10px}
+.paper-heading h1{display:flex;align-items:center;gap:9px;margin:0;font-size:clamp(18px,4.7vw,23px);line-height:1.45;letter-spacing:.02em;font-weight:800;color:#292929}
+.heading-stamp{display:inline-flex;align-items:center;justify-content:center;flex:0 0 43px;width:43px;height:48px;background:#777;color:#fff;font-size:30px;font-weight:800}
+.paper-lead{margin:0 0 9px;line-height:1.85;font-size:14px;color:#3b3b3b;overflow-wrap:break-word}
+.paper-lead:last-of-type{margin-bottom:22px}
+.paper-list{border:0;margin:0;padding:0;min-width:0}
+.paper-row{display:flex;gap:7px;position:relative;align-items:flex-start;padding:7px 0;min-height:44px;cursor:pointer;font-size:16px;color:#202020;line-height:1.65}
+.paper-row+.paper-row{border-top:1px solid #f0f0ee}
+.paper-checkbox{position:absolute;left:0;top:7px;width:36px;height:36px;margin:0;opacity:0;cursor:pointer}
+.paper-mark{flex:0 0 25px;width:25px;height:32px;display:grid;place-items:start center;font-family:"Yu Gothic",Meiryo,sans-serif;line-height:1.55;font-size:25px}
+.paper-mark::before{content:"□";color:#444}
+.paper-checkbox:checked+.paper-mark::before{content:"○";font-size:31px;font-weight:800;line-height:1.2;color:#c35b34}
+.paper-checkbox:focus-visible+.paper-mark{outline:3px solid #a6844e;outline-offset:1px;border-radius:4px}
+.paper-line{flex:1;min-width:0;word-break:normal;overflow-wrap:break-word;line-break:strict}
+.paper-foot{margin-top:18px;border-top:1px solid #d7d7d4;padding-top:12px;color:#555;font-size:12px;line-height:1.8}
+.paper-foot p{margin:0 0 4px}
+.sheet-actions{display:grid;gap:10px;margin-top:17px}
+.save-button{min-height:53px;width:100%;border:1px solid #285d4a;border-radius:12px;background:#285d4a;color:white;font-weight:800;font-size:15px}
+.secondary-link{min-height:45px;display:flex;align-items:center;justify-content:center;text-decoration:none;text-align:center;padding:9px 12px;border:1px solid #d1dcd3;border-radius:11px;color:#285d4a;background:#fff;font-weight:700;font-size:13px}
+.status{margin:0;min-height:20px;font-size:12px;line-height:1.7;color:#4b6053}
+.status[data-error="true"]{color:#a12b2b}
+@media(max-width:340px){.sheet-shell{padding-inline:9px}.sheet{padding-inline:11px}.paper-row{font-size:15px}.paper-heading h1{font-size:17px}.heading-stamp{flex-basis:38px;width:38px;height:44px}}
+@media(min-width:650px){.sheet-shell{margin:24px auto;border-radius:22px}}
+</style>
+</head>
+<body>
+<main class="sheet-shell">
+  <nav class="sheet-nav" aria-label="ページ移動">
+    <a id="choiceLink" href="./program-choice.html">〈 進め方の選択へ戻る</a>
+    <small>SMART DIET · 12 WEEKS</small>
+  </nav>
+  <article class="sheet" aria-labelledby="habitTitle">
+    <header class="paper-heading">
+      <h1 id="habitTitle"><span class="heading-stamp">具</span>体的な行動目標を考える</h1>
+    </header>
+    <p class="paper-lead">目標となる体重が決まったら、その目標を達成するためには、どのような行動をとったらよいか、考えてみましょう。</p>
+    <p class="paper-lead">以下の項目は、肥満の人によくみられる習慣です。自分に当てはまるものに○を付けてみましょう。</p>
+    <fieldset class="paper-list" id="habitList">
+      <legend style="position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">食習慣のチェック</legend>
+      <label class="paper-row">
+        <input class="paper-checkbox" type="checkbox" data-habit="h01" aria-label="家族や周りの人が残したものは、もったいないので食べることが多い">
+        <span class="paper-mark" aria-hidden="true"></span>
+        <span class="paper-line">家族や周りの人が残したものは、もったいないので食べることが多い</span>
+      </label>
+      <label class="paper-row">
+        <input class="paper-checkbox" type="checkbox" data-habit="h02" aria-label="おやつ（お菓子）がいつも家においてある">
+        <span class="paper-mark" aria-hidden="true"></span>
+        <span class="paper-line">おやつ（お菓子）がいつも家においてある</span>
+      </label>
+      <label class="paper-row">
+        <input class="paper-checkbox" type="checkbox" data-habit="h03" aria-label="人よりも食べるのが早いと思う">
+        <span class="paper-mark" aria-hidden="true"></span>
+        <span class="paper-line">人よりも食べるのが早いと思う</span>
+      </label>
+      <label class="paper-row">
+        <input class="paper-checkbox" type="checkbox" data-habit="h04" aria-label="よく噛まずに食べることが多い">
+        <span class="paper-mark" aria-hidden="true"></span>
+        <span class="paper-line">よく噛まずに食べることが多い</span>
+      </label>
+      <label class="paper-row">
+        <input class="paper-checkbox" type="checkbox" data-habit="h05" aria-label="お腹が空いたら、あまりがまんせず、何かつまむことが多い">
+        <span class="paper-mark" aria-hidden="true"></span>
+        <span class="paper-line">お腹が空いたら、あまりがまんせず、何かつまむことが多い</span>
+      </label>
+      <label class="paper-row">
+        <input class="paper-checkbox" type="checkbox" data-habit="h06" aria-label="果物をよく食べる">
+        <span class="paper-mark" aria-hidden="true"></span>
+        <span class="paper-line">果物をよく食べる</span>
+      </label>
+      <label class="paper-row">
+        <input class="paper-checkbox" type="checkbox" data-habit="h07" aria-label="野菜の揚げ物や炒めものが好き（よく食べる）">
+        <span class="paper-mark" aria-hidden="true"></span>
+        <span class="paper-line">野菜の揚げ物や炒めものが好き（よく食べる）</span>
+      </label>
+      <label class="paper-row">
+        <input class="paper-checkbox" type="checkbox" data-habit="h08" aria-label="味の濃いものが好き（よく食べる）">
+        <span class="paper-mark" aria-hidden="true"></span>
+        <span class="paper-line">味の濃いものが好き（よく食べる）</span>
+      </label>
+      <label class="paper-row">
+        <input class="paper-checkbox" type="checkbox" data-habit="h09" aria-label="野菜の代わりに市販の野菜ジュースをとることが多い">
+        <span class="paper-mark" aria-hidden="true"></span>
+        <span class="paper-line">野菜の代わりに市販の野菜ジュースをとることが多い</span>
+      </label>
+      <label class="paper-row">
+        <input class="paper-checkbox" type="checkbox" data-habit="h10" aria-label="朝食をとらないことが多い">
+        <span class="paper-mark" aria-hidden="true"></span>
+        <span class="paper-line">朝食をとらないことが多い</span>
+      </label>
+      <label class="paper-row">
+        <input class="paper-checkbox" type="checkbox" data-habit="h11" aria-label="外食が多い">
+        <span class="paper-mark" aria-hidden="true"></span>
+        <span class="paper-line">外食が多い</span>
+      </label>
+      <label class="paper-row">
+        <input class="paper-checkbox" type="checkbox" data-habit="h12" aria-label="丼物、ファストフード、ラーメンなどを食べることが多い">
+        <span class="paper-mark" aria-hidden="true"></span>
+        <span class="paper-line">丼物、ファストフード、ラーメンなどを食べることが多い</span>
+      </label>
+      <label class="paper-row">
+        <input class="paper-checkbox" type="checkbox" data-habit="h13" aria-label="間食をする習慣がある、あるいは間食は洋菓子や和菓子が多い">
+        <span class="paper-mark" aria-hidden="true"></span>
+        <span class="paper-line">間食をする習慣がある、あるいは間食は洋菓子や和菓子が多い</span>
+      </label>
+      <label class="paper-row">
+        <input class="paper-checkbox" type="checkbox" data-habit="h14" aria-label="夜9時以降（就寝2時間以内）に夕食（飲食）をとることが多い">
+        <span class="paper-mark" aria-hidden="true"></span>
+        <span class="paper-line">夜9時以降（就寝2時間以内）に夕食（飲食）をとることが多い</span>
+      </label>
+      <label class="paper-row">
+        <input class="paper-checkbox" type="checkbox" data-habit="h15" aria-label="ほぼ毎日アルコール飲料を飲む">
+        <span class="paper-mark" aria-hidden="true"></span>
+        <span class="paper-line">ほぼ毎日アルコール飲料を飲む</span>
+      </label>
+      <label class="paper-row">
+        <input class="paper-checkbox" type="checkbox" data-habit="h16" aria-label="水やお茶よりも、缶コーヒーや紅茶、ジュース、炭酸飲料などを飲むことが多い">
+        <span class="paper-mark" aria-hidden="true"></span>
+        <span class="paper-line">水やお茶よりも、缶コーヒーや紅茶、ジュース、炭酸飲料などを飲むことが多い</span>
+      </label>
+      <label class="paper-row">
+        <input class="paper-checkbox" type="checkbox" data-habit="h17" aria-label="菓子パンが好き（よく食べる）">
+        <span class="paper-mark" aria-hidden="true"></span>
+        <span class="paper-line">菓子パンが好き（よく食べる）</span>
+      </label>
+    </fieldset>
+    <footer class="paper-foot">
+      <p>○を付けた項目：<strong id="selectedCount">0</strong> / 17</p>
+      <p>項目をもう一度タップすると、○を外せます。選択内容はこのブラウザに自動保存します。</p>
+    </footer>
+  </article>
+  <div class="sheet-actions">
+    <button class="save-button" type="button" id="saveButton">チェックした内容を保存する</button>
+    <a class="secondary-link" id="diaryLink" href="./record.html">食事ダイアリーに戻る</a>
+    <p class="status" id="saveStatus" role="status" aria-live="polite">チェック項目を確認してください。</p>
+  </div>
+</main>
+<script>
+'use strict';
+const STORAGE_KEY='equineris:program:habit-check:v1';
+const boxes=[...document.querySelectorAll('[data-habit]')];
+const count=document.getElementById('selectedCount');
+const status=document.getElementById('saveStatus');
+const validIds=new Set(boxes.map(box=>box.dataset.habit));
+const queryDay=Number(new URLSearchParams(window.location.search).get('day'));
+const day=[1,2,3].includes(queryDay)?queryDay:1;
+document.getElementById('choiceLink').href='./program-choice.html?day='+day;
+document.getElementById('diaryLink').href='./record.html?day='+day;
+function selected(){return boxes.filter(box=>box.checked).map(box=>box.dataset.habit);}
+function setStatus(message,error=false){status.textContent=message;status.dataset.error=String(error);}
+function updateCount(){count.textContent=String(selected().length);}
+function save(){
+ updateCount();
+ try{
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(selected()));
+  setStatus('チェックした内容をこのブラウザに保存しました。');
+  return true;
+ }catch(e){
+  setStatus('保存できませんでした。ブラウザの保存設定を確認してください。',true);
+  return false;
+ }
+}
+function load(){
+ try{
+  const raw=localStorage.getItem(STORAGE_KEY);
+  const saved=raw?JSON.parse(raw):[];
+  if(!Array.isArray(saved))throw Error('Invalid saved checklist');
+  const existing=new Set(saved.filter(id=>typeof id==='string'&&validIds.has(id)));
+  boxes.forEach(box=>{box.checked=existing.has(box.dataset.habit);});
+  updateCount();
+  if(raw)setStatus('前回保存したチェックを読み込みました。');
+ }catch(e){
+  setStatus('保存したチェックを読み込めません。内容を確認してください。',true);
+  updateCount();
+ }
+}
+boxes.forEach(box=>box.addEventListener('change',save));
+document.getElementById('saveButton').addEventListener('click',save);
+load();
+</script>
+</body>
+</html>
