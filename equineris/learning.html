@@ -320,6 +320,7 @@ function loadWeek(n){
  before.href='./learning.html?week='+(n-1);
  after.href='./learning.html?week='+(n+1);
  companion.hidden=true;
+ if(n===1){companion.href='./week-1-goal.html';companion.textContent='スマートダイエットの減量目標設定';companion.hidden=false;}
  if(n===2){companion.href='./habit-check.html?day=1';companion.textContent='食習慣チェックを開く';companion.hidden=false;}
  if(n===3){companion.href='./food-groups.html?day=1';companion.textContent='4つの食品群と点数配分を詳しく見る';companion.hidden=false;}
  visualNote.hidden=!entry.pendingVisualSections.length;
