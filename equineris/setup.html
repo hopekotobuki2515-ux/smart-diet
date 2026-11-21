@@ -73,8 +73,8 @@
     .option input:checked+label {background:#285d4a;border-color:#285d4a;color:#fff}
     .option input:focus-visible+label {outline:3px solid var(--gold);outline-offset:3px}
     .goal-note {font-size:11px;color:var(--muted);line-height:1.75;margin:15px 0 0}
-    .metrics {margin:16px 0 0;padding:19px 18px;border:1px solid #d9e7dd;border-radius:20px;background:linear-gradient(150deg,#f1f7f1,#fffdfa)}
-    .metrics h2 {font-size:15px;margin:0 0 13px}
+    .metric-inline {margin:-5px 0 17px;padding:10px 13px;background:#f1f7f1;border:1px solid #dfe7df;border-radius:12px}
+    .reference-note {margin:-8px 0 21px}
     .metric {display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:11px 0;border-top:1px solid #dfe7df}
     .metric-label {font-size:12px;color:var(--muted)}
     .metric-output {font-size:21px;letter-spacing:.015em;font-weight:780;color:var(--ink)}
@@ -142,10 +142,13 @@
           <span class="field-label">身長</span>
           <span class="unitwrap"><input id="height" name="height" type="number" inputmode="decimal" min="1" step="0.1" placeholder="身長を入力" required><span class="unit">cm</span></span>
         </label>
+        <div class="metric metric-inline"><span class="metric-label">BMIが25になる体重</span><strong class="metric-output" id="bmi25Weight">—</strong></div>
+        <p class="note reference-note">BMI25の体重は身長からの参考計算値です。適切な目標体重を示すものではありません。</p>
         <label class="field">
           <span class="field-label">スタート時の体重</span>
           <span class="unitwrap"><input id="weight" name="weight" type="number" inputmode="decimal" min="0.1" step="0.1" placeholder="現在の体重を入力" required><span class="unit">kg</span></span>
         </label>
+        <div class="metric metric-inline"><span class="metric-label">現在のBMI</span><strong class="metric-output" id="bmiValue">—</strong></div>
         <label class="field">
           <span class="field-label">腹囲 <span class="hint">（おへその高さ）</span></span>
           <span class="unitwrap"><input id="waist" name="waist" type="number" inputmode="decimal" min="0.1" step="0.1" placeholder="腹囲を入力" required><span class="unit">cm</span></span>
@@ -181,21 +184,13 @@
             <span class="field-label">3か月後に私が目指す体重は？</span>
             <span class="unitwrap"><input id="threeMonthGoal" name="threeMonthGoal" type="number" inputmode="decimal" min="0.1" step="0.1" placeholder="3か月後の目標体重" required><span class="unit">kg</span></span>
           </label>
+          <div class="metric metric-inline"><span class="metric-label">3か月後の目標BMI</span><strong class="metric-output" id="goalBmi">—</strong></div>
           <label class="field">
             <span class="field-label">将来私が目指す体重は？ <span class="hint">（任意）</span></span>
             <span class="unitwrap"><input id="futureGoal" name="futureGoal" type="number" inputmode="decimal" min="0.1" step="0.1" placeholder="将来の目標体重"><span class="unit">kg</span></span>
           </label>
           <p class="goal-note">今の時点での目標で大丈夫です。途中で変更できます。<br>減量率は選択肢であり、安全性や達成を保証するものではありません。</p>
         </fieldset>
-      </section>
-
-      <section class="metrics" aria-labelledby="metrics-title" aria-live="polite">
-        <h2 id="metrics-title">入力内容から自動計算</h2>
-        <div class="metric"><span class="metric-label">現在のBMI</span><strong class="metric-output" id="bmiValue"><span class="empty">—</span></strong></div>
-        <div class="metric"><span class="metric-label">BMIが25になる体重</span><strong class="metric-output" id="bmi25Weight"><span class="empty">—</span></strong></div>
-        <div class="metric"><span class="metric-label">3か月後の目標体重</span><strong class="metric-output" id="goalWeight"><span class="empty">—</span></strong></div>
-        <div class="metric"><span class="metric-label">目標BMI</span><strong class="metric-output" id="goalBmi"><span class="empty">—</span></strong></div>
-        <p class="note">BMIは体重(kg)÷身長(m)の2乗で算出します。BMIが25になる体重は、25×身長(m)の2乗による計算値です。目標BMIは入力した3か月後の目標体重から計算します。BMI25や減量率が、ご自身に適した目標であることを示すものではありません。</p>
       </section>
 
       <div class="action">
@@ -222,7 +217,6 @@ const weightInput=document.getElementById('weight');
 const bmiValue=document.getElementById('bmiValue');
 const bmi25Weight=document.getElementById('bmi25Weight');
 const threeMonthGoalInput=document.getElementById('threeMonthGoal');
-const goalWeight=document.getElementById('goalWeight');
 const goalBmi=document.getElementById('goalBmi');
 function fixed1(n){return Number.isFinite(n)?n.toFixed(1):'—';}
 function suggestTargetFromRate(){
@@ -251,7 +245,6 @@ function calculate(){
   const rate=rateInput?Number(rateInput.value):null;
   bmiValue.textContent=bmi===null?'—':fixed1(bmi);
   bmi25Weight.textContent=at25===null?'—':fixed1(at25)+' kg';
-  goalWeight.textContent=target===null?'—':fixed1(target)+' kg';
   goalBmi.textContent=targetBmi===null?'—':fixed1(targetBmi);
   return {bmi,at25,target,targetBmi,rate};
 }
