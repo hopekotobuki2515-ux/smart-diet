@@ -184,7 +184,6 @@
             <span class="field-label">3か月後に私が目指す体重は？</span>
             <span class="unitwrap"><input id="threeMonthGoal" name="threeMonthGoal" type="number" inputmode="decimal" min="0.1" step="0.1" placeholder="3か月後の目標体重" required><span class="unit">kg</span></span>
           </label>
-          <div class="metric metric-inline"><span class="metric-label">3か月後の目標BMI</span><strong class="metric-output" id="goalBmi">—</strong></div>
           <label class="field">
             <span class="field-label">将来私が目指す体重は？ <span class="hint">（任意）</span></span>
             <span class="unitwrap"><input id="futureGoal" name="futureGoal" type="number" inputmode="decimal" min="0.1" step="0.1" placeholder="将来の目標体重"><span class="unit">kg</span></span>
@@ -217,7 +216,6 @@ const weightInput=document.getElementById('weight');
 const bmiValue=document.getElementById('bmiValue');
 const bmi25Weight=document.getElementById('bmi25Weight');
 const threeMonthGoalInput=document.getElementById('threeMonthGoal');
-const goalBmi=document.getElementById('goalBmi');
 function fixed1(n){return Number.isFinite(n)?n.toFixed(1):'—';}
 function suggestTargetFromRate(){
   const rateInput=form.querySelector('input[name="rate"]:checked');
@@ -240,13 +238,11 @@ function calculate(){
   const bmi=validHeight&&validWeight?weight/(meters*meters):null;
   const at25=validHeight?25*meters*meters:null;
   const target=validGoal?goal:null;
-  const targetBmi=validHeight&&validGoal?goal/(meters*meters):null;
   const rateInput=form.querySelector('input[name="rate"]:checked');
   const rate=rateInput?Number(rateInput.value):null;
   bmiValue.textContent=bmi===null?'—':fixed1(bmi);
   bmi25Weight.textContent=at25===null?'—':fixed1(at25)+' kg';
-  goalBmi.textContent=targetBmi===null?'—':fixed1(targetBmi);
-  return {bmi,at25,target,targetBmi,rate};
+  return {bmi,at25,target,rate};
 }
 form.addEventListener('input',event=>{
   if(event.target===threeMonthGoalInput){
@@ -280,8 +276,7 @@ form.addEventListener('submit',event=>{
     '目標減量率：'+(data.rate===null?'手入力':data.rate+'%'),
     '3か月後に目指す体重：'+fixed1(data.target)+'kg',
     '将来目指す体重：'+(document.getElementById('futureGoal').value||'未入力')+(document.getElementById('futureGoal').value?'kg':''),
-    '現在BMI：'+fixed1(data.bmi),
-    '目標BMI：'+fixed1(data.targetBmi)
+    '現在BMI：'+fixed1(data.bmi)
   ];
   document.getElementById('reviewSummary').textContent=summary.join('\n');
   if(typeof dialog.showModal==='function')dialog.showModal();
