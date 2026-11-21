@@ -57,6 +57,7 @@
     .unitwrap {position:relative}
     .unitwrap input {padding-right:54px}
     .unit {position:absolute;right:17px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;pointer-events:none}
+    .history-card {margin-top:16px}
     .goal-card {margin-top:16px}
     fieldset {border:0;padding:0;margin:0;min-width:0}
     legend {padding:0 0 5px;font-size:17px;font-weight:780;line-height:1.45}
@@ -151,16 +152,39 @@
         </label>
       </section>
 
+      <section class="card history-card" aria-labelledby="history-title">
+        <div class="sectionhead">
+          <h2 id="history-title">これまでの体重</h2>
+          <p>これまでの体重を振り返ってみましょう。覚えていない項目は空欄で構いません。</p>
+        </div>
+        <label class="field">
+          <span class="field-label">20歳の時の体重は何キロ？ <span class="hint">（任意）</span></span>
+          <span class="unitwrap"><input id="weightAt20" name="weightAt20" type="number" inputmode="decimal" min="0.1" step="0.1" placeholder="20歳の時の体重"><span class="unit">kg</span></span>
+        </label>
+        <label class="field">
+          <span class="field-label">最も長く維持していた体重は何キロ？ <span class="hint">（任意）</span></span>
+          <span class="unitwrap"><input id="longestWeight" name="longestWeight" type="number" inputmode="decimal" min="0.1" step="0.1" placeholder="長く維持した体重"><span class="unit">kg</span></span>
+        </label>
+      </section>
+
       <section class="card goal-card" aria-labelledby="goal-title">
         <fieldset>
           <legend id="goal-title">3か月後の減量目標</legend>
-          <p class="goal-desc">スタート時の体重から、目標とする減量率を選びます。</p>
+          <p class="goal-desc">減量率を選ぶと、3か月後の目標体重を計算して入力します。目標体重はご自身で変更できます。</p>
           <div class="options" role="group" aria-label="3か月後の減量率">
-            <div class="option"><input id="rate5" name="rate" type="radio" value="5" required><label for="rate5">5%</label></div>
+            <div class="option"><input id="rate5" name="rate" type="radio" value="5"><label for="rate5">5%</label></div>
             <div class="option"><input id="rate8" name="rate" type="radio" value="8"><label for="rate8">8%</label></div>
             <div class="option"><input id="rate10" name="rate" type="radio" value="10"><label for="rate10">10%</label></div>
             <div class="option"><input id="rate15" name="rate" type="radio" value="15"><label for="rate15">15%</label></div>
           </div>
+          <label class="field" style="margin-top:22px">
+            <span class="field-label">3か月後に私が目指す体重は？</span>
+            <span class="unitwrap"><input id="threeMonthGoal" name="threeMonthGoal" type="number" inputmode="decimal" min="0.1" step="0.1" placeholder="3か月後の目標体重" required><span class="unit">kg</span></span>
+          </label>
+          <label class="field">
+            <span class="field-label">将来私が目指す体重は？ <span class="hint">（任意）</span></span>
+            <span class="unitwrap"><input id="futureGoal" name="futureGoal" type="number" inputmode="decimal" min="0.1" step="0.1" placeholder="将来の目標体重"><span class="unit">kg</span></span>
+          </label>
           <p class="goal-note">今の時点での目標で大丈夫です。途中で変更できます。<br>減量率は選択肢であり、安全性や達成を保証するものではありません。</p>
         </fieldset>
       </section>
@@ -168,9 +192,10 @@
       <section class="metrics" aria-labelledby="metrics-title" aria-live="polite">
         <h2 id="metrics-title">入力内容から自動計算</h2>
         <div class="metric"><span class="metric-label">現在のBMI</span><strong class="metric-output" id="bmiValue"><span class="empty">—</span></strong></div>
+        <div class="metric"><span class="metric-label">BMIが25になる体重</span><strong class="metric-output" id="bmi25Weight"><span class="empty">—</span></strong></div>
         <div class="metric"><span class="metric-label">3か月後の目標体重</span><strong class="metric-output" id="goalWeight"><span class="empty">—</span></strong></div>
         <div class="metric"><span class="metric-label">目標BMI</span><strong class="metric-output" id="goalBmi"><span class="empty">—</span></strong></div>
-        <p class="note">BMIは体重(kg)÷身長(m)の2乗で算出します。目標数値は選択した減量率による計算結果で、健康状態に適した目標かを判定するものではありません。</p>
+        <p class="note">BMIは体重(kg)÷身長(m)の2乗で算出します。BMIが25になる体重は、25×身長(m)の2乗による計算値です。目標BMIは入力した3か月後の目標体重から計算します。BMI25や減量率が、ご自身に適した目標であることを示すものではありません。</p>
       </section>
 
       <div class="action">
@@ -195,26 +220,55 @@ const dialog=document.getElementById('reviewDialog');
 const heightInput=document.getElementById('height');
 const weightInput=document.getElementById('weight');
 const bmiValue=document.getElementById('bmiValue');
+const bmi25Weight=document.getElementById('bmi25Weight');
+const threeMonthGoalInput=document.getElementById('threeMonthGoal');
 const goalWeight=document.getElementById('goalWeight');
 const goalBmi=document.getElementById('goalBmi');
 function fixed1(n){return Number.isFinite(n)?n.toFixed(1):'—';}
+function suggestTargetFromRate(){
+  const rateInput=form.querySelector('input[name="rate"]:checked');
+  if(!rateInput)return;
+  const weight=Number(weightInput.value);
+  if(weightInput.value===''||!weightInput.checkValidity()||!Number.isFinite(weight)||weight<=0){
+    threeMonthGoalInput.value='';
+    return;
+  }
+  threeMonthGoalInput.value=fixed1(weight*(1-Number(rateInput.value)/100));
+}
 function calculate(){
   const height=Number(heightInput.value);
   const weight=Number(weightInput.value);
+  const goal=Number(threeMonthGoalInput.value);
+  const validHeight=heightInput.value!==''&&heightInput.checkValidity()&&Number.isFinite(height)&&height>0;
+  const validWeight=weightInput.value!==''&&weightInput.checkValidity()&&Number.isFinite(weight)&&weight>0;
+  const validGoal=threeMonthGoalInput.value!==''&&threeMonthGoalInput.checkValidity()&&Number.isFinite(goal)&&goal>0;
+  const meters=height/100;
+  const bmi=validHeight&&validWeight?weight/(meters*meters):null;
+  const at25=validHeight?25*meters*meters:null;
+  const target=validGoal?goal:null;
+  const targetBmi=validHeight&&validGoal?goal/(meters*meters):null;
   const rateInput=form.querySelector('input[name="rate"]:checked');
   const rate=rateInput?Number(rateInput.value):null;
-  const hasMeasurements=heightInput.value!==''&&weightInput.value!==''&&height>0&&weight>0&&Number.isFinite(height)&&Number.isFinite(weight);
-  const meters=height/100;
-  const bmi=hasMeasurements?weight/(meters*meters):null;
-  const target=hasMeasurements&&rate!==null?weight*(1-rate/100):null;
-  const targetBmi=target!==null?target/(meters*meters):null;
   bmiValue.textContent=bmi===null?'—':fixed1(bmi);
+  bmi25Weight.textContent=at25===null?'—':fixed1(at25)+' kg';
   goalWeight.textContent=target===null?'—':fixed1(target)+' kg';
   goalBmi.textContent=targetBmi===null?'—':fixed1(targetBmi);
-  return {bmi,target,targetBmi,rate};
+  return {bmi,at25,target,targetBmi,rate};
 }
-form.addEventListener('input',calculate);
-form.addEventListener('change',calculate);
+form.addEventListener('input',event=>{
+  if(event.target===threeMonthGoalInput){
+    form.querySelectorAll('input[name="rate"]').forEach(radio=>{radio.checked=false;});
+  }else if(event.target===weightInput && form.querySelector('input[name="rate"]:checked')){
+    suggestTargetFromRate();
+  }else if(event.target.name==='rate'){
+    suggestTargetFromRate();
+  }
+  calculate();
+});
+form.addEventListener('change',event=>{
+  if(event.target.name==='rate')suggestTargetFromRate();
+  calculate();
+});
 form.addEventListener('submit',event=>{
   event.preventDefault();
   if(!form.reportValidity())return;
@@ -227,9 +281,13 @@ form.addEventListener('submit',event=>{
     '身長：'+heightInput.value+'cm',
     '開始時体重：'+weightInput.value+'kg',
     '腹囲：'+document.getElementById('waist').value+'cm',
-    '目標減量率：'+data.rate+'%',
+    'BMIが25になる体重：'+fixed1(data.at25)+'kg',
+    '20歳の時の体重：'+(document.getElementById('weightAt20').value||'未入力')+(document.getElementById('weightAt20').value?'kg':''),
+    '最も長く維持していた体重：'+(document.getElementById('longestWeight').value||'未入力')+(document.getElementById('longestWeight').value?'kg':''),
+    '目標減量率：'+(data.rate===null?'手入力':data.rate+'%'),
+    '3か月後に目指す体重：'+fixed1(data.target)+'kg',
+    '将来目指す体重：'+(document.getElementById('futureGoal').value||'未入力')+(document.getElementById('futureGoal').value?'kg':''),
     '現在BMI：'+fixed1(data.bmi),
-    '3か月後の目標体重：'+fixed1(data.target)+'kg',
     '目標BMI：'+fixed1(data.targetBmi)
   ];
   document.getElementById('reviewSummary').textContent=summary.join('\n');
