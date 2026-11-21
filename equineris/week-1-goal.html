@@ -164,7 +164,14 @@
     @media(max-width:340px){.options{gap:5px}.option label{font-size:16px}.future-presets{gap:7px}.future-presets button{font-size:12px}}
 
     /* 第1週の動機づけから目標設定へ：2枚の横スワイプ画面 */
-    .goal-slide-track{margin-top:0;transition:height .18s ease}
+    /* 見出しと説明の最長表示を事前確保し、横スワイプ中の縦移動を防止 */
+    .goal-heading-stage,.goal-lead-stage{display:grid;grid-template-columns:minmax(0,1fr);min-width:0}
+    .goal-heading-stage>*,.goal-lead-stage>*{grid-area:1/1;min-width:0}
+    .goal-header-measure{visibility:hidden;pointer-events:none}
+    .goal-lead-stage>.lead{width:100%;max-width:350px}
+    /* カードの高さ差は即時切り替え、縦方向にはアニメーションさせない */
+    .goal-slide-track{margin-top:0;overflow-anchor:none}
+    .page{overflow-anchor:none}
     .goal-slide{width:100%;min-width:0}
     .motivation-card{text-align:left}
     .motivation-card h2{margin:0 0 20px;font-size:18px;line-height:1.55;color:var(--ink)}
@@ -174,7 +181,7 @@
     .motivation-card .closing{margin-bottom:0}
     .slide-forward{margin-top:18px}
     .goal-slide-back{display:inline-flex;align-items:center;min-height:44px;margin:0 0 9px;padding:6px 8px;border:0;background:transparent;color:var(--green);font-size:13px;font-weight:750;cursor:pointer}
-    @media(prefers-reduced-motion:reduce){.goal-slide-track{transition:none}}
+    @media(prefers-reduced-motion:reduce){.slide-track{scroll-behavior:auto}}
 </style>
 </head>
 <body>
@@ -186,8 +193,14 @@
   </nav>
   <p class="wordmark" aria-label="EQUINERIS">EQUI<span>NERIS</span></p>
   <p class="eyebrow">SMART DIET · WEEK 01</p>
-  <h1 id="goalSlideHeading">なぜ、減量が必要なのか？</h1>
-  <p class="lead" id="goalSlideLead">減量を始める理由を考え、次の画面で目標を決めましょう。</p>
+  <div class="goal-heading-stage">
+   <h1 id="goalSlideHeading">なぜ、減量が必要なのか？</h1>
+   <h1 class="goal-header-measure" aria-hidden="true">スマートダイエットの<br>減量目標設定</h1>
+  </div>
+  <div class="goal-lead-stage">
+   <p class="lead" id="goalSlideLead">減量を始める理由を考え、次の画面で目標を決めましょう。</p>
+   <p class="lead goal-header-measure" aria-hidden="true">12週間後、あなたは何kgを目指したいですか？<br>まずは現在の体重から目標を考えましょう。</p>
+  </div>
   <div class="swipe-status" aria-live="polite">
    <strong id="goalSlideStatus">1 / 2</strong>
    <span>左右にスワイプして切り替え</span>
