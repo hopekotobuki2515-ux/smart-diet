@@ -118,6 +118,8 @@
     dialog p {font-size:13px;line-height:1.85;margin:0 0 15px;color:var(--ink-light)}
     .summary {margin:0 0 16px;font-size:13px;line-height:1.9;white-space:pre-line;background:#f5f8f2;border:1px solid #dfe7db;border-radius:12px;padding:14px}
     .close {width:100%;min-height:48px;background:var(--green);color:#fff;border:0;border-radius:12px;font-size:15px;font-weight:750}
+    .guide-link {display:flex;align-items:center;justify-content:center;min-height:48px;padding:10px 14px;margin:12px 0;border:1px solid #244f41;border-radius:12px;background:linear-gradient(125deg,#285d4a,#143d32);color:#fffdf5;text-align:center;text-decoration:none;font-size:15px;font-weight:750}
+    .unsaved-note {font-size:11px;line-height:1.7;color:var(--muted);margin:0 0 12px}
     @media(max-width:340px) {
       .page {padding-inline:13px}
       .card {padding:20px 14px}
@@ -234,8 +236,10 @@
 
 <dialog id="reviewDialog" aria-labelledby="reviewTitle" aria-describedby="reviewMessage">
   <h2 id="reviewTitle">入力内容を確認</h2>
-  <p id="reviewMessage">入力内容を確認できます。次の設定画面への接続と、アカウントへの保存はまだ実装していません。</p>
+  <p id="reviewMessage">入力内容を確認できます。利用者アカウントへの保存はまだ実装していません。</p>
   <div class="summary" id="reviewSummary"></div>
+  <p class="unsaved-note">現時点では入力内容を保存・引き継ぎできません。説明ページへ進むと入力内容が失われる場合があります。</p>
+  <a class="guide-link" href="./guide.html">3ページ目・進め方を見る</a>
   <button type="button" class="close" id="closeReview">入力画面へ戻る</button>
 </dialog>
 
