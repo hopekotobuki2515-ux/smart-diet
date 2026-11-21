@@ -259,7 +259,7 @@
    <div class="action">
     <button type="submit" class="next" id="saveGoal" disabled>目標を保存 <span class="arrow" aria-hidden="true">›</span></button>
     <p id="goalStatus" class="goal-error" role="status" aria-live="polite" hidden></p>
-    <a href="./learning.html?week=1" class="goal-next">第1週の学びへ進む</a>
+    <a href="./habit-check.html?from=goal" class="goal-next">次へ：食行動チェック ›</a>
     <p class="goal-optional">目標は、この端末のブラウザ内だけに保存されます。別端末への同期は未対応です。</p>
     <a href="./setup.html" class="goal-link">現在の体重を登録・変更する</a>
    </div>
@@ -409,7 +409,7 @@
   };
   try{
    localStorage.setItem(GOAL_KEY,JSON.stringify(row));
-   setStatus('目標を保存しました。第1週の学習へ進めます。');
+   setStatus('目標を保存しました。次は食行動チェックに進みましょう。');
   }catch(error){
    setStatus('目標を保存できませんでした。ブラウザの保存設定をご確認ください。',true);
   }
