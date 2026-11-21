@@ -74,6 +74,21 @@ function normalizeText(value) {
   .replace(/[ァ-ヶ]/g,c=>String.fromCharCode(c.charCodeAt(0)-0x60))
   .replace(/[\s・･]/g,'');
 }
+function isChickenMasterFood(food) {
+ return food.category === '肉類・鶏肉（若鶏）・鶏の副生物';
+}
+function isChickenSkin(food) {
+ return isChickenMasterFood(food) && (food.name === '皮・むね' || food.name === '皮・もも');
+}
+function displayFoodName(food) {
+ if(!isChickenMasterFood(food))return food.name;
+ if(food.name==='皮・むね')return '鶏皮（むね部分・皮のみ）';
+ if(food.name==='皮・もも')return '鶏皮（もも部分・皮のみ）';
+ if(food.name==='むね・皮つき')return '鶏むね肉（皮つき）';
+ return food.name;
+}
+const chickenBreastQueries=new Set(['鶏むね肉','鶏胸肉','鶏むね','とりむね肉','とりむねにく','とり胸肉','むね肉','胸肉'].map(normalizeText));
+const chickenSkinQueries=new Set(['鶏皮','とり皮','とりかわ'].map(normalizeText));
 function parseOnePointGrams(value) {
  const normalized=String(value??'').normalize('NFKC').replace(/\s+/g,'').trim();
  const match=normalized.match(/^(\d+(?:\.\d+)?)$/)
@@ -86,6 +101,8 @@ function filterFoodRecords(records,rawQuery,group) {
  const onePointGrams=parseOnePointGrams(rawQuery);
  if(onePointGrams!==null)return records.filter(food=>(!group||food.group===group)&&food.gramsPerPoint===onePointGrams);
  const q=normalizeText(rawQuery);
+ if(chickenBreastQueries.has(q))return records.filter(food=>(!group||food.group===group)&&isChickenMasterFood(food)&&food.name==='むね・皮つき');
+ if(chickenSkinQueries.has(q))return records.filter(food=>(!group||food.group===group)&&isChickenSkin(food));
  const exact=aliasGroups.filter(item=>item.terms.some(term=>normalizeText(term)===q));
  const possible=exact.length?exact:q.length>=2?aliasGroups.filter(item=>item.terms.some(term=>normalizeText(term).startsWith(q))):[];
  const targets=[...new Set(possible.flatMap(item=>item.targets.map(normalizeText)))];
@@ -140,7 +157,7 @@ function render(){
   const fragment=document.createDocumentFragment();
   shown.forEach((food,index)=>{
     const card=make('article','card food-result');
-    const title=make('h2','',food.name);
+    const title=make('h2','',displayFoodName(food));
     const meta=make('p','food-result-meta',food.group+' / '+food.category);
     const amount=make('p','food-result-amount','1点（80kcal）＝'+food.gramsPerPoint+'g');
     const label=make('label','','食べた量（g）');
@@ -156,7 +173,9 @@ function render(){
       if(!value){output.textContent='0より大きく、10000g以下の重量を入力してください。';return;}
       output.replaceChildren(make('strong','','約'+value.points.toFixed(2)+'点'),document.createTextNode(' ／ 約'+Math.round(value.calories)+'kcal'));
     });
-    card.append(title,meta,amount,label,output);
+    card.append(title,meta,amount);
+  if(isChickenSkin(food))card.append(make('p','food-search-help','※ これは鶏皮だけの数値です。鶏むね肉の点数とは異なります。'));
+  card.append(label,output);
     fragment.append(card);
   });
   results.replaceChildren(fragment);
