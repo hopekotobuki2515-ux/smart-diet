@@ -278,8 +278,8 @@ function render(){
   document.getElementById('total'+(i+1)).textContent=count+'個';
   document.getElementById('bar'+(i+1)).style.width=(count/20*100)+'%';
  });
- document.getElementById('editLink').href='./record.html';
- document.getElementById('backLink').href='./record.html';
+ document.getElementById('editLink').href='./record.html?day='+activeDay;
+ document.getElementById('backLink').href='./record.html?day='+activeDay;
  document.getElementById('resultStatus').textContent=canRead?'メモと○はこのブラウザに保存された記録から表示しています。':'このブラウザの記録を読み込めません。';
  refreshPhotos();
 }
