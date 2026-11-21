@@ -250,7 +250,7 @@
  let startWeight=null;
  let heightCm=null;
  let rememberedFutureBmi=null;
- const one=n=>Math.round((n+Number.EPSILON)*10)/10;
+ const one=n=>Math.round(n*10+1e-9)/10;
  const display=n=>one(n).toFixed(1);
  const setStatus=(text,error=false)=>{feedback.textContent=text;feedback.hidden=!text;feedback.className=error?'goal-error':'goal-help';};
  const bmiWeight=bmi=>bmi*(heightCm/100)**2;
