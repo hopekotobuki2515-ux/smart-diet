@@ -148,7 +148,7 @@
   <script>
     'use strict';
     // 未確定の遷移先を推測で指定しない。設定されるまでは404へ移動せず状態を案内する。
-    const NEXT_ROUTES = Object.freeze({ start:'./setup.html', login:'' });
+    const NEXT_ROUTES = Object.freeze({ start:'./smart-diet.html', login:'' });
     const dialog=document.getElementById('nextStepDialog');
     const title=document.getElementById('nextStepTitle');
     const message=document.getElementById('nextStepMessage');
@@ -158,9 +158,9 @@
         window.location.assign(destination);
         return;
       }
-      title.textContent=kind==='start'?'初回設定へ':'ログインへ';
+      title.textContent=kind==='start'?'EQUINERISの説明へ':'ログインへ';
       message.textContent=kind==='start'
-        ?'オープニングページは作成済みです。初回設定画面への接続は次の制作工程で行います。'
+        ?'オープニングページは作成済みです。EQUINERISの説明画面への接続は次の制作工程で行います。'
         :'ログイン画面への接続は次の制作工程で行います。既存の別アプリには移動しません。';
       if(typeof dialog.showModal==='function')dialog.showModal();
     }
