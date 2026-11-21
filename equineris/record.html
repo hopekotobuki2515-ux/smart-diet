@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#fefdf8">
+  <meta name="description" content="EQUINERISの最初の3日間の食事記録。写真と簡単なメモで、いつもの食事を記録します。">
+  <title>最初の3日間の食事記録 | EQUINERIS</title>
+  <style>
+    :root{
+      color-scheme:light;
+      font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
+      --ink:#183e38;--ink-light:#31564d;--muted:#64776a;
+      --gold:#a6844e;--green:#285d4a;--outline:#e7e5d9;
+    }
+    *,*::before,*::after{box-sizing:border-box}
+    html{-webkit-text-size-adjust:100%;overflow-x:hidden}
+    body{margin:0;min-width:280px;overflow-x:hidden;color:var(--ink);background:#e8eee8}
+    button,input,textarea,select,a{font:inherit;touch-action:manipulation}
+    button{cursor:pointer}
+    :focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+    .viewport{min-height:100svh;display:flex;justify-content:center}
+    .page{
+      width:100%;max-width:510px;min-height:100svh;
+      padding:22px 20px max(36px,env(safe-area-inset-bottom));
+      background:linear-gradient(157deg,#fefdf8 0%,#fafaf6 46%,#f0f5ef 100%);
+      box-shadow:0 18px 70px rgba(25,54,41,.055);
+    }
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .back{min-height:44px;display:inline-flex;align-items:center;text-decoration:none;color:var(--ink-light);font-size:13px;font-weight:650}
+    .step{font-size:10px;font-weight:800;letter-spacing:.18em;color:var(--gold)}
+    .wordmark{text-align:center;margin:12px 0 0;font-size:27px;letter-spacing:.11em;font-weight:800;line-height:1.15}
+    .wordmark span{color:var(--gold)}
+    .intro{text-align:center;margin:31px 0 22px}
+    .eyebrow{margin:0 0 8px;color:var(--gold);font-size:11px;font-weight:800;letter-spacing:.18em}
+    h1{margin:0;font-size:clamp(23px,6vw,29px);line-height:1.5}
+    .lead{margin:10px auto 0;max-width:350px;font-size:13px;line-height:1.85;color:var(--ink-light)}
+    .notice{
+      padding:13px 14px;margin-bottom:20px;background:#f9f8f1;
+      border-left:3px solid #d7c5a3;border-radius:0 11px 11px 0;
+      color:var(--ink-light);font-size:12px;line-height:1.85;
+    }
+    .day-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 16px}
+    .day-tab{
+      min-width:0;min-height:62px;padding:7px 3px;background:#fffdfa;color:var(--ink-light);
+      border:1px solid #dbe5db;border-radius:14px;font-weight:750;font-size:14px;
+    }
+    .day-tab[aria-pressed="true"]{background:var(--green);border-color:var(--green);color:#fff}
+    .day-count{display:block;margin-top:5px;font-size:11px;font-weight:500;opacity:.8}
+    .card{padding:22px 18px;background:#fffdfa;border:1px solid var(--outline);border-radius:20px;box-shadow:0 8px 24px rgba(21,67,45,.035)}
+    .card h2{font-size:18px;margin:0 0 6px}
+    .card-lead{font-size:12px;color:var(--muted);line-height:1.75;margin:0 0 21px}
+    .field{display:block;margin:0 0 19px}
+    .field-label{display:block;margin:0 0 8px;font-weight:750;font-size:14px;line-height:1.55}
+    .field input,.field select,.field textarea{
+      display:block;width:100%;min-width:0;min-height:51px;
+      background:#fff;color:var(--ink);border:1px solid #d9e2d9;border-radius:12px;
+      padding:12px 14px;font-size:16px;
+    }
+    .field textarea{min-height:106px;line-height:1.7;resize:vertical;overflow-wrap:break-word}
+    .field input[type="file"]{padding:10px 12px;height:auto;max-width:100%;font-size:13px}
+    .field-note{display:block;color:var(--muted);font-size:11px;line-height:1.75;margin:6px 0 0}
+    .preview{margin:12px 0 0;padding:8px;border:1px solid #e0e8df;border-radius:12px;background:#f9fbf8;text-align:center}
+    .preview img{display:block;max-width:100%;height:auto;max-height:280px;object-fit:contain;margin:0 auto;border-radius:8px}
+    .primary{
+      display:flex;justify-content:center;align-items:center;min-height:56px;width:100%;
+      background:linear-gradient(125deg,#285d4a,#143d32);border:1px solid #244f41;
+      border-radius:15px;color:#fffdf5;font-size:16px;font-weight:800;
+      box-shadow:0 11px 24px rgba(24,66,48,.13);
+    }
+    .primary:disabled{opacity:.55;cursor:not-allowed}
+    .status{margin:12px 0 0;color:var(--ink-light);font-size:12px;line-height:1.8;min-height:1.8em;overflow-wrap:break-word}
+    .status[data-error="true"]{color:#a02a27}
+    .history{margin-top:26px}
+    .history-heading{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin:0 0 13px}
+    .history h2{font-size:17px;margin:0}
+    .history-heading span{font-size:12px;color:var(--muted)}
+    .records{display:grid;gap:12px}
+    .record{
+      width:100%;min-width:0;padding:17px 15px;
+      border:1px solid var(--outline);border-radius:17px;background:#fffdfa;
+      overflow-wrap:break-word;
+    }
+    .record-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+    .record h3{margin:0;font-size:15px}
+    .record time{font-size:12px;color:var(--muted)}
+    .record p{margin:11px 0 0;font-size:13px;line-height:1.85;color:var(--ink-light);white-space:pre-wrap;overflow-wrap:break-word}
+    .record img{display:block;width:100%;height:auto;max-height:330px;object-fit:contain;margin:13px 0 0;border-radius:11px;background:#f2f5f0}
+    .delete{margin:15px 0 0;padding:8px 11px;min-height:44px;border:1px solid #e3cbc8;border-radius:10px;background:#fff;color:#923a35;font-size:12px;font-weight:700}
+    .empty{padding:23px 15px;text-align:center;background:#f5f8f2;border:1px dashed #d3ded2;border-radius:14px;font-size:12px;line-height:1.8;color:var(--muted)}
+    .footnote{margin:20px 0 0;text-align:center;font-size:11px;line-height:1.9;color:var(--muted)}
+    [hidden]{display:none!important}
+    @media(max-width:340px){.page{padding-inline:13px}.card{padding:19px 13px}.day-list{gap:5px}}
+    @media(min-width:650px){.viewport{padding:24px}.page{border:1px solid var(--outline);border-radius:25px;min-height:calc(100svh - 48px);padding-inline:34px}}
+  </style>
+</head>
+<body>
+<main class="viewport">
+  <div class="page">
+    <nav class="topbar" aria-label="ページ移動">
+      <a class="back" href="./guide.html">〈 食事記録の説明へ戻る</a>
+      <span class="step">3 DAYS</span>
+    </nav>
+    <p class="wordmark" aria-label="EQUINERIS">EQUI<span>NERIS</span></p>
+    <header class="intro">
+      <p class="eyebrow">FOOD DIARY</p>
+      <h1>まずは3日間、<br>いつもの食事を記録。</h1>
+      <p class="lead">写真1枚と簡単なメモから始めましょう。普段の食事を変えなくても大丈夫です。</p>
+    </header>
+    <p class="notice">この試作画面の記録は、現在使っているブラウザの中だけに保存されます。さくらサーバーや利用者アカウントとは同期されません。ブラウザのデータを削除すると記録が消える場合があります。</p>
+    <div class="day-list" role="group" aria-label="記録する日を選択">
+      <button class="day-tab" type="button" data-day="1" aria-pressed="true">1日目<span class="day-count" id="count1">0件</span></button>
+      <button class="day-tab" type="button" data-day="2" aria-pressed="false">2日目<span class="day-count" id="count2">0件</span></button>
+      <button class="day-tab" type="button" data-day="3" aria-pressed="false">3日目<span class="day-count" id="count3">0件</span></button>
+    </div>
+    <section class="card" aria-labelledby="formTitle">
+      <h2 id="formTitle">1日目の食事を記録</h2>
+      <p class="card-lead">食事1回につき1件ずつ、何件でも追加できます。写真が難しいときはメモだけでも記録できます。</p>
+      <form id="recordForm">
+        <label class="field">
+          <span class="field-label">記録する日付</span>
+          <input id="date" type="date" required>
+        </label>
+        <label class="field">
+          <span class="field-label">食事の種類</span>
+          <select id="meal" required>
+            <option value="朝食">朝食</option>
+            <option value="昼食">昼食</option>
+            <option value="夕食">夕食</option>
+            <option value="間食">間食</option>
+            <option value="飲み物">飲み物</option>
+            <option value="飲酒">飲酒</option>
+          </select>
+        </label>
+        <label class="field">
+          <span class="field-label">食事の写真（任意）</span>
+          <input id="photo" type="file" accept="image/*">
+          <span class="field-note">写真はトリミング・圧縮をせず、元のデータを端末内に保存します。</span>
+        </label>
+        <div class="preview" id="photoPreview" hidden></div>
+        <label class="field">
+          <span class="field-label">簡単なメモ（任意）</span>
+          <textarea id="memo" maxlength="600" placeholder="例：ご飯、焼き魚、みそ汁。外食だった、など"></textarea>
+          <span class="field-note">写真とメモのどちらか一方があれば保存できます。最初の3日間は点数入力をしません。</span>
+        </label>
+        <button class="primary" id="saveButton" type="submit" disabled>この食事を保存する</button>
+        <p class="status" role="status" aria-live="polite" id="status">保存機能を準備しています。</p>
+      </form>
+    </section>
+    <section class="history" aria-labelledby="historyTitle">
+      <div class="history-heading">
+        <h2 id="historyTitle">1日目の記録</h2>
+        <span id="historyCount">0件</span>
+      </div>
+      <div class="records" id="recordList">
+        <p class="empty">保存した食事がここに表示されます。</p>
+      </div>
+    </section>
+    <p class="footnote">記録の保存先はこの端末のブラウザ内です。別端末からの閲覧やクラウド同期には対応していません。</p>
+  </div>
+</main>
+<script>
+'use strict';
+const form=document.getElementById('recordForm');
+const dateInput=document.getElementById('date');
+const mealInput=document.getElementById('meal');
+const photoInput=document.getElementById('photo');
+const memoInput=document.getElementById('memo');
+const photoPreview=document.getElementById('photoPreview');
+const saveButton=document.getElementById('saveButton');
+const status=document.getElementById('status');
+const recordList=document.getElementById('recordList');
+const dayButtons=Array.from(document.querySelectorAll('[data-day]'));
+let activeDay=1;
+let database=null;
+let previewUrl=null;
+let renderedPhotoUrls=[];
+
+function todayLocal(){
+  const now=new Date();
+  const z=n=>String(n).padStart(2,'0');
+  return now.getFullYear()+'-'+z(now.getMonth()+1)+'-'+z(now.getDate());
+}
+function showStatus(message,error=false){
+  status.textContent=message;
+  status.dataset.error=String(error);
+}
+function clearPhotoPreview(){
+  if(previewUrl){URL.revokeObjectURL(previewUrl);previewUrl=null;}
+  photoPreview.replaceChildren();
+  photoPreview.hidden=true;
+}
+function attachImage(container,blob,alt,trackList){
+  const image=document.createElement('img');
+  const url=URL.createObjectURL(blob);
+  if(trackList)renderedPhotoUrls.push(url);
+  else previewUrl=url;
+  image.alt=alt;
+  image.src=url;
+  image.addEventListener('error',()=>{
+    const fallback=document.createElement('p');
+    fallback.textContent='写真は保存されていますが、このブラウザではプレビューできない形式です。';
+    image.replaceWith(fallback);
+  },{once:true});
+  container.appendChild(image);
+}
+photoInput.addEventListener('change',()=>{
+  clearPhotoPreview();
+  const photo=photoInput.files && photoInput.files[0];
+  if(!photo)return;
+  if(!photo.type.startsWith('image/')){
+    photoInput.value='';
+    showStatus('画像ファイルを選択してください。',true);
+    return;
+  }
+  photoPreview.hidden=false;
+  attachImage(photoPreview,photo,'選択した食事の写真',false);
+});
+
+function openDatabase(){
+  return new Promise((resolve,reject)=>{
+    if(!('indexedDB' in window)){reject(new Error('このブラウザでは端末内保存を利用できません。'));return;}
+    const req=indexedDB.open('equineris-food-first3-v1',1);
+    req.onupgradeneeded=()=>{
+      if(!req.result.objectStoreNames.contains('entries')){
+        req.result.createObjectStore('entries',{keyPath:'id',autoIncrement:true});
+      }
+    };
+    req.onsuccess=()=>resolve(req.result);
+    req.onerror=()=>reject(req.error || new Error('保存先を開けませんでした。'));
+    req.onblocked=()=>reject(new Error('別のタブでデータベースが使用中です。'));
+  });
+}
+function runStore(mode,operation){
+  return new Promise((resolve,reject)=>{
+    if(!database){reject(new Error('保存先が利用できません。'));return;}
+    let tx,req,result;
+    try{
+      tx=database.transaction('entries',mode);
+      req=operation(tx.objectStore('entries'));
+    }catch(error){reject(error);return;}
+    req.onsuccess=()=>{result=req.result;};
+    tx.oncomplete=()=>resolve(result);
+    tx.onerror=()=>reject(tx.error || req.error || new Error('保存処理に失敗しました。'));
+    tx.onabort=()=>reject(tx.error || new Error('保存処理が中断されました。'));
+  });
+}
+const loadAll=()=>runStore('readonly',store=>store.getAll());
+const addRecord=record=>runStore('readwrite',store=>store.add(record));
+const removeRecord=id=>runStore('readwrite',store=>store.delete(id));
+
+function element(tag,className,content){
+  const node=document.createElement(tag);
+  if(className)node.className=className;
+  if(content!==undefined)node.textContent=String(content);
+  return node;
+}
+function hasUnsavedDraft(){
+  return Boolean(memoInput.value.trim() || (photoInput.files && photoInput.files.length));
+}
+function resetDraft(){
+  form.reset();
+  dateInput.value=todayLocal();
+  clearPhotoPreview();
+}
+async function updateCounts(){
+  if(!database)return;
+  const all=await loadAll();
+  for(let day=1;day<=3;day++){
+    document.getElementById('count'+day).textContent=all.filter(r=>r.day===day).length+'件';
+  }
+}
+async function renderRecords(){
+  if(!database)return;
+  const day=activeDay;
+  const records=(await loadAll()).filter(r=>r.day===day);
+  if(day!==activeDay)return;
+  records.sort((a,b)=>b.createdAt.localeCompare(a.createdAt) || b.id-a.id);
+  document.getElementById('historyCount').textContent=records.length+'件';
+  renderedPhotoUrls.forEach(url=>URL.revokeObjectURL(url));
+  renderedPhotoUrls=[];
+  recordList.replaceChildren();
+  if(records.length===0){
+    recordList.appendChild(element('p','empty','まだ記録はありません。写真やメモを追加してみましょう。'));
+    return;
+  }
+  for(const item of records){
+    const card=element('article','record');
+    const top=element('div','record-top');
+    top.appendChild(element('h3','',item.meal));
+    const date=element('time','',item.date);
+    date.dateTime=item.date;
+    top.appendChild(date);
+    card.appendChild(top);
+    if(item.photo instanceof Blob){
+      attachImage(card,item.photo,item.meal+'の食事写真',true);
+    }
+    if(item.memo)card.appendChild(element('p','',item.memo));
+    const remove=element('button','delete','この記録を削除');
+    remove.type='button';
+    remove.addEventListener('click',async()=>{
+      if(!window.confirm('この食事の記録を削除しますか？削除した記録は元に戻せません。'))return;
+      remove.disabled=true;
+      try{
+        await removeRecord(item.id);
+        await updateCounts();
+        await renderRecords();
+        showStatus('記録を削除しました。');
+      }catch(error){
+        remove.disabled=false;
+        showStatus('削除できませんでした。端末の保存設定をご確認ください。',true);
+      }
+    });
+    card.appendChild(remove);
+    recordList.appendChild(card);
+  }
+}
+async function selectDay(day){
+  if(day===activeDay)return;
+  if(hasUnsavedDraft() && !window.confirm('入力途中の写真やメモが消えます。別の日に切り替えますか？'))return;
+  activeDay=day;
+  resetDraft();
+  dayButtons.forEach(button=>button.setAttribute('aria-pressed',String(Number(button.dataset.day)===day)));
+  document.getElementById('formTitle').textContent=day+'日目の食事を記録';
+  document.getElementById('historyTitle').textContent=day+'日目の記録';
+  try{await renderRecords();}catch(error){showStatus('記録の読み込みに失敗しました。',true);}
+}
+dayButtons.forEach(button=>{
+  button.addEventListener('click',()=>selectDay(Number(button.dataset.day)));
+});
+
+form.addEventListener('submit',async event=>{
+  event.preventDefault();
+  if(!database){showStatus('端末内の保存機能が使えないため、保存できません。',true);return;}
+  if(!form.reportValidity())return;
+  const photo=photoInput.files && photoInput.files[0] || null;
+  const memo=memoInput.value.trim();
+  if(!photo && !memo){showStatus('食事の写真かメモを入力してください。',true);return;}
+  if(photo && !photo.type.startsWith('image/')){showStatus('画像ファイルを選択してください。',true);return;}
+  const entry={day:activeDay,date:dateInput.value,meal:mealInput.value,memo,photo,createdAt:new Date().toISOString()};
+  saveButton.disabled=true;
+  showStatus('保存しています。');
+  try{
+    await addRecord(entry);
+    resetDraft();
+    await updateCounts();
+    await renderRecords();
+    showStatus('この端末内に記録を保存しました。');
+  }catch(error){
+    showStatus('保存できませんでした。端末の空き容量やブラウザの保存設定をご確認ください。',true);
+  }finally{
+    saveButton.disabled=false;
+  }
+});
+window.addEventListener('beforeunload',event=>{
+  if(hasUnsavedDraft()){event.preventDefault();event.returnValue='';}
+});
+async function initialize(){
+  dateInput.value=todayLocal();
+  try{
+    database=await openDatabase();
+    database.onversionchange=()=>{database.close();database=null;saveButton.disabled=true;showStatus('保存先が更新されました。ページを再読み込みしてください。',true);};
+    await updateCounts();
+    await renderRecords();
+    saveButton.disabled=false;
+    showStatus('記録を入力できます。');
+  }catch(error){
+    saveButton.disabled=true;
+    showStatus('このブラウザでは端末内保存を利用できません。別の通常ウィンドウでお試しください。',true);
+  }
+}
+initialize();
+</script>
+</body>
+</html>
