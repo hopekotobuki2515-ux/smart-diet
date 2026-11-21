@@ -59,6 +59,17 @@
 #nutrientFocus{margin-bottom:12px}
 #nutrientFocusTitle{margin:0 0 7px;font-size:18px}
 #nutrientFocusHint{font-size:13px}
+.symptom-filter label{display:block;font-size:14px;font-weight:700}
+.symptom-filter select{display:block;width:100%;box-sizing:border-box;padding:13px;border-radius:12px;border:1px solid #cddbd0;background:#fff;font:inherit;margin-top:8px;min-height:46px}
+#symptomInfo[hidden]{display:none}
+.symptom-options{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 6px}
+.symptom-options button{border:1px solid #85b797;background:#fff;color:#286d4f;border-radius:999px;padding:9px 14px;font:inherit;font-weight:700;min-height:44px;cursor:pointer}
+.symptom-options button[aria-pressed="true"]{background:#286d4f;color:#fff}
+.symptom-note{font-size:13px;line-height:1.7;color:#566576}
+.symptom-caution{background:#fff5e9;border-left:3px solid #de9953;border-radius:6px;padding:11px 12px;font-size:13px;line-height:1.7}
+.symptom-sources{font-size:12px;margin-top:8px}
+.symptom-sources a{color:#286d4f;text-decoration:underline}
+.symptom-options button:focus-visible,.symptom-filter select:focus-visible{outline:3px solid #d9a75b;outline-offset:2px}
 @media(max-width:390px){.nutrient-facts{grid-template-columns:1fr}}
 </style>
 </head>
@@ -101,6 +112,20 @@
 </div>
 </div>
 <section id="nutrientModePane" role="tabpanel" aria-labelledby="nutrientModeTab" hidden>
+<section class="card symptom-filter" aria-labelledby="symptomTitle">
+<h2 id="symptomTitle">カラダの不調から食品を探す</h2>
+<p class="food-search-help">不調に関連する可能性がある栄養素を確認し、書籍の栄養素別食品リストを探せます。症状から栄養不足を診断する機能ではありません。</p>
+<label for="symptomSelect">気になる不調を選んでください
+<select id="symptomSelect"><option value="">不調を選択してください（9項目）</option></select></label>
+<div id="symptomInfo" hidden>
+<p id="symptomExplanation" class="symptom-note"></p>
+<p class="food-search-help">関連する栄養素を選んで食品を確認</p>
+<div id="symptomNutrients" class="symptom-options" role="group" aria-label="関連する栄養素"></div>
+<p id="symptomCaution" class="symptom-caution"></p>
+<div id="symptomSources" class="symptom-sources"></div>
+</div>
+<p class="symptom-note">この機能は食生活を見直すための情報です。原因が不明な症状、長引く症状は医師に相談してください。急な息苦しさや胸痛、突然の片側のしびれ・麻痺などは速やかに救急医療を受けてください。</p>
+</section>
 <section class="card">
 <h2>栄養素から食品を探す</h2>
 <p class="food-search-help">書籍の全27種類・2,265行を検索できます。100gあたり、1点あたり、調理情報は書籍の記載をそのまま表示します。食品マスターとの対応は未承認です。</p>
@@ -276,6 +301,6 @@ fetch('./food-master.json',{cache:'no-store'})
   })
   .catch(()=>{status.classList.add('error');status.textContent='食品マスターを読み込めませんでした。通信状況を確認してページを再読み込みしてください。';results.replaceChildren();swipeHint.hidden=true;pages.hidden=true;});
 </script>
-<script type="module" src="./nutrient-panel.js?v=20261121-2"></script>
+<script type="module" src="./nutrient-panel.js?v=20261121-3"></script>
 </body>
 </html>
