@@ -89,7 +89,7 @@
     }
     .actions{margin-top:26px}
     .main-button{
-      display:flex;align-items:center;justify-content:center;position:relative;width:100%;
+      display:flex;align-items:center;justify-content:center;position:relative;width:100%;text-decoration:none;
       min-height:57px;padding:13px 41px;border:1px solid #244f41;border-radius:15px;
       background:linear-gradient(125deg,#285d4a,#143d32);color:#fffdf5;
       font-size:17px;font-weight:800;letter-spacing:.04em;
@@ -153,24 +153,10 @@
     </div>
     <p class="mini-notice">この3日間は食事を評価するためではなく、今の習慣を知るためのものです。12週間の「今週のお話」では、その記録を手がかりに少しずつ学んでいきます。</p>
     <div class="actions">
-      <button id="recordButton" class="main-button" type="button">食事の記録へ <span class="arrow" aria-hidden="true">›</span></button>
-      <p class="footnote">EQUINERIS版の食事記録画面への接続は、まだ実装していません。</p>
+      <a id="recordButton" class="main-button" href="./record.html">食事の記録へ <span class="arrow" aria-hidden="true">›</span></a>
+      <p class="footnote">食事の記録は、この端末のブラウザ内にのみ保存されます。利用者アカウントへの同期はまだ実装していません。</p>
     </div>
   </article>
 </main>
-<dialog id="recordDialog" aria-labelledby="dialogTitle" aria-describedby="dialogDesc">
-  <h2 id="dialogTitle">食事の記録について</h2>
-  <p id="dialogDesc">オープニングと初回設定、進め方のページを作成しています。食事記録画面への接続は次の制作工程で行います。既存の別アプリへは移動しません。</p>
-  <button type="button" id="closeDialog" class="close">このページに戻る</button>
-</dialog>
-<script>
-'use strict';
-const recordDialog=document.getElementById('recordDialog');
-document.getElementById('recordButton').addEventListener('click',()=>{
-  if(typeof recordDialog.showModal==='function')recordDialog.showModal();
-});
-document.getElementById('closeDialog').addEventListener('click',()=>recordDialog.close());
-recordDialog.addEventListener('click',event=>{if(event.target===recordDialog)recordDialog.close()});
-</script>
 </body>
 </html>
