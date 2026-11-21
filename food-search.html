@@ -38,10 +38,10 @@
 <section class="card">
 <span class="eyebrow">1点＝80kcal</span>
 <h1>食品マスター検索</h1>
-<p>食品名・ひらがな・カタカナ・主要食品の英語名から、1点に相当する重量を確認できます。食べた量を入力すると点数も計算します。</p>
+<p>食品名・ひらがな・カタカナ・主要食品の英語名、または1点分の重量（例：50g）から食品を検索できます。食べた量を入力すると点数も計算します。</p>
 <div class="food-search-filters">
-<label for="keyword">食品名・ひらがな・英語で検索
-<input id="keyword" type="search" placeholder="例：たまご、egg、milk" autocomplete="off" spellcheck="false">
+<label for="keyword">食品名・ひらがな・英語・1点分の重量で検索
+<input id="keyword" type="search" placeholder="例：たまご、egg、50g" autocomplete="off" spellcheck="false">
 </label>
 <label for="group">食品グループ
 <select id="group">
@@ -71,7 +71,17 @@ function normalizeText(value) {
   .replace(/[ァ-ヶ]/g,c=>String.fromCharCode(c.charCodeAt(0)-0x60))
   .replace(/[\s・･]/g,'');
 }
+function parseOnePointGrams(value) {
+ const normalized=String(value??'').normalize('NFKC').replace(/\s+/g,'').trim();
+ const match=normalized.match(/^(\d+(?:\.\d+)?)$/)
+   || normalized.match(/^(?:食品)?(\d+(?:\.\d+)?)(?:g|grams?|グラム)(?:(?:=|は|で)?1点)?(?:の?食材)?$/i);
+ if(!match)return null;
+ const grams=Number(match[1]);
+ return Number.isFinite(grams)&&grams>0&&grams<=10000?grams:null;
+}
 function filterFoodRecords(records,rawQuery,group) {
+ const onePointGrams=parseOnePointGrams(rawQuery);
+ if(onePointGrams!==null)return records.filter(food=>(!group||food.group===group)&&food.gramsPerPoint===onePointGrams);
  const q=normalizeText(rawQuery);
  const exact=aliasGroups.filter(item=>item.terms.some(term=>normalizeText(term)===q));
  const possible=exact.length?exact:q.length>=2?aliasGroups.filter(item=>item.terms.some(term=>normalizeText(term).startsWith(q))):[];
@@ -121,7 +131,8 @@ function render(){
   const start=page*perPage;
   const shown=matches.slice(start,start+perPage);
   status.classList.remove('error');
-  status.textContent=total?total+'件見つかりました（'+(start+1)+'〜'+Math.min(start+perPage,total)+'件を表示）':'一致する食品がありません。検索語や食品群を変えてください。';
+  const onePointGrams=parseOnePointGrams(keyword.value);
+  status.textContent=total?total+'件見つかりました（'+(start+1)+'〜'+Math.min(start+perPage,total)+'件を表示）':onePointGrams!==null?'1点＝'+onePointGrams+'gに完全一致する食品は登録されていません。':'一致する食品がありません。検索語や食品群を変えてください。';
   const fragment=document.createDocumentFragment();
   shown.forEach((food,index)=>{
     const card=make('article','card food-result');
