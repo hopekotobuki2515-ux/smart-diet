@@ -268,6 +268,7 @@ dialog h2{margin:0 0 13px;font-size:17px}
         <p class="status" id="saveStatus" role="status" aria-live="polite">保存先を確認しています。</p>
       </div>
     </section>
+    <a class="backup-link" id="programChoiceLink" href="./program-choice.html?day=1">12週間プログラムをあとから始める・進め方を変更する</a>
     <a class="backup-link" href="./photo-record.html">以前の写真・メモの記録を見る</a>
     <p class="footnote">紙のダイアリーと同じ記録項目を3日間分用意しました。保存はこのブラウザ内のみです。以前の写真記録は別ページに保管しています。</p>
   </div>
@@ -388,6 +389,7 @@ function loadDay(day){
  tabs.forEach(tab=>tab.setAttribute('aria-pressed',String(Number(tab.dataset.day)===day)));
  document.getElementById('dayTitle').textContent=day+'日目の食事ダイアリー';
  document.getElementById('dailyResultLink').href='./daily-result.html?day='+day;
+ document.getElementById('programChoiceLink').href='./program-choice.html?day='+day;
  for(const field of fields){
   let saved=null;
   if(canStore){try{saved=localStorage.getItem(key(day,field.dataset.diaryKey));}
