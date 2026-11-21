@@ -146,6 +146,11 @@
     .goal-next{display:flex;min-height:49px;justify-content:center;align-items:center;text-align:center;text-decoration:none;margin-top:14px;padding:10px 15px;border:1px solid #bbd2c0;border-radius:12px;background:#f5faf3;color:var(--green);font-size:14px;font-weight:750}
     .goal-link{color:var(--green);font-weight:750}
     .goal-optional{margin-top:10px;font-size:11px;color:var(--muted);line-height:1.75}
+    .bmi-explain{margin:9px 0 19px;padding:14px 15px;border:1px solid var(--outline);border-radius:13px;background:#fffdfa}
+    .bmi-explain h3{margin:0 0 8px;font-size:15px;line-height:1.5;color:var(--ink)}
+    .bmi-explain p{margin:0 0 9px;font-size:12px;line-height:1.8;color:var(--ink-light);overflow-wrap:break-word}
+    .bmi-explain p:last-child{margin-bottom:0}
+    .bmi-explain .bmi-formula{font-weight:750;color:var(--green)}
     .reference-weight{font-size:20px;font-variant-numeric:tabular-nums}
     .history-fields{margin:16px 0 9px;padding:15px 0 0;border-top:1px solid #dfe7df}
     .history-fields h3,.future-section h3{font-size:15px;line-height:1.6;margin:0 0 10px}
@@ -216,7 +221,13 @@
      <div class="metric"><span class="metric-label">現在の体重（登録値）</span><strong class="metric-output" id="startWeight">未登録</strong></div>
      <div class="metric"><span class="metric-label">BMIが25になる体重（参考値）</span><strong class="metric-output reference-weight" id="bmi25Weight">—</strong></div>
     </div>
-    <p class="reference-info">BMI25の体重は身長から計算した参考値であり、推奨する目標体重ではありません。</p>
+    <section class="bmi-explain" aria-labelledby="bmiExplainTitle">
+     <h3 id="bmiExplainTitle">BMIとは？</h3>
+     <p>BMIは、身長と体重から計算する成人の体格の目安です。</p>
+     <p class="bmi-formula">BMI ＝ 体重（kg）÷ 身長（m）÷ 身長（m）</p>
+     <p><strong>BMI22</strong>：標準体重の計算に使われる値。<br><strong>BMI25以上</strong>：日本では肥満に分類される目安。</p>
+     <p>BMIだけでは体脂肪率や減量の必要性は判断できません。表示体重は参考値です。</p>
+    </section>
     <div class="history-fields">
      <h3>これまでの体重（任意）</h3>
      <label class="field"><span class="field-label">20歳の時の体重</span>
