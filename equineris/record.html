@@ -264,6 +264,7 @@ dialog h2{margin:0 0 13px;font-size:17px}
       <div class="meal-controls"><button type="button" id="mealPrev" hidden>〈 前へ</button><span id="mealCounter">1 / 4</span><button type="button" id="mealNext">次へ 〉</button></div>
       <div class="actions">
         <button type="button" class="preview-button" id="previewButton">この日のダイアリーを確認する</button>
+        <a id="dailyResultLink" class="backup-link" href="./daily-result.html?day=1">1日の食事結果を見る</a>
         <p class="status" id="saveStatus" role="status" aria-live="polite">保存先を確認しています。</p>
       </div>
     </section>
@@ -386,6 +387,7 @@ function loadDay(day){
  activeDay=day;
  tabs.forEach(tab=>tab.setAttribute('aria-pressed',String(Number(tab.dataset.day)===day)));
  document.getElementById('dayTitle').textContent=day+'日目の食事ダイアリー';
+ document.getElementById('dailyResultLink').href='./daily-result.html?day='+day;
  for(const field of fields){
   let saved=null;
   if(canStore){try{saved=localStorage.getItem(key(day,field.dataset.diaryKey));}
@@ -468,7 +470,8 @@ previewDialog.addEventListener('click',e=>{if(e.target===previewDialog)previewDi
 previewDialog.addEventListener('close',()=>revoke(dialogUrls));
 try{const t=PREFIX+'storage-probe';localStorage.setItem(t,'ok');localStorage.removeItem(t);}
 catch(e){canStore=false;showStatus('このブラウザでは自動保存できません。',true);}
-loadDay(1);renderMeal(0);
+const initialDay=Number(new URLSearchParams(window.location.search).get('day'));
+loadDay([1,2,3].includes(initialDay)?initialDay:1);renderMeal(0);
 openPhotos().then(db=>{
  photoDB=db;photoDB.onversionchange=()=>{photoDB.close();photoDB=null;photoInputs.forEach(i=>i.disabled=true);showPhotoStatus('保存先が更新されました。再読み込みしてください。',true);};
  photoInputs.forEach(i=>i.disabled=false);
