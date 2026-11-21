@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#fefdf8">
+  <meta name="description" content="EQUINERISの初回設定。基本情報を入力し、BMIと12週間後の目標体重を確認します。">
+  <title>初回設定 | EQUINERIS</title>
+  <style>
+    :root {
+      color-scheme:light;
+      font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
+      --ink:#183e38;--ink-light:#31564d;--muted:#667a6d;
+      --gold:#a6844e;--gold-light:#d7c5a3;--green:#285d4a;
+      --cream:#f8f7f1;--outline:#e7e5d9;
+    }
+    *,*::before,*::after {box-sizing:border-box}
+    html {overflow-x:hidden;-webkit-text-size-adjust:100%}
+    body {margin:0;min-width:280px;background:#e8eee8;color:var(--ink);overflow-x:hidden}
+    button,input,a {font:inherit;touch-action:manipulation}
+    button {cursor:pointer}
+    :focus-visible {outline:3px solid var(--gold);outline-offset:3px}
+    .viewport {min-height:100svh;display:flex;justify-content:center}
+    .page {
+      width:100%;max-width:510px;min-height:100svh;
+      padding:23px 20px max(33px,env(safe-area-inset-bottom));
+      background:linear-gradient(157deg,#fefdf8 0%,#fbfbf6 48%,#f0f5ef 100%);
+      box-shadow:0 18px 70px rgba(25,54,41,.055);
+    }
+    .topbar {display:flex;justify-content:space-between;align-items:center;gap:12px}
+    .back {display:inline-flex;align-items:center;min-height:44px;color:var(--ink-light);text-decoration:none;font-size:13px;font-weight:650}
+    .step {font-size:10px;letter-spacing:.19em;color:var(--gold);font-weight:800}
+    .wordmark {text-align:center;margin:12px 0 0;font-size:27px;letter-spacing:.11em;font-weight:800;line-height:1.15}
+    .wordmark span {color:var(--gold)}
+    .eyebrow {text-align:center;margin:30px 0 9px;color:var(--gold);font-size:10px;font-weight:800;letter-spacing:.2em}
+    h1 {text-align:center;font-size:clamp(23px,6.2vw,29px);line-height:1.48;letter-spacing:.025em;margin:0}
+    .lead {margin:12px auto 26px;text-align:center;font-size:13px;line-height:1.8;color:var(--ink-light);max-width:350px}
+    .card {
+      padding:22px 18px;background:#fffdfa;border:1px solid var(--outline);
+      border-radius:20px;box-shadow:0 8px 24px rgba(21,67,45,.035);
+    }
+    .sectionhead {margin:0 0 22px}
+    .sectionhead h2 {font-size:17px;line-height:1.4;margin:0 0 4px}
+    .sectionhead p {font-size:12px;color:var(--muted);line-height:1.65;margin:0}
+    .field {display:block;margin:0 0 20px}
+    .field:last-child {margin-bottom:0}
+    .field-label {display:block;font-size:14px;line-height:1.5;font-weight:750;margin:0 0 8px}
+    .hint {font-size:11px;font-weight:500;color:var(--muted)}
+    .field input {
+      width:100%;min-width:0;min-height:52px;border:1px solid #d9e2d9;border-radius:12px;
+      background:#fff;color:var(--ink);padding:12px 15px;font-size:17px;
+      appearance:textfield;
+    }
+    .field input:focus {outline:2px solid #9fbea9;outline-offset:1px;border-color:#56836b}
+    input::placeholder {color:#9ca79e;opacity:1}
+    input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button {-webkit-appearance:none;margin:0}
+    .unitwrap {position:relative}
+    .unitwrap input {padding-right:54px}
+    .unit {position:absolute;right:17px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;pointer-events:none}
+    .goal-card {margin-top:16px}
+    fieldset {border:0;padding:0;margin:0;min-width:0}
+    legend {padding:0 0 5px;font-size:17px;font-weight:780;line-height:1.45}
+    .goal-desc {color:var(--muted);font-size:12px;line-height:1.65;margin:0 0 16px}
+    .options {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
+    .option {position:relative}
+    .option input {position:absolute;opacity:0;width:1px;height:1px;left:50%;top:50%}
+    .option label {
+      display:flex;align-items:center;justify-content:center;min-width:0;min-height:52px;
+      font-size:17px;font-weight:800;border:1px solid #d8e3d8;background:#fff;
+      color:var(--ink-light);border-radius:12px;cursor:pointer;
+    }
+    .option input:checked+label {background:#285d4a;border-color:#285d4a;color:#fff}
+    .option input:focus-visible+label {outline:3px solid var(--gold);outline-offset:3px}
+    .goal-note {font-size:11px;color:var(--muted);line-height:1.75;margin:15px 0 0}
+    .metrics {margin:16px 0 0;padding:19px 18px;border:1px solid #d9e7dd;border-radius:20px;background:linear-gradient(150deg,#f1f7f1,#fffdfa)}
+    .metrics h2 {font-size:15px;margin:0 0 13px}
+    .metric {display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:11px 0;border-top:1px solid #dfe7df}
+    .metric-label {font-size:12px;color:var(--muted)}
+    .metric-output {font-size:21px;letter-spacing:.015em;font-weight:780;color:var(--ink)}
+    .metric-output small {font-size:12px;font-weight:600}
+    .empty {color:#87998d}
+    .note {margin:15px 0 0;font-size:11px;color:#62766a;line-height:1.85}
+    .action {margin-top:25px}
+    .next {
+      width:100%;display:flex;align-items:center;justify-content:center;position:relative;
+      min-height:56px;border:1px solid #244f41;border-radius:15px;
+      background:linear-gradient(125deg,#285d4a,#143d32);color:#fffdf5;
+      font-size:17px;font-weight:800;letter-spacing:.09em;box-shadow:0 11px 24px rgba(24,66,48,.13);
+    }
+    .arrow {position:absolute;right:20px;font-size:23px;color:#e0c89d;line-height:1}
+    .after {text-align:center;font-size:12px;color:var(--muted);line-height:1.9;margin:17px 0 0}
+    dialog {
+      width:min(92vw,420px);max-height:90vh;max-height:90dvh;overflow-y:auto;
+      border:1px solid #d3e0d6;border-radius:18px;padding:24px;
+      background:#fffdf9;color:var(--ink);box-shadow:0 24px 70px rgba(13,49,32,.23);
+    }
+    dialog::backdrop {background:rgba(12,34,25,.5)}
+    dialog h2 {font-size:21px;margin:0 0 12px}
+    dialog p {font-size:13px;line-height:1.85;margin:0 0 15px;color:var(--ink-light)}
+    .summary {margin:0 0 16px;font-size:13px;line-height:1.9;white-space:pre-line;background:#f5f8f2;border:1px solid #dfe7db;border-radius:12px;padding:14px}
+    .close {width:100%;min-height:48px;background:var(--green);color:#fff;border:0;border-radius:12px;font-size:15px;font-weight:750}
+    @media(max-width:340px) {
+      .page {padding-inline:13px}
+      .card {padding:20px 14px}
+      .options {gap:5px}
+      .option label {font-size:16px;min-height:50px}
+    }
+    @media(min-width:650px) {
+      .viewport {padding:24px}
+      .page {border:1px solid var(--outline);border-radius:25px;min-height:calc(100svh - 48px);padding-inline:34px}
+    }
+  </style>
+</head>
+<body>
+<main class="viewport">
+  <div class="page">
+    <div class="topbar">
+      <a class="back" href="./index.html" aria-label="オープニングに戻る">〈 戻る</a>
+      <span class="step">INITIAL SETUP</span>
+    </div>
+    <p class="wordmark" aria-label="EQUINERIS">EQUI<span>NERIS</span></p>
+    <p class="eyebrow">YOUR FIRST STEP</p>
+    <h1>はじめに<br>あなたの情報を入力しましょう</h1>
+    <p class="lead">今の自分を知ることから。<br>12週間の目標づくりを始めましょう。</p>
+
+    <form id="setupForm" autocomplete="off">
+      <section class="card" aria-labelledby="basic-title">
+        <div class="sectionhead">
+          <h2 id="basic-title">基本情報</h2>
+          <p>ご自身の現在の情報を入力してください。</p>
+        </div>
+        <label class="field">
+          <span class="field-label">お名前 <span class="hint">（ニックネームでもOK）</span></span>
+          <input id="nickname" name="nickname" type="text" maxlength="40" placeholder="お名前を入力" required>
+        </label>
+        <label class="field">
+          <span class="field-label">年齢</span>
+          <span class="unitwrap"><input id="age" name="age" type="number" inputmode="numeric" min="1" step="1" placeholder="年齢を入力" required><span class="unit">歳</span></span>
+        </label>
+        <label class="field">
+          <span class="field-label">身長</span>
+          <span class="unitwrap"><input id="height" name="height" type="number" inputmode="decimal" min="1" step="0.1" placeholder="身長を入力" required><span class="unit">cm</span></span>
+        </label>
+        <label class="field">
+          <span class="field-label">スタート時の体重</span>
+          <span class="unitwrap"><input id="weight" name="weight" type="number" inputmode="decimal" min="0.1" step="0.1" placeholder="現在の体重を入力" required><span class="unit">kg</span></span>
+        </label>
+        <label class="field">
+          <span class="field-label">腹囲 <span class="hint">（おへその高さ）</span></span>
+          <span class="unitwrap"><input id="waist" name="waist" type="number" inputmode="decimal" min="0.1" step="0.1" placeholder="腹囲を入力" required><span class="unit">cm</span></span>
+        </label>
+      </section>
+
+      <section class="card goal-card" aria-labelledby="goal-title">
+        <fieldset>
+          <legend id="goal-title">3か月後の減量目標</legend>
+          <p class="goal-desc">スタート時の体重から、目標とする減量率を選びます。</p>
+          <div class="options" role="group" aria-label="3か月後の減量率">
+            <div class="option"><input id="rate5" name="rate" type="radio" value="5" required><label for="rate5">5%</label></div>
+            <div class="option"><input id="rate8" name="rate" type="radio" value="8"><label for="rate8">8%</label></div>
+            <div class="option"><input id="rate10" name="rate" type="radio" value="10"><label for="rate10">10%</label></div>
+            <div class="option"><input id="rate15" name="rate" type="radio" value="15"><label for="rate15">15%</label></div>
+          </div>
+          <p class="goal-note">今の時点での目標で大丈夫です。途中で変更できます。<br>減量率は選択肢であり、安全性や達成を保証するものではありません。</p>
+        </fieldset>
+      </section>
+
+      <section class="metrics" aria-labelledby="metrics-title" aria-live="polite">
+        <h2 id="metrics-title">入力内容から自動計算</h2>
+        <div class="metric"><span class="metric-label">現在のBMI</span><strong class="metric-output" id="bmiValue"><span class="empty">—</span></strong></div>
+        <div class="metric"><span class="metric-label">3か月後の目標体重</span><strong class="metric-output" id="goalWeight"><span class="empty">—</span></strong></div>
+        <div class="metric"><span class="metric-label">目標BMI</span><strong class="metric-output" id="goalBmi"><span class="empty">—</span></strong></div>
+        <p class="note">BMIは体重(kg)÷身長(m)の2乗で算出します。目標数値は選択した減量率による計算結果で、健康状態に適した目標かを判定するものではありません。</p>
+      </section>
+
+      <div class="action">
+        <button class="next" type="submit">次へ <span class="arrow" aria-hidden="true">›</span></button>
+        <p class="after">入力内容はこの画面ではサーバーに保存されません。</p>
+      </div>
+    </form>
+  </div>
+</main>
+
+<dialog id="reviewDialog" aria-labelledby="reviewTitle" aria-describedby="reviewMessage">
+  <h2 id="reviewTitle">入力内容を確認</h2>
+  <p id="reviewMessage">入力内容を確認できます。次の設定画面への接続と、アカウントへの保存はまだ実装していません。</p>
+  <div class="summary" id="reviewSummary"></div>
+  <button type="button" class="close" id="closeReview">入力画面へ戻る</button>
+</dialog>
+
+<script>
+'use strict';
+const form=document.getElementById('setupForm');
+const dialog=document.getElementById('reviewDialog');
+const heightInput=document.getElementById('height');
+const weightInput=document.getElementById('weight');
+const bmiValue=document.getElementById('bmiValue');
+const goalWeight=document.getElementById('goalWeight');
+const goalBmi=document.getElementById('goalBmi');
+function fixed1(n){return Number.isFinite(n)?n.toFixed(1):'—';}
+function calculate(){
+  const height=Number(heightInput.value);
+  const weight=Number(weightInput.value);
+  const rateInput=form.querySelector('input[name="rate"]:checked');
+  const rate=rateInput?Number(rateInput.value):null;
+  const hasMeasurements=heightInput.value!==''&&weightInput.value!==''&&height>0&&weight>0&&Number.isFinite(height)&&Number.isFinite(weight);
+  const meters=height/100;
+  const bmi=hasMeasurements?weight/(meters*meters):null;
+  const target=hasMeasurements&&rate!==null?weight*(1-rate/100):null;
+  const targetBmi=target!==null?target/(meters*meters):null;
+  bmiValue.textContent=bmi===null?'—':fixed1(bmi);
+  goalWeight.textContent=target===null?'—':fixed1(target)+' kg';
+  goalBmi.textContent=targetBmi===null?'—':fixed1(targetBmi);
+  return {bmi,target,targetBmi,rate};
+}
+form.addEventListener('input',calculate);
+form.addEventListener('change',calculate);
+form.addEventListener('submit',event=>{
+  event.preventDefault();
+  if(!form.reportValidity())return;
+  const data=calculate();
+  const nickname=document.getElementById('nickname').value.trim();
+  if(!nickname){document.getElementById('nickname').focus();return;}
+  const summary=[
+    'お名前：'+nickname,
+    '年齢：'+document.getElementById('age').value+'歳',
+    '身長：'+heightInput.value+'cm',
+    '開始時体重：'+weightInput.value+'kg',
+    '腹囲：'+document.getElementById('waist').value+'cm',
+    '目標減量率：'+data.rate+'%',
+    '現在BMI：'+fixed1(data.bmi),
+    '3か月後の目標体重：'+fixed1(data.target)+'kg',
+    '目標BMI：'+fixed1(data.targetBmi)
+  ];
+  document.getElementById('reviewSummary').textContent=summary.join('\n');
+  if(typeof dialog.showModal==='function')dialog.showModal();
+});
+document.getElementById('closeReview').addEventListener('click',()=>dialog.close());
+dialog.addEventListener('click',event=>{if(event.target===dialog)dialog.close();});
+calculate();
+</script>
+</body>
+</html>
