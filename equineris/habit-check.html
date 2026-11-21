@@ -33,6 +33,7 @@ button{cursor:pointer}
 .paper-checkbox:checked+.paper-mark::before{content:"○";font-size:31px;font-weight:800;line-height:1.2;color:#c35b34}
 .paper-checkbox:focus-visible+.paper-mark{outline:3px solid #a6844e;outline-offset:1px;border-radius:4px}
 .paper-line{flex:1;min-width:0;word-break:normal;overflow-wrap:break-word;line-break:strict}
+.paper-row-compact .paper-note{display:inline-block;white-space:nowrap}
 .paper-foot{margin-top:18px;border-top:1px solid #d7d7d4;padding-top:12px;color:#555;font-size:12px;line-height:1.8}
 .paper-foot p{margin:0 0 4px}
 .sheet-actions{display:grid;gap:10px;margin-top:17px}
@@ -40,7 +41,7 @@ button{cursor:pointer}
 .secondary-link{min-height:45px;display:flex;align-items:center;justify-content:center;text-decoration:none;text-align:center;padding:9px 12px;border:1px solid #d1dcd3;border-radius:11px;color:#285d4a;background:#fff;font-weight:700;font-size:13px}
 .status{margin:0;min-height:20px;font-size:12px;line-height:1.7;color:#4b6053}
 .status[data-error="true"]{color:#a12b2b}
-@media(max-width:340px){.sheet-shell{padding-inline:9px}.sheet{padding-inline:11px}.paper-row{font-size:15px}.paper-heading h1{font-size:17px}.heading-stamp{flex-basis:38px;width:38px;height:44px}}
+@media(max-width:340px){.sheet-shell{padding-inline:9px}.sheet{padding-inline:11px}.paper-row{font-size:15px}.paper-row-compact{font-size:14px}.paper-heading h1{font-size:17px}.heading-stamp{flex-basis:38px;width:38px;height:44px}}
 @media(min-width:650px){.sheet-shell{margin:24px auto;border-radius:22px}}
 </style>
 </head>
@@ -88,10 +89,10 @@ button{cursor:pointer}
         <span class="paper-mark" aria-hidden="true"></span>
         <span class="paper-line">果物をよく食べる</span>
       </label>
-      <label class="paper-row">
+      <label class="paper-row paper-row-compact">
         <input class="paper-checkbox" type="checkbox" data-habit="h07" aria-label="野菜の揚げ物や炒めものが好き（よく食べる）">
         <span class="paper-mark" aria-hidden="true"></span>
-        <span class="paper-line">野菜の揚げ物や炒めものが好き（よく食べる）</span>
+        <span class="paper-line">野菜の揚げ物や炒めものが好き<wbr><span class="paper-note">（よく食べる）</span></span>
       </label>
       <label class="paper-row">
         <input class="paper-checkbox" type="checkbox" data-habit="h08" aria-label="味の濃いものが好き（よく食べる）">
