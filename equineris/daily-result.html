@@ -224,6 +224,7 @@ dialog h2{margin:0 0 13px;font-size:17px}
   </div>
   <div class="summary-actions">
    <a class="preview-button" id="editLink" href="./record.html">食事ダイアリーを編集する</a>
+   <a class="summary-secondary" id="choiceLink" href="./program-choice.html?day=1">この先の進め方を選ぶ（12週間／食事記録）</a>
    <a class="summary-secondary" href="./guide.html">食事記録の説明を見る</a>
   </div>
   <p class="footnote">記録内容は現在使用中のブラウザにのみ保存されています。他の端末には自動同期されません。</p>
@@ -279,6 +280,7 @@ function render(){
   document.getElementById('bar'+(i+1)).style.width=(count/20*100)+'%';
  });
  document.getElementById('editLink').href='./record.html?day='+activeDay;
+ document.getElementById('choiceLink').href='./program-choice.html?day='+activeDay;
  document.getElementById('backLink').href='./record.html?day='+activeDay;
  document.getElementById('resultStatus').textContent=canRead?'メモと○はこのブラウザに保存された記録から表示しています。':'このブラウザの記録を読み込めません。';
  refreshPhotos();
