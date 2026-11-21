@@ -14,7 +14,8 @@
 .food-search-filters label{margin-top:10px}
 .food-search-summary{font-size:14px;color:#286d4f;font-weight:700;min-height:1.5em}
 .food-search-summary.error{color:#ac3e25}
-.food-result{margin-bottom:10px;padding:17px}
+#results{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x proximity;scroll-padding-inline:2px;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;padding:2px 2px 14px}
+.food-result{flex:0 0 min(85%,360px);min-width:0;margin-bottom:0;padding:17px;scroll-snap-align:start}
 .food-result h2{font-size:17px;margin:0 0 6px;overflow-wrap:anywhere}
 .food-result-meta{color:#64728a;font-size:13px;margin:0 0 10px;overflow-wrap:anywhere}
 .food-result-amount{color:#286d4f;font-size:17px;margin:5px 0 8px;font-weight:800}
@@ -54,7 +55,8 @@
 </div>
 <p id="status" class="food-search-summary" role="status" aria-live="polite">食品マスターを読み込んでいます。</p>
 </section>
-<div id="results" aria-label="検索結果"></div>
+<p id="swipeHint" class="food-search-help" hidden>検索結果は左右にスワイプして確認できます。</p>
+<div id="results" tabindex="0" role="region" aria-label="検索結果（横スクロール）"></div>
 <div id="pages" class="food-search-pages" hidden>
 <button id="previous" type="button">前へ</button>
 <span id="pageText"></span>
@@ -111,6 +113,7 @@ const keyword=document.getElementById('keyword');
 const group=document.getElementById('group');
 const status=document.getElementById('status');
 const results=document.getElementById('results');
+const swipeHint=document.getElementById('swipeHint');
 const pages=document.getElementById('pages');
 const previous=document.getElementById('previous');
 const next=document.getElementById('next');
@@ -156,6 +159,8 @@ function render(){
     fragment.append(card);
   });
   results.replaceChildren(fragment);
+  results.scrollLeft=0;
+  swipeHint.hidden=total<=1;
   pages.hidden=total<=perPage;
   previous.disabled=page===0;
   next.disabled=page>=totalPages-1;
@@ -175,7 +180,7 @@ fetch('./food-master.json',{cache:'no-store'})
     foods=data.foods;
     render();
   })
-  .catch(()=>{status.classList.add('error');status.textContent='食品マスターを読み込めませんでした。通信状況を確認してページを再読み込みしてください。';results.replaceChildren();pages.hidden=true;});
+  .catch(()=>{status.classList.add('error');status.textContent='食品マスターを読み込めませんでした。通信状況を確認してページを再読み込みしてください。';results.replaceChildren();swipeHint.hidden=true;pages.hidden=true;});
 </script>
 </body>
 </html>
