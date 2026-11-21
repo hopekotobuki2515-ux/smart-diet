@@ -66,6 +66,8 @@ h1{margin:0;font-size:clamp(22px,6vw,29px);line-height:1.5}
 .mark input:focus-visible+span{outline:2px solid var(--gold);outline-offset:3px}
 .group-guide{margin:17px 0 0;padding:13px;border:1px solid #dbe5db;border-radius:13px;background:#f7faf6}
 .group-guide h3{font-size:13px;margin:0 0 9px}
+.group-intro{margin:0 0 12px;font-size:12px;line-height:1.85;color:var(--ink-light);overflow-wrap:break-word}
+.group-intro strong{font-weight:750;color:var(--green)}
 .group-guide dl{margin:0;display:grid;grid-template-columns:52px minmax(0,1fr);gap:6px 7px;font-size:11px;line-height:1.8}
 .group-guide dt{font-weight:750;color:var(--green)}
 .group-guide dd{margin:0;color:var(--ink-light);overflow-wrap:break-word}
@@ -82,6 +84,8 @@ h1{margin:0;font-size:clamp(22px,6vw,29px);line-height:1.5}
 .example summary{min-height:42px;display:flex;align-items:center;font-size:13px;font-weight:750;cursor:pointer;color:var(--green)}
 .example dl{display:grid;grid-template-columns:40px minmax(0,1fr);gap:8px 6px;font-size:12px;line-height:1.85;margin:8px 0 4px}
 .example dt{font-weight:750}.example dd{margin:0;overflow-wrap:break-word}
+.example-intro,.example-mark{font-size:12px;line-height:1.85;color:var(--ink-light);margin:8px 0 10px;overflow-wrap:break-word}
+.example-mark{margin:13px 0 4px;padding:10px 11px;border-radius:9px;background:#edf5ef}
 .backup-link{display:block;margin:22px 0 0;padding:12px 14px;text-align:center;border:1px solid #d7e4d7;border-radius:12px;background:#f4f8f2;color:var(--ink-light);font-size:13px;font-weight:700;text-decoration:none;line-height:1.8}
 .footnote{margin:18px 0 0;text-align:center;color:var(--muted);font-size:11px;line-height:1.9}
 dialog{width:min(94vw,460px);max-height:85vh;max-height:85dvh;overflow:auto;padding:20px 15px;border:1px solid #d3e0d6;border-radius:18px;background:#fffdf9;color:var(--ink);box-shadow:0 24px 70px rgba(13,49,32,.23)}
@@ -200,7 +204,8 @@ dialog h2{margin:0 0 13px;font-size:17px}
       <p class="small-note">飲み物・飲酒も、該当する食事または間食の欄へ記録してください。第1週は点数計算をしません。メモと○は自動保存します。写真も選択するとブラウザに保存されます。</p>
       <p id="photoStatus" class="status" role="status" aria-live="polite">写真の保存機能を確認しています。</p>
       <section class="group-guide" aria-labelledby="groupGuideTitle">
-        <h3 id="groupGuideTitle">食品群の目安</h3>
+        <h3 id="groupGuideTitle">四群点数法とは？</h3>
+        <p class="group-intro">食品を栄養の特徴で4つの群に分け、80kcalを1点として食事の量やバランスを考える方法です。<br>最初の3日間は点数計算をせず、食べた食品の群に○を付けましょう。<strong>○1個＝1点ではありません。</strong></p>
         <dl>
           <dt>第1群</dt><dd>牛乳・乳製品、卵</dd>
           <dt>第2群</dt><dd>魚介類、肉、豆・豆製品</dd>
@@ -214,13 +219,15 @@ dialog h2{margin:0 0 13px;font-size:17px}
       </div>
     </section>
     <details class="example">
-      <summary>佐藤さんの記入例を見る</summary>
+      <summary>食事ダイアリーの記入例を見る</summary>
+      <p class="example-intro">食事の写真を上に追加し、その下のメモに食べたものを書きます。例えば、次のように記録します。</p>
       <dl>
-        <dt>朝食</dt><dd>食パン1枚、ヨーグルト1個、コーヒー1杯</dd>
-        <dt>昼食</dt><dd>おにぎり2個、お茶1本</dd>
-        <dt>夕食</dt><dd>ご飯1杯、焼き魚1切れ、みそ汁1杯</dd>
-        <dt>間食</dt><dd>クッキー2枚</dd>
+        <dt>朝食</dt><dd>食パン1枚、ゆで卵1個、ヨーグルト1個</dd>
+        <dt>昼食</dt><dd>ご飯1杯、鶏肉のソテー、サラダ</dd>
+        <dt>夕食</dt><dd>ご飯1杯、焼き鮭、ほうれん草のおひたし、みそ汁</dd>
+        <dt>間食</dt><dd>りんご半分、クッキー2枚</dd>
       </dl>
+      <p class="example-mark">○の例：朝食なら、卵とヨーグルトは第1群に2個、食パンは第4群に1個付けます。</p>
     </details>
     <a class="backup-link" href="./photo-record.html">以前の写真・メモの記録を見る</a>
     <p class="footnote">紙のダイアリーと同じ記録項目を3日間分用意しました。保存はこのブラウザ内のみです。以前の写真記録は別ページに保管しています。</p>
