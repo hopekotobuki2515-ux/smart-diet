@@ -184,4 +184,5 @@ document.addEventListener('smartdiet:showFoodNutrients',event=>{
   if(!ready){pendingFoodIndex=index;switchPane('nutrient');return;}
   showFoodNutrients(index);
 });
+if(new URLSearchParams(window.location.search).get('mode')==='nutrient')switchPane('nutrient');
 start();
