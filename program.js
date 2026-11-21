@@ -541,14 +541,22 @@ function foodLabel(name, dish='', explicitLabel){
   const key=dishKey(dish);
   return key==='スパゲティ'||pastaDishes.includes(key)?drySpaghettiLabel:name;
 }
+function chickenFoodLabel(food,label){
+  if(food.category!=='肉類・鶏肉（若鶏）・鶏の副生物')return label;
+  if(food.name==='皮・むね')return '鶏皮（むね部分・皮のみ）';
+  if(food.name==='皮・もも')return '鶏皮（もも部分・皮のみ）';
+  if(food.name==='むね・皮つき')return '鶏むね肉（皮つき）';
+  return label;
+}
 function foodDescription(food, label){
   return food.name!==dryPasta||label===food.name
-    ? `${label}｜${food.category}｜${food.group}｜1点 ${food.gramsPerPoint}g`
+    ? `${chickenFoodLabel(food,label)}｜${food.category}｜${food.group}｜1点 ${food.gramsPerPoint}g`
     : `${label}｜食品群：${food.group}｜乾麺${food.gramsPerPoint}gで1点`;
 }
 const foodAliases = new Map([
   ...['ご飯','ごはん','白ご飯','白ごはん'].map(name=>[name,'めし水稲精白米']),
-  ['ささみ','ささ身'],['ササミ','ささ身']
+  ['ささみ','ささ身'],['ササミ','ささ身'],
+  ...['鶏むね肉','鶏胸肉','とりむね肉','とりむねにく','むね肉','胸肉'].map(name=>[searchKey(name),searchKey('むね・皮つき')])
 ]);
 const isBeefQuery = value => ['牛肉','ぎゅうにく','ギュウニク'].includes(searchKey(value));
 const isBeefCut = food => food.category.startsWith('肉類・牛肉');
@@ -573,6 +581,7 @@ function beefCutOptions(buttons){
   return details;
 }
 function findFoods(value, foods=foodMaster, limit=15){
+  if(['鶏皮','とり皮','とりかわ'].includes(searchKey(value)))return foods.filter(food=>food.category==='肉類・鶏肉（若鶏）・鶏の副生物'&&['皮・むね','皮・もも'].includes(food.name)).slice(0,limit).map(food=>({food,label:food.name}));
   if(isBeefQuery(value))return foods.filter(isBeefCut).slice(0,limit).map(food=>({food,label:food.name}));
   const typed=searchKey(value);
   const spelling=typed.replace(/\(乾麺\)$/,'');
@@ -638,7 +647,8 @@ function mountFoodCatalog(catalog,onSelect,onSelectRecipe){
       const button=document.createElement('button');
       button.type='button';
       const familiarName=foodAliases.get(searchKey(query))===searchKey(food.name)?query:'';
-      button.textContent=`${familiarName?`${familiarName}（${label}）`:label}｜${food.group}｜${food.gramsPerPoint}gで1点`;
+      const safeLabel=chickenFoodLabel(food,label);
+      button.textContent=`${familiarName?`${familiarName}（${safeLabel}）`:safeLabel}｜${food.group}｜${food.gramsPerPoint}gで1点`;
       button.onclick=()=>{
         catalog.open=false;
         onSelect({food,label});
@@ -673,7 +683,7 @@ function searchFoods(){
   const foodButtons=matches.map(({food,label})=>{
     const button=document.createElement('button');
     button.type='button';
-    button.textContent=label===food.name?`${food.name}（${food.category}・${food.group} / 1点 ${food.gramsPerPoint}g）`:foodDescription(food,label);
+    button.textContent=label===food.name?`${chickenFoodLabel(food,label)}（${food.category}・${food.group} / 1点 ${food.gramsPerPoint}g）`:foodDescription(food,label);
     button.onclick=()=>{if(selectFood(food,label))$('#quickGrams').focus();};
     return button;
   });
