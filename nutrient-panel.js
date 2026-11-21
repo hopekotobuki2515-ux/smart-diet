@@ -1,4 +1,5 @@
 'use strict';
+import { createBookPageControl } from './book-page-viewer.js';
 // Read-only, unapproved book-to-food mappings. Existing point calculations use only food-master.json.
 const $n = id => document.getElementById(id);
 const clean = value => String(value ?? '').normalize('NFKC').toLocaleLowerCase('ja')
@@ -139,6 +140,7 @@ function cardForRow(row){
   const top=textNode('div','nutrient-card-heading');
   top.append(textNode('h2','',row.f),textNode('span','nutrient-pill',row.n));
   card.append(top,textNode('p','food-result-meta','書籍 '+row.p+'ページ・掲載順位 '+row.rk+'・'+row.id));
+  card.append(createBookPageControl(row.p));
   const facts=textNode('div','nutrient-facts');
   note(facts,'書籍の100gあたり',shown(row.a,row.u));
   if(row.t==='比較'){
