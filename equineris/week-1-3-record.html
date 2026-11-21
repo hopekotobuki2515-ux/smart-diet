@@ -181,6 +181,28 @@
 .food-search-full-link{display:block;margin:15px 0 5px;text-decoration:none;text-align:center;min-height:47px;padding:12px 8px;background:#edf5ec;border:1px solid #c9dbcf;border-radius:11px;color:var(--green);font-size:13px;font-weight:800}
 .food-search-caveat{font-size:11px;line-height:1.75;color:var(--ink-light);margin:8px 0}
 @media(max-width:345px){.food-search-calc{grid-template-columns:1fr;gap:5px}.food-search-calc output{text-align:left;max-width:none}}
+
+/* Searchable food entries for every meal. Original circles and layout stay untouched. */
+.meal-foods{background:#f8fbf7;border:1px solid #dfebde;border-radius:13px;padding:12px;margin:13px 0 17px;min-width:0}
+.meal-foods h3{margin:0 0 9px;font-size:13px;color:var(--green);line-height:1.5}
+.meal-foods h3 span{font-size:11px;color:var(--ink-light);font-weight:500}
+.meal-food-list{display:grid;gap:8px}
+.meal-food-empty{color:var(--ink-light);font-size:12px;line-height:1.75;margin:5px 0 9px}
+.meal-food-entry{background:#fff;border:1px solid #dfebe0;border-radius:11px;padding:9px 11px;display:grid;gap:5px;min-width:0}
+.meal-food-name{font-size:14px;line-height:1.6;color:var(--green);overflow-wrap:anywhere}
+.meal-food-meta{font-size:11px;color:var(--ink-light);line-height:1.6;overflow-wrap:anywhere}
+.meal-food-entry-controls{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:6px}
+.meal-food-weight-label{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--ink-light)}
+.meal-food-weight{width:68px;min-width:0;min-height:39px;font-size:16px;border:1px solid #cfddcf;border-radius:8px;padding:5px;background:#fff;color:var(--ink)}
+.meal-food-calculation{font-size:11px;text-align:right;color:var(--ink-light);line-height:1.5;overflow-wrap:anywhere;min-width:0}
+.meal-food-remove{border:1px solid #d3dcd1;border-radius:8px;background:white;color:var(--ink-light);min-height:39px;padding:5px 9px;font-size:11px}
+.meal-find-button{width:100%;min-height:48px;margin:10px 0 7px;border:1px solid var(--green);border-radius:11px;background:var(--green);color:white;font-size:13px;font-weight:800}
+.meal-manual-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:7px}
+.meal-manual-row input{width:100%;min-width:0;min-height:46px;padding:8px 10px;font-size:16px;border:1px solid #cfddcf;border-radius:10px;background:#fff;color:var(--ink)}
+.meal-manual-row button{min-height:46px;padding:8px 12px;border:1px solid #c3d9c7;border-radius:10px;background:white;font-size:12px;font-weight:800;color:var(--green)}
+.food-search-submit{width:100%;min-height:49px;border:1px solid var(--green);border-radius:11px;background:var(--green);color:#fff;font-size:15px;font-weight:800;margin:2px 0 9px}
+.food-search-add{width:100%;min-height:45px;padding:9px;border:1px solid var(--green);border-radius:10px;background:var(--green);color:#fff;font-size:13px;font-weight:800;margin-top:8px}
+@media(max-width:355px){.meal-food-entry-controls{grid-template-columns:minmax(0,1fr) auto;gap:6px}.meal-food-calculation{grid-row:2;grid-column:1 / -1;text-align:left}.meal-food-weight{width:64px}}
 </style>
 </head>
 <body>
@@ -230,6 +252,15 @@
       <p class="slide-eyebrow">FOOD GROUP CHECK</p>
       <h2>朝食</h2>
       <p class="slide-desc">食べた食品が属する群に○を付けましょう。1食品につき1つが目安です。点数ではありません。</p>
+      <div class="meal-foods">
+       <h3>食べた食品 <span>複数登録できます</span></h3>
+       <div class="meal-food-list" data-meal-list="breakfast" aria-label="朝食に登録した食品"></div>
+       <button type="button" class="meal-find-button" data-find-meal="breakfast">食品を検索して追加</button>
+       <div class="meal-manual-row">
+        <input type="text" data-manual-name="breakfast" maxlength="100" placeholder="検索にない食品を手入力" aria-label="朝食に手入力する食品名">
+        <button type="button" data-add-manual="breakfast">追加</button>
+       </div>
+      </div>
       <div class="group-rows">
        <div class="group-row">
         <div class="group-info"><strong>第1群</strong><small>牛乳・乳製品・卵</small></div>
@@ -256,6 +287,15 @@
       <p class="slide-eyebrow">FOOD GROUP CHECK</p>
       <h2>昼食</h2>
       <p class="slide-desc">食べた食品が属する群に○を付けましょう。1食品につき1つが目安です。点数ではありません。</p>
+      <div class="meal-foods">
+       <h3>食べた食品 <span>複数登録できます</span></h3>
+       <div class="meal-food-list" data-meal-list="lunch" aria-label="昼食に登録した食品"></div>
+       <button type="button" class="meal-find-button" data-find-meal="lunch">食品を検索して追加</button>
+       <div class="meal-manual-row">
+        <input type="text" data-manual-name="lunch" maxlength="100" placeholder="検索にない食品を手入力" aria-label="昼食に手入力する食品名">
+        <button type="button" data-add-manual="lunch">追加</button>
+       </div>
+      </div>
       <div class="group-rows">
        <div class="group-row">
         <div class="group-info"><strong>第1群</strong><small>牛乳・乳製品・卵</small></div>
@@ -282,6 +322,15 @@
       <p class="slide-eyebrow">FOOD GROUP CHECK</p>
       <h2>夕食</h2>
       <p class="slide-desc">食べた食品が属する群に○を付けましょう。1食品につき1つが目安です。点数ではありません。</p>
+      <div class="meal-foods">
+       <h3>食べた食品 <span>複数登録できます</span></h3>
+       <div class="meal-food-list" data-meal-list="dinner" aria-label="夕食に登録した食品"></div>
+       <button type="button" class="meal-find-button" data-find-meal="dinner">食品を検索して追加</button>
+       <div class="meal-manual-row">
+        <input type="text" data-manual-name="dinner" maxlength="100" placeholder="検索にない食品を手入力" aria-label="夕食に手入力する食品名">
+        <button type="button" data-add-manual="dinner">追加</button>
+       </div>
+      </div>
       <div class="group-rows">
        <div class="group-row">
         <div class="group-info"><strong>第1群</strong><small>牛乳・乳製品・卵</small></div>
@@ -308,6 +357,15 @@
       <p class="slide-eyebrow">FOOD GROUP CHECK</p>
       <h2>間食・飲み物</h2>
       <p class="slide-desc">食べた食品が属する群に○を付けましょう。1食品につき1つが目安です。点数ではありません。</p>
+      <div class="meal-foods">
+       <h3>食べた食品 <span>複数登録できます</span></h3>
+       <div class="meal-food-list" data-meal-list="snack" aria-label="間食・飲み物に登録した食品"></div>
+       <button type="button" class="meal-find-button" data-find-meal="snack">食品を検索して追加</button>
+       <div class="meal-manual-row">
+        <input type="text" data-manual-name="snack" maxlength="100" placeholder="検索にない食品を手入力" aria-label="間食・飲み物に手入力する食品名">
+        <button type="button" data-add-manual="snack">追加</button>
+       </div>
+      </div>
       <div class="group-rows">
        <div class="group-row">
         <div class="group-info"><strong>第1群</strong><small>牛乳・乳製品・卵</small></div>
@@ -336,6 +394,9 @@
      <h2>食品検索</h2>
      <p class="slide-desc">食品名や分類から第1〜4群と1点の重量を検索できます。食べた量を入力すると、点数・エネルギーを計算します。</p>
      <div class="food-search-box">
+      <label for="foodSearchMeal">登録先の食事
+       <select id="foodSearchMeal"><option value="breakfast">朝食</option><option value="lunch">昼食</option><option value="dinner">夕食</option><option value="snack">間食・飲み物</option></select>
+      </label>
       <label for="foodSearchQuery">食品名・分類で探す
        <input id="foodSearchQuery" type="search" autocomplete="off" placeholder="例：牛乳、鶏肉、ご飯" aria-controls="foodSearchResults">
       </label>
@@ -345,11 +406,12 @@
        </select>
       </label>
      </div>
+     <button id="foodSearchButton" type="button" class="food-search-submit">検索する</button>
      <p id="foodSearchCount" class="food-search-count" role="status" aria-live="polite">食品マスターを読み込んでいます。</p>
      <div id="foodSearchResults" class="food-search-results" aria-label="食品検索の結果"></div>
      <button id="foodSearchMore" class="food-search-more" type="button" hidden>さらに12件表示</button>
      <a class="food-search-full-link" href="../food-search.html?mode=nutrient">栄養素・カラダの不調から食品を探す</a>
-     <p class="food-search-caveat">既存の686食品マスターを使用。計算値はマスターの「1点重量」に基づく概算です。検索・計算しただけでは記録に追加されません。</p>
+     <p class="food-search-caveat">既存の686食品マスターを使用。計算値はマスターの「1点重量」に基づく概算です。検索結果の「朝食に追加」などを押すと、その日の食事に食品を保存します。○チェックと点数入力は引き続き任意です。</p>
     </div>
    </section>
    <section class="entry-slide" data-slide="points" role="group" aria-roledescription="スライド" aria-label="点数とエネルギーの任意記録">
@@ -528,89 +590,8 @@ weeks.value=String([1,2,3].includes(requestedWeek)?requestedWeek:1);
 days.value=String(Number.isInteger(requestedDay)&&requestedDay>=1&&requestedDay<=7?requestedDay:1);
 load();
 
-/* Search uses the existing, shared food-master.json and does not modify diary data. */
-(()=>{
- const input=document.getElementById('foodSearchQuery');
- const select=document.getElementById('foodSearchGroup');
- const output=document.getElementById('foodSearchResults');
- const count=document.getElementById('foodSearchCount');
- const more=document.getElementById('foodSearchMore');
- let foods=[],visible=12,filtered=[];
- const norm=text=>String(text??'').normalize('NFKC').toLocaleLowerCase('ja')
-  .replace(/[ァ-ヶ]/g,c=>String.fromCharCode(c.charCodeAt(0)-0x60))
-  .replace(/[\s・･（）()\-]/g,'');
- const alias=food=>{
-  if(food.category.includes('鶏肉')&&food.name==='むね・皮つき')return '鶏むね肉皮つき';
-  if(food.category.includes('鶏肉')&&food.name==='皮・むね')return '鶏皮むね';
-  if(food.category.includes('鶏肉')&&food.name==='ささ身')return '鶏ささみ';
-  return '';
- };
- function item(food){
-  const card=document.createElement('article');card.className='food-search-item';
-  const title=document.createElement('h3');
-  title.textContent=food.name;
-  const meta=document.createElement('p');
-  meta.textContent=food.group+' ／ '+food.category+' ／ 1点='+food.gramsPerPoint+'g';
-  const row=document.createElement('div');row.className='food-search-calc';
-  const label=document.createElement('label');label.textContent='食べた量';
-  const gram=document.createElement('input');gram.type='number';gram.inputMode='decimal';
-  gram.min='0.1';gram.max='10000';gram.step='0.1';gram.placeholder='例：100';gram.setAttribute('aria-label',food.name+'の重量（g）');
-  label.appendChild(gram);label.appendChild(document.createTextNode('g'));
-  const result=document.createElement('output');result.textContent='重量を入力';
-  function calculate(){
-   const grams=Number(gram.value);
-   if(!gram.value.trim()){result.textContent='重量を入力';return;}
-   if(!Number.isFinite(grams)||grams<=0||grams>10000){
-    result.textContent='0より大きい重量を入力';return;
-   }
-   const points=grams/food.gramsPerPoint;
-   const kcal=points*80;
-   result.textContent=points.toFixed(2)+'点 ／ '+kcal.toFixed(1)+'kcal';
-  }
-  gram.addEventListener('input',calculate);
-  row.appendChild(label);row.appendChild(result);
-  card.appendChild(title);card.appendChild(meta);card.appendChild(row);
-  return card;
- }
- function render(){
-  output.replaceChildren();
-  filtered.slice(0,visible).forEach(food=>output.appendChild(item(food)));
-  more.hidden=visible>=filtered.length;
-  if(!filtered.length)count.textContent='該当する食品がありません。別の名前や群をお試しください。';
-  else count.textContent=filtered.length+'件見つかりました。'+Math.min(visible,filtered.length)+'件を表示中。';
- }
- function refresh(){
-  if(!foods.length)return;
-  const query=norm(input.value.trim()),group=select.value;
-  if(!query&&!group){
-   filtered=[];output.replaceChildren();more.hidden=true;
-   count.textContent='食品名を入力するか、食品群を選んでください（686品目）。';return;
-  }
-  const words=query.split(/\s+/).filter(Boolean);
-  filtered=foods.filter(food=>{
-   if(group&&food.group!==group)return false;
-   const hay=norm(food.name+' '+food.category+' '+food.group+' '+alias(food));
-   return !words.length||words.every(w=>hay.includes(w));
-  });
-  visible=12;render();
- }
- input.addEventListener('input',refresh);
- input.addEventListener('compositionend',refresh);
- select.addEventListener('change',refresh);
- more.addEventListener('click',()=>{visible+=12;render();});
- fetch('../food-master.json',{cache:'no-store'})
-  .then(response=>{if(!response.ok)throw new Error('HTTP '+response.status);return response.json();})
-  .then(data=>{
-   if(!Array.isArray(data.foods)||data.foods.length!==686||
-      data.foods.some(food=>!food||typeof food.name!=='string'||!['第1群','第2群','第3群','第4群'].includes(food.group)||
-      !Number.isFinite(food.gramsPerPoint)||food.gramsPerPoint<=0))throw new Error('Invalid shared master');
-   foods=data.foods;refresh();
-  })
-  .catch(()=>{
-   count.textContent='食品マスターを読み込めませんでした。通信を確認して再読み込みしてください。';
-   output.replaceChildren();more.hidden=true;
-  });
-})();
+
 </script>
+<script src="./meal-food-search.js?v=fb492590"></script>
 </body>
 </html>
