@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fefdf8">
+<meta name="description" content="EQUINERISの3日間の食事記録を振り返る結果ページ。食事メモ・写真・食品群の○を日別に確認できます。">
+<title>1日の食事結果 | EQUINERIS</title>
+<style>
+:root{
+  color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
+  --ink:#183e38;--ink-light:#31564d;--muted:#64776a;--gold:#a6844e;
+  --green:#285d4a;--mint:#edf5ef;--line:#dce5de;--outline:#e7e5d9;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;overflow-x:hidden}
+body{margin:0;min-width:280px;overflow-x:hidden;color:var(--ink);background:#e8eee8}
+button,input,textarea,a{font:inherit;touch-action:manipulation}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+.viewport{min-height:100svh;display:flex;justify-content:center}
+.page{
+  width:100%;max-width:510px;min-height:100svh;padding:22px 20px max(36px,env(safe-area-inset-bottom));
+  background:linear-gradient(157deg,#fefdf8 0%,#fafaf6 46%,#f0f5ef 100%);
+  box-shadow:0 18px 70px rgba(25,54,41,.055);
+}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.back{min-height:44px;display:inline-flex;align-items:center;text-decoration:none;color:var(--ink-light);font-size:13px;font-weight:650}
+.step{font-size:10px;font-weight:800;letter-spacing:.17em;color:var(--gold)}
+.wordmark{text-align:center;margin:12px 0 0;font-weight:800;font-size:27px;letter-spacing:.11em;line-height:1.15}
+.wordmark span{color:var(--gold)}
+.intro{text-align:center;margin:27px 0 20px}
+.eyebrow{margin:0 0 9px;color:var(--gold);font-size:11px;font-weight:800;letter-spacing:.18em}
+h1{margin:0;font-size:clamp(22px,6vw,29px);line-height:1.5}
+.lead{margin:10px auto 0;max-width:360px;font-size:13px;line-height:1.85;color:var(--ink-light)}
+.notice{padding:12px 14px;margin:0 0 17px;background:#f9f8f1;border-left:3px solid #d7c5a3;border-radius:0 11px 11px 0;color:var(--ink-light);font-size:12px;line-height:1.85}
+.day-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 16px}
+.day-tab{min-width:0;min-height:56px;padding:8px 4px;background:#fffdfa;border:1px solid #dbe5db;border-radius:14px;color:var(--ink-light);font-size:15px;font-weight:750}
+.day-tab[aria-pressed="true"]{background:var(--green);border-color:var(--green);color:#fff}
+.card{width:100%;min-width:0;padding:21px 14px;background:#fffdfa;border:1px solid var(--outline);border-radius:20px;box-shadow:0 8px 24px rgba(21,67,45,.035)}
+.card h2{font-size:18px;margin:0 0 7px}
+.explanation{font-size:12px;line-height:1.9;color:var(--ink-light);margin:0 0 15px}
+.date-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:9px;margin:0 0 12px;font-size:13px;font-weight:700}
+.date-row input{min-width:0;min-height:42px;padding:7px 11px;border:1px solid #c9d8cc;border-radius:10px;background:#fff;color:var(--ink);font-size:16px}
+.diary-table{width:100%;min-width:0;table-layout:fixed;border-collapse:collapse;background:#fff;font-size:12px;line-height:1.45}
+.diary-table col.group{width:clamp(34px,10.5vw,49px)}
+.diary-table th,.diary-table td{border:1px solid var(--line)}
+.diary-table th{padding:8px 1px;text-align:center;font-size:11px;background:var(--mint);white-space:nowrap}
+.diary-table th:first-child{text-align:left;padding-left:6px}
+.diary-table .meal-cell{padding:5px 4px;min-width:0;vertical-align:top}
+.meal-cell label{display:block;font-size:12px;font-weight:750;margin:1px 0 5px}
+.meal-cell textarea{
+  display:block;width:100%;min-width:0;min-height:91px;padding:6px 5px;
+  background:#fff;border:1px solid #819b88;border-radius:5px;
+  color:var(--ink);font-size:16px;line-height:1.45;resize:vertical;
+  writing-mode:horizontal-tb;word-break:normal;overflow-wrap:break-word;
+}
+.meal-cell textarea::placeholder{color:#9aa69c;font-size:11px}
+.diary-table .mark{
+  position:relative;display:grid;place-items:center;min-height:47px;cursor:pointer;
+}
+.diary-table .mark-second{border-top:1px solid var(--line)}
+.mark input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;margin:0}
+.mark span{display:block;width:19px;height:19px;border:1px solid #6f8879;border-radius:4px;background:#fff}
+.mark input:checked+span{border:3px solid var(--green);border-radius:50%;background:#fff}
+.mark input:focus-visible+span{outline:2px solid var(--gold);outline-offset:3px}
+.group-guide{margin:17px 0 0;padding:13px;border:1px solid #dbe5db;border-radius:13px;background:#f7faf6}
+.group-guide h3{font-size:13px;margin:0 0 9px}
+.group-intro{margin:0 0 12px;font-size:12px;line-height:1.85;color:var(--ink-light);overflow-wrap:break-word}
+.group-intro strong{font-weight:750;color:var(--green)}
+.group-intro-last{margin:12px 0 0}
+.group-guide dl{margin:0;display:grid;grid-template-columns:52px minmax(0,1fr);gap:6px 7px;font-size:11px;line-height:1.8}
+.group-guide dt{font-weight:750;color:var(--green)}
+.group-guide dd{margin:0;color:var(--ink-light);overflow-wrap:break-word}
+.small-note{font-size:11px;line-height:1.85;color:var(--muted);margin:14px 0 0}
+.actions{margin-top:16px}
+.preview-button{
+  width:100%;min-height:54px;padding:10px 15px;border:1px solid #244f41;border-radius:13px;
+  background:linear-gradient(125deg,#285d4a,#143d32);color:#fffdf5;
+  font-size:15px;font-weight:800;box-shadow:0 9px 20px rgba(24,66,48,.11)
+}
+.status{margin:11px 0 0;min-height:2.1em;font-size:12px;line-height:1.75;color:var(--ink-light)}
+.status[data-error="true"]{color:#a02a27}
+.example{margin-top:22px;border:1px solid #dbe5db;border-radius:14px;padding:10px 14px;background:#f9fbf7}
+.example summary{min-height:42px;display:flex;align-items:center;font-size:13px;font-weight:750;cursor:pointer;color:var(--green)}
+.example dl{display:grid;grid-template-columns:40px minmax(0,1fr);gap:8px 6px;font-size:12px;line-height:1.85;margin:8px 0 4px}
+.example dt{font-weight:750}.example dd{margin:0;overflow-wrap:break-word}
+.example-intro,.example-mark{font-size:12px;line-height:1.85;color:var(--ink-light);margin:8px 0 10px;overflow-wrap:break-word}
+.example-mark{margin:13px 0 4px;padding:10px 11px;border-radius:9px;background:#edf5ef}
+.meal-example{margin:13px 0 0}
+.meal-example .example-food{margin:7px 0 4px;font-size:12px;line-height:1.8;color:var(--ink-light);overflow-wrap:break-word}
+.memo-section{margin-top:22px;border:1px solid #dbe5db;border-radius:14px;padding:18px 14px;background:#f9fbf7}
+.memo-section h2{margin:0 0 8px;font-size:17px;line-height:1.55}
+.memo-help{margin:0 0 15px;font-size:12px;color:var(--ink-light);line-height:1.85}
+.memo-pane{min-width:0}
+.backup-link{display:block;margin:22px 0 0;padding:12px 14px;text-align:center;border:1px solid #d7e4d7;border-radius:12px;background:#f4f8f2;color:var(--ink-light);font-size:13px;font-weight:700;text-decoration:none;line-height:1.8}
+.footnote{margin:18px 0 0;text-align:center;color:var(--muted);font-size:11px;line-height:1.9}
+dialog{width:min(94vw,460px);max-height:85vh;max-height:85dvh;overflow:auto;padding:20px 15px;border:1px solid #d3e0d6;border-radius:18px;background:#fffdf9;color:var(--ink);box-shadow:0 24px 70px rgba(13,49,32,.23)}
+dialog::backdrop{background:rgba(12,34,25,.5)}
+dialog h2{margin:0 0 13px;font-size:17px}
+.preview-layout{width:100%;border-collapse:collapse;table-layout:fixed;font-size:11px;line-height:1.6;background:#fff}
+.preview-layout col.group{width:clamp(35px,10vw,47px)}
+.preview-layout th,.preview-layout td{border:1px solid #d3ded4;padding:8px 3px;text-align:center;vertical-align:top}
+.preview-layout th{background:#edf5ef}
+.preview-layout td:first-child{text-align:left;overflow-wrap:break-word;white-space:pre-wrap}
+.preview-layout td.circle{font-size:21px;color:var(--green);line-height:1.4}
+.dialog-date{margin:0 0 10px;color:var(--muted);font-size:12px}
+.close{width:100%;min-height:46px;margin-top:17px;border:0;border-radius:12px;background:var(--green);color:#fff;font-size:15px;font-weight:750}
+[hidden]{display:none!important}
+@media(max-width:340px){.page{padding-inline:12px}.card{padding:19px 9px}.diary-table col.group{width:34px}.diary-table th{font-size:10px}.mark span{width:16px;height:16px}}
+@media(min-width:650px){.viewport{padding:24px}.page{min-height:calc(100svh - 48px);padding-inline:34px;border:1px solid var(--outline);border-radius:25px}}
+
+/* 1食1画面の横スクロール。画像→メモ→食品群の順序を固定。 */
+.meal-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin:12px 0}
+.meal-tab{min-width:0;min-height:46px;padding:7px 2px;border:1px solid #dbe5db;border-radius:10px;background:#fffdfa;color:var(--ink-light);font-weight:750;font-size:12px}
+.meal-tab[aria-pressed="true"]{background:var(--green);border-color:var(--green);color:white}
+.meal-track{display:flex;align-items:flex-start;width:100%;min-width:0;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;overscroll-behavior-inline:contain;scrollbar-width:none}
+.meal-track::-webkit-scrollbar{display:none}
+.meal-slide{flex:0 0 100%;width:100%;min-width:0;scroll-snap-align:start;scroll-snap-stop:always;padding:2px;writing-mode:horizontal-tb}
+.meal-slide h3{font-size:16px;margin:2px 0 10px}
+.photo-choose{position:relative;display:flex;align-items:center;justify-content:center;min-height:54px;margin-bottom:10px;border:1px dashed #9cb5a2;border-radius:11px;background:#f3f8f2;color:var(--green);font-weight:750;font-size:14px}
+.photo-choose input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
+.photo-choose input:disabled{cursor:not-allowed}
+.photo-choose:focus-within{outline:2px solid var(--gold);outline-offset:2px}
+.photo-view{margin:0 0 14px;text-align:center}
+.photo-view img{display:block;width:100%;height:auto;max-height:360px;object-fit:contain;border-radius:10px;background:#f2f5f0;margin:0 auto}
+.photo-remove{margin-top:8px;min-height:44px;padding:8px 15px;border:1px solid #e3cbc8;border-radius:10px;background:white;color:#923a35;font-size:12px;font-weight:700}
+.memo-label{display:block;margin:13px 0 8px;font-size:14px;font-weight:750}
+.meal-memo{display:block;width:100%;min-width:0;min-height:115px;padding:12px;border:1px solid #819b88;border-radius:11px;background:white;color:var(--ink);font-size:16px;line-height:1.65;resize:vertical;writing-mode:horizontal-tb;word-break:normal;overflow-wrap:break-word}
+.groups-label{margin:18px 0 10px;font-size:13px;font-weight:750}
+.food-groups{width:100%;min-width:0;table-layout:fixed}
+.food-groups th,.food-groups th:first-child{text-align:center;padding:9px 1px;font-size:12px}
+.food-groups .mark{min-height:44px}
+.food-groups .mark span{width:21px;height:21px}
+.meal-controls{display:flex;justify-content:space-between;align-items:center;gap:9px;margin-top:13px}
+.meal-controls button{min-width:80px;min-height:44px;padding:8px 11px;border:1px solid #cbdccc;border-radius:10px;background:#f3f8f2;color:var(--green);font-weight:750;font-size:13px}
+.meal-controls span{color:var(--ink-light);font-size:13px;font-weight:750}
+.preview-layout td.circle{font-size:17px;white-space:pre-line;line-height:1.3}
+.preview-layout img{display:block;width:100%;height:auto;max-height:150px;object-fit:contain;margin:0 auto 7px;border-radius:6px}
+.preview-memo{white-space:pre-wrap;overflow-wrap:break-word}
+@media(max-width:340px){.meal-tab{font-size:11px}.food-groups .mark span{width:18px;height:18px}}
+
+
+/* 既存のスマートダイエット食事ダイアリーの配色・余白に沿う結果画面 */
+.summary-main{display:grid;gap:14px}
+.summary-note{margin:0;font-size:12px;line-height:1.85;color:var(--ink-light)}
+.summary-card{padding:17px 15px;border:1px solid var(--outline);border-radius:17px;background:#fffdfa}
+.summary-card h2{margin:0 0 11px;font-size:17px;line-height:1.5}
+.summary-date{display:block;margin:0 0 12px;color:var(--muted);font-size:12px}
+.summary-overview{display:grid;gap:9px}
+.summary-overview p{margin:0;font-size:13px;line-height:1.7}
+.summary-num{font-weight:800;color:var(--green);font-size:22px}
+.summary-meals{display:grid;gap:12px}
+.summary-meal{border:1px solid var(--line);border-radius:14px;padding:14px;background:white}
+.summary-meal h3{margin:0 0 7px;font-size:15px}
+.summary-meal .small-note{margin:2px 0 0}
+.summary-meal p{margin:0 0 9px;line-height:1.75;font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere}
+.summary-meal img{display:block;width:100%;height:auto;max-height:220px;object-fit:contain;border-radius:9px;background:#f3f6f1;margin:0 0 9px}
+.summary-group-count{margin-top:4px;color:var(--muted);font-size:12px}
+.summary-group-rows{display:grid;gap:10px}
+.summary-group-row{display:grid;grid-template-columns:90px minmax(0,1fr) 35px;align-items:center;gap:9px;font-size:12px}
+.summary-group-row .group-name{font-weight:700;color:var(--ink-light)}
+.summary-bar{height:9px;background:#edf5ef;border-radius:100px;overflow:hidden}
+.summary-fill{height:100%;width:0;background:#699e79;border-radius:100px}
+.summary-group-row output{text-align:right;font-weight:800;color:var(--green)}
+.summary-caption{margin:11px 0 0;color:var(--muted);font-size:11px;line-height:1.85}
+.summary-warning{margin:0;border-left:3px solid #d7c5a3;background:#f9f8f1;border-radius:0 11px 11px 0;padding:12px;color:var(--ink-light);font-size:12px;line-height:1.8}
+.summary-actions{display:grid;gap:10px;margin-top:18px}
+.summary-actions .preview-button{display:flex;align-items:center;justify-content:center;text-decoration:none;text-align:center}
+.summary-secondary{display:flex;align-items:center;justify-content:center;min-height:45px;padding:10px 12px;text-decoration:none;color:var(--green);font-size:14px;font-weight:750;border:1px solid #dbe5db;border-radius:12px;background:white}
+.summary-empty{color:var(--muted);font-size:12px}
+@media(max-width:340px){.summary-group-row{grid-template-columns:77px minmax(0,1fr) 30px;gap:6px}}
+</style>
+</head>
+<body>
+<main class="viewport">
+ <div class="page">
+  <nav class="topbar" aria-label="ページ移動">
+   <a class="back" id="backLink" href="./record.html">〈 食事ダイアリーへ戻る</a>
+   <span class="step">3 DAYS</span>
+  </nav>
+  <p class="wordmark" aria-label="EQUINERIS">EQUI<span>NERIS</span></p>
+  <header class="intro">
+   <p class="eyebrow">DAILY REVIEW</p>
+   <h1>1日の食事結果</h1>
+   <p class="lead">食べたものと食品群の記録を、1日ずつ振り返ってみましょう。</p>
+  </header>
+  <div class="day-tabs" role="group" aria-label="振り返る日を選択">
+   <button class="day-tab" type="button" data-day="1" aria-pressed="true">1日目</button>
+   <button class="day-tab" type="button" data-day="2" aria-pressed="false">2日目</button>
+   <button class="day-tab" type="button" data-day="3" aria-pressed="false">3日目</button>
+  </div>
+  <div class="summary-main">
+   <section class="summary-card" aria-labelledby="dailyTitle">
+    <h2 id="dailyTitle">1日目の記録</h2>
+    <time class="summary-date" id="recordDate">記録日：未入力</time>
+    <div class="summary-overview">
+     <p><span class="summary-num" id="mealCount">0</span> / 4食に記録があります</p>
+     <p class="summary-note">朝食・昼食・夕食・間食のうち、メモ・写真・○のいずれかを記録した食事を数えています。</p>
+    </div>
+   </section>
+   <section class="summary-card" aria-labelledby="groupTitle">
+    <h2 id="groupTitle">食品群の記録</h2>
+    <p class="summary-note">第1〜4群に付けた○の数を確認できます。</p>
+    <div class="summary-group-rows">
+     <div class="summary-group-row"><span class="group-name">第1群</span><div class="summary-bar"><div class="summary-fill" id="bar1"></div></div><output id="total1">0個</output></div>
+     <div class="summary-group-row"><span class="group-name">第2群</span><div class="summary-bar"><div class="summary-fill" id="bar2"></div></div><output id="total2">0個</output></div>
+     <div class="summary-group-row"><span class="group-name">第3群</span><div class="summary-bar"><div class="summary-fill" id="bar3"></div></div><output id="total3">0個</output></div>
+     <div class="summary-group-row"><span class="group-name">第4群</span><div class="summary-bar"><div class="summary-fill" id="bar4"></div></div><output id="total4">0個</output></div>
+    </div>
+    <p class="summary-caption">横棒は○の数の比較です。各群20個まで記録できますが、20個が目標という意味ではありません。</p>
+   </section>
+   <section class="summary-card" aria-labelledby="mealsTitle">
+    <h2 id="mealsTitle">食事の内訳</h2>
+    <div class="summary-meals">
+     <article class="summary-meal" data-meal="breakfast"><h3>朝食</h3><img id="image-breakfast" alt="朝食の写真" hidden><p id="memo-breakfast" class="summary-empty">まだメモはありません。</p><p class="summary-group-count" id="marks-breakfast">食品群の○：0個</p></article>
+     <article class="summary-meal" data-meal="lunch"><h3>昼食</h3><img id="image-lunch" alt="昼食の写真" hidden><p id="memo-lunch" class="summary-empty">まだメモはありません。</p><p class="summary-group-count" id="marks-lunch">食品群の○：0個</p></article>
+     <article class="summary-meal" data-meal="dinner"><h3>夕食</h3><img id="image-dinner" alt="夕食の写真" hidden><p id="memo-dinner" class="summary-empty">まだメモはありません。</p><p class="summary-group-count" id="marks-dinner">食品群の○：0個</p></article>
+     <article class="summary-meal" data-meal="snack"><h3>間食</h3><img id="image-snack" alt="間食の写真" hidden><p id="memo-snack" class="summary-empty">まだメモはありません。</p><p class="summary-group-count" id="marks-snack">食品群の○：0個</p></article>
+    </div>
+   </section>
+   <p class="summary-warning"><strong>最初の3日間は点数計算をしません。</strong> この画面の○の個数は食べた食品の記録数で、四群点数法の点数・摂取カロリー・栄養の過不足を示すものではありません。</p>
+   <p id="resultStatus" class="status" role="status" aria-live="polite">このブラウザに保存された記録を読み込みます。</p>
+  </div>
+  <div class="summary-actions">
+   <a class="preview-button" id="editLink" href="./record.html">食事ダイアリーを編集する</a>
+   <a class="summary-secondary" href="./guide.html">食事記録の説明を見る</a>
+  </div>
+  <p class="footnote">記録内容は現在使用中のブラウザにのみ保存されています。他の端末には自動同期されません。</p>
+ </div>
+</main>
+<script>
+'use strict';
+const PREFIX='equineris:paper-first3:v1:';
+const DB_NAME='equineris-paper-first3-photos-v1';
+const MEALS=[['breakfast','朝食'],['lunch','昼食'],['dinner','夕食'],['snack','間食']];
+const dayButtons=[...document.querySelectorAll('[data-day]')];
+const dayFromQuery=Number(new URLSearchParams(window.location.search).get('day'));
+let activeDay=[1,2,3].includes(dayFromQuery)?dayFromQuery:1;
+let photoDb=null,photoEpoch=0;
+const photoUrls=[];
+let canRead=true;
+function key(day,name){return PREFIX+day+':'+name;}
+function getSaved(day,name){
+ if(!canRead)return '';
+ try{return localStorage.getItem(key(day,name))||'';}
+ catch(e){canRead=false;document.getElementById('resultStatus').textContent='このブラウザの保存データを読み込めません。';return '';}
+}
+function markKeys(meal,group){
+ return [meal+'-group-'+group,meal+'-extra-group-'+group,
+  meal+'-mark-3-group-'+group,meal+'-mark-4-group-'+group,meal+'-mark-5-group-'+group];
+}
+function render(){
+ dayButtons.forEach(b=>b.setAttribute('aria-pressed',String(Number(b.dataset.day)===activeDay)));
+ document.getElementById('dailyTitle').textContent=activeDay+'日目の記録';
+ const date=getSaved(activeDay,'date');
+ const dateNode=document.getElementById('recordDate');
+ dateNode.textContent=date?'記録日：'+date:'記録日：未入力';
+ if(date){dateNode.dateTime=date;}else{dateNode.removeAttribute('datetime');}
+ const groupTotals=[0,0,0,0];
+ let recordedMeals=0;
+ for(const [meal] of MEALS){
+  const note=getSaved(activeDay,meal+'-meal');
+  const memo=document.getElementById('memo-'+meal);
+  memo.textContent=note.trim()||'まだメモはありません。';
+  memo.classList.toggle('summary-empty',!note.trim());
+  let marked=0;
+  for(let g=1;g<=4;g++){
+   for(const k of markKeys(meal,g)){
+    if(getSaved(activeDay,k)==='checked'){marked++;groupTotals[g-1]++;}
+   }
+  }
+  document.getElementById('marks-'+meal).textContent='食品群の○：'+marked+'個';
+  if(note.trim()||marked>0)recordedMeals++;
+ }
+ document.getElementById('mealCount').textContent=String(recordedMeals);
+ groupTotals.forEach((count,i)=>{
+  document.getElementById('total'+(i+1)).textContent=count+'個';
+  document.getElementById('bar'+(i+1)).style.width=(count/20*100)+'%';
+ });
+ document.getElementById('editLink').href='./record.html';
+ document.getElementById('backLink').href='./record.html';
+ document.getElementById('resultStatus').textContent=canRead?'メモと○はこのブラウザに保存された記録から表示しています。':'このブラウザの記録を読み込めません。';
+ refreshPhotos();
+}
+function clearPhotos(){
+ photoEpoch++;
+ photoUrls.forEach(u=>URL.revokeObjectURL(u));photoUrls.length=0;
+ for(const [meal] of MEALS){
+  const img=document.getElementById('image-'+meal);img.hidden=true;img.removeAttribute('src');
+ }
+}
+async function readPhoto(id){
+ return new Promise((resolve,reject)=>{
+  let tx,request;
+  try{tx=photoDb.transaction('photos','readonly');request=tx.objectStore('photos').get(id);}
+  catch(e){reject(e);return;}
+  request.onsuccess=()=>resolve(request.result);
+  request.onerror=()=>reject(request.error||Error('Photo read error'));
+ });
+}
+async function refreshPhotos(){
+ clearPhotos();
+ if(!photoDb)return;
+ const epoch=photoEpoch,day=activeDay;
+ try{
+  const data=await Promise.all(MEALS.map(async ([meal])=>({meal,stored:await readPhoto(day+':'+meal)})));
+  if(epoch!==photoEpoch||day!==activeDay)return;
+  for(const {meal,stored} of data){
+   if(!stored||!(stored.file instanceof Blob))continue;
+   const image=document.getElementById('image-'+meal);
+   const url=URL.createObjectURL(stored.file);
+   photoUrls.push(url);image.src=url;image.hidden=false;
+  }
+  const photoMeals=data.filter(x=>x.stored&&x.stored.file instanceof Blob).length;
+  let total=0;
+  for(const [meal] of MEALS){
+   const memo=getSaved(day,meal+'-meal').trim();
+   const hasMark=[1,2,3,4].some(g=>markKeys(meal,g).some(k=>getSaved(day,k)==='checked'));
+   if(memo||hasMark||data.some(item=>item.meal===meal&&item.stored?.file instanceof Blob))total++;
+  }
+  document.getElementById('mealCount').textContent=String(total);
+ }catch(e){document.getElementById('resultStatus').textContent='写真を読み込めませんでした。メモと○の表示には影響しません。';}
+}
+function openPhotos(){
+ return new Promise((resolve,reject)=>{
+  if(!('indexedDB' in window)){reject(Error('IndexedDB unavailable'));return;}
+  const req=indexedDB.open(DB_NAME,1);
+  req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains('photos'))req.result.createObjectStore('photos',{keyPath:'id'});};
+  req.onsuccess=()=>resolve(req.result);
+  req.onerror=()=>reject(req.error||Error('IndexedDB open error'));
+  req.onblocked=()=>reject(Error('IndexedDB blocked'));
+ });
+}
+dayButtons.forEach(button=>button.addEventListener('click',()=>{
+ const day=Number(button.dataset.day);
+ if(activeDay===day)return;
+ activeDay=day;render();
+}));
+render();
+openPhotos().then(db=>{
+ photoDb=db;
+ photoDb.onversionchange=()=>{photoDb.close();photoDb=null;clearPhotos();};
+ refreshPhotos();
+}).catch(()=>{document.getElementById('resultStatus').textContent='写真の読み込みは利用できません。メモと○は確認できます。';});
+window.addEventListener('pagehide',()=>{clearPhotos();if(photoDb)photoDb.close();});
+</script>
+</body>
+</html>
