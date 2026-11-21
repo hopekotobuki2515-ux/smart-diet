@@ -187,6 +187,17 @@
 .point-track{align-items:flex-start}
 .lesson-empty{padding:12px;color:var(--ink-light);font-size:13px}
 @media(max-width:340px){.lesson-index-link{grid-template-columns:47px minmax(0,1fr) auto;gap:8px}.lesson-index-link strong{font-size:12px}.lesson-tabs button{font-size:11px}}
+
+/* 1枚に1つの話題だけ。スマホで読みやすい余白と文字サイズ。 */
+.lesson-short{font-size:16px!important;line-height:1.95!important;letter-spacing:.01em;margin:20px 0 16px!important;color:var(--ink-light)!important;overflow-wrap:break-word}
+.point-panel{padding:27px 20px 32px!important}
+.point-panel h2{font-size:21px;line-height:1.5;margin:5px 0 17px}
+.heading{margin:24px 0 15px}
+.heading h1{font-size:clamp(21px,5.8vw,27px);line-height:1.55}
+.heading p:not(.eyebrow){font-size:12px;line-height:1.65}
+.lesson-index-list{gap:8px}
+.lesson-index-link{min-height:62px;padding:10px 12px}
+@media(max-width:360px){.point-panel{padding:23px 15px 27px!important}.lesson-short{font-size:15px!important}}
 </style>
 </head>
 <body>
@@ -258,60 +269,20 @@ for(const entry of data){
  option.textContent='第'+entry.week+'週 · '+entry.title;
  picker.appendChild(option);
 }
-function addBody(container,raw){
- const lines=String(raw||'').replace(/\r/g,'').split(/\n/).map(x=>x.trim()).filter(Boolean);
- let sentence='',bullet=null;
- const finish=()=>{
-  if(sentence.trim())container.appendChild(node('p','lesson-para',sentence.trim()));
-  sentence='';
- };
- for(const line of lines){
-  if(/^─+$/.test(line))continue;
-  if(/^【[^】]+】$/.test(line)){
-   finish();bullet=null;container.appendChild(node('p','lesson-kicker',line.slice(1,-1)));continue;
-  }
-  if(/^・/.test(line)||/^□/.test(line)){
-   finish();
-   if(!bullet){bullet=node('ul','lesson-bullets');container.appendChild(bullet);}
-   bullet.appendChild(node('li','',line.slice(1).trim()));continue;
-  }
-  bullet=null;
-  if(/^[A-CＡ-Ｃ][．.]/.test(line)){finish();container.appendChild(node('p','lesson-kicker',line));continue;}
-  sentence+=line;
-  if(/[。！？!?」]$/.test(line)){finish();}
- }
- finish();
-}
-function showSection(panel,title,text){
- if(!text||!text.trim())return;
- panel.appendChild(node('h3','lesson-section-title',title));
- addBody(panel,text);
-}
-function slide(title,subtitle,sections){
+
+/* 1画面に要点1つ。元の12週間教材は learning-data.js に保持し、ここでは短い要約だけ表示する。 */
+const briefByWeek=[["まずは、今の食事と体重を知るところから。最初から完璧な食事に変える必要はありません。","食事の量や時間、間食、飲み物にも目を向けましょう。今週は点数で評価しません。","普段の食事を3日間、写真や短いメモで記録します。体重も確認しておきましょう。","食事を記録して、初めて気づいたことはありましたか？"],["先週の記録を使い、3か月後の目標を考えます。体重だけでなく、暮らしの変化も大切です。","結果の目標と、毎日続けられる行動を一緒に考えましょう。目標は途中で見直せます。","今週できそうな行動を1〜2個選び、食事記録を続けます。","選んだ行動は続けやすかったですか？ 難しければ調整しましょう。"],["食事を整理するために、80kcalを1点として考えます。","食品は栄養の特徴によって第1〜4群に分けます。同じ食品でも量が変われば点数は変わります。","食事を1つ選んで、食品群や点数の見方を確認してみましょう。","どの食品群が分かりやすかったですか？ 分かりにくいものはあとから見返せます。"],["今週は食品の「量」に注目します。同じご飯でも、100gと200gでは点数が違います。","一度量ってみると、見た目から量をつかむ練習になります。すべての食事を量る必要はありません。","よく食べる食品を3つ選んで、実際に重さを量ってみましょう。","思っていた量と実際の量に、違いはありましたか？"],["食品の量を、点数に置き換えて1食全体を見ます。","食品ごとの点数を合計すると、1食の点数が分かります。油や調味料も点数に関係します。","1日1食を選び、3日間、分かる範囲で点数を確認しましょう。","点数にしてみて、量の印象が変わった食品はありましたか？"],["今週は朝・昼・夕・間食をまとめて、1日全体を見ていきます。","毎食同じ点数でなくても構いません。自分の生活に合わせた配分を考えます。","1日分の食事と点数を確認して、合計を見てみましょう。","朝・昼・夕・間食のうち、点数が多くなりやすいのはいつでしたか？"],["点数だけでなく、どの食品群から食べているかも見ていきましょう。","食品群の組み合わせや、油・砂糖・ドレッシングなどの量にも目を向けます。","よく使う調味料を1〜2種類選び、量を確認してみましょう。","不足しがちな食品群や、意外だった調味料はありましたか？"],["外食やコンビニを使う日も、食べ方を考える練習ができます。","自炊・外食・コンビニ・スーパー・ファストフードでも、量と組み合わせが手がかりです。","外で食べるときに1回、食品の量や栄養表示を確かめてみましょう。","実際の食事選びで、迷ったことはありましたか？"],["体重が動かない時や、間食が増える日があっても、そこで終わりではありません。","体重は1日だけで判断せず、数日から週単位の変化を見ます。間食や飲酒も量と頻度を確かめます。","自分がつまずきやすい場面を1つ選び、1週間記録してみましょう。","次に似た場面が来たら、どんな方法で戻せそうですか？"],["食事と運動には、それぞれ役割があります。食べた分を運動で帳消しにする考え方にはしません。","トレーニングと、歩く・階段を使うなどの日常活動にも目を向けます。痛みがあれば無理をしません。","今週できた運動や、日常で増やせそうな活動を1つ記録しましょう。","生活の中で続けられそうな動きはありましたか？"],["これまで学んだ量・点数・食品群を使い、自分で1日の食事を考えます。","予定どおり食べられることよりも、予定が変わったときに調整する力を大切にします。","1日の食事を考えてから、実際の食事と比べてみましょう。","予定と違ったとき、どのように調整できましたか？"],["12週間の最後に、体重だけでなく食べ方や行動の変化を振り返ります。","減量後の食事量は、そのままずっと続けるとは限りません。維持への移行はトレーナーと確認します。","開始時の目標と今の状態を見比べ、これから続けることを決めましょう。","これからも使えそうな習慣と、困った時の戻し方は何ですか？"]];
+function slide(title,subtitle,shortText){
  const section=node('section','point-slide');
  section.setAttribute('role','group');
  section.setAttribute('aria-roledescription','スライド');
+ section.setAttribute('aria-label',title);
  const panel=node('div','point-panel');
  panel.appendChild(node('p','point-label',subtitle));
  panel.appendChild(node('h2','',title));
- for(const item of sections)showSection(panel,item.title,item.text);
+ panel.appendChild(node('p','lesson-short',shortText));
  section.appendChild(panel);
  return section;
-}
-function groupLesson(entry){
- const rows=entry.sections;
- const introduction=rows.find(x=>/今週のお話|最終今週のお話/.test(x.title));
- const actions=rows.filter(x=>/今週やってみること|やってみよう|実践|自分の“戻し方”を決める/.test(x.title));
- const reflection=rows.filter(x=>/ふり返り|振り返り|週の終わり|最初の目標と比べる/.test(x.title));
- const used=new Set([introduction,...actions,...reflection].filter(Boolean));
- const learning=rows.filter(x=>!used.has(x));
- const sections=[
-  [{title:'この週について',text:entry.introduction},introduction].filter(Boolean),
-  learning,
-  actions.length?actions:[{title:'今日覚えてほしいこと',text:entry.summary||'学んだポイントを1つ思い出しましょう。'}],
-  reflection.length?reflection:[{title:'振り返り',text:entry.summary||'今週の内容を見返しましょう。'}]
- ];
- return sections;
 }
 function update(){
  const slides=[...track.children];
@@ -334,13 +305,13 @@ function loadWeek(n){
  index.hidden=true;content.hidden=false;
  picker.value=String(n);
  heading.textContent='第'+n+'週｜'+entry.title;
- intro.textContent='SMART Diet 12週間プログラムの第'+n+'週の学びです。左右にスワイプしながら読み進めましょう。';
+ intro.textContent='4枚のカードで、今週の大切なことを確認しましょう。';
  document.title='第'+n+'週｜'+entry.title+' | SMART Diet';
- const groups=groupLesson(entry);
+ const shortCards=briefByWeek[n-1];
  const titles=['今週のお話','学ぶポイント','今週の実践','振り返り'];
  track.replaceChildren();tabs.replaceChildren();
- groups.forEach((sections,i)=>{
-  track.appendChild(slide(titles[i],'WEEK '+n+' · '+String(i+1).padStart(2,'0'),sections));
+ shortCards.forEach((shortText,i)=>{
+  track.appendChild(slide(titles[i],'WEEK '+n+' · '+String(i+1).padStart(2,'0'),shortText));
   const tab=node('button','',titles[i]);tab.type='button';tab.setAttribute('aria-pressed',String(i===0));
   tab.addEventListener('click',()=>go(i));
   tabs.appendChild(tab);
