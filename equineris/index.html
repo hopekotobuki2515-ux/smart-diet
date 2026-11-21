@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#f9fbf6">
+  <meta name="description" content="EQUINERISへようこそ。食事で整えて、理想の自分に近づく12週間のデジタルノートプログラム。">
+  <title>ようこそ | EQUINERIS</title>
+  <style>
+    :root {
+      color-scheme:light;
+      font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
+      --green:#147b44;--green-dark:#0c6a40;--orange:#f08b32;
+      --navy:#12365c;--muted:#47647b;--bg:#fbfcf8;
+    }
+    *,*::before,*::after {box-sizing:border-box}
+    html {overflow-x:hidden;-webkit-text-size-adjust:100%}
+    body {margin:0;min-width:280px;color:var(--navy);background:#f6f9f2;overflow-x:hidden}
+    button,a {font:inherit;touch-action:manipulation}
+    button {cursor:pointer}
+    a:focus-visible,button:focus-visible {outline:3px solid var(--orange);outline-offset:4px}
+    .viewport {min-height:100svh;display:flex;justify-content:center;padding:0 12px}
+    .welcome {
+      position:relative;isolation:isolate;overflow:hidden;
+      display:flex;flex-direction:column;align-items:center;text-align:center;
+      width:100%;max-width:492px;min-height:100svh;
+      padding:clamp(24px,5vh,44px) 20px 28px;
+      background:linear-gradient(180deg,#fff 0%,#fff 78%,#f1f9e9 100%);
+      box-shadow:0 0 45px rgba(53,95,55,.06);
+      justify-content:center;
+    }
+    .welcome::before,.welcome::after {content:"";position:absolute;z-index:-1;pointer-events:none;border-radius:50%;}
+    .welcome::before {width:260px;height:260px;left:-178px;top:35%;background:#edf8df}
+    .welcome::after {width:210px;height:210px;right:-153px;top:15%;background:#f5f9e9}
+    .clover {position:absolute;pointer-events:none;color:#a8d77a;opacity:.52;font-size:27px;line-height:1;}
+    .clover.c1{top:73px;left:9%}.clover.c2{top:202px;right:7%;font-size:34px}.clover.c3{bottom:150px;left:7%;font-size:21px}.clover.c4{bottom:74px;right:10%;font-size:25px}
+    .brand {position:relative;margin:20px 0 1px;line-height:1;font-size:clamp(43px,10.6vw,62px);font-weight:950;letter-spacing:-.07em;white-space:nowrap;color:var(--green)}
+    .brand span {color:var(--orange);letter-spacing:-.055em}
+    .tagline {margin:7px 0 0;font-size:clamp(13px,3.2vw,17px);font-weight:750;letter-spacing:.015em;line-height:1.5}
+    .intro {position:relative;margin:clamp(34px,7vh,60px) 0 0;max-width:390px}
+    .intro h1 {font-size:clamp(26px,6.6vw,36px);line-height:1.4;margin:0 0 8px;letter-spacing:.02em}
+    .intro h1 span {color:var(--green)}
+    .intro p {font-size:clamp(13px,3.3vw,16px);font-weight:650;line-height:1.75;margin:0;overflow-wrap:break-word}
+    .actions {width:100%;max-width:344px;margin:clamp(48px,10vh,88px) 0 0;z-index:1}
+    .start {display:flex;align-items:center;justify-content:center;position:relative;width:100%;min-height:59px;padding:13px 44px;border:0;border-radius:100px;color:#fff;background:linear-gradient(90deg,#1ba148,#0d8e4a 62%,#46c642);box-shadow:0 8px 18px rgba(38,150,64,.16);font-size:23px;font-weight:850;letter-spacing:.08em;text-decoration:none}
+    .start:hover {filter:brightness(.97)}
+    .arrow {position:absolute;right:21px;font-size:27px;line-height:1}
+    .login {display:inline-block;margin-top:21px;padding:5px 8px;color:#148651;text-decoration:underline;text-underline-offset:4px;font-size:17px;font-weight:750;background:none;border:0}
+    .footer-note {margin:21px 0 0;color:#607b67;font-size:11px;line-height:1.6}
+    dialog {max-width:min(92vw,380px);width:100%;padding:24px;border:1px solid #d3e7d6;border-radius:18px;background:#fff;color:#163f34;box-shadow:0 24px 70px rgba(12,49,30,.2)}
+    dialog::backdrop{background:rgba(8,38,30,.45)}
+    dialog h2{margin:0 0 10px;font-size:20px}
+    dialog p{margin:0 0 18px;color:#415d50;font-size:14px;line-height:1.8}
+    .dialog-close{min-width:100%;min-height:45px;border:1px solid #4a9260;border-radius:12px;background:#f1faf2;color:#12643a;font-size:15px;font-weight:750}
+    @media (max-width:365px) {
+      .welcome{padding-inline:13px}
+      .brand{font-size:clamp(37px,10.5vw,46px)}
+      .intro{margin-top:30px}
+      .start{min-height:53px;font-size:20px}
+    }
+    @media (min-width:650px) {
+      .viewport{padding:22px}
+      .welcome{border:1px solid #e8f0e5;border-radius:27px;min-height:min(860px,calc(100svh - 44px));}
+    }
+    @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+  </style>
+</head>
+<body>
+  <main class="viewport">
+    <section class="welcome" aria-labelledby="welcome-title">
+      <span class="clover c1" aria-hidden="true">✿</span>
+      <span class="clover c2" aria-hidden="true">✿</span>
+      <span class="clover c3" aria-hidden="true">✿</span>
+      <span class="clover c4" aria-hidden="true">✿</span>
+      <p class="brand" aria-label="EQUINERIS">EQUI<span>NERIS</span></p>
+      <p class="tagline">知ることから始まる、新しい食習慣。</p>
+      <header class="intro">
+        <h1 id="welcome-title">ようこそ！<br><span>EQUINERIS</span>へ</h1>
+        <p>食事で整えて、<br>理想の自分に近づく<br>12週間のデジタルノートプログラムです。</p>
+      </header>
+      <div class="actions">
+        <button class="start" id="startButton" type="button">はじめる<span class="arrow" aria-hidden="true">›</span></button>
+        <button class="login" id="loginButton" type="button">ログインはこちら</button>
+        <p class="footer-note">健康な毎日を、一緒につくりましょう。</p>
+      </div>
+    </section>
+  </main>
+  <dialog id="nextStepDialog" aria-labelledby="nextStepTitle" aria-describedby="nextStepMessage">
+    <h2 id="nextStepTitle"></h2>
+    <p id="nextStepMessage"></p>
+    <button type="button" class="dialog-close" id="closeDialog">オープニングへ戻る</button>
+  </dialog>
+  <script>
+    'use strict';
+    // 未確定の遷移先を推測で指定しない。設定されるまでは404へ移動せず状態を案内する。
+    const NEXT_ROUTES = Object.freeze({ start:'', login:'' });
+    const dialog=document.getElementById('nextStepDialog');
+    const title=document.getElementById('nextStepTitle');
+    const message=document.getElementById('nextStepMessage');
+    function openNext(kind){
+      const destination=NEXT_ROUTES[kind];
+      if(destination && /^\.\/[a-z0-9][a-z0-9._/-]*\.html$/i.test(destination)){
+        window.location.assign(destination);
+        return;
+      }
+      title.textContent=kind==='start'?'初回設定へ':'ログインへ';
+      message.textContent=kind==='start'
+        ?'オープニングページは作成済みです。初回設定画面への接続は次の制作工程で行います。'
+        :'ログイン画面への接続は次の制作工程で行います。既存の別アプリには移動しません。';
+      if(typeof dialog.showModal==='function')dialog.showModal();
+    }
+    document.getElementById('startButton').addEventListener('click',()=>openNext('start'));
+    document.getElementById('loginButton').addEventListener('click',()=>openNext('login'));
+    document.getElementById('closeDialog').addEventListener('click',()=>dialog.close());
+    dialog.addEventListener('click',event=>{if(event.target===dialog)dialog.close()});
+  </script>
+</body>
+</html>
