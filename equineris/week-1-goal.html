@@ -146,7 +146,17 @@
     .goal-next{display:flex;min-height:49px;justify-content:center;align-items:center;text-align:center;text-decoration:none;margin-top:14px;padding:10px 15px;border:1px solid #bbd2c0;border-radius:12px;background:#f5faf3;color:var(--green);font-size:14px;font-weight:750}
     .goal-link{color:var(--green);font-weight:750}
     .goal-optional{margin-top:10px;font-size:11px;color:var(--muted);line-height:1.75}
-    @media(max-width:340px){.options{gap:5px}.option label{font-size:16px}}
+    .reference-weight{font-size:20px;font-variant-numeric:tabular-nums}
+    .history-fields{margin:16px 0 9px;padding:15px 0 0;border-top:1px solid #dfe7df}
+    .history-fields h3,.future-section h3{font-size:15px;line-height:1.6;margin:0 0 10px}
+    .history-fields .field{margin-bottom:15px}
+    .future-section{padding:18px 0 0;margin-top:22px;border-top:1px solid #dfe7df}
+    .future-presets{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:13px 0 16px}
+    .future-presets button{min-width:0;min-height:48px;border:1px solid #b7cfbb;border-radius:11px;background:#f6faf4;color:var(--green);font-weight:750;font-size:13px;line-height:1.5;padding:9px 8px}
+    .future-presets button[aria-pressed="true"]{background:var(--green);color:white}
+    .future-presets button:disabled{color:#8c988e;border-color:#dfe7df;opacity:.7}
+    .reference-info{font-size:11px;line-height:1.7;color:var(--muted);margin:6px 0 15px}
+    @media(max-width:340px){.options{gap:5px}.option label{font-size:16px}.future-presets{gap:7px}.future-presets button{font-size:12px}}
 </style>
 </head>
 <body>
@@ -168,6 +178,17 @@
     </div>
     <div class="goal-box">
      <div class="metric"><span class="metric-label">現在の体重（登録値）</span><strong class="metric-output" id="startWeight">未登録</strong></div>
+     <div class="metric"><span class="metric-label">BMIが25になる体重（参考値）</span><strong class="metric-output reference-weight" id="bmi25Weight">—</strong></div>
+    </div>
+    <p class="reference-info">BMI25の体重は身長から計算した参考値であり、推奨する目標体重ではありません。</p>
+    <div class="history-fields">
+     <h3>これまでの体重（任意）</h3>
+     <label class="field"><span class="field-label">20歳の時の体重</span>
+      <span class="unitwrap"><input id="weightAt20" name="weightAt20" type="number" min="0.1" step="0.1" inputmode="decimal" placeholder="覚えていなければ空欄でOK"><span class="unit">kg</span></span>
+     </label>
+     <label class="field"><span class="field-label">最も長く維持していた体重</span>
+      <span class="unitwrap"><input id="longestWeight" name="longestWeight" type="number" min="0.1" step="0.1" inputmode="decimal" placeholder="覚えていなければ空欄でOK"><span class="unit">kg</span></span>
+     </label>
     </div>
     <p class="goal-label">目標減量率を選ぶ</p>
     <div class="options" role="group" aria-label="目標減量率">
@@ -178,14 +199,26 @@
     </div>
     <p class="goal-help">減量率を選ぶと目標体重が自動計算されます。数値を直接変更することもできます。</p>
     <label class="field" style="margin-top:22px">
-     <span class="field-label">12週間後の目標体重</span>
+     <span class="field-label">3か月後に私が目指す体重</span>
      <span class="unitwrap"><input type="number" id="targetWeight" name="targetWeight" inputmode="decimal" min="0.1" step="0.1" placeholder="目標体重を入力" required disabled><span class="unit">kg</span></span>
     </label>
     <div class="goal-result" aria-live="polite">
      <div class="metric"><span class="metric-label">目標減量幅</span><strong class="metric-output" id="lossKg">—</strong></div>
      <div class="metric"><span class="metric-label">目標減量率</span><strong class="metric-output" id="lossPercent">—</strong></div>
     </div>
-    <p class="goal-notice">5・8・10・15％は計算用の選択肢です。どの減量率も安全性や達成を保証するものではありません。無理のない目標を設定してください。</p>
+    <div class="future-section">
+     <h3>将来私が目指す体重（任意）</h3>
+     <p class="goal-help">将来の目標体重は直接入力できます。BMI25またはBMI22から計算することもできます。</p>
+     <div class="future-presets" aria-label="将来の体重の計算候補">
+      <button id="futureBMI25" type="button" data-future-bmi="25" aria-pressed="false" disabled>BMI25から計算</button>
+      <button id="futureBMI22" type="button" data-future-bmi="22" aria-pressed="false" disabled>BMI22から計算</button>
+     </div>
+     <label class="field"><span class="field-label">将来の目標体重</span>
+      <span class="unitwrap"><input id="futureGoal" name="futureGoal" type="number" min="0.1" step="0.1" inputmode="decimal" placeholder="将来の目標体重（任意）"><span class="unit">kg</span></span>
+     </label>
+     <p class="reference-info">BMIからの換算値は比較のための参考値です。健康状態にかかわらず適切な目標となることを意味しません。</p>
+    </div>
+    <p class="goal-notice">5・8・10・15％は計算用の選択肢です。減量率の安全性や達成を保証するものではありません。無理のない目標を設定し、必要に応じて見直しましょう。</p>
    </section>
    <div class="action">
     <button type="submit" class="next" id="saveGoal" disabled>目標を保存 <span class="arrow" aria-hidden="true">›</span></button>
@@ -202,7 +235,12 @@
  const REG_KEY='equineris:registration:v1';
  const GOAL_KEY='equineris:week1:goal:v1';
  const startNode=document.getElementById('startWeight');
+ const bmi25Node=document.getElementById('bmi25Weight');
  const goalInput=document.getElementById('targetWeight');
+ const weightAt20=document.getElementById('weightAt20');
+ const longestWeight=document.getElementById('longestWeight');
+ const futureGoal=document.getElementById('futureGoal');
+ const futurePresets=[...document.querySelectorAll('[data-future-bmi]')];
  const resultLoss=document.getElementById('lossKg');
  const resultRate=document.getElementById('lossPercent');
  const feedback=document.getElementById('goalStatus');
@@ -210,12 +248,19 @@
  const saveButton=document.getElementById('saveGoal');
  const rateInputs=[...document.querySelectorAll('input[name="goalRate"]')];
  let startWeight=null;
+ let heightCm=null;
+ let rememberedFutureBmi=null;
  const one=n=>Math.round((n+Number.EPSILON)*10)/10;
  const display=n=>one(n).toFixed(1);
  const setStatus=(text,error=false)=>{feedback.textContent=text;feedback.hidden=!text;feedback.className=error?'goal-error':'goal-help';};
+ const bmiWeight=bmi=>bmi*(heightCm/100)**2;
  function rateSelected(){
   const active=rateInputs.find(x=>x.checked);
   return active?Number(active.value):null;
+ }
+ function markFuture(choice){
+  rememberedFutureBmi=choice;
+  for(const button of futurePresets)button.setAttribute('aria-pressed',String(Number(button.dataset.futureBmi)===choice));
  }
  function draw(){
   const target=Number(goalInput.value);
@@ -227,25 +272,50 @@
   saveButton.disabled=!valid;
   return valid;
  }
+ function optionalWeight(input,label){
+  const value=input.value.trim();
+  if(value==='')return null;
+  const n=Number(value);
+  if(!Number.isFinite(n)||n<=0||!input.checkValidity())throw new Error(label+'は0より大きい数値で入力してください。');
+  return one(n);
+ }
  try{
   const row=JSON.parse(localStorage.getItem(REG_KEY)||'null');
-  const w=Number(row?.weightKg);
-  if(row && typeof row.weightKg==='string'&&Number.isFinite(w)&&w>0){
+  const w=Number(row?.weightKg),h=Number(row?.heightCm);
+  if(row&&typeof row.weightKg==='string'&&Number.isFinite(w)&&w>0){
    startWeight=w;
    startNode.textContent=display(w)+' kg';
    goalInput.disabled=false;
    rateInputs.forEach(x=>x.disabled=false);
+   if(typeof row.heightCm==='string'&&Number.isFinite(h)&&h>0){
+    heightCm=h;
+    bmi25Node.textContent=display(bmiWeight(25))+' kg';
+    futurePresets.forEach(x=>x.disabled=false);
+   }
    const saved=JSON.parse(localStorage.getItem(GOAL_KEY)||'null');
-   if(saved && Number(saved.startWeightKg)===w && Number(saved.goalWeightKg)>0){
+   if(saved&&Number(saved.startWeightKg)===w&&Number(saved.goalWeightKg)>0){
     goalInput.value=String(saved.goalWeightKg);
     const selected=Number(saved.selectedRatePercent);
-    if([5,8,10,15].includes(selected) && display(w*(1-selected/100))===display(Number(saved.goalWeightKg))){
-     const node=rateInputs.find(x=>Number(x.value)===selected);
-     if(node)node.checked=true;
+    if([5,8,10,15].includes(selected)&&display(w*(1-selected/100))===display(Number(saved.goalWeightKg))){
+     const button=rateInputs.find(x=>Number(x.value)===selected);
+     if(button)button.checked=true;
     }
     setStatus('以前保存した目標を表示しています。必要なら変更できます。');
-   }else if(saved && Number(saved.startWeightKg)!==w){
-    setStatus('登録時の体重が変わっています。新しい体重をもとに目標を選び直してください。');
+   }else if(saved&&Number(saved.startWeightKg)!==w){
+    setStatus('登録時の体重が変わっています。目標を選び直してください。');
+   }
+   if(saved){
+    if(saved.weightAt20Kg!=null)weightAt20.value=String(saved.weightAt20Kg);
+    if(saved.longestWeightKg!=null)longestWeight.value=String(saved.longestWeightKg);
+    if(saved.futureGoalWeightKg!=null){
+     futureGoal.value=String(saved.futureGoalWeightKg);
+     const selectedBMI=Number(saved.selectedFutureBmi);
+     if(heightCm!==null&&[22,25].includes(selectedBMI)){
+      const candidate=display(bmiWeight(selectedBMI));
+      futureGoal.value=candidate;
+      markFuture(selectedBMI);
+     }
+    }
    }
   }else{
    setStatus('現在の体重が未登録です。先に登録画面で入力してください。',true);
@@ -255,7 +325,7 @@
  }
  for(const input of rateInputs){
   input.addEventListener('change',()=>{
-   if(startWeight===null || !input.checked)return;
+   if(startWeight===null||!input.checked)return;
    goalInput.value=display(startWeight*(1-Number(input.value)/100));
    setStatus('');
    draw();
@@ -266,18 +336,38 @@
   setStatus('');
   draw();
  });
+ for(const button of futurePresets){
+  button.addEventListener('click',()=>{
+   if(heightCm===null)return;
+   const bmi=Number(button.dataset.futureBmi);
+   if(![22,25].includes(bmi))return;
+   futureGoal.value=display(bmiWeight(bmi));
+   markFuture(bmi);
+   setStatus('');
+  });
+ }
+ futureGoal.addEventListener('input',()=>{markFuture(null);setStatus('');});
  form.addEventListener('submit',event=>{
   event.preventDefault();
   if(startWeight===null){setStatus('先に現在の体重を登録してください。',true);return;}
   if(!draw()){setStatus('現在の体重より小さく、0kgより大きい目標体重を入力してください。',true);return;}
+  let before20,maintained,future;
+  try{
+   before20=optionalWeight(weightAt20,'20歳の時の体重');
+   maintained=optionalWeight(longestWeight,'最も長く維持していた体重');
+   future=optionalWeight(futureGoal,'将来の目標体重');
+  }catch(error){setStatus(error.message,true);return;}
   const target=Number(goalInput.value);
-  const selectedRate=rateSelected();
   const row={
    startWeightKg:startWeight,
    goalWeightKg:one(target),
    lossKg:one(startWeight-target),
-   selectedRatePercent:selectedRate,
-   actualRatePercent:one((startWeight-target)/startWeight*100)
+   selectedRatePercent:rateSelected(),
+   actualRatePercent:one((startWeight-target)/startWeight*100),
+   weightAt20Kg:before20,
+   longestWeightKg:maintained,
+   futureGoalWeightKg:future,
+   selectedFutureBmi:future===null?null:rememberedFutureBmi
   };
   try{
    localStorage.setItem(GOAL_KEY,JSON.stringify(row));
