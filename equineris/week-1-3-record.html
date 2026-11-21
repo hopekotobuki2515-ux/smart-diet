@@ -538,7 +538,7 @@ load();
  let foods=[],visible=12,filtered=[];
  const norm=text=>String(text??'').normalize('NFKC').toLocaleLowerCase('ja')
   .replace(/[ァ-ヶ]/g,c=>String.fromCharCode(c.charCodeAt(0)-0x60))
-  .replace(/[\\s・･（）()\-]/g,'');
+  .replace(/[\s・･（）()\-]/g,'');
  const alias=food=>{
   if(food.category.includes('鶏肉')&&food.name==='むね・皮つき')return '鶏むね肉皮つき';
   if(food.category.includes('鶏肉')&&food.name==='皮・むね')return '鶏皮むね';
