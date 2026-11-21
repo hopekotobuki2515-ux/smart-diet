@@ -243,7 +243,7 @@
   </div>
   <p class="group-footer">最初から全部を暗記する必要はありません。食事を記録しながら「これはどの群かな？」と少しずつ覚えていきましょう。点数や量の見方は、今後の学びで扱います。</p>
   <div class="group-actions">
-   <a id="pointAllocationLink" class="group-primary" href="./point-allocation.html?day=1">次へ：1点＝80kcalと点数配分を見る</a>
+   <a id="pointAllocationLink" class="group-primary" href="./point-allocation.html?day=1&amp;v=ff77003b">次へ：1点＝80kcalと点数配分を見る</a>
    <a id="diaryLink" class="group-secondary" href="./record.html?day=1">食事ダイアリーを見返す</a>
    <a id="checkLink" class="group-secondary" href="./habit-check.html?day=1">食行動チェックを見直す</a>
   </div>
@@ -262,7 +262,7 @@ const day=[1,2,3].includes(param)?param:1;
 document.getElementById('backToCheck').href='./habit-check.html?day='+day;
 document.getElementById('checkLink').href='./habit-check.html?day='+day;
 document.getElementById('diaryLink').href='./record.html?day='+day;
-document.getElementById('pointAllocationLink').href='./point-allocation.html?day='+day;
+document.getElementById('pointAllocationLink').href='./point-allocation.html?day='+day+'&v=ff77003b';
 let active=0;
 let framePending=false;
 const reduceMotion=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
