@@ -1,98 +1,104 @@
 <!doctype html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#fefdf8">
-  <meta name="description" content="EQUINERISの最初の3日間の食事記録。写真と簡単なメモで、いつもの食事を記録します。">
-  <title>最初の3日間の食事記録 | EQUINERIS</title>
-  <style>
-    :root{
-      color-scheme:light;
-      font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
-      --ink:#183e38;--ink-light:#31564d;--muted:#64776a;
-      --gold:#a6844e;--green:#285d4a;--outline:#e7e5d9;
-    }
-    *,*::before,*::after{box-sizing:border-box}
-    html{-webkit-text-size-adjust:100%;overflow-x:hidden}
-    body{margin:0;min-width:280px;overflow-x:hidden;color:var(--ink);background:#e8eee8}
-    button,input,textarea,select,a{font:inherit;touch-action:manipulation}
-    button{cursor:pointer}
-    :focus-visible{outline:3px solid var(--gold);outline-offset:3px}
-    .viewport{min-height:100svh;display:flex;justify-content:center}
-    .page{
-      width:100%;max-width:510px;min-height:100svh;
-      padding:22px 20px max(36px,env(safe-area-inset-bottom));
-      background:linear-gradient(157deg,#fefdf8 0%,#fafaf6 46%,#f0f5ef 100%);
-      box-shadow:0 18px 70px rgba(25,54,41,.055);
-    }
-    .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px}
-    .back{min-height:44px;display:inline-flex;align-items:center;text-decoration:none;color:var(--ink-light);font-size:13px;font-weight:650}
-    .step{font-size:10px;font-weight:800;letter-spacing:.18em;color:var(--gold)}
-    .wordmark{text-align:center;margin:12px 0 0;font-size:27px;letter-spacing:.11em;font-weight:800;line-height:1.15}
-    .wordmark span{color:var(--gold)}
-    .intro{text-align:center;margin:31px 0 22px}
-    .eyebrow{margin:0 0 8px;color:var(--gold);font-size:11px;font-weight:800;letter-spacing:.18em}
-    h1{margin:0;font-size:clamp(23px,6vw,29px);line-height:1.5}
-    .lead{margin:10px auto 0;max-width:350px;font-size:13px;line-height:1.85;color:var(--ink-light)}
-    .notice{
-      padding:13px 14px;margin-bottom:20px;background:#f9f8f1;
-      border-left:3px solid #d7c5a3;border-radius:0 11px 11px 0;
-      color:var(--ink-light);font-size:12px;line-height:1.85;
-    }
-    .day-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 16px}
-    .day-tab{
-      min-width:0;min-height:62px;padding:7px 3px;background:#fffdfa;color:var(--ink-light);
-      border:1px solid #dbe5db;border-radius:14px;font-weight:750;font-size:14px;
-    }
-    .day-tab[aria-pressed="true"]{background:var(--green);border-color:var(--green);color:#fff}
-    .day-count{display:block;margin-top:5px;font-size:11px;font-weight:500;opacity:.8}
-    .card{padding:22px 18px;background:#fffdfa;border:1px solid var(--outline);border-radius:20px;box-shadow:0 8px 24px rgba(21,67,45,.035)}
-    .card h2{font-size:18px;margin:0 0 6px}
-    .card-lead{font-size:12px;color:var(--muted);line-height:1.75;margin:0 0 21px}
-    .field{display:block;margin:0 0 19px}
-    .field-label{display:block;margin:0 0 8px;font-weight:750;font-size:14px;line-height:1.55}
-    .field input,.field select,.field textarea{
-      display:block;width:100%;min-width:0;min-height:51px;
-      background:#fff;color:var(--ink);border:1px solid #d9e2d9;border-radius:12px;
-      padding:12px 14px;font-size:16px;
-    }
-    .field textarea{min-height:106px;line-height:1.7;resize:vertical;overflow-wrap:break-word}
-    .field input[type="file"]{padding:10px 12px;height:auto;max-width:100%;font-size:13px}
-    .field-note{display:block;color:var(--muted);font-size:11px;line-height:1.75;margin:6px 0 0}
-    .preview{margin:12px 0 0;padding:8px;border:1px solid #e0e8df;border-radius:12px;background:#f9fbf8;text-align:center}
-    .preview img{display:block;max-width:100%;height:auto;max-height:280px;object-fit:contain;margin:0 auto;border-radius:8px}
-    .primary{
-      display:flex;justify-content:center;align-items:center;min-height:56px;width:100%;
-      background:linear-gradient(125deg,#285d4a,#143d32);border:1px solid #244f41;
-      border-radius:15px;color:#fffdf5;font-size:16px;font-weight:800;
-      box-shadow:0 11px 24px rgba(24,66,48,.13);
-    }
-    .primary:disabled{opacity:.55;cursor:not-allowed}
-    .status{margin:12px 0 0;color:var(--ink-light);font-size:12px;line-height:1.8;min-height:1.8em;overflow-wrap:break-word}
-    .status[data-error="true"]{color:#a02a27}
-    .history{margin-top:26px}
-    .history-heading{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin:0 0 13px}
-    .history h2{font-size:17px;margin:0}
-    .history-heading span{font-size:12px;color:var(--muted)}
-    .records{display:grid;gap:12px}
-    .record{
-      width:100%;min-width:0;padding:17px 15px;
-      border:1px solid var(--outline);border-radius:17px;background:#fffdfa;
-      overflow-wrap:break-word;
-    }
-    .record-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
-    .record h3{margin:0;font-size:15px}
-    .record time{font-size:12px;color:var(--muted)}
-    .record p{margin:11px 0 0;font-size:13px;line-height:1.85;color:var(--ink-light);white-space:pre-wrap;overflow-wrap:break-word}
-    .record img{display:block;width:100%;height:auto;max-height:330px;object-fit:contain;margin:13px 0 0;border-radius:11px;background:#f2f5f0}
-    .delete{margin:15px 0 0;padding:8px 11px;min-height:44px;border:1px solid #e3cbc8;border-radius:10px;background:#fff;color:#923a35;font-size:12px;font-weight:700}
-    .empty{padding:23px 15px;text-align:center;background:#f5f8f2;border:1px dashed #d3ded2;border-radius:14px;font-size:12px;line-height:1.8;color:var(--muted)}
-    .footnote{margin:20px 0 0;text-align:center;font-size:11px;line-height:1.9;color:var(--muted)}
-    [hidden]{display:none!important}
-    @media(max-width:340px){.page{padding-inline:13px}.card{padding:19px 13px}.day-list{gap:5px}}
-    @media(min-width:650px){.viewport{padding:24px}.page{border:1px solid var(--outline);border-radius:25px;min-height:calc(100svh - 48px);padding-inline:34px}}
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fefdf8">
+<meta name="description" content="EQUINERISの食事ダイアリー。HOPEの紙のダイアリー形式と同じ、食べたものと第1〜4群に○を付ける記録を3日間行います。">
+<title>3日間の食事ダイアリー | EQUINERIS</title>
+<style>
+:root{
+  color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
+  --ink:#183e38;--ink-light:#31564d;--muted:#64776a;--gold:#a6844e;
+  --green:#285d4a;--mint:#edf5ef;--line:#dce5de;--outline:#e7e5d9;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;overflow-x:hidden}
+body{margin:0;min-width:280px;overflow-x:hidden;color:var(--ink);background:#e8eee8}
+button,input,textarea,a{font:inherit;touch-action:manipulation}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+.viewport{min-height:100svh;display:flex;justify-content:center}
+.page{
+  width:100%;max-width:510px;min-height:100svh;padding:22px 20px max(36px,env(safe-area-inset-bottom));
+  background:linear-gradient(157deg,#fefdf8 0%,#fafaf6 46%,#f0f5ef 100%);
+  box-shadow:0 18px 70px rgba(25,54,41,.055);
+}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.back{min-height:44px;display:inline-flex;align-items:center;text-decoration:none;color:var(--ink-light);font-size:13px;font-weight:650}
+.step{font-size:10px;font-weight:800;letter-spacing:.17em;color:var(--gold)}
+.wordmark{text-align:center;margin:12px 0 0;font-weight:800;font-size:27px;letter-spacing:.11em;line-height:1.15}
+.wordmark span{color:var(--gold)}
+.intro{text-align:center;margin:27px 0 20px}
+.eyebrow{margin:0 0 9px;color:var(--gold);font-size:11px;font-weight:800;letter-spacing:.18em}
+h1{margin:0;font-size:clamp(22px,6vw,29px);line-height:1.5}
+.lead{margin:10px auto 0;max-width:360px;font-size:13px;line-height:1.85;color:var(--ink-light)}
+.notice{padding:12px 14px;margin:0 0 17px;background:#f9f8f1;border-left:3px solid #d7c5a3;border-radius:0 11px 11px 0;color:var(--ink-light);font-size:12px;line-height:1.85}
+.day-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 16px}
+.day-tab{min-width:0;min-height:56px;padding:8px 4px;background:#fffdfa;border:1px solid #dbe5db;border-radius:14px;color:var(--ink-light);font-size:15px;font-weight:750}
+.day-tab[aria-pressed="true"]{background:var(--green);border-color:var(--green);color:#fff}
+.card{width:100%;min-width:0;padding:21px 14px;background:#fffdfa;border:1px solid var(--outline);border-radius:20px;box-shadow:0 8px 24px rgba(21,67,45,.035)}
+.card h2{font-size:18px;margin:0 0 7px}
+.explanation{font-size:12px;line-height:1.9;color:var(--ink-light);margin:0 0 15px}
+.date-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:9px;margin:0 0 12px;font-size:13px;font-weight:700}
+.date-row input{min-width:0;min-height:42px;padding:7px 11px;border:1px solid #c9d8cc;border-radius:10px;background:#fff;color:var(--ink);font-size:16px}
+.diary-table{width:100%;min-width:0;table-layout:fixed;border-collapse:collapse;background:#fff;font-size:12px;line-height:1.45}
+.diary-table col.group{width:clamp(34px,10.5vw,49px)}
+.diary-table th,.diary-table td{border:1px solid var(--line)}
+.diary-table th{padding:8px 1px;text-align:center;font-size:11px;background:var(--mint);white-space:nowrap}
+.diary-table th:first-child{text-align:left;padding-left:6px}
+.diary-table .meal-cell{padding:5px 4px;min-width:0;vertical-align:top}
+.meal-cell label{display:block;font-size:12px;font-weight:750;margin:1px 0 5px}
+.meal-cell textarea{
+  display:block;width:100%;min-width:0;min-height:91px;padding:6px 5px;
+  background:#fff;border:1px solid #819b88;border-radius:5px;
+  color:var(--ink);font-size:16px;line-height:1.45;resize:vertical;
+  writing-mode:horizontal-tb;word-break:normal;overflow-wrap:break-word;
+}
+.meal-cell textarea::placeholder{color:#9aa69c;font-size:11px}
+.diary-table .mark{
+  position:relative;display:grid;place-items:center;min-height:47px;cursor:pointer;
+}
+.diary-table .mark-second{border-top:1px solid var(--line)}
+.mark input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;margin:0}
+.mark span{display:block;width:19px;height:19px;border:1px solid #6f8879;border-radius:4px;background:#fff}
+.mark input:checked+span{border:3px solid var(--green);border-radius:50%;background:#fff}
+.mark input:focus-visible+span{outline:2px solid var(--gold);outline-offset:3px}
+.group-guide{margin:17px 0 0;padding:13px;border:1px solid #dbe5db;border-radius:13px;background:#f7faf6}
+.group-guide h3{font-size:13px;margin:0 0 9px}
+.group-guide dl{margin:0;display:grid;grid-template-columns:52px minmax(0,1fr);gap:6px 7px;font-size:11px;line-height:1.8}
+.group-guide dt{font-weight:750;color:var(--green)}
+.group-guide dd{margin:0;color:var(--ink-light);overflow-wrap:break-word}
+.small-note{font-size:11px;line-height:1.85;color:var(--muted);margin:14px 0 0}
+.actions{margin-top:16px}
+.preview-button{
+  width:100%;min-height:54px;padding:10px 15px;border:1px solid #244f41;border-radius:13px;
+  background:linear-gradient(125deg,#285d4a,#143d32);color:#fffdf5;
+  font-size:15px;font-weight:800;box-shadow:0 9px 20px rgba(24,66,48,.11)
+}
+.status{margin:11px 0 0;min-height:2.1em;font-size:12px;line-height:1.75;color:var(--ink-light)}
+.status[data-error="true"]{color:#a02a27}
+.example{margin-top:22px;border:1px solid #dbe5db;border-radius:14px;padding:10px 14px;background:#f9fbf7}
+.example summary{min-height:42px;display:flex;align-items:center;font-size:13px;font-weight:750;cursor:pointer;color:var(--green)}
+.example dl{display:grid;grid-template-columns:40px minmax(0,1fr);gap:8px 6px;font-size:12px;line-height:1.85;margin:8px 0 4px}
+.example dt{font-weight:750}.example dd{margin:0;overflow-wrap:break-word}
+.backup-link{display:block;margin:22px 0 0;padding:12px 14px;text-align:center;border:1px solid #d7e4d7;border-radius:12px;background:#f4f8f2;color:var(--ink-light);font-size:13px;font-weight:700;text-decoration:none;line-height:1.8}
+.footnote{margin:18px 0 0;text-align:center;color:var(--muted);font-size:11px;line-height:1.9}
+dialog{width:min(94vw,460px);max-height:85vh;max-height:85dvh;overflow:auto;padding:20px 15px;border:1px solid #d3e0d6;border-radius:18px;background:#fffdf9;color:var(--ink);box-shadow:0 24px 70px rgba(13,49,32,.23)}
+dialog::backdrop{background:rgba(12,34,25,.5)}
+dialog h2{margin:0 0 13px;font-size:17px}
+.preview-layout{width:100%;border-collapse:collapse;table-layout:fixed;font-size:11px;line-height:1.6;background:#fff}
+.preview-layout col.group{width:clamp(35px,10vw,47px)}
+.preview-layout th,.preview-layout td{border:1px solid #d3ded4;padding:8px 3px;text-align:center;vertical-align:top}
+.preview-layout th{background:#edf5ef}
+.preview-layout td:first-child{text-align:left;overflow-wrap:break-word;white-space:pre-wrap}
+.preview-layout .circle{display:inline-block;font-size:21px;color:var(--green);line-height:1}
+.dialog-date{margin:0 0 10px;color:var(--muted);font-size:12px}
+.close{width:100%;min-height:46px;margin-top:17px;border:0;border-radius:12px;background:var(--green);color:#fff;font-size:15px;font-weight:750}
+[hidden]{display:none!important}
+@media(max-width:340px){.page{padding-inline:12px}.card{padding:19px 9px}.diary-table col.group{width:34px}.diary-table th{font-size:10px}.mark span{width:16px;height:16px}}
+@media(min-width:650px){.viewport{padding:24px}.page{min-height:calc(100svh - 48px);padding-inline:34px;border:1px solid var(--outline);border-radius:25px}}
+</style>
 </head>
 <body>
 <main class="viewport">
@@ -104,272 +110,161 @@
     <p class="wordmark" aria-label="EQUINERIS">EQUI<span>NERIS</span></p>
     <header class="intro">
       <p class="eyebrow">FOOD DIARY</p>
-      <h1>まずは3日間、<br>いつもの食事を記録。</h1>
-      <p class="lead">写真1枚と簡単なメモから始めましょう。普段の食事を変えなくても大丈夫です。</p>
+      <h1>食事ダイアリー</h1>
+      <p class="lead">HOPEの紙の食事ダイアリーと同じ形式で、食べたものと食品群を記録します。</p>
     </header>
-    <p class="notice">この試作画面の記録は、現在使っているブラウザの中だけに保存されます。さくらサーバーや利用者アカウントとは同期されません。ブラウザのデータを削除すると記録が消える場合があります。</p>
-    <div class="day-list" role="group" aria-label="記録する日を選択">
-      <button class="day-tab" type="button" data-day="1" aria-pressed="true">1日目<span class="day-count" id="count1">0件</span></button>
-      <button class="day-tab" type="button" data-day="2" aria-pressed="false">2日目<span class="day-count" id="count2">0件</span></button>
-      <button class="day-tab" type="button" data-day="3" aria-pressed="false">3日目<span class="day-count" id="count3">0件</span></button>
+    <p class="notice">この画面の記録は、お使いのブラウザに自動保存されます。利用者アカウントやさくらサーバーへの保存・同期はまだ実装していません。ブラウザのデータを削除すると記録が消える場合があります。</p>
+    <div class="day-tabs" role="group" aria-label="記録する日を選択">
+      <button class="day-tab" data-day="1" type="button" aria-pressed="true">1日目</button>
+      <button class="day-tab" data-day="2" type="button" aria-pressed="false">2日目</button>
+      <button class="day-tab" data-day="3" type="button" aria-pressed="false">3日目</button>
     </div>
-    <section class="card" aria-labelledby="formTitle">
-      <h2 id="formTitle">1日目の食事を記録</h2>
-      <p class="card-lead">食事1回につき1件ずつ、何件でも追加できます。写真が難しいときはメモだけでも記録できます。</p>
-      <form id="recordForm">
-        <label class="field">
-          <span class="field-label">記録する日付</span>
-          <input id="date" type="date" required>
-        </label>
-        <label class="field">
-          <span class="field-label">食事の種類</span>
-          <select id="meal" required>
-            <option value="朝食">朝食</option>
-            <option value="昼食">昼食</option>
-            <option value="夕食">夕食</option>
-            <option value="間食">間食</option>
-            <option value="飲み物">飲み物</option>
-            <option value="飲酒">飲酒</option>
-          </select>
-        </label>
-        <label class="field">
-          <span class="field-label">食事の写真（任意）</span>
-          <input id="photo" type="file" accept="image/*">
-          <span class="field-note">写真はトリミング・圧縮をせず、元のデータを端末内に保存します。</span>
-        </label>
-        <div class="preview" id="photoPreview" hidden></div>
-        <label class="field">
-          <span class="field-label">簡単なメモ（任意）</span>
-          <textarea id="memo" maxlength="600" placeholder="例：ご飯、焼き魚、みそ汁。外食だった、など"></textarea>
-          <span class="field-note">写真とメモのどちらか一方があれば保存できます。最初の3日間は点数入力をしません。</span>
-        </label>
-        <button class="primary" id="saveButton" type="submit" disabled>この食事を保存する</button>
-        <p class="status" role="status" aria-live="polite" id="status">保存機能を準備しています。</p>
-      </form>
-    </section>
-    <section class="history" aria-labelledby="historyTitle">
-      <div class="history-heading">
-        <h2 id="historyTitle">1日目の記録</h2>
-        <span id="historyCount">0件</span>
-      </div>
-      <div class="records" id="recordList">
-        <p class="empty">保存した食事がここに表示されます。</p>
+    <section class="card" id="week-1-diary" aria-labelledby="dayTitle">
+      <h2 id="dayTitle">1日目の食事ダイアリー</h2>
+      <p class="explanation">左側に食べたものを書き、当てはまる第1〜4群をタップして○を付けます。同じ群の食品が2つあるときは、上下に1つずつ○を付けます。</p>
+      <label class="date-row" for="diary-date"><span>記録する日付</span><input id="diary-date" type="date" data-diary-key="date"></label>
+      <table class="diary-table">
+        <colgroup><col><col class="group"><col class="group"><col class="group"><col class="group"></colgroup>
+        <thead><tr><th scope="col">食べたもの</th><th scope="col">第1群</th><th scope="col">第2群</th><th scope="col">第3群</th><th scope="col">第4群</th></tr></thead>
+        <tbody>
+        <tr>
+          <td class="meal-cell"><label for="meal-breakfast">朝食</label><textarea id="meal-breakfast" data-diary-key="breakfast-meal" rows="4" placeholder="食べたもの・飲み物"></textarea></td>
+          <td><label class="mark" title="朝食の第1群（上）"><input type="checkbox" data-diary-key="breakfast-group-1" aria-label="朝食の第1群の上"><span aria-hidden="true"></span></label><label class="mark mark-second" title="朝食の第1群（下）"><input type="checkbox" data-diary-key="breakfast-extra-group-1" aria-label="朝食の第1群の下"><span aria-hidden="true"></span></label></td><td><label class="mark" title="朝食の第2群（上）"><input type="checkbox" data-diary-key="breakfast-group-2" aria-label="朝食の第2群の上"><span aria-hidden="true"></span></label><label class="mark mark-second" title="朝食の第2群（下）"><input type="checkbox" data-diary-key="breakfast-extra-group-2" aria-label="朝食の第2群の下"><span aria-hidden="true"></span></label></td><td><label class="mark" title="朝食の第3群（上）"><input type="checkbox" data-diary-key="breakfast-group-3" aria-label="朝食の第3群の上"><span aria-hidden="true"></span></label><label class="mark mark-second" title="朝食の第3群（下）"><input type="checkbox" data-diary-key="breakfast-extra-group-3" aria-label="朝食の第3群の下"><span aria-hidden="true"></span></label></td><td><label class="mark" title="朝食の第4群（上）"><input type="checkbox" data-diary-key="breakfast-group-4" aria-label="朝食の第4群の上"><span aria-hidden="true"></span></label><label class="mark mark-second" title="朝食の第4群（下）"><input type="checkbox" data-diary-key="breakfast-extra-group-4" aria-label="朝食の第4群の下"><span aria-hidden="true"></span></label></td>
+        </tr>
+        <tr>
+          <td class="meal-cell"><label for="meal-lunch">昼食</label><textarea id="meal-lunch" data-diary-key="lunch-meal" rows="4" placeholder="食べたもの・飲み物"></textarea></td>
+          <td><label class="mark" title="昼食の第1群（上）"><input type="checkbox" data-diary-key="lunch-group-1" aria-label="昼食の第1群の上"><span aria-hidden="true"></span></label><label class="mark mark-second" title="昼食の第1群（下）"><input type="checkbox" data-diary-key="lunch-extra-group-1" aria-label="昼食の第1群の下"><span aria-hidden="true"></span></label></td><td><label class="mark" title="昼食の第2群（上）"><input type="checkbox" data-diary-key="lunch-group-2" aria-label="昼食の第2群の上"><span aria-hidden="true"></span></label><label class="mark mark-second" title="昼食の第2群（下）"><input type="checkbox" data-diary-key="lunch-extra-group-2" aria-label="昼食の第2群の下"><span aria-hidden="true"></span></label></td><td><label class="mark" title="昼食の第3群（上）"><input type="checkbox" data-diary-key="lunch-group-3" aria-label="昼食の第3群の上"><span aria-hidden="true"></span></label><label class="mark mark-second" title="昼食の第3群（下）"><input type="checkbox" data-diary-key="lunch-extra-group-3" aria-label="昼食の第3群の下"><span aria-hidden="true"></span></label></td><td><label class="mark" title="昼食の第4群（上）"><input type="checkbox" data-diary-key="lunch-group-4" aria-label="昼食の第4群の上"><span aria-hidden="true"></span></label><label class="mark mark-second" title="昼食の第4群（下）"><input type="checkbox" data-diary-key="lunch-extra-group-4" aria-label="昼食の第4群の下"><span aria-hidden="true"></span></label></td>
+        </tr>
+        <tr>
+          <td class="meal-cell"><label for="meal-dinner">夕食</label><textarea id="meal-dinner" data-diary-key="dinner-meal" rows="4" placeholder="食べたもの・飲み物"></textarea></td>
+          <td><label class="mark" title="夕食の第1群（上）"><input type="checkbox" data-diary-key="dinner-group-1" aria-label="夕食の第1群の上"><span aria-hidden="true"></span></label><label class="mark mark-second" title="夕食の第1群（下）"><input type="checkbox" data-diary-key="dinner-extra-group-1" aria-label="夕食の第1群の下"><span aria-hidden="true"></span></label></td><td><label class="mark" title="夕食の第2群（上）"><input type="checkbox" data-diary-key="dinner-group-2" aria-label="夕食の第2群の上"><span aria-hidden="true"></span></label><label class="mark mark-second" title="夕食の第2群（下）"><input type="checkbox" data-diary-key="dinner-extra-group-2" aria-label="夕食の第2群の下"><span aria-hidden="true"></span></label></td><td><label class="mark" title="夕食の第3群（上）"><input type="checkbox" data-diary-key="dinner-group-3" aria-label="夕食の第3群の上"><span aria-hidden="true"></span></label><label class="mark mark-second" title="夕食の第3群（下）"><input type="checkbox" data-diary-key="dinner-extra-group-3" aria-label="夕食の第3群の下"><span aria-hidden="true"></span></label></td><td><label class="mark" title="夕食の第4群（上）"><input type="checkbox" data-diary-key="dinner-group-4" aria-label="夕食の第4群の上"><span aria-hidden="true"></span></label><label class="mark mark-second" title="夕食の第4群（下）"><input type="checkbox" data-diary-key="dinner-extra-group-4" aria-label="夕食の第4群の下"><span aria-hidden="true"></span></label></td>
+        </tr>
+        <tr>
+          <td class="meal-cell"><label for="meal-snack">間食</label><textarea id="meal-snack" data-diary-key="snack-meal" rows="4" placeholder="食べたもの・飲み物"></textarea></td>
+          <td><label class="mark" title="間食の第1群（上）"><input type="checkbox" data-diary-key="snack-group-1" aria-label="間食の第1群の上"><span aria-hidden="true"></span></label><label class="mark mark-second" title="間食の第1群（下）"><input type="checkbox" data-diary-key="snack-extra-group-1" aria-label="間食の第1群の下"><span aria-hidden="true"></span></label></td><td><label class="mark" title="間食の第2群（上）"><input type="checkbox" data-diary-key="snack-group-2" aria-label="間食の第2群の上"><span aria-hidden="true"></span></label><label class="mark mark-second" title="間食の第2群（下）"><input type="checkbox" data-diary-key="snack-extra-group-2" aria-label="間食の第2群の下"><span aria-hidden="true"></span></label></td><td><label class="mark" title="間食の第3群（上）"><input type="checkbox" data-diary-key="snack-group-3" aria-label="間食の第3群の上"><span aria-hidden="true"></span></label><label class="mark mark-second" title="間食の第3群（下）"><input type="checkbox" data-diary-key="snack-extra-group-3" aria-label="間食の第3群の下"><span aria-hidden="true"></span></label></td><td><label class="mark" title="間食の第4群（上）"><input type="checkbox" data-diary-key="snack-group-4" aria-label="間食の第4群の上"><span aria-hidden="true"></span></label><label class="mark mark-second" title="間食の第4群（下）"><input type="checkbox" data-diary-key="snack-extra-group-4" aria-label="間食の第4群の下"><span aria-hidden="true"></span></label></td>
+        </tr>
+        </tbody>
+      </table>
+      <p class="small-note">飲み物・飲酒も、該当する食事または間食の欄へ記録してください。第1週は点数計算をしません。記録を変更すると自動保存されます。</p>
+      <section class="group-guide" aria-labelledby="groupGuideTitle">
+        <h3 id="groupGuideTitle">食品群の目安</h3>
+        <dl>
+          <dt>第1群</dt><dd>牛乳・乳製品、卵</dd>
+          <dt>第2群</dt><dd>魚介類、肉、豆・豆製品</dd>
+          <dt>第3群</dt><dd>野菜、きのこ・海藻、いも、果物</dd>
+          <dt>第4群</dt><dd>ご飯・パン・麺、油脂、砂糖、菓子など</dd>
+        </dl>
+      </section>
+      <div class="actions">
+        <button type="button" class="preview-button" id="previewButton">この日のダイアリーを確認する</button>
+        <p class="status" id="saveStatus" role="status" aria-live="polite">保存先を確認しています。</p>
       </div>
     </section>
-    <p class="footnote">記録の保存先はこの端末のブラウザ内です。別端末からの閲覧やクラウド同期には対応していません。</p>
+    <details class="example">
+      <summary>佐藤さんの記入例を見る</summary>
+      <dl>
+        <dt>朝食</dt><dd>食パン1枚、ヨーグルト1個、コーヒー1杯</dd>
+        <dt>昼食</dt><dd>おにぎり2個、お茶1本</dd>
+        <dt>夕食</dt><dd>ご飯1杯、焼き魚1切れ、みそ汁1杯</dd>
+        <dt>間食</dt><dd>クッキー2枚</dd>
+      </dl>
+    </details>
+    <a class="backup-link" href="./photo-record.html">以前の写真・メモの記録を見る</a>
+    <p class="footnote">紙のダイアリーと同じ記録項目を3日間分用意しました。保存はこのブラウザ内のみです。以前の写真記録は別ページに保管しています。</p>
   </div>
 </main>
+<dialog id="previewDialog" aria-labelledby="previewTitle">
+  <h2 id="previewTitle">1日目の食事ダイアリー</h2>
+  <p class="dialog-date" id="previewDate"></p>
+  <table class="preview-layout" aria-label="食事ダイアリーの確認">
+    <colgroup><col><col class="group"><col class="group"><col class="group"><col class="group"></colgroup>
+    <thead><tr><th scope="col">食べたもの</th><th scope="col">第1群</th><th scope="col">第2群</th><th scope="col">第3群</th><th scope="col">第4群</th></tr></thead>
+    <tbody id="previewRows"></tbody>
+  </table>
+  <button id="closePreview" class="close" type="button">入力画面に戻る</button>
+</dialog>
 <script>
 'use strict';
-const form=document.getElementById('recordForm');
-const dateInput=document.getElementById('date');
-const mealInput=document.getElementById('meal');
-const photoInput=document.getElementById('photo');
-const memoInput=document.getElementById('memo');
-const photoPreview=document.getElementById('photoPreview');
-const saveButton=document.getElementById('saveButton');
-const status=document.getElementById('status');
-const recordList=document.getElementById('recordList');
-const dayButtons=Array.from(document.querySelectorAll('[data-day]'));
+const PREFIX='equineris:paper-first3:v1:';
+const MEALS=[['breakfast','朝食'],['lunch','昼食'],['dinner','夕食'],['snack','間食']];
+const fields=Array.from(document.querySelectorAll('[data-diary-key]'));
+const tabs=Array.from(document.querySelectorAll('[data-day]'));
+const dateField=document.getElementById('diary-date');
+const status=document.getElementById('saveStatus');
+const previewDialog=document.getElementById('previewDialog');
+const previewRows=document.getElementById('previewRows');
 let activeDay=1;
-let database=null;
-let previewUrl=null;
-let renderedPhotoUrls=[];
-
-function todayLocal(){
-  const now=new Date();
-  const z=n=>String(n).padStart(2,'0');
-  return now.getFullYear()+'-'+z(now.getMonth()+1)+'-'+z(now.getDate());
-}
-function showStatus(message,error=false){
-  status.textContent=message;
-  status.dataset.error=String(error);
-}
-function clearPhotoPreview(){
-  if(previewUrl){URL.revokeObjectURL(previewUrl);previewUrl=null;}
-  photoPreview.replaceChildren();
-  photoPreview.hidden=true;
-}
-function attachImage(container,blob,alt,trackList){
-  const image=document.createElement('img');
-  const url=URL.createObjectURL(blob);
-  if(trackList)renderedPhotoUrls.push(url);
-  else previewUrl=url;
-  image.alt=alt;
-  image.src=url;
-  image.addEventListener('error',()=>{
-    const fallback=document.createElement('p');
-    fallback.textContent='写真は保存されていますが、このブラウザではプレビューできない形式です。';
-    image.replaceWith(fallback);
-  },{once:true});
-  container.appendChild(image);
-}
-photoInput.addEventListener('change',()=>{
-  clearPhotoPreview();
-  const photo=photoInput.files && photoInput.files[0];
-  if(!photo)return;
-  if(!photo.type.startsWith('image/')){
-    photoInput.value='';
-    showStatus('画像ファイルを選択してください。',true);
-    return;
+let canStore=true;
+function key(day,field){return PREFIX+day+':'+field;}
+function showStatus(message,isError=false){status.textContent=message;status.dataset.error=String(isError);}
+function loadDay(day){
+  activeDay=day;
+  tabs.forEach(tab=>tab.setAttribute('aria-pressed',String(Number(tab.dataset.day)===day)));
+  document.getElementById('dayTitle').textContent=day+'日目の食事ダイアリー';
+  for(const field of fields){
+    const fieldKey=field.dataset.diaryKey;
+    let saved=null;
+    if(canStore){
+      try{saved=localStorage.getItem(key(day,fieldKey));}
+      catch(error){canStore=false;showStatus('このブラウザでは自動保存を利用できません。',true);}
+    }
+    if(field.type==='checkbox')field.checked=saved==='checked';
+    else field.value=saved??'';
   }
-  photoPreview.hidden=false;
-  attachImage(photoPreview,photo,'選択した食事の写真',false);
-});
-
-function openDatabase(){
-  return new Promise((resolve,reject)=>{
-    if(!('indexedDB' in window)){reject(new Error('このブラウザでは端末内保存を利用できません。'));return;}
-    const req=indexedDB.open('equineris-food-first3-v1',1);
-    req.onupgradeneeded=()=>{
-      if(!req.result.objectStoreNames.contains('entries')){
-        req.result.createObjectStore('entries',{keyPath:'id',autoIncrement:true});
-      }
-    };
-    req.onsuccess=()=>resolve(req.result);
-    req.onerror=()=>reject(req.error || new Error('保存先を開けませんでした。'));
-    req.onblocked=()=>reject(new Error('別のタブでデータベースが使用中です。'));
-  });
+  if(canStore)showStatus(day+'日目の記録はこのブラウザに自動保存されます。');
 }
-function runStore(mode,operation){
-  return new Promise((resolve,reject)=>{
-    if(!database){reject(new Error('保存先が利用できません。'));return;}
-    let tx,req,result;
-    try{
-      tx=database.transaction('entries',mode);
-      req=operation(tx.objectStore('entries'));
-    }catch(error){reject(error);return;}
-    req.onsuccess=()=>{result=req.result;};
-    tx.oncomplete=()=>resolve(result);
-    tx.onerror=()=>reject(tx.error || req.error || new Error('保存処理に失敗しました。'));
-    tx.onabort=()=>reject(tx.error || new Error('保存処理が中断されました。'));
-  });
+function saveField(field){
+  if(!canStore){showStatus('自動保存できません。入力内容を控えてください。',true);return;}
+  const value=field.type==='checkbox'?(field.checked?'checked':''):field.value;
+  try{
+    if(value)localStorage.setItem(key(activeDay,field.dataset.diaryKey),value);
+    else localStorage.removeItem(key(activeDay,field.dataset.diaryKey));
+    showStatus(activeDay+'日目の変更を、このブラウザに保存しました。');
+  }catch(error){
+    canStore=false;
+    showStatus('保存に失敗しました。ブラウザの保存設定や空き容量をご確認ください。',true);
+  }
 }
-const loadAll=()=>runStore('readonly',store=>store.getAll());
-const addRecord=record=>runStore('readwrite',store=>store.add(record));
-const removeRecord=id=>runStore('readwrite',store=>store.delete(id));
-
-function element(tag,className,content){
+for(const field of fields){field.addEventListener(field.type==='checkbox'?'change':'input',()=>saveField(field));}
+for(const tab of tabs){tab.addEventListener('click',()=>{
+  const nextDay=Number(tab.dataset.day);
+  if(nextDay===activeDay)return;
+  loadDay(nextDay);
+});}
+function makeElement(tag,text){
   const node=document.createElement(tag);
-  if(className)node.className=className;
-  if(content!==undefined)node.textContent=String(content);
+  if(text!==undefined)node.textContent=text;
   return node;
 }
-function hasUnsavedDraft(){
-  return Boolean(memoInput.value.trim() || (photoInput.files && photoInput.files.length));
-}
-function resetDraft(){
-  form.reset();
-  dateInput.value=todayLocal();
-  clearPhotoPreview();
-}
-async function updateCounts(){
-  if(!database)return;
-  const all=await loadAll();
-  for(let day=1;day<=3;day++){
-    document.getElementById('count'+day).textContent=all.filter(r=>r.day===day).length+'件';
-  }
-}
-async function renderRecords(){
-  if(!database)return;
-  const day=activeDay;
-  const records=(await loadAll()).filter(r=>r.day===day);
-  if(day!==activeDay)return;
-  records.sort((a,b)=>b.createdAt.localeCompare(a.createdAt) || b.id-a.id);
-  document.getElementById('historyCount').textContent=records.length+'件';
-  renderedPhotoUrls.forEach(url=>URL.revokeObjectURL(url));
-  renderedPhotoUrls=[];
-  recordList.replaceChildren();
-  if(records.length===0){
-    recordList.appendChild(element('p','empty','まだ記録はありません。写真やメモを追加してみましょう。'));
-    return;
-  }
-  for(const item of records){
-    const card=element('article','record');
-    const top=element('div','record-top');
-    top.appendChild(element('h3','',item.meal));
-    const date=element('time','',item.date);
-    date.dateTime=item.date;
-    top.appendChild(date);
-    card.appendChild(top);
-    if(item.photo instanceof Blob){
-      attachImage(card,item.photo,item.meal+'の食事写真',true);
+function showPreview(){
+  document.getElementById('previewTitle').textContent=activeDay+'日目の食事ダイアリー';
+  document.getElementById('previewDate').textContent=dateField.value?'記録日：'+dateField.value:'記録日：未入力';
+  previewRows.replaceChildren();
+  for(const [meal,label] of MEALS){
+    const row=document.createElement('tr');
+    const note=document.getElementById('meal-'+meal).value.trim();
+    row.appendChild(makeElement('td',label+'\n'+(note||'（未入力）')));
+    for(let group=1;group<=4;group++){
+      const first=document.querySelector('[data-diary-key="'+meal+'-group-'+group+'"]').checked;
+      const second=document.querySelector('[data-diary-key="'+meal+'-extra-group-'+group+'"]').checked;
+      const cell=document.createElement('td');
+      if(first||second){cell.textContent=(first?'○':'')+(second?'○':'');cell.className='circle';}
+      else cell.textContent='—';
+      row.appendChild(cell);
     }
-    if(item.memo)card.appendChild(element('p','',item.memo));
-    const remove=element('button','delete','この記録を削除');
-    remove.type='button';
-    remove.addEventListener('click',async()=>{
-      if(!window.confirm('この食事の記録を削除しますか？削除した記録は元に戻せません。'))return;
-      remove.disabled=true;
-      try{
-        await removeRecord(item.id);
-        await updateCounts();
-        await renderRecords();
-        showStatus('記録を削除しました。');
-      }catch(error){
-        remove.disabled=false;
-        showStatus('削除できませんでした。端末の保存設定をご確認ください。',true);
-      }
-    });
-    card.appendChild(remove);
-    recordList.appendChild(card);
+    previewRows.appendChild(row);
   }
+  if(typeof previewDialog.showModal==='function')previewDialog.showModal();
 }
-async function selectDay(day){
-  if(day===activeDay)return;
-  if(hasUnsavedDraft() && !window.confirm('入力途中の写真やメモが消えます。別の日に切り替えますか？'))return;
-  activeDay=day;
-  resetDraft();
-  dayButtons.forEach(button=>button.setAttribute('aria-pressed',String(Number(button.dataset.day)===day)));
-  document.getElementById('formTitle').textContent=day+'日目の食事を記録';
-  document.getElementById('historyTitle').textContent=day+'日目の記録';
-  try{await renderRecords();}catch(error){showStatus('記録の読み込みに失敗しました。',true);}
-}
-dayButtons.forEach(button=>{
-  button.addEventListener('click',()=>selectDay(Number(button.dataset.day)));
-});
-
-form.addEventListener('submit',async event=>{
-  event.preventDefault();
-  if(!database){showStatus('端末内の保存機能が使えないため、保存できません。',true);return;}
-  if(!form.reportValidity())return;
-  const photo=photoInput.files && photoInput.files[0] || null;
-  const memo=memoInput.value.trim();
-  if(!photo && !memo){showStatus('食事の写真かメモを入力してください。',true);return;}
-  if(photo && !photo.type.startsWith('image/')){showStatus('画像ファイルを選択してください。',true);return;}
-  const entry={day:activeDay,date:dateInput.value,meal:mealInput.value,memo,photo,createdAt:new Date().toISOString()};
-  saveButton.disabled=true;
-  showStatus('保存しています。');
-  try{
-    await addRecord(entry);
-    resetDraft();
-    await updateCounts();
-    await renderRecords();
-    showStatus('この端末内に記録を保存しました。');
-  }catch(error){
-    showStatus('保存できませんでした。端末の空き容量やブラウザの保存設定をご確認ください。',true);
-  }finally{
-    saveButton.disabled=false;
-  }
-});
-window.addEventListener('beforeunload',event=>{
-  if(hasUnsavedDraft()){event.preventDefault();event.returnValue='';}
-});
-async function initialize(){
-  dateInput.value=todayLocal();
-  try{
-    database=await openDatabase();
-    database.onversionchange=()=>{database.close();database=null;saveButton.disabled=true;showStatus('保存先が更新されました。ページを再読み込みしてください。',true);};
-    await updateCounts();
-    await renderRecords();
-    saveButton.disabled=false;
-    showStatus('記録を入力できます。');
-  }catch(error){
-    saveButton.disabled=true;
-    showStatus('このブラウザでは端末内保存を利用できません。別の通常ウィンドウでお試しください。',true);
-  }
-}
-initialize();
+document.getElementById('previewButton').addEventListener('click',showPreview);
+document.getElementById('closePreview').addEventListener('click',()=>previewDialog.close());
+previewDialog.addEventListener('click',event=>{if(event.target===previewDialog)previewDialog.close();});
+try{
+  const probe=PREFIX+'storage-probe';
+  localStorage.setItem(probe,'ok');
+  localStorage.removeItem(probe);
+}catch(error){canStore=false;showStatus('このブラウザでは自動保存を利用できません。',true);}
+loadDay(1);
 </script>
 </body>
 </html>
