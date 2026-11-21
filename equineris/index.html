@@ -3,77 +3,132 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#f9fbf6">
+  <meta name="theme-color" content="#fefdf8">
   <meta name="description" content="EQUINERISへようこそ。食事で整えて、理想の自分に近づく12週間のデジタルノートプログラム。">
   <title>ようこそ | EQUINERIS</title>
   <style>
+
     :root {
-      color-scheme:light;
-      font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
-      --green:#147b44;--green-dark:#0c6a40;--orange:#f08b32;
-      --navy:#12365c;--muted:#47647b;--bg:#fbfcf8;
+      color-scheme: light;
+      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
+      --ink: #183e38; --ink-light: #31564d; --muted: #6b7970;
+      --gold: #a6844e; --gold-light: #d7c5a3; --cream: #f8f7f1;
+      --outline: #e7e5d9;
     }
-    *,*::before,*::after {box-sizing:border-box}
-    html {overflow-x:hidden;-webkit-text-size-adjust:100%}
-    body {margin:0;min-width:280px;color:var(--navy);background:#f6f9f2;overflow-x:hidden}
-    button,a {font:inherit;touch-action:manipulation}
-    button {cursor:pointer}
-    a:focus-visible,button:focus-visible {outline:3px solid var(--orange);outline-offset:4px}
-    .viewport {min-height:100svh;display:flex;justify-content:center;padding:0 12px}
+    *, *::before, *::after { box-sizing: border-box; }
+    html { overflow-x: hidden; -webkit-text-size-adjust: 100%; }
+    body { margin: 0; min-width: 280px; background: #e8eee8; color: var(--ink); overflow-x: hidden; }
+    button, a { font: inherit; touch-action: manipulation; }
+    button { cursor: pointer; }
+    a:focus-visible, button:focus-visible { outline: 3px solid #b58c48; outline-offset: 3px; }
+    .viewport { min-height: 100svh; display: flex; justify-content: center; padding: 0; }
     .welcome {
-      position:relative;isolation:isolate;overflow:hidden;
-      display:flex;flex-direction:column;align-items:center;text-align:center;
-      width:100%;max-width:492px;min-height:100svh;
-      padding:clamp(24px,5vh,44px) 20px 28px;
-      background:linear-gradient(180deg,#fff 0%,#fff 78%,#f1f9e9 100%);
-      box-shadow:0 0 45px rgba(53,95,55,.06);
-      justify-content:center;
+      position: relative; isolation: isolate; overflow: hidden;
+      width: 100%; max-width: 510px; min-height: 100svh;
+      display: flex; flex-direction: column; align-items: center; text-align: center;
+      padding: clamp(34px, 5.5vh, 54px) 24px max(26px, env(safe-area-inset-bottom));
+      background: linear-gradient(155deg, #fefdf8 4%, #f9f9f4 56%, #f0f5ef 100%);
+      box-shadow: 0 18px 70px rgba(25,54,41,.055);
     }
-    .welcome::before,.welcome::after {content:"";position:absolute;z-index:-1;pointer-events:none;border-radius:50%;}
-    .welcome::before {width:260px;height:260px;left:-178px;top:35%;background:#edf8df}
-    .welcome::after {width:210px;height:210px;right:-153px;top:15%;background:#f5f9e9}
-    .clover {position:absolute;pointer-events:none;color:#a8d77a;opacity:.52;font-size:27px;line-height:1;}
-    .clover.c1{top:73px;left:9%}.clover.c2{top:202px;right:7%;font-size:34px}.clover.c3{bottom:150px;left:7%;font-size:21px}.clover.c4{bottom:74px;right:10%;font-size:25px}
-    .brand {position:relative;margin:20px 0 1px;line-height:1;font-size:clamp(43px,10.6vw,62px);font-weight:950;letter-spacing:-.07em;white-space:nowrap;color:var(--green)}
-    .brand span {color:var(--orange);letter-spacing:-.055em}
-    .tagline {margin:7px 0 0;font-size:clamp(13px,3.2vw,17px);font-weight:750;letter-spacing:.015em;line-height:1.5}
-    .intro {position:relative;margin:clamp(34px,7vh,60px) 0 0;max-width:390px}
-    .intro h1 {font-size:clamp(26px,6.6vw,36px);line-height:1.4;margin:0 0 8px;letter-spacing:.02em}
-    .intro h1 span {color:var(--green)}
-    .intro p {font-size:clamp(13px,3.3vw,16px);font-weight:650;line-height:1.75;margin:0;overflow-wrap:break-word}
-    .actions {width:100%;max-width:344px;margin:clamp(48px,10vh,88px) 0 0;z-index:1}
-    .start {display:flex;align-items:center;justify-content:center;position:relative;width:100%;min-height:59px;padding:13px 44px;border:0;border-radius:100px;color:#fff;background:linear-gradient(90deg,#1ba148,#0d8e4a 62%,#46c642);box-shadow:0 8px 18px rgba(38,150,64,.16);font-size:23px;font-weight:850;letter-spacing:.08em;text-decoration:none}
-    .start:hover {filter:brightness(.97)}
-    .arrow {position:absolute;right:21px;font-size:27px;line-height:1}
-    .login {display:inline-block;margin-top:21px;padding:5px 8px;color:#148651;text-decoration:underline;text-underline-offset:4px;font-size:17px;font-weight:750;background:none;border:0}
-    .footer-note {margin:21px 0 0;color:#607b67;font-size:11px;line-height:1.6}
-    dialog {max-width:min(92vw,380px);width:100%;padding:24px;border:1px solid #d3e7d6;border-radius:18px;background:#fff;color:#163f34;box-shadow:0 24px 70px rgba(12,49,30,.2)}
-    dialog::backdrop{background:rgba(8,38,30,.45)}
-    dialog h2{margin:0 0 10px;font-size:20px}
-    dialog p{margin:0 0 18px;color:#415d50;font-size:14px;line-height:1.8}
-    .dialog-close{min-width:100%;min-height:45px;border:1px solid #4a9260;border-radius:12px;background:#f1faf2;color:#12643a;font-size:15px;font-weight:750}
-    @media (max-width:365px) {
-      .welcome{padding-inline:13px}
-      .brand{font-size:clamp(37px,10.5vw,46px)}
-      .intro{margin-top:30px}
-      .start{min-height:53px;font-size:20px}
+    .welcome::before {
+      content: ''; position: absolute; z-index: -1; pointer-events: none;
+      top: -145px; right: -160px; width: 370px; height: 370px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(212,227,206,.41), transparent 68%);
     }
-    @media (min-width:650px) {
-      .viewport{padding:22px}
-      .welcome{border:1px solid #e8f0e5;border-radius:27px;min-height:min(860px,calc(100svh - 44px));}
+    .welcome::after {
+      content: ''; position: absolute; z-index: -1; pointer-events: none;
+      bottom: -220px; left: -130px; width: 440px; height: 440px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(207,221,210,.45), transparent 67%);
     }
-    @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+    .brand-header { width: 100%; display: flex; flex-direction: column; align-items: center; }
+    .eyebrow { margin: 0; color: #6b7c71; font-size: 10px; font-weight: 650; line-height: 1.55; letter-spacing: .245em; }
+    .brand {
+      margin: 15px 0 0; font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(35px, 10.2vw, 49px); font-weight: 500;
+      line-height: 1.05; letter-spacing: .078em; white-space: nowrap; color: var(--ink);
+    }
+    .brand span { color: var(--ink); }
+    .brand-rule { width: 37px; height: 2px; margin: 17px 0 14px; background: var(--gold); border-radius: 3px; }
+    .tagline { margin: 0; font-size: clamp(13px, 3.6vw, 15px); font-weight: 620; letter-spacing: .022em; line-height: 1.7; color: var(--ink-light); }
+    .science-art {
+      width: 100%; margin: clamp(24px, 4.1vh, 34px) 0 clamp(34px, 4.8vh, 46px);
+      display: grid; place-items: center; position: relative;
+    }
+    .orbit { width: clamp(178px, 54vw, 226px); aspect-ratio: 1; position: relative; display: grid; place-items: center; }
+    .orbit::before {
+      content: ''; position: absolute; inset: 1%; border-radius: 50%;
+      border: 1px solid #b6c9b9; opacity: .87;
+      box-shadow: 0 0 0 17px rgba(222,230,216,.25), inset 0 0 0 18px rgba(224,234,221,.15);
+    }
+    .orbit::after {
+      content: ''; position: absolute; inset: 13%; border: 1px dashed #b7c9bb; border-radius: 50%; opacity: .95;
+    }
+    .orbit-path { position: absolute; inset: 14% -8%; border: 1px solid rgba(166,132,78,.52); border-radius: 50%; transform: rotate(-34deg); }
+    .orbit-path-alt { position: absolute; inset: -9% 31%; border: 1px solid rgba(120,158,135,.35); border-radius: 50%; transform: rotate(33deg); }
+    .orbit-dot { position: absolute; width: 8px; height: 8px; border-radius: 50%; background: #b79258; box-shadow: 0 0 0 5px #f8f7f1; }
+    .orbit-dot.d1 { top: 23%; left: 6%; }
+    .orbit-dot.d2 { bottom: 13%; right: 12%; width: 6px; height: 6px; background: #6f9e7d; }
+    .orbit-dot.d3 { top: 8%; right: 25%; width: 4px; height: 4px; background: #6f9e7d; }
+    .orbit-core { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 57%; aspect-ratio: 1; background: rgba(254,253,249,.9); border-radius: 50%; box-shadow: 0 9px 32px rgba(67,101,76,.035); }
+    .orbit-number { font: 400 clamp(49px, 13vw, 65px)/.95 Georgia, serif; color: #254e43; letter-spacing: -.05em; }
+    .orbit-unit { margin-top: 7px; font-size: 9px; line-height: 1; letter-spacing: .3em; font-weight: 700; color: var(--gold); }
+    .orbit-caption { position: absolute; left: 50%; bottom: -24px; transform: translateX(-50%); width: max-content; max-width: 100%; color: #77867b; font-size: 9px; font-weight: 650; letter-spacing: .2em; }
+    .intro { width: 100%; margin: 0; max-width: 370px; }
+    .intro h1 { margin: 0 0 12px; font-size: clamp(21px, 5.7vw, 26px); line-height: 1.46; font-weight: 680; letter-spacing: .035em; }
+    .intro h1 span { color: #2b6552; letter-spacing: .025em; }
+    .intro p { margin: 0; color: #54665f; font-size: clamp(13px, 3.6vw, 15px); line-height: 1.87; font-weight: 500; overflow-wrap: break-word; }
+    .actions { width: 100%; max-width: 350px; margin: clamp(24px, 4.5vh, 42px) 0 0; position: relative; z-index: 1; }
+    .start {
+      display: flex; align-items: center; justify-content: center; position: relative;
+      width: 100%; min-height: 58px; padding: 13px 46px; border: 1px solid #244f41;
+      border-radius: 15px; background: linear-gradient(125deg, #285d4a, #143d32);
+      color: #fffdf5; box-shadow: 0 11px 24px rgba(24,66,48,.16);
+      font-size: 17px; font-weight: 740; letter-spacing: .08em;
+    }
+    .start:hover { background: #23533f; }
+    .arrow { position: absolute; right: 22px; color: #e0c89d; font-size: 25px; line-height: 1; }
+    .login { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; margin-top: 18px; border: 0; background: none; padding: 11px 13px; color: #315a4a; font-size: 14px; font-weight: 650; text-decoration: underline; text-decoration-color: #a6b7a7; text-underline-offset: 5px; }
+    .footer-note { margin: 15px 0 0; color: #829087; font-size: 10px; line-height: 1.7; letter-spacing: .01em; }
+    dialog { max-width: min(92vw, 380px); width: 100%; padding: 24px; border: 1px solid #d3e0d6; border-radius: 18px; background: #fffdf9; color: #183e38; box-shadow: 0 24px 70px rgba(13,49,32,.23); }
+    dialog::backdrop { background: rgba(12,37,27,.55); }
+    dialog h2 { margin: 0 0 10px; font-size: 20px; }
+    dialog p { margin: 0 0 18px; color: #415c50; font-size: 14px; line-height: 1.8; }
+    .dialog-close { min-width: 100%; min-height: 45px; border: 1px solid #4d8063; border-radius: 12px; background: #f1f8f0; color: #205840; font-size: 15px; font-weight: 750; }
+    @media (max-width: 359px) {
+      .welcome { padding-inline: 16px; padding-top: 27px; }
+      .brand { font-size: clamp(31px, 10vw, 37px); }
+      .orbit { width: clamp(162px, 51vw, 182px); }
+      .science-art { margin-top: 23px; margin-bottom: 36px; }
+      .intro h1 { font-size: 21px; }
+      .actions { margin-top: 24px; }
+    }
+    @media (min-width: 650px) {
+      .viewport { padding: 28px; }
+      .welcome { min-height: min(870px, calc(100svh - 56px)); border: 1px solid var(--outline); border-radius: 25px; }
+    }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
   </style>
 </head>
 <body>
   <main class="viewport">
     <section class="welcome" aria-labelledby="welcome-title">
-      <span class="clover c1" aria-hidden="true">✿</span>
-      <span class="clover c2" aria-hidden="true">✿</span>
-      <span class="clover c3" aria-hidden="true">✿</span>
-      <span class="clover c4" aria-hidden="true">✿</span>
-      <p class="brand" aria-label="EQUINERIS">EQUI<span>NERIS</span></p>
-      <p class="tagline">知ることから始まる、新しい食習慣。</p>
+      <div class="brand-header">
+        <p class="eyebrow">12-WEEK NUTRITION PROGRAM</p>
+        <p class="brand" aria-label="EQUINERIS">EQUI<span>NERIS</span></p>
+        <span class="brand-rule" aria-hidden="true"></span>
+        <p class="tagline">知ることから始まる、新しい食習慣。</p>
+      </div>
+      <div class="science-art" aria-hidden="true">
+        <div class="orbit">
+          <span class="orbit-path"></span>
+          <span class="orbit-path-alt"></span>
+          <span class="orbit-dot d1"></span>
+          <span class="orbit-dot d2"></span>
+          <span class="orbit-dot d3"></span>
+          <span class="orbit-core"><span class="orbit-number">12</span><span class="orbit-unit">WEEKS</span></span>
+          <span class="orbit-caption">KNOWLEDGE · BALANCE</span>
+        </div>
+      </div>
       <header class="intro">
         <h1 id="welcome-title">ようこそ！<br><span>EQUINERIS</span>へ</h1>
         <p>食事で整えて、<br>理想の自分に近づく<br>12週間のデジタルノートプログラムです。</p>
