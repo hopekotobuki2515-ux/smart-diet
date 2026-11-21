@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#fefdf8">
+  <meta name="description" content="EQUINERISのスマートダイエット減量目標設定。現在の体重から12週間後の目標体重と減量幅を計算できます。">
+  <title>スマートダイエットの減量目標設定 | EQUINERIS</title>
+  <style>
+    :root {
+      color-scheme:light;
+      font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
+      --ink:#183e38;--ink-light:#31564d;--muted:#667a6d;
+      --gold:#a6844e;--gold-light:#d7c5a3;--green:#285d4a;
+      --cream:#f8f7f1;--outline:#e7e5d9;
+    }
+    *,*::before,*::after {box-sizing:border-box}
+    html {overflow-x:hidden;-webkit-text-size-adjust:100%}
+    body {margin:0;min-width:280px;background:#e8eee8;color:var(--ink);overflow-x:hidden}
+    button,input,a {font:inherit;touch-action:manipulation}
+    button {cursor:pointer}
+    :focus-visible {outline:3px solid var(--gold);outline-offset:3px}
+    .viewport {min-height:100svh;display:flex;justify-content:center}
+    .page {
+      width:100%;max-width:510px;min-height:100svh;
+      padding:23px 20px max(33px,env(safe-area-inset-bottom));
+      background:linear-gradient(157deg,#fefdf8 0%,#fbfbf6 48%,#f0f5ef 100%);
+      box-shadow:0 18px 70px rgba(25,54,41,.055);
+    }
+    .topbar {display:flex;justify-content:space-between;align-items:center;gap:12px}
+    .back {display:inline-flex;align-items:center;min-height:44px;color:var(--ink-light);text-decoration:none;font-size:13px;font-weight:650}
+    .step {font-size:10px;letter-spacing:.19em;color:var(--gold);font-weight:800}
+    .wordmark {text-align:center;margin:12px 0 0;font-size:27px;letter-spacing:.11em;font-weight:800;line-height:1.15}
+    .wordmark span {color:var(--gold)}
+    .eyebrow {text-align:center;margin:30px 0 9px;color:var(--gold);font-size:10px;font-weight:800;letter-spacing:.2em}
+    h1 {text-align:center;font-size:clamp(23px,6.2vw,29px);line-height:1.48;letter-spacing:.025em;margin:0}
+    .lead {margin:12px auto 26px;text-align:center;font-size:13px;line-height:1.8;color:var(--ink-light);max-width:350px}
+    .card {
+      padding:22px 18px;background:#fffdfa;border:1px solid var(--outline);
+      border-radius:20px;box-shadow:0 8px 24px rgba(21,67,45,.035);
+    }
+    .sectionhead {margin:0 0 22px}
+    .sectionhead h2 {font-size:17px;line-height:1.4;margin:0 0 4px}
+    .sectionhead p {font-size:12px;color:var(--muted);line-height:1.65;margin:0}
+    .field {display:block;margin:0 0 20px}
+    .field:last-child {margin-bottom:0}
+    .field-label {display:block;font-size:14px;line-height:1.5;font-weight:750;margin:0 0 8px}
+    .hint {font-size:11px;font-weight:500;color:var(--muted)}
+    .field input {
+      width:100%;min-width:0;min-height:52px;border:1px solid #d9e2d9;border-radius:12px;
+      background:#fff;color:var(--ink);padding:12px 15px;font-size:17px;
+      appearance:textfield;
+    }
+    .field input:focus {outline:2px solid #9fbea9;outline-offset:1px;border-color:#56836b}
+    input::placeholder {color:#9ca79e;opacity:1}
+    input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button {-webkit-appearance:none;margin:0}
+    .unitwrap {position:relative}
+    .unitwrap input {padding-right:54px}
+    .unit {position:absolute;right:17px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;pointer-events:none}
+    .history-card {margin-top:0}
+    .goal-card {margin-top:0}
+    .slide-track {
+      display:flex;align-items:flex-start;width:100%;overflow-x:auto;overflow-y:hidden;
+      scroll-snap-type:x mandatory;overscroll-behavior-inline:contain;
+      -webkit-overflow-scrolling:touch;scrollbar-width:none;
+    }
+    .slide-track::-webkit-scrollbar {display:none}
+    .slide-track > .slide {flex:0 0 100%;min-width:0;scroll-snap-align:start;scroll-snap-stop:always}
+    .swipe-status {display:flex;align-items:center;justify-content:space-between;gap:10px;margin:15px 2px 7px;font-size:12px;color:var(--muted)}
+    .swipe-status strong {color:var(--ink);font-size:13px;font-variant-numeric:tabular-nums}
+    .swipe-dots {display:flex;justify-content:center;align-items:center;gap:6px;margin:0 0 10px}
+    .swipe-dot {min-width:44px;min-height:44px;border:0;background:transparent;display:flex;align-items:center;justify-content:center}
+    .swipe-dot::before {content:"";width:7px;height:7px;border-radius:50%;background:#cdd9ce;transition:width .2s,background .2s}
+    .swipe-dot[aria-current="step"]::before {width:26px;border-radius:8px;background:var(--green)}
+    .slide-actions {display:flex;flex-wrap:wrap;gap:10px;margin-top:4px}
+    .slide-actions .next {flex:1 1 180px;width:auto}
+    .slide-prev {flex:0 0 84px;min-height:56px;border:1px solid #b7cbbd;border-radius:15px;background:#fffdfa;color:var(--ink-light);font-weight:700}
+    .slide-actions .after {flex:1 1 100%;margin-top:5px}
+    [hidden] {display:none!important}
+    fieldset {border:0;padding:0;margin:0;min-width:0}
+    legend {padding:0 0 5px;font-size:17px;font-weight:780;line-height:1.45}
+    .goal-desc {color:var(--muted);font-size:12px;line-height:1.65;margin:0 0 16px}
+    .options {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
+    .option {position:relative}
+    .option input {position:absolute;opacity:0;width:1px;height:1px;left:50%;top:50%}
+    .option label {
+      display:flex;align-items:center;justify-content:center;min-width:0;min-height:52px;
+      font-size:17px;font-weight:800;border:1px solid #d8e3d8;background:#fff;
+      color:var(--ink-light);border-radius:12px;cursor:pointer;
+    }
+    .option input:checked+label {background:#285d4a;border-color:#285d4a;color:#fff}
+    .option input:focus-visible+label {outline:3px solid var(--gold);outline-offset:3px}
+    .goal-note {font-size:11px;color:var(--muted);line-height:1.75;margin:15px 0 0}
+    .metric-inline {margin:-5px 0 17px;padding:10px 13px;background:#f1f7f1;border:1px solid #dfe7df;border-radius:12px}
+    .reference-note {margin:-8px 0 21px}
+    .metric {display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:11px 0;border-top:1px solid #dfe7df}
+    .metric-label {font-size:12px;color:var(--muted)}
+    .metric-output {font-size:21px;letter-spacing:.015em;font-weight:780;color:var(--ink)}
+    .metric-output small {font-size:12px;font-weight:600}
+    .empty {color:#87998d}
+    .note {margin:15px 0 0;font-size:11px;color:#62766a;line-height:1.85}
+    .action {margin-top:25px}
+    .next {
+      width:100%;display:flex;align-items:center;justify-content:center;position:relative;
+      min-height:56px;border:1px solid #244f41;border-radius:15px;
+      background:linear-gradient(125deg,#285d4a,#143d32);color:#fffdf5;
+      font-size:17px;font-weight:800;letter-spacing:.09em;box-shadow:0 11px 24px rgba(24,66,48,.13);
+    }
+    .arrow {position:absolute;right:20px;font-size:23px;color:#e0c89d;line-height:1}
+    .after {text-align:center;font-size:12px;color:var(--muted);line-height:1.9;margin:17px 0 0}
+    .preview-link {display:flex;align-items:center;justify-content:center;min-height:48px;margin:0 auto 20px;padding:10px 14px;border:1px solid #d4e0d5;border-radius:12px;background:#f4f8f2;color:var(--ink-light);text-align:center;text-decoration:none;font-size:13px;font-weight:750;max-width:350px}
+    dialog {
+      width:min(92vw,420px);max-height:90vh;max-height:90dvh;overflow-y:auto;
+      border:1px solid #d3e0d6;border-radius:18px;padding:24px;
+      background:#fffdf9;color:var(--ink);box-shadow:0 24px 70px rgba(13,49,32,.23);
+    }
+    dialog::backdrop {background:rgba(12,34,25,.5)}
+    dialog h2 {font-size:21px;margin:0 0 12px}
+    dialog p {font-size:13px;line-height:1.85;margin:0 0 15px;color:var(--ink-light)}
+    .summary {margin:0 0 16px;font-size:13px;line-height:1.9;white-space:pre-line;background:#f5f8f2;border:1px solid #dfe7db;border-radius:12px;padding:14px}
+    .close {width:100%;min-height:48px;background:var(--green);color:#fff;border:0;border-radius:12px;font-size:15px;font-weight:750}
+    .guide-link {display:flex;align-items:center;justify-content:center;min-height:48px;padding:10px 14px;margin:12px 0;border:1px solid #244f41;border-radius:12px;background:linear-gradient(125deg,#285d4a,#143d32);color:#fffdf5;text-align:center;text-decoration:none;font-size:15px;font-weight:750}
+    .unsaved-note {font-size:11px;line-height:1.7;color:var(--muted);margin:0 0 12px}
+    @media(max-width:340px) {
+      .page {padding-inline:13px}
+      .card {padding:20px 14px}
+      .options {gap:5px}
+      .option label {font-size:16px;min-height:50px}
+    }
+    @media(min-width:650px) {
+      .viewport {padding:24px}
+      .page {border:1px solid var(--outline);border-radius:25px;min-height:calc(100svh - 48px);padding-inline:34px}
+    }
+  
+
+    /* 第1週の目標設定専用。既存登録ページの配色・1カラムデザインは維持。 */
+    .goal-box{margin:0 0 19px}
+    .goal-box .metric{padding:13px 0}
+    .goal-box .metric-output{font-variant-numeric:tabular-nums}
+    .goal-label{display:block;margin:18px 0 10px;font-size:14px;font-weight:750;color:var(--ink)}
+    .goal-help{margin:9px 0 0;font-size:12px;line-height:1.8;color:var(--muted)}
+    .goal-result{margin:21px 0 2px;padding:13px 16px;border-radius:13px;border:1px solid #dce8dd;background:#f1f7f1}
+    .goal-result .metric:first-child{border-top:0}
+    .goal-notice{margin:15px 0 0;padding:12px;border-radius:11px;background:#f9f8f1;color:var(--ink-light);font-size:12px;line-height:1.75}
+    .goal-error{margin:14px 0;font-size:12px;line-height:1.7;color:#933e36}
+    .goal-next{display:flex;min-height:49px;justify-content:center;align-items:center;text-align:center;text-decoration:none;margin-top:14px;padding:10px 15px;border:1px solid #bbd2c0;border-radius:12px;background:#f5faf3;color:var(--green);font-size:14px;font-weight:750}
+    .goal-link{color:var(--green);font-weight:750}
+    .goal-optional{margin-top:10px;font-size:11px;color:var(--muted);line-height:1.75}
+    @media(max-width:340px){.options{gap:5px}.option label{font-size:16px}}
+</style>
+</head>
+<body>
+<main class="viewport">
+ <div class="page">
+  <nav class="topbar" aria-label="ページ移動">
+   <a class="back" href="./learning.html?week=1">〈 第1週の学びへ戻る</a>
+   <span class="step">WEEK 01</span>
+  </nav>
+  <p class="wordmark" aria-label="EQUINERIS">EQUI<span>NERIS</span></p>
+  <p class="eyebrow">YOUR FIRST GOAL</p>
+  <h1>スマートダイエットの<br>減量目標設定</h1>
+  <p class="lead">12週間後、あなたは何kgを目指したいですか？<br>まずは現在の体重から目標を考えましょう。</p>
+  <form id="goalForm" autocomplete="off">
+   <section class="card" aria-labelledby="goalCardTitle">
+    <div class="sectionhead">
+     <h2 id="goalCardTitle">12週間後の目標体重</h2>
+     <p>目標は途中で見直すこともできます。</p>
+    </div>
+    <div class="goal-box">
+     <div class="metric"><span class="metric-label">現在の体重（登録値）</span><strong class="metric-output" id="startWeight">未登録</strong></div>
+    </div>
+    <p class="goal-label">目標減量率を選ぶ</p>
+    <div class="options" role="group" aria-label="目標減量率">
+     <div class="option"><input type="radio" id="goalRate5" name="goalRate" value="5" disabled><label for="goalRate5">5%</label></div>
+     <div class="option"><input type="radio" id="goalRate8" name="goalRate" value="8" disabled><label for="goalRate8">8%</label></div>
+     <div class="option"><input type="radio" id="goalRate10" name="goalRate" value="10" disabled><label for="goalRate10">10%</label></div>
+     <div class="option"><input type="radio" id="goalRate15" name="goalRate" value="15" disabled><label for="goalRate15">15%</label></div>
+    </div>
+    <p class="goal-help">減量率を選ぶと目標体重が自動計算されます。数値を直接変更することもできます。</p>
+    <label class="field" style="margin-top:22px">
+     <span class="field-label">12週間後の目標体重</span>
+     <span class="unitwrap"><input type="number" id="targetWeight" name="targetWeight" inputmode="decimal" min="0.1" step="0.1" placeholder="目標体重を入力" required disabled><span class="unit">kg</span></span>
+    </label>
+    <div class="goal-result" aria-live="polite">
+     <div class="metric"><span class="metric-label">目標減量幅</span><strong class="metric-output" id="lossKg">—</strong></div>
+     <div class="metric"><span class="metric-label">目標減量率</span><strong class="metric-output" id="lossPercent">—</strong></div>
+    </div>
+    <p class="goal-notice">5・8・10・15％は計算用の選択肢です。どの減量率も安全性や達成を保証するものではありません。無理のない目標を設定してください。</p>
+   </section>
+   <div class="action">
+    <button type="submit" class="next" id="saveGoal" disabled>目標を保存 <span class="arrow" aria-hidden="true">›</span></button>
+    <p id="goalStatus" class="goal-error" role="status" aria-live="polite" hidden></p>
+    <a href="./learning.html?week=1" class="goal-next">第1週の学びへ進む</a>
+    <p class="goal-optional">目標は、この端末のブラウザ内だけに保存されます。別端末への同期は未対応です。</p>
+    <a href="./setup.html" class="goal-link">現在の体重を登録・変更する</a>
+   </div>
+  </form>
+ </div>
+</main>
+<script>'use strict';
+(()=>{
+ const REG_KEY='equineris:registration:v1';
+ const GOAL_KEY='equineris:week1:goal:v1';
+ const startNode=document.getElementById('startWeight');
+ const goalInput=document.getElementById('targetWeight');
+ const resultLoss=document.getElementById('lossKg');
+ const resultRate=document.getElementById('lossPercent');
+ const feedback=document.getElementById('goalStatus');
+ const form=document.getElementById('goalForm');
+ const saveButton=document.getElementById('saveGoal');
+ const rateInputs=[...document.querySelectorAll('input[name="goalRate"]')];
+ let startWeight=null;
+ const one=n=>Math.round((n+Number.EPSILON)*10)/10;
+ const display=n=>one(n).toFixed(1);
+ const setStatus=(text,error=false)=>{feedback.textContent=text;feedback.hidden=!text;feedback.className=error?'goal-error':'goal-help';};
+ function rateSelected(){
+  const active=rateInputs.find(x=>x.checked);
+  return active?Number(active.value):null;
+ }
+ function draw(){
+  const target=Number(goalInput.value);
+  const valid=Number.isFinite(startWeight)&&startWeight>0&&goalInput.value.trim()!==''&&
+    Number.isFinite(target)&&target>0&&target<startWeight&&goalInput.checkValidity();
+  resultLoss.textContent=valid?display(startWeight-target)+' kg':'—';
+  const rate=rateSelected();
+  resultRate.textContent=valid?(rate===null?display((startWeight-target)/startWeight*100):String(rate))+' %':'—';
+  saveButton.disabled=!valid;
+  return valid;
+ }
+ try{
+  const row=JSON.parse(localStorage.getItem(REG_KEY)||'null');
+  const w=Number(row?.weightKg);
+  if(row && typeof row.weightKg==='string'&&Number.isFinite(w)&&w>0){
+   startWeight=w;
+   startNode.textContent=display(w)+' kg';
+   goalInput.disabled=false;
+   rateInputs.forEach(x=>x.disabled=false);
+   const saved=JSON.parse(localStorage.getItem(GOAL_KEY)||'null');
+   if(saved && Number(saved.startWeightKg)===w && Number(saved.goalWeightKg)>0){
+    goalInput.value=String(saved.goalWeightKg);
+    const selected=Number(saved.selectedRatePercent);
+    if([5,8,10,15].includes(selected) && display(w*(1-selected/100))===display(Number(saved.goalWeightKg))){
+     const node=rateInputs.find(x=>Number(x.value)===selected);
+     if(node)node.checked=true;
+    }
+    setStatus('以前保存した目標を表示しています。必要なら変更できます。');
+   }else if(saved && Number(saved.startWeightKg)!==w){
+    setStatus('登録時の体重が変わっています。新しい体重をもとに目標を選び直してください。');
+   }
+  }else{
+   setStatus('現在の体重が未登録です。先に登録画面で入力してください。',true);
+  }
+ }catch(error){
+  setStatus('登録情報を読み込めませんでした。ブラウザの保存設定をご確認ください。',true);
+ }
+ for(const input of rateInputs){
+  input.addEventListener('change',()=>{
+   if(startWeight===null || !input.checked)return;
+   goalInput.value=display(startWeight*(1-Number(input.value)/100));
+   setStatus('');
+   draw();
+  });
+ }
+ goalInput.addEventListener('input',()=>{
+  rateInputs.forEach(x=>x.checked=false);
+  setStatus('');
+  draw();
+ });
+ form.addEventListener('submit',event=>{
+  event.preventDefault();
+  if(startWeight===null){setStatus('先に現在の体重を登録してください。',true);return;}
+  if(!draw()){setStatus('現在の体重より小さく、0kgより大きい目標体重を入力してください。',true);return;}
+  const target=Number(goalInput.value);
+  const selectedRate=rateSelected();
+  const row={
+   startWeightKg:startWeight,
+   goalWeightKg:one(target),
+   lossKg:one(startWeight-target),
+   selectedRatePercent:selectedRate,
+   actualRatePercent:one((startWeight-target)/startWeight*100)
+  };
+  try{
+   localStorage.setItem(GOAL_KEY,JSON.stringify(row));
+   setStatus('目標を保存しました。第1週の学習へ進めます。');
+  }catch(error){
+   setStatus('目標を保存できませんでした。ブラウザの保存設定をご確認ください。',true);
+  }
+ });
+ draw();
+})();</script>
+</body>
+</html>
