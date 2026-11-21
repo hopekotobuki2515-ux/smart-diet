@@ -60,6 +60,12 @@
     .rings-unit{margin-top:6px;font-size:10px;font-weight:750;color:var(--gold);letter-spacing:.15em}
     .feature h2{margin:0;font-size:17px;line-height:1.5}
     .feature p{margin:8px auto 0;max-width:340px;font-size:12px;line-height:1.85;color:var(--ink-light)}
+    /* 3 DAYS直下の2つのテキストを、端末幅に依存しない横書き・全幅の段落として固定 */
+    .feature > h2,.feature > p{
+      display:block;width:100%;max-width:100%;min-width:0;
+      writing-mode:horizontal-tb;text-orientation:mixed;
+      white-space:normal;word-break:normal;overflow-wrap:break-word;
+    }
     .section-label{font-size:11px;color:var(--gold);letter-spacing:.16em;font-weight:800;margin:28px 0 13px}
     .timeline{display:grid;grid-template-columns:minmax(0,1fr);width:100%;min-width:0;gap:12px}
     .tile{
