@@ -105,6 +105,21 @@ const nutrientNames=[...new Set(book.map(r=>r.n))];
 let view='nutrient',srcPage=0,masterPage=0,srcFiltered=[],masterFiltered=[],selected=null;
 const makes=(tag,cls,value)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(value!==undefined)n.textContent=String(value);return n};
 function norm(v){return String(v??'').normalize('NFKC').toLocaleLowerCase('ja').replace(/[ァ-ヶ]/g,c=>String.fromCharCode(c.charCodeAt(0)-0x60)).replace(/[・･\s]/g,'')}
+function masterDisplayName(m){
+ if(m.c==='肉類・鶏肉（若鶏）・鶏の副生物'){
+  if(m.n==='皮・むね')return'鶏皮（むね部分・皮のみ）';
+  if(m.n==='皮・もも')return'鶏皮（もも部分・皮のみ）';
+  if(m.n==='むね・皮つき')return'鶏むね肉（皮つき）';
+ }
+ return m.n;
+}
+const breastQueries=new Set(['鶏むね肉','鶏胸肉','とりむね肉','とりむねにく','むね肉','胸肉'].map(norm));
+const skinQueries=new Set(['鶏皮','とり皮','とりかわ'].map(norm));
+function masterNameMatches(m,q){
+ if(breastQueries.has(q))return m.c==='肉類・鶏肉（若鶏）・鶏の副生物'&&m.n==='むね・皮つき';
+ if(skinQueries.has(q))return m.c==='肉類・鶏肉（若鶏）・鶏の副生物'&&(m.n==='皮・むね'||m.n==='皮・もも');
+ return !q||norm(m.n).includes(q)||norm(m.c).includes(q);
+}
 function show(value,unit=''){return value===null||value===undefined||value===''?'—':String(value)+unit}
 function field(title,value){const box=makes('div','field');box.append(makes('small','',title),makes('strong','',value));return box}
 function pill(text,cls=''){return makes('span','pill '+cls,text)}
@@ -121,7 +136,7 @@ function sourceCard(r){const a=makes('article','card item');const heading=makes(
  if(r.t==='1点')facts.push(['書籍の1点重量',show(r.w,'g')],['書籍の1点あたり',show(r.b,r.u)]);
  else facts.push(['調理方法',show(r.m)],['調理後重量（原料100gから）',show(r.cw,'g')],['調理後の掲載値',show(r.cv,r.u)]);
  addFields(a,...facts);
- if(r.mi!==null){const m=master[r.mi];a.append(makes('p','subtitle',`食品マスターの候補：${m.n}｜${m.g}｜${m.c}｜1点 ${m.w}g（未承認）`));}
+ if(r.mi!==null){const m=master[r.mi];a.append(makes('p','subtitle',`食品マスターの候補：${masterDisplayName(m)}｜${m.g}｜${m.c}｜1点 ${m.w}g（未承認）`));}
  if(statusMsg(r))a.append(makes('div','notice',statusMsg(r)));
  const buttons=makes('div','buttons');buttons.append(r.mi===null?btn('686品目マスターで名前を探す',()=>findFromSource(r)):btn('対応する食品マスター候補を見る',()=>openMasterFood(r.mi),true));a.append(buttons);
  return a;}
@@ -139,8 +154,9 @@ function searchSource(){const query=norm($('sourceQuery').value),n=$('nutrient')
 function renderSource(){const total=srcFiltered.length,start=srcPage*pageSize,portion=srcFiltered.slice(start,start+pageSize);$('sourceCount').textContent=total.toLocaleString('ja-JP');$('sourceRange').textContent=total?`${start+1}～${Math.min(start+pageSize,total)}行を表示`:'対象なし';$('sourceResults').replaceChildren(...(total?portion.map(sourceCard):[makes('div','card empty','該当する食品がありません。検索条件を変えてください。')]));$('sourcePages').hidden=total<=pageSize;$('sourcePrev').disabled=srcPage===0;$('sourceNext').disabled=start+pageSize>=total;$('sourcePageLabel').textContent=`${srcPage+1} / ${Math.ceil(total/pageSize)}ページ`;}
 function nutrientsForMaster(mi){return (perMaster.get(mi)||[]).slice().sort((a,b)=>a.n.localeCompare(b.n,'ja'));}
 function selectedDetail(){const holder=$('masterSelected');holder.replaceChildren();holder.hidden=selected===null;if(selected===null)return;
- const m=master[selected];const hits=nutrientsForMaster(selected);holder.append(makes('h2','',m.n),makes('p','subtitle',`${m.g}｜${m.c}｜1点80kcal = ${m.w}g`));
+ const m=master[selected];const hits=nutrientsForMaster(selected);holder.append(makes('h2','',masterDisplayName(m)),makes('p','subtitle',`${m.g}｜${m.c}｜1点80kcal = ${m.w}g`));
  holder.append(makes('div','banner',`${hits.length}件の栄養素掲載データが対応候補として見つかりました。候補の食品定義は未承認です。書籍に掲載されていない栄養素を「0」と扱いません。`));
+  if(m.c==='肉類・鶏肉（若鶏）・鶏の副生物'&&['皮・むね','皮・もも'].includes(m.n))holder.append(makes('div','notice','これは鶏皮のみの登録です。鶏むね肉の点数とは異なります。'));
  // 80kcal calculation is based ONLY on the existing master gramsPerPoint, never the unapproved nutrient crosswalk.
  const calc=makes('section','point-calc');
  const calcHead=makes('div','point-calc-title');calcHead.append(makes('strong','','1点80kcalの計算'),makes('span','','現行食品マスター基準'));calc.append(calcHead);
@@ -151,8 +167,8 @@ function selectedDetail(){const holder=$('masterSelected');holder.replaceChildre
  if(hits.length){const chipRow=makes('div','joined');for(const hit of hits){const b=btn(`${hit.n} ${show(hit.a,hit.u)} /100g`,()=>{openTab('nutrient');$('nutrient').value=hit.n;$('sourceQuery').value=hit.f;searchSource()});chipRow.append(b)}holder.append(chipRow)}
  else holder.append(makes('p','muted','候補はまだ紐付いていません。食品に栄養素が含まれないという意味ではありません。'));
 }
-function masterCard(m){const a=makes('article','card item');a.append(makes('h3','',m.n),makes('p','subtitle',`${m.g}｜${m.c}`));addFields(a,['1点（80kcal）の重量',show(m.w,'g')],['書籍との対応候補',`${(perMaster.get(m.i)||[]).length}行（未承認）`]);const actions=makes('div','buttons');actions.append(btn('書籍の栄養素候補を見る',()=>{selected=m.i;selectedDetail();$('masterSelected').scrollIntoView({block:'start',behavior:'instant'});},true));a.append(actions);return a;}
-function searchMaster(){const q=norm($('masterQuery').value),g=$('masterGroup').value;masterFiltered=master.filter(m=>(!q||norm(m.n).includes(q)||norm(m.c).includes(q))&&(!g||m.g===g));masterPage=0;renderMaster();selectedDetail();}
+function masterCard(m){const a=makes('article','card item');a.append(makes('h3','',masterDisplayName(m)),makes('p','subtitle',`${m.g}｜${m.c}`));addFields(a,['1点（80kcal）の重量',show(m.w,'g')],['書籍との対応候補',`${(perMaster.get(m.i)||[]).length}行（未承認）`]);const actions=makes('div','buttons');actions.append(btn('書籍の栄養素候補を見る',()=>{selected=m.i;selectedDetail();$('masterSelected').scrollIntoView({block:'start',behavior:'instant'});},true));a.append(actions);return a;}
+function searchMaster(){const q=norm($('masterQuery').value),g=$('masterGroup').value;masterFiltered=master.filter(m=>masterNameMatches(m,q)&&(!g||m.g===g));masterPage=0;renderMaster();selectedDetail();}
 function renderMaster(){const total=masterFiltered.length,start=masterPage*pageSize,portion=masterFiltered.slice(start,start+pageSize);$('masterCount').textContent=total.toLocaleString('ja-JP');$('masterRange').textContent=total?`${start+1}～${Math.min(start+pageSize,total)}品目を表示`:'対象なし';$('masterResults').replaceChildren(...(total?portion.map(masterCard):[makes('div','card empty','686品目の食品マスター内に該当する食品がありません。名前を短くして再検索してください。')]));$('masterPages').hidden=total<=pageSize;$('masterPrev').disabled=masterPage===0;$('masterNext').disabled=start+pageSize>=total;$('masterPageLabel').textContent=`${masterPage+1} / ${Math.ceil(total/pageSize)}ページ`;$('clearSelected').hidden=selected===null;}
 function csvCell(v){let s=v===null||v===undefined?'':String(v);if(/^[=+@\-\t\r]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"'}
 function saveCsv(){const h=['原典ID','栄養素','単位','原典食品名','100g掲載値','1点重量g','1点掲載値','原典ページ','原典順位','食品マスター候補','食品群','マスター1点g','連携状態','数値確認'];const result=srcFiltered.map(r=>{const m=r.mi===null?null:master[r.mi];return [r.id,r.n,r.u,r.f,r.a,r.w,r.b,r.p,r.rk,m?.n??'',m?.g??'',m?.w??'',m?'未承認候補':'未連携',r.num?'要確認':r.trace?'微量':'']});const content='\ufeff'+[h,...result].map(r=>r.map(csvCell).join(',')).join('\r\n');const blob=new Blob([content],{type:'text/csv;charset=utf-8'}),u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download='SMART_Diet_栄養素食品マスター検索_未承認.csv';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000);}
