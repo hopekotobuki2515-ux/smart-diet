@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#fefdf8">
+  <meta name="description" content="EQUINERISで学ぶスマートダイエットの基本。食事を記録し、食品の組み合わせを学び、12週間かけて食習慣を見直す進め方をご紹介します。">
+  <title>スマートダイエットとは？ | EQUINERIS</title>
+<style>
+    :root {
+      color-scheme:light;
+      font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
+      --ink:#183e38;--ink-light:#31564d;--muted:#64776a;
+      --gold:#a6844e;--gold-light:#d7c5a3;--green:#285d4a;
+      --outline:#e7e5d9;--cream:#fefdf8;
+    }
+    *,*::before,*::after{box-sizing:border-box}
+    html{-webkit-text-size-adjust:100%;overflow-x:hidden}
+    body{margin:0;min-width:280px;overflow-x:hidden;color:var(--ink);background:#e8eee8}
+    button,a{font:inherit;touch-action:manipulation}
+    button{cursor:pointer}
+    :focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+    .viewport{min-height:100svh;display:flex;justify-content:center}
+    .page{
+      width:100%;max-width:510px;min-height:100svh;
+      padding:22px 20px max(36px,env(safe-area-inset-bottom));
+      background:linear-gradient(157deg,#fefdf8 0%,#fafaf6 46%,#f0f5ef 100%);
+      box-shadow:0 18px 70px rgba(25,54,41,.055);
+    }
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .back{min-height:44px;display:inline-flex;align-items:center;text-decoration:none;color:var(--ink-light);font-size:13px;font-weight:650}
+    .step{font-size:10px;font-weight:800;letter-spacing:.18em;color:var(--gold)}
+    .wordmark{text-align:center;margin:12px 0 0;font-weight:800;font-size:27px;letter-spacing:.11em;line-height:1.15}
+    .wordmark span{color:var(--gold)}
+    .heading{text-align:center;margin:35px 0 23px}
+    .eyebrow{margin:0 0 11px;color:var(--gold);font-size:10px;font-weight:800;letter-spacing:.21em}
+    h1{margin:0;font-size:clamp(25px,6.3vw,30px);line-height:1.5;letter-spacing:.015em}
+    .heading>p:last-child{margin:13px auto 0;max-width:360px;color:var(--ink-light);font-size:13px;line-height:1.85}
+    .keep-phrase{white-space:nowrap}
+    .feature{
+      position:relative;isolation:isolate;overflow:hidden;
+      border-radius:21px;border:1px solid #d9e4d9;
+      background:linear-gradient(135deg,#f4f8f2,#fffdf9);
+      padding:21px 18px 18px;text-align:center;
+    }
+    .feature:before{
+      content:"";position:absolute;z-index:-1;top:-95px;right:-98px;
+      width:220px;height:220px;border-radius:50%;
+      background:radial-gradient(circle,#e4eee2 0%,transparent 72%);
+    }
+    .rings{position:relative;width:130px;height:130px;margin:0 auto 15px;display:grid;place-items:center}
+    .rings:before,.rings:after{content:"";position:absolute;border-radius:50%}
+    .rings:before{inset:2px;border:1px solid #a9c0ad}
+    .rings:after{inset:15px -5px;border:1px solid #ccb48c;transform:rotate(-28deg)}
+    .rings-inner{
+      width:85px;height:85px;display:flex;flex-direction:column;justify-content:center;
+      align-items:center;border-radius:50%;background:#fffefa;border:1px solid #d9e5d8;
+      box-shadow:0 5px 20px rgba(30,75,45,.08);
+    }
+    .rings-num{font-size:34px;line-height:1;font-weight:780;color:var(--green);letter-spacing:-.035em}
+    .rings-unit{margin-top:6px;font-size:10px;font-weight:750;color:var(--gold);letter-spacing:.15em}
+    .feature h2{margin:0;font-size:17px;line-height:1.5}
+    .feature p{margin:8px auto 0;max-width:340px;font-size:12px;line-height:1.85;color:var(--ink-light)}
+    /* 3 DAYS直下の2つのテキストを、端末幅に依存しない横書き・全幅の段落として固定 */
+    .feature > h2,.feature > p{
+      display:block;width:100%;max-width:100%;min-width:0;
+      writing-mode:horizontal-tb;text-orientation:mixed;
+      white-space:normal;word-break:normal;overflow-wrap:break-word;
+    }
+    .section-label{font-size:11px;color:var(--gold);letter-spacing:.16em;font-weight:800;margin:28px 0 13px}
+    .timeline{display:grid;grid-template-columns:minmax(0,1fr);width:100%;min-width:0;gap:12px}
+    .tile{
+      display:grid;grid-template-columns:42px minmax(0,1fr);align-items:start;gap:12px;width:100%;min-width:0;
+      border:1px solid var(--outline);border-radius:17px;background:#fffdfa;
+      padding:18px 15px 17px;box-shadow:0 7px 22px rgba(21,67,45,.025);
+    }
+    .num{
+      width:42px;height:42px;display:grid;place-items:center;border-radius:13px;
+      border:1px solid #d7e4d7;background:#eef5ee;color:var(--green);
+      font-size:13px;letter-spacing:.07em;font-weight:800;
+    }
+    .tile>div{min-width:0;width:100%;writing-mode:horizontal-tb;word-break:normal;overflow-wrap:break-word}
+    .tile h3{margin:1px 0 6px;font-size:15px;line-height:1.55}
+    .tile p{margin:0;color:var(--ink-light);font-size:12px;line-height:1.85}
+    .mini-notice{
+      margin:17px 0 0;padding:14px 16px;border-left:3px solid var(--gold-light);
+      background:#f9f8f1;color:var(--ink-light);border-radius:0 11px 11px 0;
+      font-size:12px;line-height:1.85;
+    }
+    .actions{margin-top:26px}
+    .main-button{
+      display:flex;align-items:center;justify-content:center;position:relative;width:100%;text-decoration:none;
+      min-height:57px;padding:13px 41px;border:1px solid #244f41;border-radius:15px;
+      background:linear-gradient(125deg,#285d4a,#143d32);color:#fffdf5;
+      font-size:17px;font-weight:800;letter-spacing:.04em;
+      box-shadow:0 11px 24px rgba(24,66,48,.13);
+    }
+    .arrow{position:absolute;right:20px;color:#e0c89d;font-size:23px;line-height:1}
+    .footnote{text-align:center;color:var(--muted);font-size:11px;line-height:1.85;margin:15px auto 0;max-width:360px}
+    dialog{
+      width:min(92vw,400px);border:1px solid #d3e0d6;border-radius:18px;padding:24px;
+      background:#fffdf9;color:var(--ink);box-shadow:0 24px 70px rgba(13,49,32,.23)
+    }
+    dialog::backdrop{background:rgba(12,34,25,.5)}
+    dialog h2{font-size:20px;margin:0 0 10px}
+    dialog p{font-size:13px;line-height:1.9;color:var(--ink-light);margin:0 0 16px}
+    .close{min-height:47px;width:100%;border:0;border-radius:12px;background:var(--green);color:#fff;font-size:15px;font-weight:750}
+    @media(max-width:340px){.page{padding-inline:13px}.tile{padding:15px 12px;grid-template-columns:37px minmax(0,1fr);gap:9px}.num{width:37px;height:37px}}
+    @media(min-width:650px){.viewport{padding:24px}.page{border-radius:25px;border:1px solid var(--outline);min-height:calc(100svh - 48px);padding-inline:34px}}
+  </style>
+</head>
+<body>
+<main class="viewport">
+  <article class="page">
+    <nav class="topbar" aria-label="ページ移動">
+      <a href="./setup.html" class="back">〈 初回設定へ戻る</a>
+      <span class="step">SMART DIET</span>
+    </nav>
+    <p class="wordmark" aria-label="EQUINERIS">EQUI<span>NERIS</span></p>
+    <header class="heading">
+      <p class="eyebrow">ABOUT SMART DIET</p>
+      <h1>スマートダイエット<br>とは？</h1>
+      <p>食べる量をただ減らすのではなく、今の食事を知り、食品の選び方や組み合わせを少しずつ学ぶ<span class="keep-phrase">プログラムです。</span></p>
+    </header>
+    <section class="feature" aria-labelledby="feature-title">
+      <div class="rings" aria-hidden="true"><div class="rings-inner"><span class="rings-num">12</span><span class="rings-unit">WEEKS</span></div></div>
+      <h2 id="feature-title">食事を記録して、学んで、振り返る。</h2>
+      <p>12週間を通して、自分の食べ方の傾向に気づき、毎日の食事を考えるための知識を身につけていきます。</p>
+    </section>
+    <p class="section-label">HOW IT WORKS · 12週間の進め方</p>
+    <div class="timeline">
+      <section class="tile" aria-labelledby="step-1-title">
+        <span class="num" aria-hidden="true">01</span>
+        <div>
+          <h3 id="step-1-title">まず、いつもの食事を知る</h3>
+          <p>最初の3日間は、朝食・昼食・夕食・間食を写真と簡単なメモで記録。今の食べ方をそのまま残します。</p>
+        </div>
+      </section>
+      <section class="tile" aria-labelledby="step-2-title">
+        <span class="num" aria-hidden="true">02</span>
+        <div>
+          <h3 id="step-2-title">食品の種類と組み合わせを学ぶ</h3>
+          <p>食べた食品を栄養の特徴で4つの群に分けてみます。後から「四群点数法」も学びますが、最初の3日間は点数計算をしません。</p>
+        </div>
+      </section>
+      <section class="tile" aria-labelledby="step-3-title">
+        <span class="num" aria-hidden="true">03</span>
+        <div>
+          <h3 id="step-3-title">週ごとに振り返り、続け方を考える</h3>
+          <p>毎週の「今週のお話」で学び、食事記録を見返します。気づいたことを、無理のない範囲で日々の食生活に活かしていきます。</p>
+        </div>
+      </section>
+    </div>
+    <p class="mini-notice">スマートダイエットは、筑波大学の田中喜代次研究室で得られた研究成果に基づいて開発された、食習慣の見直しを中心とするプログラムです。EQUINERISでは、食事の記録と学びを通してその考え方を紹介します。</p>
+    <div class="actions">
+      <a class="main-button" href="./guide.html">最初の3日間の説明へ <span class="arrow" aria-hidden="true">›</span></a>
+      <p class="footnote">最初の3日間は、食事を急に変えたり、点数を計算したりする必要はありません。</p>
+    </div>
+  </article>
+</main>
+</body>
+</html>
