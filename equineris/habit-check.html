@@ -152,6 +152,7 @@ button{cursor:pointer}
   </article>
   <div class="sheet-actions">
     <button class="save-button" type="button" id="saveButton">チェックした内容を保存する</button>
+    <a class="secondary-link" id="groupsLink" href="./food-groups.html?day=1">次へ：4つの食品群を知る ›</a>
     <a class="secondary-link" id="diaryLink" href="./record.html">食事ダイアリーに戻る</a>
     <p class="status" id="saveStatus" role="status" aria-live="polite">チェック項目を確認してください。</p>
   </div>
@@ -167,6 +168,7 @@ const queryDay=Number(new URLSearchParams(window.location.search).get('day'));
 const day=[1,2,3].includes(queryDay)?queryDay:1;
 document.getElementById('choiceLink').href='./habit-intro.html?day='+day;
 document.getElementById('diaryLink').href='./record.html?day='+day;
+document.getElementById('groupsLink').href='./food-groups.html?day='+day;
 function selected(){return boxes.filter(box=>box.checked).map(box=>box.dataset.habit);}
 function setStatus(message,error=false){status.textContent=message;status.dataset.error=String(error);}
 function updateCount(){count.textContent=String(selected().length);}
