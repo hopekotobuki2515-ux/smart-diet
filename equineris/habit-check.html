@@ -55,8 +55,8 @@ button{cursor:pointer}
     <header class="paper-heading">
       <h1 id="habitTitle"><span class="heading-stamp">具</span>体的な行動目標を考える</h1>
     </header>
-    <p class="paper-lead">3日間、いつもの食事を記録してみて、いかがでしたか？ 食べたものや食事の時間を振り返ると、普段の食習慣が見えてきます。</p>
-    <p class="paper-lead">次は、この3日間の食習慣につながっている日常の行動を振り返り、原因の手がかりを探してみましょう。以下の項目のうち、自分に当てはまるものに○を付けてください。</p>
+    <p class="paper-lead" id="habitLeadOne">3日間、いつもの食事を記録してみて、いかがでしたか？ 食べたものや食事の時間を振り返ると、普段の食習慣が見えてきます。</p>
+    <p class="paper-lead" id="habitLeadTwo">次は、この3日間の食習慣につながっている日常の行動を振り返り、原因の手がかりを探してみましょう。以下の項目のうち、自分に当てはまるものに○を付けてください。</p>
     <fieldset class="paper-list" id="habitList">
       <legend style="position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">食習慣のチェック</legend>
       <label class="paper-row">
@@ -169,6 +169,22 @@ const day=[1,2,3].includes(queryDay)?queryDay:1;
 document.getElementById('choiceLink').href='./habit-intro.html?day='+day;
 document.getElementById('diaryLink').href='./record.html?day='+day;
 document.getElementById('groupsLink').href='./food-groups.html?day='+day;
+const fromGoal=new URLSearchParams(window.location.search).get('from')==='goal';
+if(fromGoal){
+ document.title='食行動チェック | SMART Diet · EQUINERIS';
+ const heading=document.getElementById('habitTitle');
+ heading.replaceChildren();
+ const mark=document.createElement('span');
+ mark.className='heading-stamp';
+ mark.textContent='食';
+ heading.append(mark,document.createTextNode('行動チェック'));
+ document.getElementById('habitLeadOne').textContent='減量目標を設定できましたか？ 次は、普段の食べ方や生活の中での食行動を振り返りましょう。';
+ document.getElementById('habitLeadTwo').textContent='17項目のうち、今の自分に当てはまるものに○を付けてください。正解や不正解はありません。';
+ document.getElementById('choiceLink').href='./week-1-goal.html';
+ document.getElementById('choiceLink').textContent='〈 減量目標設定へ戻る';
+ document.getElementById('diaryLink').hidden=true;
+}
+
 function selected(){return boxes.filter(box=>box.checked).map(box=>box.dataset.habit);}
 function setStatus(message,error=false){status.textContent=message;status.dataset.error=String(error);}
 function updateCount(){count.textContent=String(selected().length);}
