@@ -30,6 +30,36 @@
 .food-search-pages[hidden]{display:none}
 .food-result input:focus-visible,.food-search-filters input:focus-visible,.food-search-filters select:focus-visible,.food-search-pages button:focus-visible{outline:3px solid #d9a75b;outline-offset:2px}
 @media(max-width:370px){.food-result{padding:14px}}
+.search-mode-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
+.search-mode-tabs button{border:1px solid #b6d5bf;border-radius:12px;background:white;padding:13px 9px;min-height:46px;color:#286d4f;font:inherit;font-size:14px;font-weight:800;cursor:pointer}
+.search-mode-tabs button[aria-selected="true"]{background:#286d4f;color:white;border-color:#286d4f}
+#foodModePane[hidden],#nutrientModePane[hidden],#nutrientFocus[hidden],#nutrientPage[hidden]{display:none!important}
+.nutrient-fields{display:grid;grid-template-columns:1fr;gap:8px}
+.nutrient-fields label{font-size:14px;display:block}
+.nutrient-fields input,.nutrient-fields select{width:100%;min-width:0;box-sizing:border-box;padding:12px;border:1px solid #cddbd0;border-radius:10px;margin-top:5px;font:inherit;background:white}
+#nutrientResults{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
+.nutrient-result{margin:0;padding:15px}
+.nutrient-card-heading{display:flex;flex-wrap:wrap;align-items:flex-start;gap:8px}
+.nutrient-card-heading h2{font-size:17px;flex:1 1 160px;min-width:0;overflow-wrap:anywhere;margin:0}
+.nutrient-pill{font-size:12px;font-weight:bold;background:#e6f3e9;color:#286d4f;border-radius:999px;padding:5px 10px}
+.nutrient-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0}
+.nutrient-fact{min-width:0;border:1px solid #e8ede8;border-radius:10px;padding:9px;background:#f9fbf8}
+.nutrient-fact span{display:block;color:#64728a;font-size:12px}
+.nutrient-fact strong{display:block;margin-top:5px;font-size:15px;overflow-wrap:anywhere}
+.nutrient-warning{background:#fff5e9;border-left:3px solid #de9953;padding:10px;border-radius:6px;font-size:13px;line-height:1.6}
+.nutrient-unapproved{background:#f2f7f3;border-radius:10px;padding:10px;color:#335f44;line-height:1.6;font-size:13px}
+.nutrient-action,.nutrient-entry{display:block;width:100%;margin-top:12px;border:1px solid #76b18a;background:#f0f9f2;color:#245d3a;min-height:44px;border-radius:10px;font:inherit;font-size:14px;font-weight:700;cursor:pointer}
+.nutrient-entry{margin-top:12px}
+.nutrient-point-details{border:1px solid #d9e6da;border-radius:10px;margin-top:10px;padding:12px}
+.nutrient-point-details summary{cursor:pointer;color:#286d4f;font-weight:700}
+.nutrient-point-details label{display:block;margin-top:9px;font-size:13px}
+.nutrient-grams{width:100%;box-sizing:border-box;margin-top:5px;padding:10px;font:inherit;border:1px solid #cddbd0;border-radius:10px}
+.nutrient-point-details .food-result-output{margin-top:10px}
+.nutrient-empty{padding:20px}
+#nutrientFocus{margin-bottom:12px}
+#nutrientFocusTitle{margin:0 0 7px;font-size:18px}
+#nutrientFocusHint{font-size:13px}
+@media(max-width:390px){.nutrient-facts{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -40,7 +70,13 @@
 <span class="eyebrow">1点＝80kcal</span>
 <h1>食品マスター検索</h1>
 <p>食品名・ひらがな・カタカナ・主要食品の英語名、または1点分の重量（例：50g）から食品を検索できます。食べた量を入力すると点数も計算します。</p>
-<p class="food-search-help"><a href="./nutrient-food-search.html">栄養素から食品を探す（27種類・書籍データ／対応候補は未承認）</a></p>
+</section>
+<div class="search-mode-tabs" role="tablist" aria-label="検索方法">
+<button type="button" id="foodModeTab" role="tab" aria-controls="foodModePane" aria-selected="true">食品・点数計算</button>
+<button type="button" id="nutrientModeTab" role="tab" aria-controls="nutrientModePane" aria-selected="false">栄養素から食品を探す</button>
+</div>
+<div id="foodModePane" role="tabpanel" aria-labelledby="foodModeTab">
+<section class="card">
 <div class="food-search-filters">
 <label for="keyword">食品名・ひらがな・英語・1点分の重量で検索
 <input id="keyword" type="search" placeholder="例：たまご、egg、50g" autocomplete="off" spellcheck="false">
@@ -63,7 +99,38 @@
 <span id="pageText"></span>
 <button id="next" type="button">次へ</button>
 </div>
-<p class="food-search-help">重量と点数は食品マスターの値を用いた目安です。調理法や食品の違いにより実際のエネルギー量は変わります。この画面では食事の記録は保存されません。</p>
+</div>
+<section id="nutrientModePane" role="tabpanel" aria-labelledby="nutrientModeTab" hidden>
+<section class="card">
+<h2>栄養素から食品を探す</h2>
+<p class="food-search-help">書籍の全27種類・2,265行を検索できます。100gあたり、1点あたり、調理情報は書籍の記載をそのまま表示します。食品マスターとの対応は未承認です。</p>
+<div class="nutrient-fields">
+<label for="nutrientSelect">栄養素を選ぶ
+<select id="nutrientSelect"><option value="">栄養素を選択（全種類）</option></select></label>
+<label for="nutrientKeyword">食品名で絞り込む
+<input type="search" id="nutrientKeyword" autocomplete="off" placeholder="例：普通牛乳、鶏卵、ほうれん草"></label>
+<label for="nutrientSort">表示順
+<select id="nutrientSort">
+<option value="source">書籍の掲載順</option>
+<option value="per100">100gあたりの掲載値が多い順</option>
+<option value="perpoint">1点あたりの掲載値が多い順</option>
+<option value="name">食品名順</option>
+</select></label>
+</div>
+<p id="nutrientStatus" class="food-search-summary" role="status" aria-live="polite">栄養素データを読み込んでいます。</p>
+</section>
+<section id="nutrientFocus" class="card" hidden>
+<h3 id="nutrientFocusTitle"></h3><p id="nutrientFocusHint"></p>
+<button type="button" id="nutrientClearFocus" class="nutrient-action">食品を絞り込まずに検索する</button>
+</section>
+<div id="nutrientResults" role="region" aria-label="栄養素検索結果"></div>
+<div id="nutrientPage" class="food-search-pages" hidden>
+<button type="button" id="nutrientPrev">前へ</button>
+<span id="nutrientPageText"></span>
+<button type="button" id="nutrientNext">次へ</button>
+</div>
+</section>
+<p class="food-search-help">重量と点数は食品マスターの値を用いた目安です。調理法や食品の違いにより実際のエネルギー量は変わります。書籍に掲載されない栄養素は「0」ではなくデータなしとして扱います。この画面では食事の記録は保存されません。</p>
 </main>
 </div>
 <script type="module">
@@ -176,6 +243,13 @@ function render(){
     card.append(title,meta,amount);
   if(isChickenSkin(food))card.append(make('p','food-search-help','※ これは鶏皮だけの数値です。鶏むね肉の点数とは異なります。'));
   card.append(label,output);
+    const nutrientEntry=make('button','nutrient-entry','この食品に掲載された栄養素を見る（未承認候補）');
+    nutrientEntry.type='button';
+    nutrientEntry.addEventListener('click',()=>{
+      const masterIndex=foods.indexOf(food);
+      if(masterIndex>=0)document.dispatchEvent(new CustomEvent('smartdiet:showFoodNutrients',{detail:{masterIndex}}));
+    });
+    card.append(nutrientEntry);
     fragment.append(card);
   });
   results.replaceChildren(fragment);
@@ -202,5 +276,6 @@ fetch('./food-master.json',{cache:'no-store'})
   })
   .catch(()=>{status.classList.add('error');status.textContent='食品マスターを読み込めませんでした。通信状況を確認してページを再読み込みしてください。';results.replaceChildren();swipeHint.hidden=true;pages.hidden=true;});
 </script>
+<script type="module" src="./nutrient-panel.js?v=20261121-2"></script>
 </body>
 </html>
