@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fefdf8">
+<meta name="description" content="SMART Dietの4つの食品群を、Googleドライブの教材と食品分類表に沿って横スクロールで紹介します。">
+<title>4つの食品群を知ろう | EQUINERIS</title>
+<style>
+    :root {
+      color-scheme:light;
+      font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
+      --ink:#183e38;--ink-light:#31564d;--muted:#64776a;
+      --gold:#a6844e;--gold-light:#d7c5a3;--green:#285d4a;
+      --outline:#e7e5d9;--cream:#fefdf8;
+    }
+    *,*::before,*::after{box-sizing:border-box}
+    html{-webkit-text-size-adjust:100%;overflow-x:hidden}
+    body{margin:0;min-width:280px;overflow-x:hidden;color:var(--ink);background:#e8eee8}
+    button,a{font:inherit;touch-action:manipulation}
+    button{cursor:pointer}
+    :focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+    .viewport{min-height:100svh;display:flex;justify-content:center}
+    .page{
+      width:100%;max-width:510px;min-height:100svh;
+      padding:22px 20px max(36px,env(safe-area-inset-bottom));
+      background:linear-gradient(157deg,#fefdf8 0%,#fafaf6 46%,#f0f5ef 100%);
+      box-shadow:0 18px 70px rgba(25,54,41,.055);
+    }
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .back{min-height:44px;display:inline-flex;align-items:center;text-decoration:none;color:var(--ink-light);font-size:13px;font-weight:650}
+    .step{font-size:10px;font-weight:800;letter-spacing:.18em;color:var(--gold)}
+    .wordmark{text-align:center;margin:12px 0 0;font-weight:800;font-size:27px;letter-spacing:.11em;line-height:1.15}
+    .wordmark span{color:var(--gold)}
+    .heading{text-align:center;margin:35px 0 23px}
+    .eyebrow{margin:0 0 11px;color:var(--gold);font-size:10px;font-weight:800;letter-spacing:.21em}
+    h1{margin:0;font-size:clamp(25px,6.3vw,30px);line-height:1.5;letter-spacing:.015em}
+    .heading>p:last-child{margin:13px auto 0;max-width:360px;color:var(--ink-light);font-size:13px;line-height:1.85}
+    .keep-phrase{white-space:nowrap}
+    .feature{
+      position:relative;isolation:isolate;overflow:hidden;
+      border-radius:21px;border:1px solid #d9e4d9;
+      background:linear-gradient(135deg,#f4f8f2,#fffdf9);
+      padding:21px 18px 18px;text-align:center;
+    }
+    .feature:before{
+      content:"";position:absolute;z-index:-1;top:-95px;right:-98px;
+      width:220px;height:220px;border-radius:50%;
+      background:radial-gradient(circle,#e4eee2 0%,transparent 72%);
+    }
+    .rings{position:relative;width:130px;height:130px;margin:0 auto 15px;display:grid;place-items:center}
+    .rings:before,.rings:after{content:"";position:absolute;border-radius:50%}
+    .rings:before{inset:2px;border:1px solid #a9c0ad}
+    .rings:after{inset:15px -5px;border:1px solid #ccb48c;transform:rotate(-28deg)}
+    .rings-inner{
+      width:85px;height:85px;display:flex;flex-direction:column;justify-content:center;
+      align-items:center;border-radius:50%;background:#fffefa;border:1px solid #d9e5d8;
+      box-shadow:0 5px 20px rgba(30,75,45,.08);
+    }
+    .rings-num{font-size:34px;line-height:1;font-weight:780;color:var(--green);letter-spacing:-.035em}
+    .rings-unit{margin-top:6px;font-size:10px;font-weight:750;color:var(--gold);letter-spacing:.15em}
+    .feature h2{margin:0;font-size:17px;line-height:1.5}
+    .feature p{margin:8px auto 0;max-width:340px;font-size:12px;line-height:1.85;color:var(--ink-light)}
+    /* 3 DAYS直下の2つのテキストを、端末幅に依存しない横書き・全幅の段落として固定 */
+    .feature > h2,.feature > p{
+      display:block;width:100%;max-width:100%;min-width:0;
+      writing-mode:horizontal-tb;text-orientation:mixed;
+      white-space:normal;word-break:normal;overflow-wrap:break-word;
+    }
+    .section-label{font-size:11px;color:var(--gold);letter-spacing:.16em;font-weight:800;margin:28px 0 13px}
+    .timeline{display:grid;grid-template-columns:minmax(0,1fr);width:100%;min-width:0;gap:12px}
+    .tile{
+      display:grid;grid-template-columns:42px minmax(0,1fr);align-items:start;gap:12px;width:100%;min-width:0;
+      border:1px solid var(--outline);border-radius:17px;background:#fffdfa;
+      padding:18px 15px 17px;box-shadow:0 7px 22px rgba(21,67,45,.025);
+    }
+    .num{
+      width:42px;height:42px;display:grid;place-items:center;border-radius:13px;
+      border:1px solid #d7e4d7;background:#eef5ee;color:var(--green);
+      font-size:13px;letter-spacing:.07em;font-weight:800;
+    }
+    .tile>div{min-width:0;width:100%;writing-mode:horizontal-tb;word-break:normal;overflow-wrap:break-word}
+    .tile h3{margin:1px 0 6px;font-size:15px;line-height:1.55}
+    .tile p{margin:0;color:var(--ink-light);font-size:12px;line-height:1.85}
+    .mini-notice{
+      margin:17px 0 0;padding:14px 16px;border-left:3px solid var(--gold-light);
+      background:#f9f8f1;color:var(--ink-light);border-radius:0 11px 11px 0;
+      font-size:12px;line-height:1.85;
+    }
+    .actions{margin-top:26px}
+    .main-button{
+      display:flex;align-items:center;justify-content:center;position:relative;width:100%;text-decoration:none;
+      min-height:57px;padding:13px 41px;border:1px solid #244f41;border-radius:15px;
+      background:linear-gradient(125deg,#285d4a,#143d32);color:#fffdf5;
+      font-size:17px;font-weight:800;letter-spacing:.04em;
+      box-shadow:0 11px 24px rgba(24,66,48,.13);
+    }
+    .arrow{position:absolute;right:20px;color:#e0c89d;font-size:23px;line-height:1}
+    .footnote{text-align:center;color:var(--muted);font-size:11px;line-height:1.85;margin:15px auto 0;max-width:360px}
+    dialog{
+      width:min(92vw,400px);border:1px solid #d3e0d6;border-radius:18px;padding:24px;
+      background:#fffdf9;color:var(--ink);box-shadow:0 24px 70px rgba(13,49,32,.23)
+    }
+    dialog::backdrop{background:rgba(12,34,25,.5)}
+    dialog h2{font-size:20px;margin:0 0 10px}
+    dialog p{font-size:13px;line-height:1.9;color:var(--ink-light);margin:0 0 16px}
+    .close{min-height:47px;width:100%;border:0;border-radius:12px;background:var(--green);color:#fff;font-size:15px;font-weight:750}
+    @media(max-width:340px){.page{padding-inline:13px}.tile{padding:15px 12px;grid-template-columns:37px minmax(0,1fr);gap:9px}.num{width:37px;height:37px}}
+    @media(min-width:650px){.viewport{padding:24px}.page{border-radius:25px;border:1px solid var(--outline);min-height:calc(100svh - 48px);padding-inline:34px}}
+  
+/* 4群のみを1列の横スワイプ表示。ほかの画面には影響しない。 */
+.groups-intro{margin:0 0 15px;color:var(--ink-light);font-size:13px;line-height:1.85;text-align:center}
+.group-view{min-width:0;width:100%;overflow:hidden}
+.group-track{display:flex;gap:0;width:100%;min-width:0;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+.group-track::-webkit-scrollbar{display:none}
+.group-slide{flex:0 0 100%;min-width:0;width:100%;scroll-snap-align:start;scroll-snap-stop:always;padding:3px 1px 8px}
+.group-card{min-height:355px;height:100%;min-width:0;border:1px solid #dce6d9;border-radius:20px;background:#fffdfa;padding:17px 16px 20px;box-shadow:0 6px 24px rgba(25,54,41,.05);overflow-wrap:anywhere}
+.group-num{margin:0;text-align:center;color:var(--gold);font-size:11px;font-weight:800;letter-spacing:.13em}
+.group-icon{width:65px;height:65px;margin:13px auto 9px;border-radius:50%;display:grid;place-items:center;background:#edf5ef;font-size:35px}
+.group-card h2{margin:0;text-align:center;font-size:25px;line-height:1.4;color:var(--green)}
+.group-subtitle{margin:6px auto 16px;text-align:center;color:var(--ink-light);font-size:13px;line-height:1.65;max-width:320px;font-weight:700}
+.group-detail,.group-examples{padding:12px 13px;margin-top:10px;border-radius:12px;background:#f5f9f4}
+.group-examples{background:#faf8f1}
+.group-card h3{font-size:13px;line-height:1.6;margin:0 0 6px;color:var(--green)}
+.group-card ul{margin:0;padding-left:19px;font-size:13px;line-height:1.8;color:var(--ink-light)}
+.group-card li+li{margin-top:2px}
+.food-chips{display:flex;flex-wrap:wrap;gap:7px}
+.food-chips span{padding:5px 9px;max-width:100%;border-radius:100px;background:white;color:var(--ink-light);border:1px solid #e7e5d9;font-size:12px;line-height:1.4}
+.group-tip{font-size:12px;line-height:1.85;color:var(--ink-light);margin:13px 2px 0}
+.group-controls{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:9px;margin:11px 0 6px}
+.group-controls button{min-height:45px;max-width:100%;border-radius:11px;padding:8px 10px;background:#fff;border:1px solid #d0dfd2;color:var(--green);font-size:13px;font-weight:750}
+.group-controls button:last-child{background:var(--green);border-color:var(--green);color:#fff}
+.group-controls button:disabled{opacity:.38;cursor:default}
+.group-counter{font-size:13px;font-weight:800;color:var(--ink-light);font-variant-numeric:tabular-nums;text-align:center}
+.group-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:13px}
+.group-tab{min-width:0;min-height:39px;padding:6px 2px;border:1px solid #d8e4da;border-radius:10px;background:#fff;color:var(--ink-light);font-size:12px;font-weight:750}
+.group-tab[aria-pressed="true"]{background:var(--green);color:#fff;border-color:var(--green)}
+.group-footer{padding:13px 14px;margin:16px 0 0;border-radius:12px;background:#f9f8f1;color:var(--ink-light);font-size:12px;line-height:1.8}
+.group-actions{display:grid;gap:10px;margin-top:18px}
+.group-actions a{display:flex;align-items:center;justify-content:center;min-height:48px;padding:10px;text-align:center;text-decoration:none;border-radius:12px;font-size:14px;font-weight:750}
+.group-actions .group-primary{background:#285d4a;color:#fff}
+.group-actions .group-secondary{border:1px solid #d8e4da;background:#fff;color:#285d4a}
+@media(max-width:340px){.group-card{padding:15px 12px 18px}.group-controls{gap:5px}.group-controls button{padding-inline:5px;font-size:12px}.group-tab{font-size:11px}}
+@media(prefers-reduced-motion:reduce){.group-track{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<main class="viewport">
+ <article class="page">
+  <nav class="topbar" aria-label="ページ移動">
+   <a id="backToCheck" class="back" href="./habit-check.html?day=1">〈 食行動チェックに戻る</a>
+   <span class="step">FOOD GROUPS</span>
+  </nav>
+  <p class="wordmark" aria-label="EQUINERIS">EQUI<span>NERIS</span></p>
+  <header class="heading">
+   <p class="eyebrow">SMART DIET · 食品の分類</p>
+   <h1>4つの食品群を知ろう</h1>
+   <p>食べ物にはそれぞれ特徴があります。まずは、どんな食品がどの群に入るかを見てみましょう。</p>
+  </header>
+  <p class="groups-intro" id="groupInstructions">左右にスワイプするか、下のボタンをタップして、4つの群を順番に確認できます。</p>
+  <div class="group-view">
+   <div class="group-track" id="groupTrack" role="region" aria-label="食品群の横スクロール説明" aria-describedby="groupInstructions" tabindex="0">
+      <section class="group-slide" data-slide="0" aria-labelledby="group-title-1" role="group" aria-roledescription="スライド" aria-label="1枚目／4枚">
+        <div class="group-card">
+          <p class="group-num">FOOD GROUP 1</p>
+          <div class="group-icon" aria-hidden="true">🥛</div>
+          <h2 id="group-title-1">第1群</h2>
+          <p class="group-subtitle">乳・乳製品、卵</p>
+          <div class="group-detail">
+            <h3>この群に入る食品</h3>
+            <ul><li>牛乳・ヨーグルト・チーズ</li><li>卵・卵製品</li></ul>
+          </div>
+          <div class="group-examples">
+            <h3>身近な食品の例</h3>
+            <div class="food-chips"><span>牛乳</span><span>ヨーグルト</span><span>ゆで卵</span></div>
+          </div>
+          <p class="group-tip">乳製品や卵は、第1群に分類します。朝食の牛乳や卵など、身近な食品から覚えていきましょう。</p>
+        </div>
+      </section>
+      <section class="group-slide" data-slide="1" aria-labelledby="group-title-2" role="group" aria-roledescription="スライド" aria-label="2枚目／4枚">
+        <div class="group-card">
+          <p class="group-num">FOOD GROUP 2</p>
+          <div class="group-icon" aria-hidden="true">🐟</div>
+          <h2 id="group-title-2">第2群</h2>
+          <p class="group-subtitle">魚介類、肉、豆・豆製品</p>
+          <div class="group-detail">
+            <h3>この群に入る食品</h3>
+            <ul><li>魚介類・魚の加工品</li><li>牛肉・豚肉・鶏肉など</li><li>大豆・豆製品</li></ul>
+          </div>
+          <div class="group-examples">
+            <h3>身近な食品の例</h3>
+            <div class="food-chips"><span>焼き魚</span><span>鶏肉</span><span>豆腐・納豆</span></div>
+          </div>
+          <p class="group-tip">魚や肉、豆腐などは第2群です。主菜に使うことの多い食品を、ひとまとめにして見てみましょう。</p>
+        </div>
+      </section>
+      <section class="group-slide" data-slide="2" aria-labelledby="group-title-3" role="group" aria-roledescription="スライド" aria-label="3枚目／4枚">
+        <div class="group-card">
+          <p class="group-num">FOOD GROUP 3</p>
+          <div class="group-icon" aria-hidden="true">🥦</div>
+          <h2 id="group-title-3">第3群</h2>
+          <p class="group-subtitle">野菜、果物、いも、きのこ・海藻</p>
+          <div class="group-detail">
+            <h3>この群に入る食品</h3>
+            <ul><li>緑黄色野菜・淡色野菜</li><li>果物・いも類</li><li>きのこ・海藻</li></ul>
+          </div>
+          <div class="group-examples">
+            <h3>身近な食品の例</h3>
+            <div class="food-chips"><span>にんじん</span><span>りんご</span><span>じゃがいも</span></div>
+          </div>
+          <p class="group-tip">野菜や果物、いも、きのこ・海藻などが第3群です。色や料理の形だけではなく、食品そのものを見て考えます。</p>
+        </div>
+      </section>
+      <section class="group-slide" data-slide="3" aria-labelledby="group-title-4" role="group" aria-roledescription="スライド" aria-label="4枚目／4枚">
+        <div class="group-card">
+          <p class="group-num">FOOD GROUP 4</p>
+          <div class="group-icon" aria-hidden="true">🍚</div>
+          <h2 id="group-title-4">第4群</h2>
+          <p class="group-subtitle">穀類、油脂、砂糖・菓子など</p>
+          <div class="group-detail">
+            <h3>この群に入る食品</h3>
+            <ul><li>ご飯・パン・麺などの穀類</li><li>油脂・砂糖・菓子</li><li>種実・調味料・一部の飲料</li></ul>
+          </div>
+          <div class="group-examples">
+            <h3>身近な食品の例</h3>
+            <div class="food-chips"><span>ご飯</span><span>食パン</span><span>食用油</span></div>
+          </div>
+          <p class="group-tip">主食の穀類や、油・砂糖・お菓子などは第4群です。料理の材料に使われている油や調味料にも目を向けてみましょう。</p>
+        </div>
+      </section>
+   </div>
+  </div>
+  <div class="group-controls" aria-label="スライド操作">
+   <button id="groupPrev" type="button" disabled>〈 前へ</button>
+   <span class="group-counter" id="groupCounter" aria-live="polite">1 / 4</span>
+   <button id="groupNext" type="button">次へ 〉</button>
+  </div>
+  <div class="group-tabs" role="group" aria-label="説明する食品群を選ぶ">
+   <button type="button" class="group-tab" data-tab="0" aria-pressed="true">第1群</button>
+   <button type="button" class="group-tab" data-tab="1" aria-pressed="false">第2群</button>
+   <button type="button" class="group-tab" data-tab="2" aria-pressed="false">第3群</button>
+   <button type="button" class="group-tab" data-tab="3" aria-pressed="false">第4群</button>
+  </div>
+  <p class="group-footer">最初から全部を暗記する必要はありません。食事を記録しながら「これはどの群かな？」と少しずつ覚えていきましょう。点数や量の見方は、今後の学びで扱います。</p>
+  <div class="group-actions">
+   <a id="diaryLink" class="group-primary" href="./record.html?day=1">食事ダイアリーを見返す</a>
+   <a id="checkLink" class="group-secondary" href="./habit-check.html?day=1">食行動チェックを見直す</a>
+  </div>
+ </article>
+</main>
+<script>
+'use strict';
+const track=document.getElementById('groupTrack');
+const slides=[...document.querySelectorAll('.group-slide')];
+const tabs=[...document.querySelectorAll('[data-tab]')];
+const previous=document.getElementById('groupPrev');
+const next=document.getElementById('groupNext');
+const counter=document.getElementById('groupCounter');
+const param=Number(new URLSearchParams(window.location.search).get('day'));
+const day=[1,2,3].includes(param)?param:1;
+document.getElementById('backToCheck').href='./habit-check.html?day='+day;
+document.getElementById('checkLink').href='./habit-check.html?day='+day;
+document.getElementById('diaryLink').href='./record.html?day='+day;
+let active=0;
+let framePending=false;
+const reduceMotion=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function updateUI(index){
+ active=Math.max(0,Math.min(slides.length-1,index));
+ counter.textContent=(active+1)+' / '+slides.length;
+ previous.disabled=active===0;
+ next.disabled=active===slides.length-1;
+ tabs.forEach((tab,i)=>tab.setAttribute('aria-pressed',String(i===active)));
+}
+function navigate(index,smooth=true){
+ const target=Math.max(0,Math.min(slides.length-1,index));
+ updateUI(target);
+ track.scrollTo({left:target*track.clientWidth,behavior:smooth&&!reduceMotion?'smooth':'auto'});
+}
+previous.addEventListener('click',()=>navigate(active-1));
+next.addEventListener('click',()=>navigate(active+1));
+tabs.forEach((tab,i)=>tab.addEventListener('click',()=>navigate(i)));
+track.addEventListener('scroll',()=>{
+ if(framePending)return;
+ framePending=true;
+ requestAnimationFrame(()=>{
+  framePending=false;
+  const index=Math.round(track.scrollLeft/(track.clientWidth||1));
+  if(index!==active)updateUI(index);
+ });
+},{passive:true});
+track.addEventListener('keydown',event=>{
+ if(event.key==='ArrowRight'){event.preventDefault();navigate(active+1);}
+ if(event.key==='ArrowLeft'){event.preventDefault();navigate(active-1);}
+});
+window.addEventListener('resize',()=>navigate(active,false));
+</script>
+</body>
+</html>
