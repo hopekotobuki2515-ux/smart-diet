@@ -107,6 +107,18 @@
     .close{min-height:47px;width:100%;border:0;border-radius:12px;background:var(--green);color:#fff;font-size:15px;font-weight:750}
     @media(max-width:340px){.page{padding-inline:13px}.tile{padding:15px 12px;grid-template-columns:37px minmax(0,1fr);gap:9px}.num{width:37px;height:37px}}
     @media(min-width:650px){.viewport{padding:24px}.page{border-radius:25px;border:1px solid var(--outline);min-height:calc(100svh - 48px);padding-inline:34px}}
+
+    /* 登録なしの食事記録入口。既存の1カラム・ボタン配置を維持。 */
+    .secondary-button{
+      display:flex;align-items:center;justify-content:center;width:100%;min-height:54px;
+      margin-top:12px;padding:13px 12px;text-decoration:none;text-align:center;
+      border:1px solid #8faf98;border-radius:15px;background:#fffdfa;color:var(--green);
+      font-size:14px;font-weight:750;line-height:1.6;
+    }
+    .secondary-button:hover{background:#f4f8f2}
+    .secondary-button:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+    .guest-note{margin:10px auto 0;max-width:350px;text-align:center;color:var(--muted);
+      font-size:11px;line-height:1.7}
   </style>
 </head>
 <body>
@@ -153,7 +165,9 @@
     </div>
     <p class="mini-notice">ただ食べる量を減らすのではなく、食品の選び方や組み合わせ、適切な食事量を少しずつ学んでいきます。</p>
     <div class="actions">
-      <a class="main-button" href="./setup.html">次へ進む <span class="arrow" aria-hidden="true">›</span></a>
+      <a class="main-button" href="./setup.html">登録して12週間のプログラムへ <span class="arrow" aria-hidden="true">›</span></a>
+      <a class="secondary-button" id="guestRecordLink" href="./record.html">登録せずに食事記録だけ使う</a>
+      <p class="guest-note">現在は3日間のお試し記録です。記録はこの端末のブラウザ内に保存されます。</p>
       <p class="footnote">あなたの目標に向けて、一緒に始めましょう。</p>
     </div>
   </article>
