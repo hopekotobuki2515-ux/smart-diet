@@ -48,7 +48,7 @@ button{cursor:pointer}
 <body>
 <main class="sheet-shell">
   <nav class="sheet-nav" aria-label="ページ移動">
-    <a id="choiceLink" href="./program-choice.html">〈 進め方の選択へ戻る</a>
+    <a id="choiceLink" href="./habit-intro.html?day=1">〈 チェックの説明へ戻る</a>
     <small>SMART DIET · 12 WEEKS</small>
   </nav>
   <article class="sheet" aria-labelledby="habitTitle">
@@ -165,7 +165,7 @@ const status=document.getElementById('saveStatus');
 const validIds=new Set(boxes.map(box=>box.dataset.habit));
 const queryDay=Number(new URLSearchParams(window.location.search).get('day'));
 const day=[1,2,3].includes(queryDay)?queryDay:1;
-document.getElementById('choiceLink').href='./program-choice.html?day='+day;
+document.getElementById('choiceLink').href='./habit-intro.html?day='+day;
 document.getElementById('diaryLink').href='./record.html?day='+day;
 function selected(){return boxes.filter(box=>box.checked).map(box=>box.dataset.habit);}
 function setStatus(message,error=false){status.textContent=message;status.dataset.error=String(error);}
