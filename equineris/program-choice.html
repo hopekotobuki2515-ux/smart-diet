@@ -148,7 +148,7 @@
      <li>チェックした内容を手がかりに、具体的な行動目標を考えます。</li>
      <li>その後は食事記録と「今週のお話」を活用し、12週間かけて振り返ります。</li>
     </ul>
-    <a class="choice-action" id="startProgram" href="./habit-check.html?day=1" data-select="program">プログラムを始める</a>
+    <a class="choice-action" id="startProgram" href="./habit-intro.html?day=1" data-select="program">プログラムを始める</a>
    </section>
    <section class="choice-card" data-mode="diary" aria-labelledby="diaryTitle">
     <span class="choice-tag">FOOD DIARY ONLY</span>
@@ -174,7 +174,7 @@ const value=Number(new URLSearchParams(window.location.search).get('day'));
 const day=[1,2,3].includes(value)?value:1;
 const options=[...document.querySelectorAll('[data-select]')];
 const status=document.getElementById('choiceStatus');
-document.getElementById('startProgram').href='./habit-check.html?day='+day;
+document.getElementById('startProgram').href='./habit-intro.html?day='+day;
 document.getElementById('continueDiary').href='./record.html?day='+day;
 document.getElementById('backLink').href='./daily-result.html?day='+day;
 document.getElementById('resultLink').href='./daily-result.html?day='+day;
