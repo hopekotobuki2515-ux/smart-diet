@@ -162,6 +162,25 @@
 .page-note{font-size:12px;line-height:1.85;padding:13px;border-radius:12px;background:#f7faf6;color:var(--ink-light);margin:15px 0}
 @media(max-width:360px){.slide-card{padding:15px 9px 17px}.group-row{padding:7px 5px;gap:4px}.circle{width:25px;flex-basis:25px}.circle span{width:22px;height:22px;left:1px;top:5px}.circles{gap:2px}.point-row{grid-template-columns:64px minmax(0,1fr) 75px;gap:4px;padding:7px}.point-row output{font-size:10px}}
 @media(prefers-reduced-motion:reduce){.entry-track{scroll-behavior:auto}}
+
+/* Existing master search, integrated into optional horizontal entry panel only. */
+.food-search-box{display:grid;gap:9px;margin:7px 0 12px}
+.food-search-box label{display:grid;gap:6px;font-size:12px;font-weight:800;color:var(--green)}
+.food-search-box input,.food-search-box select{width:100%;min-width:0;min-height:47px;padding:9px 10px;border:1px solid #c9dbcf;border-radius:10px;background:#fff;color:var(--ink);font-size:16px}
+.food-search-count{min-height:19px;margin:6px 0 10px;color:var(--ink-light);font-size:12px;line-height:1.6}
+.food-search-results{display:grid;gap:8px;max-height:430px;overflow-y:auto;overscroll-behavior:contain}
+.food-search-item{border:1px solid #e1e9df;background:#f9fbf7;border-radius:12px;padding:12px;min-width:0}
+.food-search-item h3{font-size:14px;line-height:1.55;margin:0 0 5px;color:var(--green);overflow-wrap:anywhere}
+.food-search-item p{font-size:12px;line-height:1.65;color:var(--ink-light);margin:2px 0 8px;overflow-wrap:anywhere}
+.food-search-calc{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:9px;align-items:center}
+.food-search-calc label{display:grid;grid-template-columns:auto minmax(0,75px) auto;align-items:center;gap:5px;font-size:12px;font-weight:700;color:var(--ink-light)}
+.food-search-calc input{width:100%;min-width:0;min-height:39px;padding:5px 7px;border:1px solid #c9dbcf;border-radius:8px;font-size:16px;background:#fff;color:var(--ink)}
+.food-search-calc output{color:var(--green);font-size:12px;font-variant-numeric:tabular-nums;font-weight:800;text-align:right;max-width:126px}
+.food-search-more{display:block;width:100%;min-height:45px;margin:9px 0;border:1px solid #cadccd;border-radius:10px;background:white;color:var(--green);font-size:13px;font-weight:800}
+.food-search-more[hidden]{display:none}
+.food-search-full-link{display:block;margin:15px 0 5px;text-decoration:none;text-align:center;min-height:47px;padding:12px 8px;background:#edf5ec;border:1px solid #c9dbcf;border-radius:11px;color:var(--green);font-size:13px;font-weight:800}
+.food-search-caveat{font-size:11px;line-height:1.75;color:var(--ink-light);margin:8px 0}
+@media(max-width:345px){.food-search-calc{grid-template-columns:1fr;gap:5px}.food-search-calc output{text-align:left;max-width:none}}
 </style>
 </head>
 <body>
@@ -310,6 +329,29 @@
       <p class="slide-foot">○の数は食品の記録数です。1点＝80kcalの点数には換算しません。</p>
      </div>
     </section>
+
+   <section class="entry-slide" data-slide="food-search" role="group" aria-roledescription="スライド" aria-label="食品検索・任意">
+    <div class="slide-card">
+     <p class="slide-eyebrow">任意 · 使いたい人だけ</p>
+     <h2>食品検索</h2>
+     <p class="slide-desc">食品名や分類から第1〜4群と1点の重量を検索できます。食べた量を入力すると、点数・エネルギーを計算します。</p>
+     <div class="food-search-box">
+      <label for="foodSearchQuery">食品名・分類で探す
+       <input id="foodSearchQuery" type="search" autocomplete="off" placeholder="例：牛乳、鶏肉、ご飯" aria-controls="foodSearchResults">
+      </label>
+      <label for="foodSearchGroup">食品群で絞り込む
+       <select id="foodSearchGroup">
+        <option value="">すべての群</option><option value="第1群">第1群</option><option value="第2群">第2群</option><option value="第3群">第3群</option><option value="第4群">第4群</option>
+       </select>
+      </label>
+     </div>
+     <p id="foodSearchCount" class="food-search-count" role="status" aria-live="polite">食品マスターを読み込んでいます。</p>
+     <div id="foodSearchResults" class="food-search-results" aria-label="食品検索の結果"></div>
+     <button id="foodSearchMore" class="food-search-more" type="button" hidden>さらに12件表示</button>
+     <a class="food-search-full-link" href="../food-search.html?mode=nutrient">栄養素・カラダの不調から食品を探す</a>
+     <p class="food-search-caveat">既存の686食品マスターを使用。計算値はマスターの「1点重量」に基づく概算です。検索・計算しただけでは記録に追加されません。</p>
+    </div>
+   </section>
    <section class="entry-slide" data-slide="points" role="group" aria-roledescription="スライド" aria-label="点数とエネルギーの任意記録">
     <div class="slide-card">
      <p class="slide-eyebrow">任意 · 入力できる人だけ</p>
@@ -336,13 +378,13 @@
       <div class="nutrition-row"><label for="carbohydrate">炭水化物（g）</label><input type="number" id="carbohydrate" data-field="carbohydrate" min="0" step="0.1" inputmode="decimal" placeholder="分かれば入力"></div>
       <div class="nutrition-row"><label for="nutrientMemo">その他の栄養素・メモ</label><textarea id="nutrientMemo" data-field="nutrientMemo" rows="3" placeholder="例：食物繊維、ビタミン、ミネラルなど、分かる内容だけ"></textarea></div>
      </div>
-     <p class="slide-foot">食品検索や栄養素の自動計算は、この画面には含めていません。入力値は利用者が確認した数値です。</p>
+     <p class="slide-foot">食品検索は左の「食品検索」から利用できます。栄養素は確認できた数値のみ入力してください。</p>
     </div>
    </section>
   </div>
   <div class="swipe-controls" aria-label="記録項目の横スクロール操作">
    <button id="prevSlide" type="button" disabled>〈 前へ</button>
-   <span id="slideCounter" class="swipe-count" aria-live="polite">1 / 7</span>
+   <span id="slideCounter" class="swipe-count" aria-live="polite">1 / 8</span>
    <button id="nextSlide" type="button">次へ 〉</button>
   </div>
   <div class="swipe-tabs" role="group" aria-label="記録する項目を選ぶ">
@@ -351,8 +393,9 @@
    <button type="button" class="swipe-tab" data-tab="2" aria-pressed="false">昼食</button>
    <button type="button" class="swipe-tab" data-tab="3" aria-pressed="false">夕食</button>
    <button type="button" class="swipe-tab" data-tab="4" aria-pressed="false">間食</button>
-   <button type="button" class="swipe-tab" data-tab="5" aria-pressed="false">点数・エネルギー（任意）</button>
-   <button type="button" class="swipe-tab" data-tab="6" aria-pressed="false">栄養素（任意）</button>
+   <button type="button" class="swipe-tab" data-tab="5" aria-pressed="false">食品検索（任意）</button>
+   <button type="button" class="swipe-tab" data-tab="6" aria-pressed="false">点数・エネルギー（任意）</button>
+   <button type="button" class="swipe-tab" data-tab="7" aria-pressed="false">栄養素（任意）</button>
   </div>
   <div class="day-controls">
    <button id="prevDay" type="button" disabled>〈 前の日</button>
@@ -484,6 +527,90 @@ const requestedWeek=Number(query.get('week')),requestedDay=Number(query.get('day
 weeks.value=String([1,2,3].includes(requestedWeek)?requestedWeek:1);
 days.value=String(Number.isInteger(requestedDay)&&requestedDay>=1&&requestedDay<=7?requestedDay:1);
 load();
+
+/* Search uses the existing, shared food-master.json and does not modify diary data. */
+(()=>{
+ const input=document.getElementById('foodSearchQuery');
+ const select=document.getElementById('foodSearchGroup');
+ const output=document.getElementById('foodSearchResults');
+ const count=document.getElementById('foodSearchCount');
+ const more=document.getElementById('foodSearchMore');
+ let foods=[],visible=12,filtered=[];
+ const norm=text=>String(text??'').normalize('NFKC').toLocaleLowerCase('ja')
+  .replace(/[ァ-ヶ]/g,c=>String.fromCharCode(c.charCodeAt(0)-0x60))
+  .replace(/[\\s・･（）()\-]/g,'');
+ const alias=food=>{
+  if(food.category.includes('鶏肉')&&food.name==='むね・皮つき')return '鶏むね肉皮つき';
+  if(food.category.includes('鶏肉')&&food.name==='皮・むね')return '鶏皮むね';
+  if(food.category.includes('鶏肉')&&food.name==='ささ身')return '鶏ささみ';
+  return '';
+ };
+ function item(food){
+  const card=document.createElement('article');card.className='food-search-item';
+  const title=document.createElement('h3');
+  title.textContent=food.name;
+  const meta=document.createElement('p');
+  meta.textContent=food.group+' ／ '+food.category+' ／ 1点='+food.gramsPerPoint+'g';
+  const row=document.createElement('div');row.className='food-search-calc';
+  const label=document.createElement('label');label.textContent='食べた量';
+  const gram=document.createElement('input');gram.type='number';gram.inputMode='decimal';
+  gram.min='0.1';gram.max='10000';gram.step='0.1';gram.placeholder='例：100';gram.setAttribute('aria-label',food.name+'の重量（g）');
+  label.appendChild(gram);label.appendChild(document.createTextNode('g'));
+  const result=document.createElement('output');result.textContent='重量を入力';
+  function calculate(){
+   const grams=Number(gram.value);
+   if(!gram.value.trim()){result.textContent='重量を入力';return;}
+   if(!Number.isFinite(grams)||grams<=0||grams>10000){
+    result.textContent='0より大きい重量を入力';return;
+   }
+   const points=grams/food.gramsPerPoint;
+   const kcal=points*80;
+   result.textContent=points.toFixed(2)+'点 ／ '+kcal.toFixed(1)+'kcal';
+  }
+  gram.addEventListener('input',calculate);
+  row.appendChild(label);row.appendChild(result);
+  card.appendChild(title);card.appendChild(meta);card.appendChild(row);
+  return card;
+ }
+ function render(){
+  output.replaceChildren();
+  filtered.slice(0,visible).forEach(food=>output.appendChild(item(food)));
+  more.hidden=visible>=filtered.length;
+  if(!filtered.length)count.textContent='該当する食品がありません。別の名前や群をお試しください。';
+  else count.textContent=filtered.length+'件見つかりました。'+Math.min(visible,filtered.length)+'件を表示中。';
+ }
+ function refresh(){
+  if(!foods.length)return;
+  const query=norm(input.value.trim()),group=select.value;
+  if(!query&&!group){
+   filtered=[];output.replaceChildren();more.hidden=true;
+   count.textContent='食品名を入力するか、食品群を選んでください（686品目）。';return;
+  }
+  const words=query.split(/\s+/).filter(Boolean);
+  filtered=foods.filter(food=>{
+   if(group&&food.group!==group)return false;
+   const hay=norm(food.name+' '+food.category+' '+food.group+' '+alias(food));
+   return !words.length||words.every(w=>hay.includes(w));
+  });
+  visible=12;render();
+ }
+ input.addEventListener('input',refresh);
+ input.addEventListener('compositionend',refresh);
+ select.addEventListener('change',refresh);
+ more.addEventListener('click',()=>{visible+=12;render();});
+ fetch('../food-master.json',{cache:'no-store'})
+  .then(response=>{if(!response.ok)throw new Error('HTTP '+response.status);return response.json();})
+  .then(data=>{
+   if(!Array.isArray(data.foods)||data.foods.length!==686||
+      data.foods.some(food=>!food||typeof food.name!=='string'||!['第1群','第2群','第3群','第4群'].includes(food.group)||
+      !Number.isFinite(food.gramsPerPoint)||food.gramsPerPoint<=0))throw new Error('Invalid shared master');
+   foods=data.foods;refresh();
+  })
+  .catch(()=>{
+   count.textContent='食品マスターを読み込めませんでした。通信を確認して再読み込みしてください。';
+   output.replaceChildren();more.hidden=true;
+  });
+})();
 </script>
 </body>
 </html>
