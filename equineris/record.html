@@ -180,6 +180,14 @@ dialog h2{margin:0 0 13px;font-size:17px}
      <p class="example-food">食パン1枚、ゆで卵1個、ヨーグルト1個</p>
      <p class="example-mark">○の例：卵とヨーグルトは第1群に2個、食パンは第4群に1個付けます。</p>
    </details>
+   <section class="memo-section" aria-labelledby="breakfastMemoTitle">
+     <h2 id="breakfastMemoTitle">朝食のメモ</h2>
+     <p class="memo-help">写真と記入例を参考に、食べたものや飲み物を記入してください。入力内容は自動保存されます。</p>
+      <div class="memo-pane" data-memo-pane="0">
+        <label class="memo-label" for="meal-breakfast">朝食のメモ（食べたもの・飲み物）</label>
+        <textarea class="meal-memo" id="meal-breakfast" data-diary-key="breakfast-meal" rows="4" placeholder="食べたもの・飲み物"></textarea>
+      </div>
+   </section>
    <p class="small-note">飲み物・飲酒も、該当する食事または間食の欄へ記録してください。第1週は点数計算をしません。メモと○は自動保存します。写真も選択するとブラウザに保存されます。</p>
    <p id="photoStatus" class="status" role="status" aria-live="polite">写真の保存機能を確認しています。</p>
    <section class="group-guide" aria-labelledby="groupGuideTitle">
@@ -235,13 +243,9 @@ dialog h2{margin:0 0 13px;font-size:17px}
         <p class="status" id="saveStatus" role="status" aria-live="polite">保存先を確認しています。</p>
       </div>
     </section>
-    <section class="memo-section" aria-labelledby="memoSectionTitle">
-      <h2 id="memoSectionTitle">朝食のメモ</h2>
+    <section class="memo-section" id="memoSection" aria-labelledby="memoSectionTitle" hidden>
+      <h2 id="memoSectionTitle">昼食のメモ</h2>
       <p class="memo-help">写真と記入例を参考に、食べたものや飲み物を記入してください。入力内容は自動保存されます。</p>
-      <div class="memo-pane" data-memo-pane="0">
-        <label class="memo-label" for="meal-breakfast">朝食のメモ（食べたもの・飲み物）</label>
-        <textarea class="meal-memo" id="meal-breakfast" data-diary-key="breakfast-meal" rows="4" placeholder="食べたもの・飲み物"></textarea>
-      </div>
       <div class="memo-pane" data-memo-pane="1" hidden>
         <label class="memo-label" for="meal-lunch">昼食のメモ（食べたもの・飲み物）</label>
         <textarea class="meal-memo" id="meal-lunch" data-diary-key="lunch-meal" rows="4" placeholder="食べたもの・飲み物"></textarea>
@@ -321,7 +325,8 @@ function renderMeal(i){
  activeMeal=Math.max(0,Math.min(slides.length-1,i));
  mealTabs.forEach((b,n)=>b.setAttribute('aria-pressed',String(n===activeMeal)));
  memoPanes.forEach((pane,n)=>{pane.hidden=n!==activeMeal;});
- document.getElementById('memoSectionTitle').textContent=MEALS[activeMeal][1]+'のメモ';
+ document.getElementById('memoSection').hidden=activeMeal===0;
+ if(activeMeal!==0)document.getElementById('memoSectionTitle').textContent=MEALS[activeMeal][1]+'のメモ';
  document.getElementById('mealCounter').textContent=(activeMeal+1)+' / '+slides.length;
  document.getElementById('mealPrev').hidden=activeMeal===0;
  document.getElementById('mealNext').hidden=activeMeal===slides.length-1;
