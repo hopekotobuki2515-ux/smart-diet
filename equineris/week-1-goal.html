@@ -65,7 +65,7 @@
       -webkit-overflow-scrolling:touch;scrollbar-width:none;
     }
     .slide-track::-webkit-scrollbar {display:none}
-    .slide-track > .slide {flex:0 0 100%;min-width:0;scroll-snap-align:start;scroll-snap-stop:always}
+    .slide-track > .slide {flex:0 0 100%;min-width:0;scroll-snap-align:start}
     .swipe-status {display:flex;align-items:center;justify-content:space-between;gap:10px;margin:15px 2px 7px;font-size:12px;color:var(--muted)}
     .swipe-status strong {color:var(--ink);font-size:13px;font-variant-numeric:tabular-nums}
     .swipe-dots {display:flex;justify-content:center;align-items:center;gap:6px;margin:0 0 10px}
@@ -170,7 +170,7 @@
     .goal-header-measure{visibility:hidden;pointer-events:none}
     .goal-lead-stage>.lead{width:100%;max-width:350px}
     /* カードの高さ差は即時切り替え、縦方向にはアニメーションさせない */
-    .goal-slide-track{margin-top:0;overflow-anchor:none}
+    .goal-slide-track{margin-top:0;overflow-anchor:none;overscroll-behavior-x:none}
     .page{overflow-anchor:none}
     .goal-slide{width:100%;min-width:0}
     .motivation-card{text-align:left}
@@ -456,7 +456,8 @@
   {title:'スマートダイエットの<br>減量目標設定',lead:'12週間後、あなたは何kgを目指したいですか？<br>まずは現在の体重から目標を考えましょう。'}
  ];
  let active=0;
- let scrollPending=false;
+ let settleTimer=null;
+ const supportsScrollEnd='onscrollend' in track;
  function measure(){
   const height=slides[active].offsetHeight;
   if(height>0)track.style.height=height+'px';
@@ -487,16 +488,24 @@
  forward.addEventListener('click',()=>go(1));
  backward.addEventListener('click',()=>go(0));
  dots.forEach((dot,i)=>dot.addEventListener('click',()=>go(i)));
- track.addEventListener('scroll',()=>{
-  if(scrollPending)return;
-  scrollPending=true;
-  requestAnimationFrame(()=>{
-   scrollPending=false;
-   const width=track.clientWidth||1;
-   const index=Math.max(0,Math.min(slides.length-1,Math.round(track.scrollLeft/width)));
-   if(index!==active)render(index);
-  });
- },{passive:true});
+ // スワイプ中の中間位置では見出し・高さ・inert属性を変更しない。
+ // スナップが終わってから確定したスライドだけを反映する。
+ function finishScroll(){
+  if(settleTimer!==null){window.clearTimeout(settleTimer);settleTimer=null;}
+  const width=track.clientWidth||1;
+  const index=Math.max(0,Math.min(slides.length-1,Math.round(track.scrollLeft/width)));
+  if(index!==active)render(index);
+  else measure();
+ }
+ if(supportsScrollEnd){
+  track.addEventListener('scrollend',finishScroll);
+ }else{
+  // scrollend未対応環境のみ、最後のスクロールイベントから判定する。
+  track.addEventListener('scroll',()=>{
+   if(settleTimer!==null)window.clearTimeout(settleTimer);
+   settleTimer=window.setTimeout(finishScroll,180);
+  },{passive:true});
+ }
  window.addEventListener('resize',()=>{
   track.scrollLeft=active*track.clientWidth;
   measure();
