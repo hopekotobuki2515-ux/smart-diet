@@ -304,6 +304,21 @@ function filterFoodRecords(records,rawQuery,group) {
    message('ステップ3の記録は独立して自動保存されます。');
    void refreshPhotos();
  }
+ let pendingSlideHeightFrame=0;
+ function fitActiveSlideHeight(){
+   if(pendingSlideHeightFrame)return;
+   pendingSlideHeightFrame=requestAnimationFrame(()=>{
+     pendingSlideHeightFrame=0;
+     const slide=slides[activeSlide];
+     if(!slide)return;
+     const height=Math.ceil(slide.scrollHeight);
+     if(height>0&&track.style.height!==height+'px')track.style.height=height+'px';
+   });
+ }
+ if(typeof ResizeObserver==='function'){
+   const mealSlideObserver=new ResizeObserver(()=>fitActiveSlideHeight());
+   slides.forEach(slide=>mealSlideObserver.observe(slide));
+ }
  function showSlide(index){
    activeSlide=Math.max(0,Math.min(slides.length-1,index));
    tabs.forEach((button,i)=>button.setAttribute('aria-pressed',String(i===activeSlide)));
@@ -312,6 +327,7 @@ function filterFoodRecords(records,rawQuery,group) {
    $('#mealPrev').disabled=activeSlide===0;
    $('#mealNext').disabled=activeSlide===slides.length-1;
    $('.actions').hidden=activeSlide===0;
+   fitActiveSlideHeight();
  }
  function go(index,animate=true){
    const n=Math.max(0,Math.min(slides.length-1,index));
@@ -326,7 +342,7 @@ function filterFoodRecords(records,rawQuery,group) {
    requestAnimationFrame(()=>{scheduled=false;showSlide(Math.round(track.scrollLeft/(track.clientWidth||1)));});
  },{passive:true});
  track.addEventListener('keydown',e=>{if(e.target!==track)return;if(e.key==='ArrowRight'){e.preventDefault();go(activeSlide+1);}if(e.key==='ArrowLeft'){e.preventDefault();go(activeSlide-1);}});
- window.addEventListener('resize',()=>{track.scrollLeft=activeSlide*track.clientWidth;});
+ window.addEventListener('resize',()=>{track.scrollLeft=activeSlide*track.clientWidth;fitActiveSlideHeight();});
  $('#targetPattern').addEventListener('change',()=>{
    put(OWN+'target-pattern',$('#targetPattern').value);drawDaily();
  });
