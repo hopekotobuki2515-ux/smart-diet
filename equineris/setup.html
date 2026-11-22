@@ -306,7 +306,9 @@
    const registration={...oldRegData,name:enteredName,age:age.value,heightCm:height.value,weightKg:weight.value,waistCm:waist.value};
    const goals={...oldGoalData,startWeightKg:w,goalWeightKg:one(g),lossKg:one(w-g),
     selectedRatePercent:rateNumber,actualRatePercent:one((w-g)/w*100),
-    weightAt20Kg:w20,longestWeightKg:maintained,futureGoalWeightKg:futureWeight,selectedFutureBmi:null};
+    weightAt20Kg:w20,longestWeightKg:maintained,futureGoalWeightKg:futureWeight,
+    selectedFutureBmi:futureWeight!==null&&Number(oldGoalData.futureGoalWeightKg)===futureWeight&&
+     [22,25].includes(Number(oldGoalData.selectedFutureBmi))?Number(oldGoalData.selectedFutureBmi):null};
    // Keep the existing storage keys read by other EQUINERIS pages.
    localStorage.setItem(GOAL_KEY,JSON.stringify(goals));
    localStorage.setItem(REG_KEY,JSON.stringify(registration));
