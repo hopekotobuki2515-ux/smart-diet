@@ -158,20 +158,66 @@
    });
    drawAllTotals();
  }
+ const aliasGroups=[{"terms":["ごはん","ご飯","白ごはん","白ご飯","らいす","rice","gohan"],"targets":["めし・水稲","米・水稲穀粒","赤飯"]},{"terms":["たまご","玉子","えっぐ","egg","eggs","tamago"],"targets":["鶏卵","うずら卵","卵豆腐","ピータン"]},{"terms":["ぎゅうにゅう","みるく","milk","gyunyu"],"targets":["牛乳","加工乳","生乳","乳飲料"]},{"terms":["よーぐると","yogurt","yoghurt"],"targets":["ヨーグルト"]},{"terms":["ちーず","cheese"],"targets":["チーズ"]},{"terms":["とうふ","tofu"],"targets":["豆腐"]},{"terms":["なっとう","natto","nattou"],"targets":["納豆"]},{"terms":["ぱん","bread","pan"],"targets":["パン","クロワッサン","マフィン","デニッシュ","ナン","ピザクラスト"]},{"terms":["さかな","おさかな","fish","seafood"],"targets":["魚介類"]},{"terms":["まぐろ","tuna","maguro"],"targets":["マグロ"]},{"terms":["しゃけ","さーもん","salmon"],"targets":["サケ","サーモン","マスノスケ"]},{"terms":["えび","shrimp","prawn"],"targets":["エビ","えび"]},{"terms":["いか","squid"],"targets":["イカ","いか"]},{"terms":["たこ","octopus"],"targets":["タコ","たこ"]},{"terms":["ぎゅうにく","beef"],"targets":["肉類・牛肉"]},{"terms":["ぶたにく","pork"],"targets":["肉類・豚肉"]},{"terms":["とりにく","chicken"],"targets":["肉類・鶏肉"]},{"terms":["おにく","にく","meat"],"targets":["肉類"]},{"terms":["やさい","vegetable","vegetables","veggie"],"targets":["野菜"]},{"terms":["くだもの","ふるーつ","fruit","fruits"],"targets":["果物"]},{"terms":["ばなな","banana"],"targets":["バナナ"]},{"terms":["りんご","apple","apples"],"targets":["りんご"]},{"terms":["みかん","orange","mandarin"],"targets":["みかん"]},{"terms":["いちご","strawberry","strawberries"],"targets":["いちご"]},{"terms":["ぶどう","grape","grapes"],"targets":["ぶどう"]},{"terms":["にんじん","carrot","carrots"],"targets":["にんじん"]},{"terms":["じゃがいも","ぽてと","potato","potatoes"],"targets":["じゃが芋","ポテト"]},{"terms":["さつまいも","sweetpotato","sweet potato"],"targets":["さつま芋"]},{"terms":["かぼちゃ","pumpkin","squash"],"targets":["かぼちゃ"]},{"terms":["きゅうり","cucumber"],"targets":["きゅうり"]},{"terms":["とまと","tomato"],"targets":["トマト"]},{"terms":["なすび","eggplant","aubergine"],"targets":["なす"]},{"terms":["きのこ","mushroom","mushrooms"],"targets":["きのこ","しいたけ","しめじ","まいたけ","エリンギ","マッシュルーム","なめこ","えのきたけ","ひらたけ"]},{"terms":["こーひー","coffee"],"targets":["コーヒー"]},{"terms":["ここあ","cocoa"],"targets":["ココア"]},{"terms":["ちょこれーと","chocolate"],"targets":["チョコレート","チョココロネ"]},{"terms":["あいす","icecream","ice cream"],"targets":["アイスクリーム","ラクトアイス","アイスミルク"]},{"terms":["ばたー","butter"],"targets":["バター"]},{"terms":["あぶら","おいる","oil"],"targets":["油","オイル"]},{"terms":["さとう","sugar"],"targets":["砂糖"]},{"terms":["みそ","miso"],"targets":["みそ"]},{"terms":["しょうゆ","soy sauce","soysauce"],"targets":["しょうゆ"]},{"terms":["うどん","udon"],"targets":["うどん"]},{"terms":["そば","soba"],"targets":["そば"]},{"terms":["すぱげってぃ","すぱげてぃ","ぱすた","spaghetti","pasta"],"targets":["スパゲッティ","マカロニ"]},{"terms":["びーる","beer"],"targets":["ビール"]},{"terms":["わいん","wine"],"targets":["ワイン"]}];
+ // 既存食品マスター検索にある別名・分類検索を、そのままステップ3でも使用する。
+ aliasGroups.push({terms:['ちくわ','チクワ'],targets:['焼き竹輪']});
+ function normalizeText(value) {
+ return String(value??'').normalize('NFKC').toLocaleLowerCase('ja')
+  .replace(/[ァ-ヶ]/g,c=>String.fromCharCode(c.charCodeAt(0)-0x60))
+  .replace(/[\s・･]/g,'');
+}
+function isChickenMasterFood(food) {
+ return food.category === '肉類・鶏肉（若鶏）・鶏の副生物';
+}
+function isChickenSkin(food) {
+ return isChickenMasterFood(food) && (food.name === '皮・むね' || food.name === '皮・もも');
+}
+function displayFoodName(food) {
+ if(!isChickenMasterFood(food))return food.name;
+ if(food.name==='皮・むね')return '鶏皮（むね部分・皮のみ）';
+ if(food.name==='皮・もも')return '鶏皮（もも部分・皮のみ）';
+ if(food.name==='むね・皮つき')return '鶏むね肉（皮つき）';
+ return food.name;
+}
+const chickenBreastQueries=new Set(['鶏むね肉','鶏胸肉','鶏むね','とりむね肉','とりむねにく','とり胸肉','むね肉','胸肉'].map(normalizeText));
+const chickenSkinQueries=new Set(['鶏皮','とり皮','とりかわ'].map(normalizeText));
+function parseOnePointGrams(value) {
+ const normalized=String(value??'').normalize('NFKC').replace(/\s+/g,'').trim();
+ const match=normalized.match(/^(\d+(?:\.\d+)?)$/)
+   || normalized.match(/^(?:食品)?(\d+(?:\.\d+)?)(?:g|grams?|グラム)(?:(?:=|は|で)?1点)?(?:の?食材)?$/i);
+ if(!match)return null;
+ const grams=Number(match[1]);
+ return Number.isFinite(grams)&&grams>0&&grams<=10000?grams:null;
+}
+function filterFoodRecords(records,rawQuery,group) {
+ const onePointGrams=parseOnePointGrams(rawQuery);
+ if(onePointGrams!==null)return records.filter(food=>(!group||food.group===group)&&food.gramsPerPoint===onePointGrams);
+ const q=normalizeText(rawQuery);
+ if(chickenBreastQueries.has(q))return records.filter(food=>(!group||food.group===group)&&isChickenMasterFood(food)&&food.name==='むね・皮つき');
+ if(chickenSkinQueries.has(q))return records.filter(food=>(!group||food.group===group)&&isChickenSkin(food));
+ const exact=aliasGroups.filter(item=>item.terms.some(term=>normalizeText(term)===q));
+ const possible=exact.length?exact:q.length>=2?aliasGroups.filter(item=>item.terms.some(term=>normalizeText(term).startsWith(q))):[];
+ const targets=[...new Set(possible.flatMap(item=>item.targets.map(normalizeText)))];
+ const matches=records.filter(food=>{
+  if(group&&food.group!==group)return false;
+  if(!q)return true;
+  const name=normalizeText(food.name),category=normalizeText(food.category),grp=normalizeText(food.group);
+  return name.includes(q)||category.includes(q)||grp.includes(q)
+    ||targets.some(target=>name.includes(target)||category.includes(target));
+ });
+ if(!q)return matches;
+ return matches.sort((a,b)=>{
+  const rank=food=>{
+   const name=normalizeText(food.name);
+   return name===q?0:name.startsWith(q)?1:targets.some(target=>name===target)?2:3;
+  };
+  return rank(a)-rank(b);
+ });
+}
  function matching(q){
-   if(!master)return [];
-   const normalized=s=>String(s).normalize('NFKC').toLowerCase().replace(/[\s・]/g,'').replace(/[\u30a1-\u30f6]/g,c=>String.fromCharCode(c.charCodeAt(0)-96));
-   const term=normalized(q);
-   if(!term)return [];
-   // よく使う食品名は正式な食品マスター名に対応させ、マスターの数値は変更しない。
-   const alias=({'ちくわ':'焼き竹輪','ごはん':'めし・水稲・精白米','ご飯':'めし・水稲・精白米'})[term]||null;
-   // 一般的な総称「鶏肉」は、部位の正式名称ではなく食品マスターの分類で探す。
-   const chickenCategory=term==='鶏肉';
-   return master.map((f,i)=>({f,i})).filter(({f})=>
-     normalized(f.name).includes(term)||
-     (alias!==null&&f.name===alias)||
-     (chickenCategory&&f.group==='第2群'&&String(f.category||'').includes('鶏肉（若鶏）'))
-   ).slice(0,18);
+   if(!master||!String(q||'').trim())return [];
+   const matched=filterFoodRecords(master,q,null).slice(0,18);
+   return matched.map(f=>({f,i:master.indexOf(f)}));
  }
  function drawResults(meal){
    const query=$('[data-food-query="'+meal+'"]').value.trim(),results=$('[data-search-results="'+meal+'"]');
@@ -182,7 +228,7 @@
    if(!matches.length){results.appendChild(elt('p','該当なし。名称を変えて検索するか、手入力で追加してください。','food-empty'));return;}
    for(const {f,i} of matches){
      const button=elt('button',undefined,'master-option');button.type='button';
-     button.appendChild(elt('span',f.name));
+     button.appendChild(elt('span',displayFoodName(f)));
      button.appendChild(elt('small',f.group+' ／ 1点＝'+f.gramsPerPoint+'g'));
      button.addEventListener('click',()=>{
        const selected=searchTarget[meal];
