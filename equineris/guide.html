@@ -93,6 +93,13 @@ dialog h2{font-size:17px;margin:0 0 8px}.dialog-date{font-size:12px;color:var(--
 .sample-caption{margin:8px 0 0;font-size:12px;color:var(--muted);line-height:1.6}
 .sample-start{display:flex;align-items:center;justify-content:center;margin:16px 0 0;text-decoration:none;border-radius:11px;min-height:52px;background:var(--green);color:#fff;font-weight:800;font-size:16px}
 
+
+.sample-track{display:flex;align-items:stretch;width:100%;max-width:100%;min-width:0;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;overscroll-behavior-inline:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.sample-track::-webkit-scrollbar{display:none}
+.sample-slide{flex:0 0 100%;min-width:0;width:100%;scroll-snap-align:start;scroll-snap-stop:always;padding:2px;writing-mode:horizontal-tb;overflow:visible;word-break:normal;overflow-wrap:break-word}
+.sample-memo{height:auto;min-height:72px;resize:none;display:flex;align-items:center}
+.sample-help{font-size:12px;line-height:1.6;color:var(--muted);margin:0 0 9px}
+
 </style>
 </head>
 <body>
@@ -102,10 +109,16 @@ dialog h2{font-size:17px;margin:0 0 8px}.dialog-date{font-size:12px;color:var(--
 <h1 class="toolbar-title">食事記録の見本</h1>
 <span style="font-size:12px;color:var(--muted)">見本</span>
 </header>
-<section class="card" aria-labelledby="sample-heading">
-<h2 class="sample-heading" id="sample-heading">朝食の記入例</h2>
-<div class="photo-area">
- <div class="sample-photo"><svg viewBox="0 0 480 258" role="img" aria-label="食パン、ゆで卵、ヨーグルトを載せた朝食のイメージ" xmlns="http://www.w3.org/2000/svg">
+<section class="card" aria-label="朝食、昼食、夕食、間食の記入見本">
+ <h2 class="sample-heading">食事記録の見本</h2>
+ <p class="sample-help">左右にスワイプして、4つの記入例を確認できます。</p>
+ <div class="meal-tabs" role="group" aria-label="見本の食事を選択">
+ <button type="button" class="meal-tab" data-sample-tab="0" aria-pressed="true">朝食</button><button type="button" class="meal-tab" data-sample-tab="1" aria-pressed="false">昼食</button><button type="button" class="meal-tab" data-sample-tab="2" aria-pressed="false">夕食</button><button type="button" class="meal-tab" data-sample-tab="3" aria-pressed="false">間食</button>
+ </div>
+ <div class="sample-track" id="sampleTrack" tabindex="0" role="region" aria-label="食事記録の横スクロール見本">
+ <section class="sample-slide" data-sample-slide="0" aria-label="朝食の見本">
+<h2 class="sample-heading">朝食の記入例</h2>
+<div class="photo-area"><div class="sample-photo"><svg viewBox="0 0 480 258" role="img" aria-label="食パン、ゆで卵、ヨーグルトを載せた朝食のイメージ" xmlns="http://www.w3.org/2000/svg">
             <rect width="480" height="258" fill="#eef3ea"/>
             <rect x="20" y="15" width="440" height="228" rx="20" fill="#f8f7ef"/>
             <ellipse cx="238" cy="136" rx="157" ry="96" fill="#d9e2d7"/>
@@ -129,19 +142,86 @@ dialog h2{font-size:17px;margin:0 0 8px}.dialog-date{font-size:12px;color:var(--
               <ellipse cx="54" cy="17" rx="34" ry="11" fill="#f9f8f3"/>
               <path d="M17 55H91" stroke="#a7c4d7" stroke-width="5" opacity=".7"/>
             </g>
-          </svg></div>
-</div>
-<div class="memo-area">
-<label class="memo-label" for="sampleMemo">朝食のメモ</label>
-<textarea class="meal-memo" id="sampleMemo" rows="2" readonly>食パン1枚、ゆで卵1個、ヨーグルト1個</textarea>
-</div>
-<div class="switch-header"><strong>朝食</strong><span>第1〜4群を確認</span></div>
-<h3 class="slide-heading">朝食の群分けチェック</h3>
-<table class="diary-table food-groups" aria-label="朝食の食品群チェック完成見本">
-<thead><tr><th scope="col">第1群<small>乳・乳製品／卵</small></th><th scope="col">第2群<small>魚・肉／豆製品</small></th><th scope="col">第3群<small>野菜・きのこ／いも・果物</small></th><th scope="col">第4群<small>米・パン・麺／油脂・調味料・酒</small></th></tr></thead>
-<tbody><tr><td><div class="mark sample-on" aria-label="○"><span aria-hidden="true"></span></div><div class="mark sample-on" aria-label="○"><span aria-hidden="true"></span></div><div class="mark " aria-label="未チェック"><span aria-hidden="true"></span></div><div class="mark " aria-label="未チェック"><span aria-hidden="true"></span></div><div class="mark " aria-label="未チェック"><span aria-hidden="true"></span></div></td><td><div class="mark " aria-label="未チェック"><span aria-hidden="true"></span></div><div class="mark " aria-label="未チェック"><span aria-hidden="true"></span></div><div class="mark " aria-label="未チェック"><span aria-hidden="true"></span></div><div class="mark " aria-label="未チェック"><span aria-hidden="true"></span></div><div class="mark " aria-label="未チェック"><span aria-hidden="true"></span></div></td><td><div class="mark " aria-label="未チェック"><span aria-hidden="true"></span></div><div class="mark " aria-label="未チェック"><span aria-hidden="true"></span></div><div class="mark " aria-label="未チェック"><span aria-hidden="true"></span></div><div class="mark " aria-label="未チェック"><span aria-hidden="true"></span></div><div class="mark " aria-label="未チェック"><span aria-hidden="true"></span></div></td><td><div class="mark sample-on" aria-label="○"><span aria-hidden="true"></span></div><div class="mark " aria-label="未チェック"><span aria-hidden="true"></span></div><div class="mark " aria-label="未チェック"><span aria-hidden="true"></span></div><div class="mark " aria-label="未チェック"><span aria-hidden="true"></span></div><div class="mark " aria-label="未チェック"><span aria-hidden="true"></span></div></td></tr></tbody></table>
-<p class="sample-caption">卵とヨーグルトは第1群に2個、食パンは第4群に1個の○を付けます。写真はイラストによる見本です。</p>
-<a class="sample-start" href="./record.html">食事記録を始める</a>
+          </svg></div></div>
+<div class="memo-area"><div class="memo-label">朝食のメモ</div><div class="meal-memo sample-memo">食パン1枚、ゆで卵1個、ヨーグルト1個</div></div>
+<div class="switch-header"><strong>朝食</strong><span>第1群〜第4群</span></div>
+<h3 class="slide-heading">群分けチェック</h3>
+<table class="diary-table food-groups" aria-label="朝食の群分け見本"><thead><tr><th>第1群<small>乳・乳製品／卵</small></th><th>第2群<small>魚・肉／豆製品</small></th><th>第3群<small>野菜・きのこ／いも・果物</small></th><th>第4群<small>米・パン・麺／油脂・調味料・酒</small></th></tr></thead><tbody><tr><td><div class="mark sample-on" aria-label="第1群1個目に○"><span aria-hidden="true"></span></div><div class="mark sample-on" aria-label="第1群2個目に○"><span aria-hidden="true"></span></div><div class="mark" aria-label="第1群3個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第1群4個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第1群5個目は空欄"><span aria-hidden="true"></span></div></td><td><div class="mark" aria-label="第2群1個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第2群2個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第2群3個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第2群4個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第2群5個目は空欄"><span aria-hidden="true"></span></div></td><td><div class="mark" aria-label="第3群1個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第3群2個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第3群3個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第3群4個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第3群5個目は空欄"><span aria-hidden="true"></span></div></td><td><div class="mark sample-on" aria-label="第4群1個目に○"><span aria-hidden="true"></span></div><div class="mark" aria-label="第4群2個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第4群3個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第4群4個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第4群5個目は空欄"><span aria-hidden="true"></span></div></td></tr></tbody></table>
+<p class="sample-caption">卵・ヨーグルトは第1群、食パンは第4群。</p>
+</section>
+<section class="sample-slide" data-sample-slide="1" aria-label="昼食の見本">
+<h2 class="sample-heading">昼食の記入例</h2>
+<div class="photo-area"><div class="sample-photo"><svg viewBox="0 0 480 258" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ご飯1杯、鶏肉のソテー、サラダのイラスト"><rect width="480" height="258" fill="#eef3ea"/><rect x="20" y="15" width="440" height="228" rx="20" fill="#f8f7ef"/><ellipse cx="240" cy="131" rx="150" ry="101" fill="#d9e2d7"/><ellipse cx="240" cy="126" rx="146" ry="97" fill="#fffefa" stroke="#c2d0c1" stroke-width="4"/><text x="131" y="151" font-size="77" text-anchor="middle" font-family="Apple Color Emoji,Segoe UI Emoji, sans-serif">🍚</text><text x="225" y="171" font-size="77" text-anchor="middle" font-family="Apple Color Emoji,Segoe UI Emoji, sans-serif">🍗</text><text x="319" y="151" font-size="77" text-anchor="middle" font-family="Apple Color Emoji,Segoe UI Emoji, sans-serif">🥗</text></svg></div></div>
+<div class="memo-area"><div class="memo-label">昼食のメモ</div><div class="meal-memo sample-memo">ご飯1杯、鶏肉のソテー、サラダ</div></div>
+<div class="switch-header"><strong>昼食</strong><span>第1群〜第4群</span></div>
+<h3 class="slide-heading">群分けチェック</h3>
+<table class="diary-table food-groups" aria-label="昼食の群分け見本"><thead><tr><th>第1群<small>乳・乳製品／卵</small></th><th>第2群<small>魚・肉／豆製品</small></th><th>第3群<small>野菜・きのこ／いも・果物</small></th><th>第4群<small>米・パン・麺／油脂・調味料・酒</small></th></tr></thead><tbody><tr><td><div class="mark" aria-label="第1群1個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第1群2個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第1群3個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第1群4個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第1群5個目は空欄"><span aria-hidden="true"></span></div></td><td><div class="mark sample-on" aria-label="第2群1個目に○"><span aria-hidden="true"></span></div><div class="mark" aria-label="第2群2個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第2群3個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第2群4個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第2群5個目は空欄"><span aria-hidden="true"></span></div></td><td><div class="mark sample-on" aria-label="第3群1個目に○"><span aria-hidden="true"></span></div><div class="mark" aria-label="第3群2個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第3群3個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第3群4個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第3群5個目は空欄"><span aria-hidden="true"></span></div></td><td><div class="mark sample-on" aria-label="第4群1個目に○"><span aria-hidden="true"></span></div><div class="mark" aria-label="第4群2個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第4群3個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第4群4個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第4群5個目は空欄"><span aria-hidden="true"></span></div></td></tr></tbody></table>
+<p class="sample-caption">鶏肉は第2群、サラダは第3群、ご飯は第4群。</p>
+</section>
+<section class="sample-slide" data-sample-slide="2" aria-label="夕食の見本">
+<h2 class="sample-heading">夕食の記入例</h2>
+<div class="photo-area"><div class="sample-photo"><svg viewBox="0 0 480 258" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ご飯1杯、焼き鮭、ほうれん草のおひたし、みそ汁のイラスト"><rect width="480" height="258" fill="#eef3ea"/><rect x="20" y="15" width="440" height="228" rx="20" fill="#f8f7ef"/><ellipse cx="240" cy="131" rx="150" ry="101" fill="#d9e2d7"/><ellipse cx="240" cy="126" rx="146" ry="97" fill="#fffefa" stroke="#c2d0c1" stroke-width="4"/><text x="131" y="151" font-size="77" text-anchor="middle" font-family="Apple Color Emoji,Segoe UI Emoji, sans-serif">🍚</text><text x="225" y="171" font-size="77" text-anchor="middle" font-family="Apple Color Emoji,Segoe UI Emoji, sans-serif">🐟</text><text x="319" y="151" font-size="77" text-anchor="middle" font-family="Apple Color Emoji,Segoe UI Emoji, sans-serif">🥬</text></svg></div></div>
+<div class="memo-area"><div class="memo-label">夕食のメモ</div><div class="meal-memo sample-memo">ご飯1杯、焼き鮭、ほうれん草のおひたし、みそ汁</div></div>
+<div class="switch-header"><strong>夕食</strong><span>第1群〜第4群</span></div>
+<h3 class="slide-heading">群分けチェック</h3>
+<table class="diary-table food-groups" aria-label="夕食の群分け見本"><thead><tr><th>第1群<small>乳・乳製品／卵</small></th><th>第2群<small>魚・肉／豆製品</small></th><th>第3群<small>野菜・きのこ／いも・果物</small></th><th>第4群<small>米・パン・麺／油脂・調味料・酒</small></th></tr></thead><tbody><tr><td><div class="mark" aria-label="第1群1個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第1群2個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第1群3個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第1群4個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第1群5個目は空欄"><span aria-hidden="true"></span></div></td><td><div class="mark sample-on" aria-label="第2群1個目に○"><span aria-hidden="true"></span></div><div class="mark" aria-label="第2群2個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第2群3個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第2群4個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第2群5個目は空欄"><span aria-hidden="true"></span></div></td><td><div class="mark sample-on" aria-label="第3群1個目に○"><span aria-hidden="true"></span></div><div class="mark" aria-label="第3群2個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第3群3個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第3群4個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第3群5個目は空欄"><span aria-hidden="true"></span></div></td><td><div class="mark sample-on" aria-label="第4群1個目に○"><span aria-hidden="true"></span></div><div class="mark" aria-label="第4群2個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第4群3個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第4群4個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第4群5個目は空欄"><span aria-hidden="true"></span></div></td></tr></tbody></table>
+<p class="sample-caption">焼き鮭は第2群、ほうれん草は第3群、ご飯は第4群。みそ汁の具材も確認します。</p>
+</section>
+<section class="sample-slide" data-sample-slide="3" aria-label="間食の見本">
+<h2 class="sample-heading">間食の記入例</h2>
+<div class="photo-area"><div class="sample-photo"><svg viewBox="0 0 480 258" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="りんご半分、クッキー2枚のイラスト"><rect width="480" height="258" fill="#eef3ea"/><rect x="20" y="15" width="440" height="228" rx="20" fill="#f8f7ef"/><ellipse cx="240" cy="131" rx="150" ry="101" fill="#d9e2d7"/><ellipse cx="240" cy="126" rx="146" ry="97" fill="#fffefa" stroke="#c2d0c1" stroke-width="4"/><text x="131" y="151" font-size="77" text-anchor="middle" font-family="Apple Color Emoji,Segoe UI Emoji, sans-serif">🍎</text><text x="225" y="171" font-size="77" text-anchor="middle" font-family="Apple Color Emoji,Segoe UI Emoji, sans-serif">🍪</text><text x="319" y="151" font-size="77" text-anchor="middle" font-family="Apple Color Emoji,Segoe UI Emoji, sans-serif">🍪</text></svg></div></div>
+<div class="memo-area"><div class="memo-label">間食のメモ</div><div class="meal-memo sample-memo">りんご半分、クッキー2枚</div></div>
+<div class="switch-header"><strong>間食</strong><span>第1群〜第4群</span></div>
+<h3 class="slide-heading">群分けチェック</h3>
+<table class="diary-table food-groups" aria-label="間食の群分け見本"><thead><tr><th>第1群<small>乳・乳製品／卵</small></th><th>第2群<small>魚・肉／豆製品</small></th><th>第3群<small>野菜・きのこ／いも・果物</small></th><th>第4群<small>米・パン・麺／油脂・調味料・酒</small></th></tr></thead><tbody><tr><td><div class="mark" aria-label="第1群1個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第1群2個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第1群3個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第1群4個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第1群5個目は空欄"><span aria-hidden="true"></span></div></td><td><div class="mark" aria-label="第2群1個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第2群2個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第2群3個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第2群4個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第2群5個目は空欄"><span aria-hidden="true"></span></div></td><td><div class="mark sample-on" aria-label="第3群1個目に○"><span aria-hidden="true"></span></div><div class="mark" aria-label="第3群2個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第3群3個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第3群4個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第3群5個目は空欄"><span aria-hidden="true"></span></div></td><td><div class="mark sample-on" aria-label="第4群1個目に○"><span aria-hidden="true"></span></div><div class="mark" aria-label="第4群2個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第4群3個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第4群4個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第4群5個目は空欄"><span aria-hidden="true"></span></div></td></tr></tbody></table>
+<p class="sample-caption">りんごは第3群、クッキーは第4群。</p>
+</section>
+ </div>
+ <div class="meal-controls" aria-label="見本のカード移動">
+ <button id="samplePrev" type="button" disabled>〈 前へ</button>
+ <span id="sampleCounter" aria-live="polite">1 / 4</span>
+ <button id="sampleNext" type="button">次へ 〉</button>
+ </div>
+ <a class="sample-start" href="./record.html">食事記録を始める</a>
 </section>
 </div></main>
+<script>'use strict';
+(()=>{
+ const track=document.getElementById('sampleTrack');
+ const slides=[...track.querySelectorAll('[data-sample-slide]')];
+ const tabs=[...document.querySelectorAll('[data-sample-tab]')];
+ const prev=document.getElementById('samplePrev');
+ const next=document.getElementById('sampleNext');
+ const counter=document.getElementById('sampleCounter');
+ let active=0,scheduled=false;
+ function update(index){
+  active=Math.max(0,Math.min(slides.length-1,index));
+  tabs.forEach((tab,i)=>tab.setAttribute('aria-pressed',String(i===active)));
+  counter.textContent=(active+1)+' / '+slides.length;
+  prev.disabled=active===0;
+  next.disabled=active===slides.length-1;
+ }
+ function go(index,animated=true){
+  const target=Math.max(0,Math.min(slides.length-1,index));
+  track.scrollTo({left:target*track.clientWidth,behavior:animated?'smooth':'auto'});
+  update(target);
+ }
+ tabs.forEach((tab,index)=>tab.addEventListener('click',()=>go(index)));
+ prev.addEventListener('click',()=>go(active-1));
+ next.addEventListener('click',()=>go(active+1));
+ track.addEventListener('scroll',()=>{
+  if(scheduled)return;
+  scheduled=true;
+  requestAnimationFrame(()=>{
+   scheduled=false;
+   update(Math.round(track.scrollLeft/(track.clientWidth||1)));
+  });
+ },{passive:true});
+ track.addEventListener('keydown',event=>{
+  if(event.key==='ArrowRight'){event.preventDefault();go(active+1);}
+  if(event.key==='ArrowLeft'){event.preventDefault();go(active-1);}
+ });
+ window.addEventListener('resize',()=>{track.scrollLeft=active*track.clientWidth});
+ update(0);
+})();</script>
 </body></html>
