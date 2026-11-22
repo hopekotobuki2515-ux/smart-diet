@@ -62,6 +62,40 @@
       const amount=food.amount===null?'量は未入力':food.amount+food.unit;
       const group=food.group?'／第'+food.group+'群':'';
       row.appendChild(element('span',amount+group,'food-amount'));
+      const edit=element('label','群を修正','food-group-edit');
+      const groupSelect=element('select');
+      groupSelect.setAttribute('aria-label',food.name+'の食品群を修正');
+      const groupOptions=[['','未選択'],['1','第1群'],['2','第2群'],['3','第3群'],['4','第4群']];
+      for(const [value,label] of groupOptions){
+        const option=element('option',label);
+        option.value=value;
+        groupSelect.appendChild(option);
+      }
+      groupSelect.value=food.group;
+      groupSelect.addEventListener('change',()=>{
+        const changedGroup=groupSelect.value;
+        const updated=readFoods(meal);
+        const selected=updated[index];
+        if(!selected){renderFoods(meal);return;}
+        if(changedGroup===selected.group&&selected.markIndex!==null)return;
+        let nextMark=null;
+        if(changedGroup){
+          for(let n=0;n<5;n++){
+            if(!markState(meal,changedGroup,n)){nextMark=n;break;}
+          }
+        }
+        updated[index]={...selected,group:changedGroup,markIndex:nextMark};
+        if(write(currentKey('foods:'+meal),JSON.stringify(updated))){
+          renderFoods(meal);
+          refreshMarks(meal);
+          if(changedGroup&&nextMark===null)message('食品群を変更しました。第'+changedGroup+'群の○が5つ埋まっているため、自動チェックは付きません。');
+          else message('食品群と○を修正しました。');
+        }else{
+          renderFoods(meal);
+        }
+      });
+      edit.appendChild(groupSelect);
+      row.appendChild(edit);
       const remove=element('button','削除');
       remove.type='button';remove.setAttribute('aria-label',food.name+'を削除');
       remove.addEventListener('click',()=>{
