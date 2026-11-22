@@ -59,7 +59,12 @@ a,button,input{font:inherit}button{cursor:pointer}
 .visual-title{font-size:13px;font-weight:800;color:var(--green);line-height:1.55}
 .visual-row{border:1px solid #e3e9e0;background:#fffefd;border-radius:9px;min-height:40px;display:flex;gap:8px;align-items:center;padding:9px 12px;font-size:14px;line-height:1.6}
 .visual-row:before{content:"•";font-weight:900;color:var(--gold);font-size:17px}
-.message-card .visual{flex:1;align-items:center;min-height:72px}.message-card .visual-title{font-size:15px}
+.message-card .signature{margin:4px 0 0;text-align:right;font-size:13px;line-height:1.5;font-weight:700;color:var(--sub)}
+.message-card .message-notes{display:flex;flex-direction:column;gap:5px;padding:10px 12px;border-radius:10px;background:#f0f6ee;color:var(--sub)}
+.message-card .message-notes p{margin:0;font-size:12px;line-height:1.6}
+.related-sites{margin:16px 0 22px;border:1px solid var(--edge);border-radius:17px;padding:18px 14px;background:#fffdf9}
+.related-sites h2{font-size:17px;line-height:1.5;margin:0 0 10px}
+.related-sites a{display:flex;align-items:center;min-height:46px;margin:7px 0;padding:10px 13px;border:1px solid #dce7dc;border-radius:10px;background:#f3f8f1;color:var(--green);text-decoration:none;font-size:14px;line-height:1.5;font-weight:700;word-break:normal;overflow-wrap:break-word}
 .slide-nav{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;margin:9px 0}
 .slide-nav button{min-height:44px;border:1px solid #b7ccb7;color:var(--green);border-radius:10px;background:#fff;font-size:13px;font-weight:700;padding:9px}
 .slide-nav button:disabled{opacity:.42;cursor:default}
@@ -109,6 +114,12 @@ a,button,input{font:inherit}button{cursor:pointer}
   <h2 id="endTitle">学びは何度でも振り返れます</h2>
   <p>必要なときに、好きなカードへ戻ってください。12週間の学びや食事記録の機能は、これまでどおり別のページに残しています。</p>
   <a href="./learning.html">12週間の学びへ戻る</a>
+ </section>
+ <section class="related-sites" aria-labelledby="relatedSitesTitle">
+  <h2 id="relatedSitesTitle">関連サイト</h2>
+  <a href="https://hopekotobuki2515-ux.github.io/hope-homepage/" target="_blank" rel="noopener noreferrer">HOPEホームページ</a>
+  <a href="https://rakudadou719.web.fc2.com/" target="_blank" rel="noopener noreferrer">暮らしのいいもの案内所</a>
+  <a href="https://hope-fitness.jp/" target="_blank" rel="noopener noreferrer">HOPE FITNESSブログ</a>
  </section>
  <p class="bottom-note">疾患別の内容は一般的な食生活の学習資料です。個別の診断・治療ではありません。教材に掲載された古い運動指標は当時の資料として扱っています。</p>
 </main>
@@ -248,10 +259,22 @@ a,button,input{font:inherit}button{cursor:pointer}
    head.append(bookmark);article.append(head);
    const h=create('h3','',c.title);article.append(h);
    article.append(create('p','lesson-body',c.body));
-   const visual=create('section','visual');visual.setAttribute('aria-label',c.visualTitle||'図解・ポイント');
-   visual.append(create('div','visual-title',c.visualTitle||''));
-   for(const point of c.points)visual.append(create('div','visual-row',point));
-   article.append(visual);track.append(article);
+   if(c.tag==='村田健作からのメッセージ'){
+    const signature=create('p','signature',c.visualTitle||'村田 健作');
+    article.append(signature);
+    const notes=c.points.filter(point=>point!==(c.visualTitle||'村田 健作'));
+    if(notes.length){
+     const list=create('div','message-notes');
+     for(const point of notes)list.append(create('p','',point));
+     article.append(list);
+    }
+   }else{
+    const visual=create('section','visual');visual.setAttribute('aria-label',c.visualTitle||'図解・ポイント');
+    visual.append(create('div','visual-title',c.visualTitle||''));
+    for(const point of c.points)visual.append(create('div','visual-row',point));
+    article.append(visual);
+   }
+   track.append(article);
    CARDS.get(c.id).bookmark=bookmark;
   });
   section.append(track);
