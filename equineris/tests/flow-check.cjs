@@ -164,20 +164,49 @@ test('STEP2 page 5 explains, page 6 calculates and page 7 reviews past weights',
  assert.match(cards[7].body,/覚えている範囲で/);
  const t=textbookScenario('#s2-c5');
  const track=t.sections[1].children.find(c=>c.className==='track');
- assert.match(source['textbook.html'],/\.track\{display:flex;align-items:flex-start/);
+ assert.match(source['textbook.html'],/\.track\{display:flex;align-items:stretch/);
+ assert.match(source['textbook.html'],/\.lesson-card\{[^}]*height:540px;min-height:0;/);
+ assert.match(source['textbook.html'],/\.lesson-card\{[^}]*overflow-x:hidden;overflow-y:auto;/);
+ assert.doesNotMatch(source['textbook.html'],/fitActiveCard/);
  assert.match(source['textbook.html'],/\.visual--interactive/);
  track.children[4].offsetHeight=540;
  track.children[5].offsetHeight=700;
  track.children[6].offsetHeight=540;
  t.next[1].click();
  assert.equal(t.count[1].textContent,'6 / 13');
- assert.equal(track.style.height,'700px');
+ assert.equal(track.style.height,undefined,'height must not change per slide');
  t.next[1].click();
  assert.equal(t.count[1].textContent,'7 / 13');
- assert.equal(track.style.height,'540px');
+ assert.equal(track.style.height,undefined,'height must remain independent of card content');
  const visual=track.children[5].children.find(c=>c.className.split(' ').includes('visual'));
  assert.equal(visual.className,'visual visual--interactive');
  assert.equal(visual.children.filter(c=>c.className==='visual-title').length,0);
+});
+test('every textbook card uses one fixed outer height and scrolls its own content',()=>{
+ const stylesheet=source['textbook.html'];
+ assert.match(stylesheet,/\.lesson-card\{[^}]*height:540px;min-height:0;/);
+ assert.match(stylesheet,/\.lesson-card\{[^}]*overflow-x:hidden;overflow-y:auto;/);
+ assert.match(stylesheet,/\.track\{[^}]*scroll-snap-type:x mandatory;/);
+ assert.doesNotMatch(stylesheet,/fitActiveCard|refitTracks/);
+ const t=textbookScenario('#s2-habit-check');
+ for(const section of t.sections){
+  const track=section.children.find(c=>c.className==='track');
+  assert.ok(track.children.length>0);
+  assert.equal(track.style.height,undefined);
+  const cards=track.children;
+  for(const card of cards){
+   assert.ok(card.className.startsWith('lesson-card'));
+   assert.equal(card.style.height,undefined,'per-card inline height is forbidden');
+  }
+ }
+ const lessonTrack=t.sections[1].children.find(c=>c.className==='track');
+ for(let i=0;i<lessonTrack.children.length;i++){
+  const item=lessonTrack.children[i];
+  item.offsetHeight=540+i*15;
+ }
+ t.next[1].click();
+ t.next[1].click();
+ assert.equal(lessonTrack.style.height,undefined,'outer track does not react to content length');
 });
 test('STEP2 BMI example fills the registration and recalculates without saving',()=>{
  const seed={'equineris:registration:v1':JSON.stringify({name:'Test',heightCm:'170',weightKg:'70'})};
