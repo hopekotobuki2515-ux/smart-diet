@@ -128,8 +128,9 @@ a,button,input{font:inherit}button{cursor:pointer}
  <header class="intro">
   <p class="eyebrow">SMART DIET · TEXTBOOK LIBRARY</p>
   <h1>SMART Diet 教材を読み返す</h1>
-  <p>6つのステップは縦に、各ステップのカードは横にスワイプ。好きなところから、必要な内容だけ確認できます。</p>
+  <p>各ステップのカードは左右にスワイプして読めます。最後の「次へ」で次のステップに進みます。検索や目次から読み返すこともできます。</p>
  </header>
+ <div id="steps" aria-live="off"></div>
  <section class="toolbox" aria-labelledby="findTitle">
   <h2 id="findTitle">知りたいことを探す</h2>
   <label for="searchInput" class="search-label">キーワードで教材を検索</label>
@@ -146,7 +147,6 @@ a,button,input{font:inherit}button{cursor:pointer}
   <h3 class="catalog-title">ステップから選ぶ</h3>
   <nav id="stepIndex" class="index-links" aria-label="ステップ目次"></nav>
  </section>
- <div id="steps" aria-live="off"></div>
  <section class="end-card" aria-labelledby="endTitle">
   <p class="eyebrow">12-WEEK PROGRAM</p>
   <h2 id="endTitle">学びは何度でも振り返れます</h2>
@@ -218,9 +218,14 @@ a,button,input{font:inherit}button{cursor:pointer}
    return {heightCm:h,weightKg:w};
   }catch(e){return null;}
  };
+ const showStep=stepId=>{
+  // Only the selected STEP is displayed; other STEPs remain available in the DOM.
+  for(const [id,state] of controls)state.section.hidden=id!==stepId;
+ };
  const jump=(id)=>{
   const found=CARDS.get(id);if(!found)return;
   const state=controls.get(found.step.id);if(!state)return;
+  showStep(found.step.id);
   state.track.scrollTo({left:found.index*state.track.clientWidth,behavior:'auto'});
   update(found.step.id,found.index);
   state.section.scrollIntoView({block:'start',behavior:'smooth'});
@@ -237,10 +242,10 @@ a,button,input{font:inherit}button{cursor:pointer}
  const update=(stepId,idx)=>{
   const s=controls.get(stepId);if(!s)return;
   const clamped=Math.max(0,Math.min(idx,s.cards.length-1));
-  if(s.active===clamped)return;
   s.active=clamped;
   s.counter.textContent=(clamped+1)+' / '+s.cards.length;
-  s.prev.disabled=clamped===0;
+  s.prev.disabled=clamped===0&&stepId===1;
+  s.prev.textContent=clamped===0&&stepId>1?'〈 STEP '+(stepId-1)+'へ':'〈 前へ';
   const atEnd=clamped===s.cards.length-1;
   s.next.disabled=atEnd && stepId===6;
   s.next.textContent=atEnd && stepId===4?'記録へ 〉':stepId===2 && s.cards[clamped].id==='s2-c7'?'食行動チェックへ 〉':atEnd && stepId<6?'STEP '+(stepId+1)+'へ 〉':'次へ 〉';
@@ -288,10 +293,12 @@ a,button,input{font:inherit}button{cursor:pointer}
  for(const s of data){
   const jumpLink=create('a','');
   jumpLink.href='#step-'+s.id;
+  jumpLink.addEventListener('click',event=>{event.preventDefault();jump(s.cards[0].id);});
   jumpLink.append(create('b','', 'STEP '+String(s.id).padStart(2,'0')));
   jumpLink.append(create('span','',s.title));
   index.append(jumpLink);
   const section=create('section','course-step');section.id='step-'+s.id;
+  section.hidden=s.id!==1;
   const heading=create('div','step-heading');heading.append(create('span','step-num','STEP '+String(s.id).padStart(2,'0')));
   const title=create('h2','',s.title);heading.append(title);
   section.append(heading);
@@ -397,12 +404,20 @@ a,button,input{font:inherit}button{cursor:pointer}
   root.append(section);
   const state={track,section,prev,next,counter,cards:s.cards,active:0};
   controls.set(s.id,state);
+  update(s.id,0);
   const go=(i)=>{
    const idx=Math.max(0,Math.min(i,s.cards.length-1));
    track.scrollTo({left:idx*track.clientWidth,behavior:'smooth'});
    update(s.id,idx);remember(s.cards[idx].id);
   };
-  prev.addEventListener('click',()=>go(state.active-1));
+  prev.addEventListener('click',()=>{
+   if(state.active===0&&s.id>1){
+    const previous=data[s.id-2];
+    jump(previous.cards[previous.cards.length-1].id);
+    return;
+   }
+   go(state.active-1);
+  });
   const advance=()=>{
    if(state.active===s.cards.length-1){
     if(s.id===4){window.location.assign('./record.html?day=1');return;}
@@ -436,8 +451,15 @@ a,button,input{font:inherit}button{cursor:pointer}
   if(toggle)panel.scrollIntoView({block:'nearest',behavior:'smooth'});
  });
  resume.addEventListener('click',()=>{if(last)jump(last)});
- if(location.hash&&CARDS.has(location.hash.slice(1))){
-  window.addEventListener('load',()=>jump(location.hash.slice(1)),{once:true});
+ if(location.hash){
+  const hash=location.hash.slice(1);
+  const stepMatch=/^step-([1-6])$/.exec(hash);
+  if(CARDS.has(hash)){
+   window.addEventListener('load',()=>jump(hash),{once:true});
+  }else if(stepMatch){
+   const step=data[Number(stepMatch[1])-1];
+   window.addEventListener('load',()=>jump(step.cards[0].id),{once:true});
+  }
  }
 })();
 </script>
