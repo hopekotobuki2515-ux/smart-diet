@@ -107,6 +107,24 @@
     .close{min-height:47px;width:100%;border:0;border-radius:12px;background:var(--green);color:#fff;font-size:15px;font-weight:750}
     @media(max-width:340px){.page{padding-inline:13px}.tile{padding:15px 12px;grid-template-columns:37px minmax(0,1fr);gap:9px}.num{width:37px;height:37px}}
     @media(min-width:650px){.viewport{padding:24px}.page{border-radius:25px;border:1px solid var(--outline);min-height:calc(100svh - 48px);padding-inline:34px}}
+    /* 記録見本は入力・保存を行わない表示専用 */
+    .record-sample{margin-top:25px;padding:13px;border:1px solid #d9e4d9;border-radius:18px;background:#fffdfa}
+    .record-sample h2{font-size:18px;line-height:1.5;margin:0 0 12px}
+    .record-sample .sample-section{margin:12px 0 0}
+    .record-sample .sample-label{display:block;margin:0 0 6px;font-size:13px;font-weight:800;color:var(--ink)}
+    .record-sample .sample-photo{width:100%;display:flex;align-items:center;justify-content:center;border:1px solid #e3e9df;border-radius:12px;background:#f7f8ee;overflow:hidden}
+    .record-sample .sample-photo svg{width:100%;height:auto;display:block;max-height:250px}
+    .record-sample .sample-memo{padding:13px 12px;border:1px solid #a8beb0;border-radius:10px;background:#fff;color:var(--ink);font-size:16px;line-height:1.65}
+    .record-sample .sample-groups{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;border:1px solid #d0dfd2;border-radius:9px;overflow:hidden}
+    .record-sample .sample-group{min-width:0;border-right:1px solid #d0dfd2;text-align:center;padding:0 1px 7px}
+    .record-sample .sample-group:last-child{border-right:0}
+    .record-sample .sample-group-head{padding:8px 2px;min-height:74px;border-bottom:1px solid #d0dfd2;background:#edf5ef}
+    .record-sample .sample-group-head strong{display:block;font-size:13px}
+    .record-sample .sample-group-head small{display:block;color:#426454;font-size:10px;line-height:1.4;font-weight:500;margin-top:4px;word-break:normal;overflow-wrap:break-word}
+    .record-sample .sample-mark{width:23px;height:23px;display:grid;place-items:center;margin:8px auto 0;border:1px solid #a2b7a7;border-radius:50%;font-size:17px;line-height:1;background:#fff;color:transparent}
+    .record-sample .sample-mark.is-on{color:var(--green);border:2px solid var(--green);font-weight:800}
+    .record-sample .sample-note{font-size:11px;line-height:1.7;color:var(--muted);margin:9px 0 0}
+    @media(max-width:340px){.record-sample{padding:9px}.record-sample .sample-group-head small{font-size:9px}.record-sample .sample-group-head{min-height:82px}}
   </style>
 </head>
 <body>
@@ -151,6 +169,65 @@
         </div>
       </section>
     </div>
+    <section class="record-sample" aria-labelledby="sampleTitle">
+      <h2 id="sampleTitle">食事記録の見本（朝食）</h2>
+      <div class="sample-section">
+        <span class="sample-label">① 食事の写真</span>
+        <div class="sample-photo">
+          <svg viewBox="0 0 480 258" role="img" aria-label="食パン、ゆで卵、ヨーグルトを載せた朝食のイメージ" xmlns="http://www.w3.org/2000/svg">
+            <rect width="480" height="258" fill="#eef3ea"/>
+            <rect x="20" y="15" width="440" height="228" rx="20" fill="#f8f7ef"/>
+            <ellipse cx="238" cy="136" rx="157" ry="96" fill="#d9e2d7"/>
+            <ellipse cx="238" cy="130" rx="151" ry="91" fill="#fffefb" stroke="#c2d0c1" stroke-width="4"/>
+            <g transform="translate(110 61) rotate(-9 80 70)">
+              <rect x="0" y="3" width="154" height="136" rx="30" fill="#b8793d"/>
+              <rect x="12" y="14" width="131" height="115" rx="23" fill="#eabf80"/>
+              <rect x="26" y="30" width="103" height="87" rx="17" fill="#f6daa3"/>
+              <path d="M38 77Q80 53 116 84" fill="none" stroke="#e9bb75" stroke-width="6" opacity=".6"/>
+            </g>
+            <g transform="translate(266 79)">
+              <ellipse cx="64" cy="53" rx="72" ry="53" fill="#f4f3e9" stroke="#e5e6db" stroke-width="2"/>
+              <ellipse cx="64" cy="53" rx="44" ry="34" fill="#fff"/>
+              <circle cx="65" cy="52" r="27" fill="#edb54e" stroke="#dca23d" stroke-width="2"/>
+              <circle cx="59" cy="44" r="9" fill="#f9d078" opacity=".7"/>
+            </g>
+            <g transform="translate(328 30)">
+              <ellipse cx="56" cy="93" rx="49" ry="17" fill="#cdd8cb" opacity=".55"/>
+              <path d="M8 18H100L90 93Q55 111 20 93Z" fill="#c8dbec" stroke="#91aebe" stroke-width="3"/>
+              <ellipse cx="54" cy="19" rx="46" ry="17" fill="#fffefa" stroke="#91aebe" stroke-width="3"/>
+              <ellipse cx="54" cy="17" rx="34" ry="11" fill="#f9f8f3"/>
+              <path d="M17 55H91" stroke="#a7c4d7" stroke-width="5" opacity=".7"/>
+            </g>
+          </svg>
+        </div>
+      </div>
+      <div class="sample-section">
+        <span class="sample-label">② メモ</span>
+        <div class="sample-memo">食パン1枚、ゆで卵1個、ヨーグルト1個</div>
+      </div>
+      <div class="sample-section">
+        <span class="sample-label">③ 食品群に○を付ける</span>
+        <div class="sample-groups" role="group" aria-label="朝食の食品群チェック見本">
+      <div class="sample-group" aria-label="第1群、2個に丸">
+        <div class="sample-group-head"><strong>第1群</strong><small>乳・乳製品／卵</small></div>
+        <span class="sample-mark is-on" aria-hidden="true">○</span><span class="sample-mark is-on" aria-hidden="true">○</span><span class="sample-mark" aria-hidden="true">　</span><span class="sample-mark" aria-hidden="true">　</span><span class="sample-mark" aria-hidden="true">　</span>
+      </div>
+      <div class="sample-group" aria-label="第2群、0個に丸">
+        <div class="sample-group-head"><strong>第2群</strong><small>魚・肉／豆製品</small></div>
+        <span class="sample-mark" aria-hidden="true">　</span><span class="sample-mark" aria-hidden="true">　</span><span class="sample-mark" aria-hidden="true">　</span><span class="sample-mark" aria-hidden="true">　</span><span class="sample-mark" aria-hidden="true">　</span>
+      </div>
+      <div class="sample-group" aria-label="第3群、0個に丸">
+        <div class="sample-group-head"><strong>第3群</strong><small>野菜・きのこ／いも・果物</small></div>
+        <span class="sample-mark" aria-hidden="true">　</span><span class="sample-mark" aria-hidden="true">　</span><span class="sample-mark" aria-hidden="true">　</span><span class="sample-mark" aria-hidden="true">　</span><span class="sample-mark" aria-hidden="true">　</span>
+      </div>
+      <div class="sample-group" aria-label="第4群、1個に丸">
+        <div class="sample-group-head"><strong>第4群</strong><small>米・パン・麺／油脂・調味料・酒</small></div>
+        <span class="sample-mark is-on" aria-hidden="true">○</span><span class="sample-mark" aria-hidden="true">　</span><span class="sample-mark" aria-hidden="true">　</span><span class="sample-mark" aria-hidden="true">　</span><span class="sample-mark" aria-hidden="true">　</span>
+      </div>
+        </div>
+        <p class="sample-note">第1群：卵とヨーグルトの2つに○。第4群：食パンに○。写真はイラストによる見本です。ここでは記録は保存されません。</p>
+      </div>
+    </section>
     <p class="mini-notice">まずは記録のしやすさを試してみてください。3日間のお試し後に、12週間プログラムを始めるか、食事記録だけを続けるか選べます。選択は後から変更できます。</p>
     <div class="actions">
       <a id="recordButton" class="main-button" href="./record.html">お試し記録を始める <span class="arrow" aria-hidden="true">›</span></a>
