@@ -356,12 +356,12 @@ function filterFoodRecords(records,rawQuery,group) {
  function showSlide(index){
    activeSlide=Math.max(0,Math.min(slides.length-1,index));
    tabs.forEach((button,i)=>button.setAttribute('aria-pressed',String(i===activeSlide)));
-   $('#currentMealLabel').textContent=tabs[activeSlide].textContent;
+   $('#currentMealLabel').textContent=tabs[activeSlide]?.textContent||'四群早見表';
    $('#mealCounter').textContent=(activeSlide+1)+' / '+slides.length;
    $('#mealPrev').disabled=activeSlide===0;
    $('#mealNext').disabled=activeSlide===slides.length-1;
-   $('.actions').hidden=activeSlide===0;
-   $('.daily-area').hidden=activeSlide===0;
+   $('.actions').hidden=activeSlide===0||activeSlide===slides.length-1;
+   $('.daily-area').hidden=activeSlide===0||activeSlide===slides.length-1;
    fitActiveSlideHeight();
  }
  // スワイプ中は選択を切り替えず、スクロール停止後に1画面幅の位置へ揃える。
