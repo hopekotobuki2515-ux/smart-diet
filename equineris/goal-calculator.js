@@ -27,8 +27,6 @@
   const root=element('section','goal-calculator');
   root.id='textbookGoalCalculator';
   root.setAttribute('aria-label','登録時の体重から3か月後の減量目標を計算');
-  root.append(element('h4','','3か月後の目標体重を計算しましょう'));
-  root.append(element('p','goal-calc-description','登録時の体重をもとに減量率を選ぶと、目標体重が自動入力されます。手動でも変更できます。'));
   root.append(element('p','goal-calc-start',start===null?'スタート時の体重：未登録':'スタート時の体重：'+fixed(start)+' kg'));
   const rates=element('div','goal-calc-rates');
   rates.setAttribute('role','group');
@@ -132,7 +130,6 @@
   const root=element('div','goal-calculator');
   root.id='textbookWeightHistory';
   root.setAttribute('aria-label','過去の体重を記録する');
-  const prompt=element('p','goal-calc-description','覚えている体重をkgで入力してください。わからない項目は空欄で大丈夫です。');
   const makeField=(id,title)=>{
    const label=element('label','goal-calc-label',title+'（kg）');
    const input=element('input','goal-calc-input');
@@ -201,7 +198,7 @@
     message('以前の体重を記録しました。');
    }catch(e){message('保存できませんでした。既存データは変更していません。',true);}
   });
-  root.append(prompt,at20.label,longest.label,save,notice);
+  root.append(at20.label,longest.label,save,notice);
   container.append(root);
  }
  window.EquinerisGoalCalculator=Object.freeze({mount,mountHistory});
