@@ -208,6 +208,44 @@ test('registration weight computes STEP2 goal on second card and saves percentag
  assert.equal(edited.selectedRatePercent,null);
  assert.match(out.textContent,/7.5 kg/);
 });
+test('goal calculator preserves existing optional goals and blocks missing registration',()=>{
+ const absent=textbookScenario('#s2-c2');
+ const absentCard=absent.sections[1].children.find(c=>c.className==='track').children[1];
+ const absentCalc=absentCard.children.find(c=>c.className==='visual').children.find(c=>c.className==='goal-calculator');
+ assert.equal(absentCalc.children[3].children[0].disabled,true);
+ assert.equal(absentCalc.children[4].children[0].disabled,true);
+ assert.equal(absentCalc.children[6].disabled,true);
+ assert.equal(absent.localData.get('equineris:week1:goal:v1'),undefined);
+ const seed={
+  'equineris:registration:v1':JSON.stringify({heightCm:'170',weightKg:'80'}),
+  'equineris:week1:goal:v1':JSON.stringify({startWeightKg:80,goalWeightKg:73.6,
+   selectedRatePercent:8,weightAt20Kg:62,longestWeightKg:72,futureGoalWeightKg:68,selectedFutureBmi:22})
+ };
+ const prior=textbookScenario('#s2-c2',seed);
+ const card=prior.sections[1].children.find(c=>c.className==='track').children[1];
+ const calc=card.children.find(c=>c.className==='visual').children.find(c=>c.className==='goal-calculator');
+ assert.equal(calc.children[4].children[0].value,'73.6');
+ assert.equal(calc.children[3].children[1].getAttribute('aria-pressed'),'true');
+ calc.children[3].children[0].click();
+ calc.children[6].click();
+ const updated=JSON.parse(prior.localData.get('equineris:week1:goal:v1'));
+ assert.equal(updated.goalWeightKg,76);
+ assert.equal(updated.selectedRatePercent,5);
+ assert.equal(updated.weightAt20Kg,62);
+ assert.equal(updated.longestWeightKg,72);
+ assert.equal(updated.futureGoalWeightKg,68);
+ assert.equal(updated.selectedFutureBmi,22);
+ const malformed='not-json';
+ const blocked=textbookScenario('#s2-c2',{
+  'equineris:registration:v1':JSON.stringify({heightCm:'170',weightKg:'80'}),
+  'equineris:week1:goal:v1':malformed
+ });
+ const badCard=blocked.sections[1].children.find(c=>c.className==='track').children[1];
+ const badCalc=badCard.children.find(c=>c.className==='visual').children.find(c=>c.className==='goal-calculator');
+ badCalc.children[3].children[1].click();
+ assert.equal(badCalc.children[6].disabled,true);
+ assert.equal(blocked.localData.get('equineris:week1:goal:v1'),malformed);
+});
 test('STEP2 food behavior introduction leads to 17-item checklist without repeated goal page',()=>{
  const t=textbookScenario('#s2-c7');
  assert.equal(t.count[1].textContent,'7 / 10');
