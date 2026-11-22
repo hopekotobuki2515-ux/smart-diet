@@ -164,6 +164,20 @@ const queryDay=Number(new URLSearchParams(window.location.search).get('day'));
 const day=[1,2,3].includes(queryDay)?queryDay:1;
 document.getElementById('choiceBack').href='./program-choice.html?day='+day;
 document.getElementById('checkStart').href='./habit-check.html?day='+day;
+if(new URLSearchParams(location.search).get('from')==='textbook-step2'){
+ document.getElementById('choiceBack').href='./week-1-goal.html?from=textbook-step2&slide=bmi';
+ document.getElementById('choiceBack').textContent='〈 BMIの確認へ戻る';
+ document.getElementById('checkStart').href='./habit-check.html?from=textbook-step2';
+ const intro=document.querySelector('.heading p:last-child');
+ if(intro)intro.textContent='減量目標を考えたら、次は普段の食べ方や生活の行動を振り返ってみましょう。';
+ const item1=document.getElementById('check-step1');
+ if(item1){
+  item1.textContent='普段の食べ方を振り返る';
+  if(item1.nextElementSibling)item1.nextElementSibling.textContent='食べる時間、間食の習慣、食事をする場面などを思い出してみましょう。';
+ }
+ const notice=document.querySelector('.mini-notice');
+ if(notice)notice.textContent='17項目は自分の行動に気づくための手がかりです。結果だけで食習慣の原因を断定するものではありません。';
+}
 </script>
 </body>
 </html>
