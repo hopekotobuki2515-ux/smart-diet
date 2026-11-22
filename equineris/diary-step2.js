@@ -137,6 +137,8 @@
   }
   function populate(id) {
     recordId=id;
+    const stage3Param=/^slot[1-3]$/.test(id)?'day='+id.slice(-1):'date='+encodeURIComponent(id);
+    $('#diaryStep3Link').href='./diary-step3.html?'+stage3Param;
     const old=oldSlot(id);
     const date=old?oldDayDate(old):id;
     dateInput.value=dateValid(date)?date:'';
