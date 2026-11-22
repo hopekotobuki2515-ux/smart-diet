@@ -463,7 +463,7 @@ test('corrupt checklist storage is never silently overwritten',()=>{
 });
 test('after the checklist, STEP2 and STEP3 advance to STEP4 food diary',()=>{
  const t=textbookScenario('#s2-c8');
- assert.equal(t.count[1].textContent,'10 / 13');
+ assert.equal(t.count[1].textContent,'11 / 13');
  t.next[1].click();t.next[1].click();t.next[1].click();
  assert.ok(t.sections[2].scrolled,'STEP3');
  for(let i=0;i<11;i++)t.next[2].click();
