@@ -165,7 +165,13 @@
    if(!term)return [];
    // よく使う食品名は正式な食品マスター名に対応させ、マスターの数値は変更しない。
    const alias=({'ちくわ':'焼き竹輪','ごはん':'めし・水稲・精白米','ご飯':'めし・水稲・精白米'})[term]||null;
-   return master.map((f,i)=>({f,i})).filter(({f})=>normalized(f.name).includes(term)||(alias!==null&&f.name===alias)).slice(0,18);
+   // 一般的な総称「鶏肉」は、部位の正式名称ではなく食品マスターの分類で探す。
+   const chickenCategory=term==='鶏肉';
+   return master.map((f,i)=>({f,i})).filter(({f})=>
+     normalized(f.name).includes(term)||
+     (alias!==null&&f.name===alias)||
+     (chickenCategory&&f.group==='第2群'&&String(f.category||'').includes('鶏肉（若鶏）'))
+   ).slice(0,18);
  }
  function drawResults(meal){
    const query=$('[data-food-query="'+meal+'"]').value.trim(),results=$('[data-search-results="'+meal+'"]');
