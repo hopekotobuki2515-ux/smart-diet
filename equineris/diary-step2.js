@@ -155,7 +155,18 @@
       renderFoods(meal);message('食材を記録しました。');
     }
   }));
-  $('#saveButton').addEventListener('click',()=>message('現在の記録を保存しています。入力は自動保存されています。'));
+  $('#saveButton').addEventListener('click',()=>{
+    let allSaved=true;
+    for(const [meal] of meals){
+      allSaved=write(currentKey('memo:'+meal),$('[data-memo="'+meal+'"]').value)&&allSaved;
+      allSaved=write(currentKey('time:'+meal),$('[data-time="'+meal+'"]').value)&&allSaved;
+    }
+    for(const box of $('[data-mark]')){
+      const [meal,group,index]=box.dataset.mark.split(':');
+      allSaved=write(currentKey('mark:'+meal+':'+group+':'+index),box.checked?'1':'0')&&allSaved;
+    }
+    if(allSaved)message('記録を保存しました。');
+  });
   function openPhotos(databaseName){
     return new Promise((resolve,reject)=>{
       if(!('indexedDB' in window)){reject(Error('IndexedDB unavailable'));return;}
