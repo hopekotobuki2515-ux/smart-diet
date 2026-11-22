@@ -129,8 +129,9 @@
       const index=Number(indexValue);
       const automatic=linkedFood(m,group,index);
       box.checked=markState(m,group,index);
-      box.disabled=automatic;
-      if(automatic)box.setAttribute('title','食品の登録に連動したチェックです。食品を削除すると解除されます。');
+      // Auto-added circles must also be tappable for immediate correction.
+      box.disabled=false;
+      if(automatic)box.setAttribute('title','タップで○を解除できます。食品名と群の選択は残ります。');
       else box.removeAttribute('title');
     });
   }
@@ -188,9 +189,29 @@
   $$('[data-memo]').forEach(input=>input.addEventListener('input',()=>write(currentKey('memo:'+input.dataset.memo),input.value)));
   $$('[data-time]').forEach(input=>input.addEventListener('change',()=>write(currentKey('time:'+input.dataset.time),input.value)));
   $$('[data-mark]').forEach(input=>input.addEventListener('change',()=>{
-    const [meal,group,index]=input.dataset.mark.split(':');
-    if(linkedFood(meal,group,Number(index))){refreshMarks(meal);return;}
-    write(currentKey('mark:'+meal+':'+group+':'+index),input.checked?'1':'0');
+    const [meal,group,indexValue]=input.dataset.mark.split(':');
+    const index=Number(indexValue);
+    const key=currentKey('mark:'+meal+':'+group+':'+indexValue);
+    if(!input.checked&&linkedFood(meal,group,index)){
+      // Unlink exactly this circle; do not delete the food or alter its group.
+      const foods=readFoods(meal);
+      const target=foods.findIndex(food=>food.group===group&&food.markIndex===index);
+      if(target<0){refreshMarks(meal);return;}
+      const updated=foods.map((food,i)=>i===target?{...food,markIndex:null}:food);
+      if(!write(currentKey('foods:'+meal),JSON.stringify(updated))){refreshMarks(meal);return;}
+      // Explicit 0 also overrides an inherited/previous manual circle.
+      if(!write(key,'0')){refreshMarks(meal);return;}
+      renderFoods(meal);
+      refreshMarks(meal);
+      message('○を解除しました。食材と食品群は残っています。');
+      return;
+    }
+    // Preserve the old behavior for manual toggles.
+    if(linkedFood(meal,group,index)){refreshMarks(meal);return;}
+    if(write(key,input.checked?'1':'0')){
+      refreshMarks(meal);
+      message(input.checked?'○を付けました。':'○を解除しました。');
+    }else refreshMarks(meal);
   }));
   $$('[data-add-food]').forEach(button=>button.addEventListener('click',()=>{
     const meal=button.dataset.addFood;
