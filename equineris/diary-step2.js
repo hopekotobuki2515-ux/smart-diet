@@ -95,7 +95,6 @@
         }
       });
       edit.appendChild(groupSelect);
-      row.appendChild(edit);
       const remove=element('button','削除');
       remove.type='button';remove.setAttribute('aria-label',food.name+'を削除');
       remove.addEventListener('click',()=>{
@@ -105,7 +104,9 @@
           refreshMarks(meal);
         }
       });
-      row.appendChild(remove);root.appendChild(row);
+      row.appendChild(remove);
+      row.appendChild(edit);
+      root.appendChild(row);
     });
   }
   function oldMarkName(meal,group,index) {
