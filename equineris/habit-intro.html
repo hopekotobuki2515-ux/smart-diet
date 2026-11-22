@@ -165,8 +165,8 @@ const day=[1,2,3].includes(queryDay)?queryDay:1;
 document.getElementById('choiceBack').href='./program-choice.html?day='+day;
 document.getElementById('checkStart').href='./habit-check.html?day='+day;
 if(new URLSearchParams(location.search).get('from')==='textbook-step2'){
- document.getElementById('choiceBack').href='./week-1-goal.html?from=textbook-step2&slide=bmi';
- document.getElementById('choiceBack').textContent='〈 BMIの確認へ戻る';
+ document.getElementById('choiceBack').href='./textbook.html#s2-c7';
+ document.getElementById('choiceBack').textContent='〈 教材STEP2に戻る';
  document.getElementById('checkStart').href='./habit-check.html?from=textbook-step2';
  const intro=document.querySelector('.heading p:last-child');
  if(intro)intro.textContent='減量目標を考えたら、次は普段の食べ方や生活の行動を振り返ってみましょう。';
