@@ -40,7 +40,8 @@
       if(!Array.isArray(list))return [];
       return list.slice(0,100).filter(x=>x&&typeof x.name==='string')
         .map(x=>({name:x.name.slice(0,100), amount:x.amount===null||x.amount===''?null:Number(x.amount),
-          unit:String(x.unit||'g').slice(0,10),group:['1','2','3','4'].includes(String(x.group))?String(x.group):''}))
+          unit:String(x.unit||'g').slice(0,10),group:['1','2','3','4'].includes(String(x.group))?String(x.group):'',
+          markIndex:Number.isInteger(x.markIndex)&&x.markIndex>=0&&x.markIndex<5?x.markIndex:null}))
         .filter(x=>x.amount===null||(Number.isFinite(x.amount)&&x.amount>0));
     }catch(e){return [];}
   }
@@ -65,7 +66,10 @@
       remove.type='button';remove.setAttribute('aria-label',food.name+'を削除');
       remove.addEventListener('click',()=>{
         const next=readFoods(meal);next.splice(index,1);
-        if(write(currentKey('foods:'+meal),JSON.stringify(next))) renderFoods(meal);
+        if(write(currentKey('foods:'+meal),JSON.stringify(next))){
+          renderFoods(meal);
+          refreshMarks(meal);
+        }
       });
       row.appendChild(remove);root.appendChild(row);
     });
@@ -75,9 +79,25 @@
     if(index===1)return meal+'-extra-group-'+group;
     return meal+'-mark-'+(index+1)+'-group-'+group;
   }
+  function linkedFood(meal,group,index){
+    return readFoods(meal).some(x=>x.group===group&&x.markIndex===index);
+  }
   function markState(meal,group,index) {
     const own=read(currentKey('mark:'+meal+':'+group+':'+index));
-    return own===null?oldValue(oldMarkName(meal,group,index))==='checked':own==='1';
+    const manuallyChecked=own===null?oldValue(oldMarkName(meal,group,index))==='checked':own==='1';
+    return manuallyChecked||linkedFood(meal,group,index);
+  }
+  function refreshMarks(meal=null){
+    $('[data-mark]').forEach(box=>{
+      const [m,group,indexValue]=box.dataset.mark.split(':');
+      if(meal!==null&&meal!==m)return;
+      const index=Number(indexValue);
+      const automatic=linkedFood(m,group,index);
+      box.checked=markState(m,group,index);
+      box.disabled=automatic;
+      if(automatic)box.setAttribute('title','食品の登録に連動したチェックです。食品を削除すると解除されます。');
+      else box.removeAttribute('title');
+    });
   }
   function populate(id) {
     recordId=id;
@@ -89,10 +109,7 @@
       $('[data-time="'+meal+'"]').value=inherited('time:'+meal);
       renderFoods(meal);
     }
-    $$('[data-mark]').forEach(c=>{
-      const [meal,group,index]=c.dataset.mark.split(':');
-      c.checked=markState(meal,group,Number(index));
-    });
+    refreshMarks();
     write(PREFIX+'last-record',id);
     message('記録はこのブラウザに保存されます。');
     void refreshPhotos();
@@ -135,8 +152,9 @@
   });
   $$('[data-memo]').forEach(input=>input.addEventListener('input',()=>write(currentKey('memo:'+input.dataset.memo),input.value)));
   $$('[data-time]').forEach(input=>input.addEventListener('change',()=>write(currentKey('time:'+input.dataset.time),input.value)));
-  $$('[data-mark]').forEach(input=>input.addEventListener('change',()=>{
+  $('[data-mark]').forEach(input=>input.addEventListener('change',()=>{
     const [meal,group,index]=input.dataset.mark.split(':');
+    if(linkedFood(meal,group,Number(index))){refreshMarks(meal);return;}
     write(currentKey('mark:'+meal+':'+group+':'+index),input.checked?'1':'0');
   }));
   $$('[data-add-food]').forEach(button=>button.addEventListener('click',()=>{
@@ -149,10 +167,21 @@
     const all=readFoods(meal);
     if(all.length>=100){message('1食につき100件まで記録できます。',true);return;}
     const unit=$('[data-food-unit="'+meal+'"]').value,group=$('[data-food-group="'+meal+'"]').value;
-    all.push({name,amount,unit,group});
+    let markIndex=null;
+    if(group){
+      // Keep existing manual marks and other food-linked marks untouched.
+      for(let index=0;index<5;index++){
+        if(!markState(meal,group,index)){markIndex=index;break;}
+      }
+    }
+    all.push({name,amount,unit,group,markIndex});
     if(write(currentKey('foods:'+meal),JSON.stringify(all))){
       nameInput.value='';amountInput.value='';$('[data-food-group="'+meal+'"]').value='';
-      renderFoods(meal);message('食材を記録しました。');
+      renderFoods(meal);
+      refreshMarks(meal);
+      if(group&&markIndex===null)message('食材を保存しました。第'+group+'群の○が5つ埋まっているため、自動チェックは付きません。');
+      else if(group)message('食材と第'+group+'群の○を連動して保存しました。');
+      else message('食材を記録しました。');
     }
   }));
   $('#saveButton').addEventListener('click',()=>{
@@ -163,7 +192,8 @@
     }
     for(const box of document.querySelectorAll('[data-mark]')){
       const [meal,group,index]=box.dataset.mark.split(':');
-      allSaved=write(currentKey('mark:'+meal+':'+group+':'+index),box.checked?'1':'0')&&allSaved;
+      if(!linkedFood(meal,group,Number(index)))
+        allSaved=write(currentKey('mark:'+meal+':'+group+':'+index),box.checked?'1':'0')&&allSaved;
     }
     if(allSaved)message('記録を保存しました。');
   });
