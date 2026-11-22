@@ -37,6 +37,10 @@ h1{font-size:26px;text-align:center;line-height:1.4;margin:20px 0 10px}
 .baseline-metric{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:11px 0;border-top:1px solid var(--edge);font-size:13px;line-height:1.6;color:var(--sub)}
 .baseline-metric:first-child{border:0}
 .baseline-metric strong{font-size:17px;font-variant-numeric:tabular-nums;color:var(--ink);white-space:nowrap}
+.weight-chart-frame{width:100%;min-width:0;border:1px solid var(--edge);border-radius:14px;background:#fff;padding:9px 5px}
+.weight-chart-frame svg{display:block;width:100%;height:auto;max-width:100%}
+.weight-chart-status{margin:10px 1px 2px;font-size:12px;line-height:1.7;color:var(--sub);overflow-wrap:break-word}
+.weight-chart-status[data-error="true"]{color:#aa3e31}
 .history-row{padding:13px 0;border-top:1px solid var(--edge);display:flex;align-items:center;gap:8px}
 .history-row:first-child{border:0}
 .history-open{flex:1;text-align:left;border:0;background:transparent;color:var(--sub);padding:8px 0;line-height:1.6}
@@ -89,12 +93,21 @@ h1{font-size:26px;text-align:center;line-height:1.4;margin:20px 0 10px}
   </form>
   <p class="status" id="saveStatus" aria-live="polite"></p>
  </section>
+ <section class="card" aria-labelledby="weightChartTitle">
+  <h2 id="weightChartTitle">体重の推移</h2>
+  <p class="note">保存した体重を日付順に折れ線で表示します。増減をそのまま反映します。</p>
+  <div class="weight-chart-frame">
+   <svg id="weightTrendChart" role="img" viewBox="0 0 360 220" aria-label="保存した体重の推移を示す折れ線グラフ"></svg>
+  </div>
+  <p id="weightChartStatus" class="weight-chart-status" role="status" aria-live="polite"></p>
+ </section>
  <section class="card" aria-labelledby="historyTitle">
   <h2 id="historyTitle">体重・腹囲の記録履歴</h2>
   <p class="note">この端末のブラウザ内に保存された記録です。別端末との同期はありません。</p>
   <div id="historyRows"></div>
  </section>
 </main>
+<script src="./weight-trend.js?v=20261123-history-line"></script>
 <script>
 'use strict';
 (()=>{
@@ -106,6 +119,7 @@ h1{font-size:26px;text-align:center;line-height:1.4;margin:20px 0 10px}
  const date=byId('recordDate'),weight=byId('bodyWeight'),waist=byId('bodyWaist');
  const saveStatus=byId('saveStatus');
  const history=byId('historyRows');
+ const weightTrendChart=byId('weightTrendChart'),weightChartStatus=byId('weightChartStatus');
  const baselineHeight=byId('startHeight'),baselineWeight=byId('startWeight'),baselineBMI=byId('startBMI');
  const baselineButton=byId('saveBaseline'),baselineStatus=byId('baselineStatus');
  const goalWeightStart=byId('goalStartWeight'),goalWeightTarget=byId('goalTargetWeight');
@@ -228,7 +242,17 @@ h1{font-size:26px;text-align:center;line-height:1.4;margin:20px 0 10px}
    message(saveStatus,'初回登録時の体重を入力しました。現在の測定値を確認してから保存してください。');
   }catch(e){/* 未登録・破損時は既存履歴と入力欄に触れない */}
  }
+ function renderWeightChart(){
+  try{
+   if(!window.EquinerisWeightTrend)throw Error('Graph unavailable');
+   window.EquinerisWeightTrend.render(weightTrendChart,weightChartStatus,getAll());
+  }catch(e){
+   weightTrendChart.replaceChildren();
+   message(weightChartStatus,'体重のグラフを読み込めませんでした。保存済みの記録は変更していません。',true);
+  }
+ }
  function renderHistory(){
+  renderWeightChart();
   history.replaceChildren();
   let rows;
   try{rows=Object.entries(getAll()).filter(([d,v])=>validDate(d)&&v&&typeof v==='object').sort((a,b)=>b[0].localeCompare(a[0]));}
