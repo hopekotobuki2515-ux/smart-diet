@@ -252,6 +252,8 @@ test('STEP2 food behavior introduction leads to 17-item checklist without repeat
  assert.match(t.next[1].textContent,/食行動チェック/);
  t.next[1].click();
  assert.equal(t.location.destination,'./habit-intro.html?from=textbook-step2');
+ assert.match(source['habit-intro.html'],/choiceBack'\)\.href='\.\/textbook\.html#s2-c7'/);
+ assert.match(source['habit-check.html'],/groupsLink'\)\.href='\.\/textbook\.html#s2-c8'/);
 });
 test('after the checklist, STEP2 and STEP3 advance to STEP4 food diary',()=>{
  const t=textbookScenario('#s2-c8');
