@@ -9,7 +9,7 @@ const root=path.resolve(__dirname,'..');
 const read=name=>fs.readFileSync(path.join(root,name),'utf8');
 const source=Object.fromEntries(
  ['setup.html','textbook.html','textbook-data.js','goal-calculator.js','week-1-goal.html',
-  'habit-intro.html','habit-check.html','record.html','measurements.html','diary-step2.html',
+  'habit-intro.html','habit-check.html','habit-check-card.js','record.html','measurements.html','diary-step2.html',
   'diary-step3.html','diary-step2.js','diary-step3.js','trainer-link.js']
   .map(name=>[name,read(name)])
 );
@@ -72,9 +72,9 @@ const textbookData=JSON.parse(
 test('six textbook steps and all unique lesson IDs are present',()=>{
  assert.equal(textbookData.length,6);
  const cards=textbookData.flatMap(step=>step.cards);
- assert.equal(cards.length,68);
+ assert.equal(cards.length,69);
  assert.equal(new Set(cards.map(c=>c.id)).size,cards.length);
- for(const id of ['s2-goal','s2-c6','s2-weight-history','s2-c8','s4-c4','s5-c1'])
+ for(const id of ['s2-goal','s2-c6','s2-weight-history','s2-habit-check','s2-c8','s4-c4','s5-c1'])
   assert.ok(cards.some(c=>c.id===id),id);
 });
 class MockEl {
@@ -113,6 +113,7 @@ function textbookScenario(hash='',seed={}){
  };
  const history={replaceState(_a,_b,url){location.hash=url;}};
  vm.runInNewContext(source['goal-calculator.js'],{window,document,localStorage,Date});
+ vm.runInNewContext(source['habit-check-card.js'],{window,document,localStorage});
  const inline=scriptOf(source['textbook.html']).find(s=>s.includes('const data=window.SMART_DIET_TEXTBOOK'));
  assert.ok(inline,'textbook script');
  vm.runInNewContext(inline,{
@@ -126,12 +127,12 @@ function textbookScenario(hash='',seed={}){
 }
 test('standalone goal card appears immediately after STEP2 page five',()=>{
  const ids=textbookData[1].cards.map(card=>card.id);
- assert.equal(ids.length,12);
- assert.deepEqual(ids,['s2-c1','s2-c2','s2-c3','s2-c4','s2-c5','s2-goal','s2-c6','s2-weight-history','s2-c7','s2-c8','s2-c9','s2-c10']);
+ assert.equal(ids.length,13);
+ assert.deepEqual(ids,['s2-c1','s2-c2','s2-c3','s2-c4','s2-c5','s2-goal','s2-c6','s2-weight-history','s2-c7','s2-habit-check','s2-c8','s2-c9','s2-c10']);
  const t=textbookScenario('#s2-goal');
- assert.equal(t.count[1].textContent,'6 / 12');
+ assert.equal(t.count[1].textContent,'6 / 13');
  const track=t.sections[1].children.find(c=>c.className==='track');
- assert.equal(track.children.length,12);
+ assert.equal(track.children.length,13);
  assert.equal(track.children[4].id,'s2-c5');
  assert.equal(track.children[5].id,'s2-goal');
  assert.equal(track.children[6].id,'s2-c6');
@@ -144,11 +145,11 @@ test('standalone goal card appears immediately after STEP2 page five',()=>{
 });
 test('STEP2 fifth page advances to new sixth goal card then original sixth page',()=>{
  const t=textbookScenario('#s2-c5');
- assert.equal(t.count[1].textContent,'5 / 12');
+ assert.equal(t.count[1].textContent,'5 / 13');
  t.next[1].click();
- assert.equal(t.count[1].textContent,'6 / 12');
+ assert.equal(t.count[1].textContent,'6 / 13');
  t.next[1].click();
- assert.equal(t.count[1].textContent,'7 / 12');
+ assert.equal(t.count[1].textContent,'7 / 13');
 });
 test('STEP2 page 5 explains, page 6 calculates and page 7 reviews past weights',()=>{
  const cards=textbookData[1].cards;
@@ -169,10 +170,10 @@ test('STEP2 page 5 explains, page 6 calculates and page 7 reviews past weights',
  track.children[5].offsetHeight=700;
  track.children[6].offsetHeight=540;
  t.next[1].click();
- assert.equal(t.count[1].textContent,'6 / 12');
+ assert.equal(t.count[1].textContent,'6 / 13');
  assert.equal(track.style.height,'700px');
  t.next[1].click();
- assert.equal(t.count[1].textContent,'7 / 12');
+ assert.equal(t.count[1].textContent,'7 / 13');
  assert.equal(track.style.height,'540px');
  const visual=track.children[5].children.find(c=>c.className.split(' ').includes('visual'));
  assert.equal(visual.className,'visual visual--interactive');
@@ -236,7 +237,7 @@ test('registration weight computes STEP2 goal on sixth standalone card and saves
  for(let i=0;i<8;i++)t.next[0].click();
  assert.equal(t.count[0].textContent,'9 / 9');
  t.next[0].click();assert.ok(t.sections[1].scrolled);
- for(let i=0;i<5;i++)t.next[1].click();assert.equal(t.count[1].textContent,'6 / 12');
+ for(let i=0;i<5;i++)t.next[1].click();assert.equal(t.count[1].textContent,'6 / 13');
  const track=t.sections[1].children.find(c=>c.className==='track');
  const visual=track.children[5].children.find(c=>c.className.split(' ').includes('visual'));
  const calc=visual.children.find(c=>c.className==='goal-calculator');
@@ -302,9 +303,9 @@ test('goal calculator preserves existing optional goals and blocks missing regis
 });
 test('weight history uses a separate STEP2 slide immediately after page seven',()=>{
  const t=textbookScenario('#s2-c6');
- assert.equal(t.count[1].textContent,'7 / 12');
+ assert.equal(t.count[1].textContent,'7 / 13');
  t.next[1].click();
- assert.equal(t.count[1].textContent,'8 / 12');
+ assert.equal(t.count[1].textContent,'8 / 13');
  const track=t.sections[1].children.find(c=>c.className==='track');
  assert.equal(track.children[6].id,'s2-c6');
  assert.equal(track.children[7].id,'s2-weight-history');
@@ -319,7 +320,7 @@ test('weight history uses a separate STEP2 slide immediately after page seven',(
  assert.equal(first.id,'textbookWeightAt20');
  assert.equal(second.id,'textbookLongestWeight');
  t.next[1].click();
- assert.equal(t.count[1].textContent,'9 / 12');
+ assert.equal(t.count[1].textContent,'9 / 13');
  assert.match(t.next[1].textContent,/食行動チェック/);
 });
 test('historical kg fields save and restore through the existing goal record',()=>{
@@ -385,18 +386,84 @@ test('saving historical weights before goal setup keeps fields and does not brea
  assert.equal(combined.weightAt20Kg,61.5);
  assert.equal(combined.goalWeightKg,73.6);
 });
-test('STEP2 food behavior introduction leads to 17-item checklist without repeated goal page',()=>{
+test('STEP2 page nine opens the original 17-item checklist as page ten',()=>{
+ const ids=textbookData[1].cards.map(c=>c.id);
+ assert.equal(ids[8],'s2-c7');
+ assert.equal(ids[9],'s2-habit-check');
+ assert.equal(ids[10],'s2-c8');
  const t=textbookScenario('#s2-c7');
- assert.equal(t.count[1].textContent,'9 / 12');
+ assert.equal(t.count[1].textContent,'9 / 13');
  assert.match(t.next[1].textContent,/食行動チェック/);
  t.next[1].click();
- assert.equal(t.location.destination,'./habit-intro.html?from=textbook-step2');
- assert.match(source['habit-intro.html'],/choiceBack'\)\.href='\.\/textbook\.html#s2-c7'/);
- assert.match(source['habit-check.html'],/groupsLink'\)\.href='\.\/textbook\.html#s2-c8'/);
+ assert.equal(t.location.destination,null,'must not jump to a separate page');
+ assert.equal(t.count[1].textContent,'10 / 13');
+ const track=t.sections[1].children.find(c=>c.className==='track');
+ const visual=track.children[9].children.find(c=>c.className.split(' ').includes('visual'));
+ assert.equal(visual.className,'visual visual--interactive');
+ const widget=visual.children.find(c=>c.id==='textbookHabitCheck');
+ assert.ok(widget,'standalone checklist');
+ const list=widget.children[1];
+ assert.equal(list.children.length,17);
+ assert.equal(list.children[0].children[0].dataset.habit,'h01');
+ assert.equal(list.children[16].children[0].dataset.habit,'h17');
+ assert.match(source['textbook.html'],/\.habit-mini-list\{[^}]*max-height:290px;overflow-y:auto/);
+ t.next[1].click();
+ assert.equal(t.count[1].textContent,'11 / 13');
+ assert.equal(t.location.destination,null);
+ assert.match(source['habit-intro.html'],/textbook\.html#s2-c7/);
+ assert.match(source['habit-check.html'],/textbook\.html#s2-c8/);
+});
+test('embedded checklist exactly matches the 17 original paper questions',()=>{
+ const original=[...source['habit-check.html'].matchAll(/data-habit="(h\d{2})" aria-label="([^"]+)"/g)]
+  .map(m=>({id:m[1],text:m[2]}));
+ const seeded=textbookScenario('#s2-habit-check');
+ const track=seeded.sections[1].children.find(c=>c.className==='track');
+ const widget=track.children[9].children.find(c=>c.className.split(' ').includes('visual'))
+  .children.find(c=>c.id==='textbookHabitCheck');
+ const rows=widget.children[1].children.map(row=>({id:row.children[0].dataset.habit,
+  text:row.children[2].textContent}));
+ assert.equal(original.length,17);
+ assert.deepEqual(rows,original,'no rewording, omissions or altered order');
+});
+test('checks auto-save, reload and preserve the existing localStorage key',()=>{
+ const key='equineris:program:habit-check:v1';
+ const original=['h02','h08'];
+ const t=textbookScenario('#s2-habit-check',{[key]:JSON.stringify(original)});
+ const widget=t.sections[1].children.find(c=>c.className==='track').children[9]
+  .children.find(c=>c.className.split(' ').includes('visual')).children.find(c=>c.id==='textbookHabitCheck');
+ const rows=widget.children[1].children;
+ assert.equal(rows.length,17);
+ assert.equal(rows[1].children[0].checked,true);
+ assert.equal(rows[7].children[0].checked,true);
+ assert.equal(rows[0].children[0].checked,false);
+ assert.equal(widget.children[2].textContent,'○を付けた項目：2 / 17');
+ rows[0].children[0].checked=true;rows[0].children[0].fire('change');
+ assert.deepEqual(JSON.parse(t.localData.get(key)),['h01','h02','h08']);
+ assert.equal(widget.children[2].textContent,'○を付けた項目：3 / 17');
+ rows[1].children[0].checked=false;rows[1].children[0].fire('change');
+ assert.deepEqual(JSON.parse(t.localData.get(key)),['h01','h08']);
+ widget.children[3].click();
+ assert.deepEqual(JSON.parse(t.localData.get(key)),['h01','h08']);
+ const reloaded=textbookScenario('#s2-habit-check',Object.fromEntries(t.localData));
+ const restored=reloaded.sections[1].children.find(c=>c.className==='track').children[9]
+  .children.find(c=>c.className.split(' ').includes('visual')).children.find(c=>c.id==='textbookHabitCheck');
+ assert.equal(restored.children[1].children[0].children[0].checked,true);
+ assert.equal(restored.children[1].children[7].children[0].checked,true);
+ assert.equal(restored.children[1].children[1].children[0].checked,false);
+});
+test('corrupt checklist storage is never silently overwritten',()=>{
+ const key='equineris:program:habit-check:v1';
+ const t=textbookScenario('#s2-habit-check',{[key]:'not-json'});
+ const widget=t.sections[1].children.find(c=>c.className==='track').children[9]
+  .children.find(c=>c.className.split(' ').includes('visual')).children.find(c=>c.id==='textbookHabitCheck');
+ assert.equal(widget.children[3].disabled,true);
+ widget.children[1].children[0].children[0].checked=true;
+ widget.children[1].children[0].children[0].fire('change');
+ assert.equal(t.localData.get(key),'not-json');
 });
 test('after the checklist, STEP2 and STEP3 advance to STEP4 food diary',()=>{
  const t=textbookScenario('#s2-c8');
- assert.equal(t.count[1].textContent,'10 / 12');
+ assert.equal(t.count[1].textContent,'10 / 13');
  t.next[1].click();t.next[1].click();t.next[1].click();
  assert.ok(t.sections[2].scrolled,'STEP3');
  for(let i=0;i<11;i++)t.next[2].click();
