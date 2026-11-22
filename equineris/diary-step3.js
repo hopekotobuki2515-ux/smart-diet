@@ -1,6 +1,7 @@
 'use strict';
 (() => {
  const OWN='equineris:diary-step3:v1:',STEP2='equineris:diary-step2:v1:',STEP1='equineris:paper-first3:v1:';
+ const MAINT_KEY='equineris:maintenance-energy:v1:selected';
  const MEALS=[['breakfast','朝食'],['lunch','昼食'],['dinner','夕食'],['snack','間食']];
  const $=(s,root=document)=>root.querySelector(s), $$=(s,root=document)=>[...root.querySelectorAll(s)];
  const dateInput=$('#diary-date'),status=$('#saveStatus'),photoStatus=$('#photoStatus');
@@ -79,6 +80,31 @@
    return {sums,missing,unknown};
  }
  const groupNames=['第1群','第2群','第3群','第4群'];
+ function readMaintenanceTarget(){
+   const raw=read(MAINT_KEY);if(!raw)return null;
+   try{
+     const obj=JSON.parse(raw),targets=obj.targets;
+     if(obj.version!==1||obj.confirmed!==true||!Number.isInteger(obj.kcal)||obj.kcal<1000||obj.kcal>5000||
+        !Array.isArray(targets)||targets.length!==4||targets.slice(0,3).some(v=>v!==3)||
+        !Number.isFinite(targets[3])||targets[3]<=0||
+        Math.abs(targets.reduce((a,b)=>a+b,0)-obj.kcal/80)>1e-8)return null;
+     return {kcal:obj.kcal,total:obj.kcal/80,targets};
+   }catch{return null;}
+ }
+ function syncMaintenanceOption(){
+   const picker=$('#targetPattern'),info=readMaintenanceTarget();
+   let option=picker.querySelector('option[value="maintenance"]');
+   if(info){
+     if(!option){
+       option=document.createElement('option');option.value='maintenance';
+       const none=picker.querySelector('option[value="none"]');
+       if(none)picker.insertBefore(option,none);
+       else picker.appendChild(option);
+     }
+     option.textContent='維持期：'+fmt(info.total)+'点（'+info.kcal.toLocaleString('ja-JP')+'kcal）';
+   }else if(option)option.remove();
+   return info;
+ }
  function elt(tag,txt,cls){const e=document.createElement(tag);if(txt!==undefined)e.textContent=txt;if(cls)e.className=cls;return e;}
  function drawGroupTable(meal){
    const r=groupSums(meal),wrap=$('[data-group-subtotal="'+meal+'"]');wrap.replaceChildren();
@@ -125,19 +151,27 @@
  }
  function drawDaily(){
    const all=MEALS.map(([m])=>groupSums(m)),pattern=$('#targetPattern').value;
-   const targets=pattern==='21'?[3,3,3,12]:pattern==='15'?[3,3,3,6]:null;
+   const maintenance=pattern==='maintenance'?readMaintenanceTarget():null;
+   const targets=pattern==='21'?[3,3,3,12]:pattern==='15'?[3,3,3,6]:maintenance?maintenance.targets:null;
    const totals=[0,0,0,0],missing=[0,0,0,0];let unknown=0;
    for(const r of all){for(let i=0;i<4;i++){totals[i]+=r.sums[i];missing[i]+=r.missing[i];}unknown+=r.unknown;}
    const holder=$('#dailyGroups');holder.replaceChildren();
    for(let i=0;i<4;i++){
      const el=elt('div',undefined,'daily-group');
      el.appendChild(elt('small',groupNames[i]));
-     el.appendChild(elt('strong',fmt(totals[i])+(targets?'/'+targets[i]:'')+'点'));
+     if(pattern==='maintenance'&&maintenance){
+       el.appendChild(elt('strong',fmt(totals[i])+'点'));
+       el.appendChild(elt('small','目標 '+fmt(targets[i])+'点','daily-target'));
+     }else{
+       el.appendChild(elt('strong',fmt(totals[i])+(targets?'/'+targets[i]:'')+'点'));
+     }
      if(missing[i])el.appendChild(elt('small','未計算 '+missing[i]+'件','subtotal-warning'));
      holder.appendChild(el);
    }
    const dayTotal=totals.reduce((a,b)=>a+b,0);
-   $('#dailyTotal').textContent='合計：'+fmt(dayTotal)+(targets?'/'+pattern:'')+'点';
+   const goal=pattern==='maintenance'&&maintenance?fmt(maintenance.total):targets?pattern:null;
+   $('#dailyTotal').textContent='合計：'+fmt(dayTotal)+(goal?'/'+goal:'')+'点';
+   $('#maintenanceGoalNote').hidden=!(pattern==='maintenance'&&maintenance);
    drawDailyFoods();
    $('#unresolvedStatus').textContent=missing.reduce((a,b)=>a+b,0)+unknown>0?'未計算 '+(missing.reduce((a,b)=>a+b,0)+unknown)+'件。すべて照合するまで合計は確定しません。':'表示した食材の点数をすべて計算済みです。';
  }
@@ -366,6 +400,17 @@ function filterFoodRecords(records,rawQuery,group) {
  $('#targetPattern').addEventListener('change',()=>{
    put(OWN+'target-pattern',$('#targetPattern').value);drawDaily();
  });
+ function syncMaintainedTarget(){
+   const maintenance=syncMaintenanceOption();
+   const desired=read(OWN+'target-pattern');
+   if(desired==='maintenance'&&maintenance)$('#targetPattern').value='maintenance';
+   else if($('#targetPattern').value==='maintenance')$('#targetPattern').value='15';
+   drawDaily();
+ }
+ window.addEventListener('pageshow',syncMaintainedTarget);
+ window.addEventListener('storage',e=>{
+   if(e.key===MAINT_KEY||e.key===OWN+'target-pattern')syncMaintainedTarget();
+ });
  dateInput.addEventListener('change',()=>{
    if(photoBusy){dateInput.value=slotFor(recordId)?slotDate(slotFor(recordId)):recordId;message('写真の保存後に日付を変更してください。',true);return;}
    const date=dateInput.value;if(!validDate(date)){message('日付が正しくありません。',true);return;}
@@ -532,7 +577,8 @@ function filterFoodRecords(records,rawQuery,group) {
  const day=params.get('day'),date=params.get('date');
  const last=read(OWN+'last-record');
  const initial=/^[123]$/.test(day||'')?'slot'+day:validDate(date)?idFor(date):(last&&/^(slot[1-3]|\d{4}-\d{2}-\d{2})$/.test(last)?last:today());
- const target=read(OWN+'target-pattern');$('#targetPattern').value=['15','21','none'].includes(target)?target:'15';
+ const maintenance=syncMaintenanceOption();
+ const target=read(OWN+'target-pattern');$('#targetPattern').value=target==='maintenance'&&maintenance?'maintenance':['15','21','none'].includes(target)?target:'15';
  populate(initial);showSlide(0);
  fetch('../food-master.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('HTTP '+r.status);return r.json();}).then(data=>{
    if(!Array.isArray(data.foods)||data.foods.length<600||data.foods.some(f=>!f.name||!/^第[1-4]群$/.test(f.group)||!Number.isFinite(f.gramsPerPoint)||f.gramsPerPoint<=0))throw Error('Invalid master data');
