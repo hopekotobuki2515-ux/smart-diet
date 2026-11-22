@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="SMART Diet12週間修了後の参考ページ。年齢・性別・身体活動レベル別に1日の推定エネルギー必要量と四群点数法の配分例を確認できます。">
+<title>修了後のエネルギー構成｜SMART Diet</title>
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;color-scheme:light;--ink:#24443c;--green:#285d4a;--muted:#5f7568;--line:#d4e2d6;--pale:#f3f8f2}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;overflow-x:hidden}
+body{margin:0;min-width:280px;background:#edf2ee;color:var(--ink);overflow-x:hidden}
+button,select,a{font:inherit}
+a{color:var(--green)}
+.page{width:min(100%,600px);margin:0 auto;min-height:100svh;padding:18px 16px max(32px,env(safe-area-inset-bottom));background:#fff}
+.eyebrow{font-size:12px;font-weight:800;letter-spacing:.12em;color:#6b806f;margin:12px 0 8px}
+h1{font-size:clamp(24px,6vw,30px);line-height:1.4;margin:0 0 12px}
+h2{font-size:19px;line-height:1.5;margin:0 0 12px}
+h3{font-size:16px;line-height:1.5;margin:0 0 10px}
+p{font-size:14px;line-height:1.85}
+.lead{margin:0 0 22px}
+.card{border:1px solid var(--line);border-radius:16px;background:#fff;padding:18px 14px;margin:0 0 18px}
+.fields{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+.field{display:block;font-size:14px;font-weight:750}
+.field select{display:block;width:100%;min-height:48px;border:1px solid #b5cbb9;border-radius:11px;margin-top:7px;background:#fff;color:var(--ink);padding:10px 12px;font-size:16px}
+.field select:focus-visible{outline:3px solid #dfb65b;outline-offset:2px}
+.hint{color:var(--muted);font-size:12px;line-height:1.7;margin:12px 0 0}
+#status{margin:16px 0 0;font-size:13px}
+.result[hidden]{display:none}
+.metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:10px 0 18px}
+.metric{background:var(--pale);border-radius:12px;padding:15px 10px;text-align:center;min-width:0}
+.metric small{display:block;font-size:12px;line-height:1.5;color:var(--muted);font-weight:700}
+.metric strong{display:block;margin-top:8px;font-size:clamp(20px,6vw,29px);line-height:1.2;font-variant-numeric:tabular-nums;white-space:nowrap}
+.table-wrap{width:100%;overflow-wrap:anywhere}
+table{border-collapse:collapse;width:100%;table-layout:fixed}
+th,td{border-bottom:1px solid #dce7dd;padding:11px 5px;text-align:center;font-size:13px;line-height:1.5}
+thead th{background:#eaf4ec;font-weight:800}
+tbody th{text-align:left;font-weight:750}
+.points-table th:first-child{width:45%}
+.points-table th:nth-child(2){width:25%}
+.points-table th:nth-child(3){width:30%}
+.points-table tfoot th,.points-table tfoot td{background:#edf6ef;font-weight:850}
+.number{font-variant-numeric:tabular-nums;white-space:nowrap}
+.ref-table th,.ref-table td{padding:10px 3px;font-size:clamp(11px,3vw,13px);white-space:nowrap}
+.ref-table th:first-child{width:29%}
+.ref-table th:not(:first-child){width:23.667%}
+.note{background:#f4f8f3;border-radius:12px;padding:14px;margin:16px 0 0;color:#486254;font-size:12px;line-height:1.8}
+.source{font-size:12px;color:var(--muted);line-height:1.8}
+.sep{height:1px;background:var(--line);margin:20px 0}
+footer{font-size:12px;color:var(--muted);line-height:1.8}
+@media(max-width:340px){.page{padding-inline:10px}.card{padding-inline:9px}.metric{padding-inline:3px}}
+</style>
+</head>
+<body>
+<main class="page">
+<p class="eyebrow">SMART Diet | 12週間修了後</p>
+<h1>通常の食生活・体重維持のためのエネルギー構成</h1>
+<p class="lead">12週間の学習を終えた方が、年齢・性別・身体活動レベルに応じた<strong>1日の推定エネルギー必要量</strong>と、四群点数法での<strong>点数配分例</strong>を確認するページです。</p>
+<section class="card" aria-label="条件を選ぶ">
+<h2>条件を選んで確認する</h2>
+<div class="fields">
+<label class="field" for="sex">性別<select id="sex" required><option value="">選択してください</option><option value="m">男性</option><option value="f">女性</option></select></label>
+<label class="field" for="age">年齢区分<select id="age" required><option value="">選択してください</option><option value="18-29">18～29歳</option><option value="30-49">30～49歳</option><option value="50-64">50～64歳</option><option value="65-74">65～74歳</option><option value="75-plus">75歳以上</option></select></label>
+<label class="field" for="level">身体活動レベル<select id="level" required><option value="">選択してください</option><option value="0">低い（座って過ごすことが多い）</option><option value="1">ふつう（歩行・家事・軽い運動など）</option><option value="2">高い（立ち仕事・活発な運動など）</option></select></label>
+</div>
+<p class="hint">※75歳以上の「高い」は、出典表に推定値が設定されていません。</p>
+<p id="status" role="status" aria-live="polite">3つの条件を選ぶと、エネルギー量と四群の点数が表示されます。</p>
+</section>
+<section id="result" class="card result" aria-live="polite" hidden>
+<h2>選択条件の目安</h2>
+<p id="choice" class="hint"></p>
+<div class="metrics">
+<div class="metric"><small>1日の推定エネルギー必要量</small><strong id="energy"></strong></div>
+<div class="metric"><small>80kcal＝1点で換算</small><strong id="points"></strong></div>
+</div>
+<h3>四群点数法による1日の配分例</h3>
+<div class="table-wrap">
+<table class="points-table">
+<thead><tr><th scope="col">食品群</th><th scope="col">点数</th><th scope="col">エネルギー</th></tr></thead>
+<tbody id="allocation"></tbody>
+<tfoot><tr><th scope="row">合計</th><td class="number" id="sum-points"></td><td class="number" id="sum-kcal"></td></tr></tfoot>
+</table>
+</div>
+<p class="note">第1〜第3群を各3点（各240kcal）として確保し、残りを第4群へ配分した<strong>SMART Dietでの計算例</strong>です。これは国の資料に載っている四群別配分ではありません。表示点数は小数第2位までの四捨五入です。</p>
+</section>
+<section class="card">
+<h2>年齢・身体活動レベル別 1日のエネルギー目安一覧</h2>
+<p class="source">単位：kcal／日。厚生労働省「日本人の食事摂取基準（2025年版）」の参考表による値です。</p>
+<h3>男性</h3>
+<table class="ref-table"><thead><tr><th scope="col">年齢</th><th scope="col">低い</th><th scope="col">ふつう</th><th scope="col">高い</th></tr></thead><tbody><tr><th scope="row">18～29歳</th><td>2,250</td><td>2,600</td><td>3,000</td></tr>
+<tr><th scope="row">30～49歳</th><td>2,350</td><td>2,750</td><td>3,150</td></tr>
+<tr><th scope="row">50～64歳</th><td>2,250</td><td>2,650</td><td>3,000</td></tr>
+<tr><th scope="row">65～74歳</th><td>2,100</td><td>2,350</td><td>2,650</td></tr>
+<tr><th scope="row">75歳以上</th><td>1,850</td><td>2,250</td><td>設定なし</td></tr></tbody></table>
+<div class="sep"></div>
+<h3>女性</h3>
+<table class="ref-table"><thead><tr><th scope="col">年齢</th><th scope="col">低い</th><th scope="col">ふつう</th><th scope="col">高い</th></tr></thead><tbody><tr><th scope="row">18～29歳</th><td>1,700</td><td>1,950</td><td>2,250</td></tr>
+<tr><th scope="row">30～49歳</th><td>1,750</td><td>2,050</td><td>2,350</td></tr>
+<tr><th scope="row">50～64歳</th><td>1,700</td><td>1,950</td><td>2,250</td></tr>
+<tr><th scope="row">65～74歳</th><td>1,650</td><td>1,850</td><td>2,050</td></tr>
+<tr><th scope="row">75歳以上</th><td>1,450</td><td>1,750</td><td>設定なし</td></tr></tbody></table>
+<p class="note">「低い」は主に座位中心、「ふつう」は座位に加えて歩行・家事・軽いスポーツなど、「高い」は立位や活発な運動の多い生活です。75歳以上の「高い」は数値なしのまま表示しています。</p>
+</section>
+<section class="card">
+<h2>体重維持期に使う際の注意</h2>
+<p>これらは参照体格に基づく<strong>一般的な目安</strong>であり、個人の維持カロリーや処方量を確定するものではありません。修了時の体重推移、活動量、食事記録を確認し、維持期の食事量はトレーナーと相談して決めます。減量中の15点・21点設定を自動変更するものではありません。</p>
+<p class="source">出典：<a href="https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/kenkou_iryou/kenkou/eiyou/syokuji_kijyun.html" rel="noopener noreferrer" target="_blank">厚生労働省「日本人の食事摂取基準（2025年版）」</a>。数値照合：<a href="https://www.city.sakai.lg.jp/kenko/kenko/kenkozoshin/eiyo/eiyoseibun/ichinichi.html" rel="noopener noreferrer" target="_blank">堺市の年齢・活動レベル別一覧</a>。</p>
+</section>
+<footer>このページはSMART Diet修了後の参照用ページです。現段階では修了者認証によるアクセス制限は設けていません。</footer>
+</main>
+<script>
+"use strict";
+const ENERGY={"18-29":{"m":[2250,2600,3000],"f":[1700,1950,2250]},"30-49":{"m":[2350,2750,3150],"f":[1750,2050,2350]},"50-64":{"m":[2250,2650,3000],"f":[1700,1950,2250]},"65-74":{"m":[2100,2350,2650],"f":[1650,1850,2050]},"75-plus":{"m":[1850,2250,null],"f":[1450,1750,null]}};
+const AGE_LABEL={"18-29":"18～29歳","30-49":"30～49歳","50-64":"50～64歳","65-74":"65～74歳","75-plus":"75歳以上"};
+const LEVEL_LABEL=["低い","ふつう","高い"];
+const $=id=>document.getElementById(id);
+const fmt=v=>v.toLocaleString("ja-JP");
+const fixed=v=>v.toFixed(2);
+const selectors=[$("sex"),$("age"),$("level")];
+function update(){
+  const sex=$("sex").value,age=$("age").value,level=$("level").value;
+  if(!sex||!age||level===""){
+    $("status").textContent="3つの条件を選ぶと、エネルギー量と四群の点数が表示されます。";
+    $("result").hidden=true;return;
+  }
+  const kcal=ENERGY[age]?.[sex]?.[Number(level)];
+  if(typeof kcal!=="number"){
+    $("status").textContent="この組み合わせは出典の参考表に数値が設定されていません。";
+    $("result").hidden=true;return;
+  }
+  const total=kcal/80;
+  const groups=[3,3,3,total-9];
+  if(groups.some(v=>!Number.isFinite(v)||v<0)||Math.abs(groups.reduce((a,b)=>a+b,0)*80-kcal)>1e-8){
+    $("status").textContent="点数内訳が一致しないため表示を中止しました。";
+    $("result").hidden=true;return;
+  }
+  $("choice").textContent=(sex==="m"?"男性":"女性")+"・"+AGE_LABEL[age]+"・身体活動レベル："+LEVEL_LABEL[Number(level)];
+  $("energy").textContent=fmt(kcal)+"kcal";
+  $("points").textContent=fixed(total)+"点";
+  $("allocation").replaceChildren(...groups.map((v,i)=>{
+    const row=document.createElement("tr");
+    const th=document.createElement("th");th.scope="row";th.textContent="第"+(i+1)+"群";
+    const td=document.createElement("td");td.className="number";td.textContent=fixed(v)+"点";
+    const energy=document.createElement("td");energy.className="number";energy.textContent=fmt(v*80)+"kcal";
+    row.append(th,td,energy);return row;
+  }));
+  $("sum-points").textContent=fixed(total)+"点";
+  $("sum-kcal").textContent=fmt(kcal)+"kcal";
+  $("status").textContent="条件に対応する参照値を表示しています。";
+  $("result").hidden=false;
+}
+selectors.forEach(el=>el.addEventListener("change",update));
+</script>
+</body>
+</html>
