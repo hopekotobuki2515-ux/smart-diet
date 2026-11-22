@@ -566,7 +566,14 @@
   const observer=new ResizeObserver(measure);
   slides.forEach(slide=>observer.observe(slide));
  }
- go(0);
+ const fromTextbook=new URLSearchParams(location.search).get('from')==='textbook-step2';
+ if(fromTextbook){
+  const back=document.querySelector('.topbar .back');
+  if(back){back.href='./textbook.html#s2-c6';back.textContent='〈 教材 STEP2へ戻る';}
+  const next=document.querySelector('.bmi-slide-action');
+  if(next)next.href='./habit-intro.html?from=textbook-step2';
+ }
+ go(fromTextbook?1:0);
  requestAnimationFrame(measure);
 })();</script>
 </body>
