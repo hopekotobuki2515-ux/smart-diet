@@ -229,6 +229,7 @@ const previous=document.getElementById('previous');
 const next=document.getElementById('next');
 const pageText=document.getElementById('pageText');
 const perPage=20;
+const diaryPickerMode=new URLSearchParams(location.search).get('diary-picker')==='1';
 let foods=[],matches=[],page=0;
 function make(tag,className,textValue){
   const element=document.createElement(tag);
@@ -268,6 +269,30 @@ function render(){
     card.append(title,meta,amount);
   if(isChickenSkin(food))card.append(make('p','food-search-help','※ これは鶏皮だけの数値です。鶏むね肉の点数とは異なります。'));
   card.append(label,output);
+    if(diaryPickerMode){
+      const addToDiary=make('button','nutrient-action','この食品を食事記録に追加');
+      addToDiary.type='button';
+      addToDiary.addEventListener('click',()=>{
+        const raw=input.value.trim();
+        const grams=raw===''?null:Number(raw);
+        if(grams!==null&&(!Number.isFinite(grams)||grams<=0||grams>10000)){
+          output.textContent='重量は0より大きく10000g以下で入力してください。';
+          input.focus();
+          return;
+        }
+        const masterIndex=foods.indexOf(food);
+        if(masterIndex<0)return;
+        window.parent.postMessage({
+          kind:'smartdiet-diary-food-v1',
+          masterIndex,
+          name:food.name,
+          group:food.group,
+          gramsPerPoint:food.gramsPerPoint,
+          grams
+        },window.location.origin);
+      });
+      card.append(addToDiary);
+    }
     const nutrientEntry=make('button','nutrient-entry','この食品に掲載された栄養素を見る（未承認候補）');
     nutrientEntry.type='button';
     nutrientEntry.addEventListener('click',()=>{
