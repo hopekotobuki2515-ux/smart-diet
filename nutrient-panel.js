@@ -167,8 +167,26 @@ function pageRender(){
   const results=$n('nutrientResults');
   const total=matched.length,start=cursor*chunk;
   results.replaceChildren();
-  if(!total)results.append(textNode('div','card nutrient-empty','該当する掲載データがありません。条件を変えてください。'));
-  else results.append(...matched.slice(start,start+chunk).map(cardForRow));
+  const hasInput=$n('nutrientSelect').value!==''||clean($n('nutrientKeyword').value)!==''||activeFoodIndex!==null;
+  if(!total&&!hasInput){
+    const guide=textNode('div','card nutrient-empty nutrient-empty-guide','');
+    guide.setAttribute('role','status');
+    guide.setAttribute('aria-label','栄養素検索の案内');
+    const icon=textNode('span','nutrient-empty-guide-icon','⌕');
+    icon.setAttribute('aria-hidden','true');
+    const copy=document.createElement('div');
+    copy.className='nutrient-empty-guide-copy';
+    copy.append(
+      textNode('strong','nutrient-empty-guide-title','検索結果はここに表示されます'),
+      textNode('p','nutrient-empty-guide-text','栄養素または食品名を指定してください。')
+    );
+    guide.append(icon,copy);
+    results.append(guide);
+  }else if(!total){
+    results.append(textNode('div','card nutrient-empty','該当する掲載データがありません。条件を変えてください。'));
+  }else{
+    results.append(...matched.slice(start,start+chunk).map(cardForRow));
+  }
   $n('nutrientPage').hidden=total<=chunk;
   $n('nutrientPrev').disabled=cursor===0;
   $n('nutrientNext').disabled=start+chunk>=total;
@@ -196,7 +214,9 @@ function selectRows(){
   }
   cursor=0;
   const focus=activeFoodIndex===null?'':'「'+humanFoodName(masterFoods[activeFoodIndex])+'」の未承認候補：';
-  $n('nutrientStatus').textContent=!hasInput?'栄養素を選ぶか食品名を入力してください（27種類・2,265行収録）。':focus+matched.length+'行見つかりました。数値は書籍掲載値、食品マスターとの対応候補は未承認です。'+sortNote;
+  const status=$n('nutrientStatus');
+  status.hidden=!hasInput;
+  if(hasInput)status.textContent=focus+matched.length+'行見つかりました。数値は書籍掲載値、食品マスターとの対応候補は未承認です。'+sortNote;
   pageRender();
 }
 function clearFocus(){
