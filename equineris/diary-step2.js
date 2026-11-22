@@ -161,7 +161,7 @@
       allSaved=write(currentKey('memo:'+meal),$('[data-memo="'+meal+'"]').value)&&allSaved;
       allSaved=write(currentKey('time:'+meal),$('[data-time="'+meal+'"]').value)&&allSaved;
     }
-    for(const box of $('[data-mark]')){
+    for(const box of document.querySelectorAll('[data-mark]')){
       const [meal,group,index]=box.dataset.mark.split(':');
       allSaved=write(currentKey('mark:'+meal+':'+group+':'+index),box.checked?'1':'0')&&allSaved;
     }
