@@ -9,7 +9,7 @@ const root=path.resolve(__dirname,'..');
 const read=name=>fs.readFileSync(path.join(root,name),'utf8');
 const source=Object.fromEntries(
  ['setup.html','textbook.html','textbook-data.js','week-1-goal.html',
-  'habit-intro.html','habit-check.html','record.html','diary-step2.html',
+  'habit-intro.html','habit-check.html','record.html','measurements.html','diary-step2.html',
   'diary-step3.html','diary-step2.js','diary-step3.js','trainer-link.js']
   .map(name=>[name,read(name)])
 );
@@ -51,6 +51,14 @@ test('17 item checklist retains its marks and local save key',()=>{
  assert.equal(new Set(ids).size,17);
  assert.match(s,/equineris:program:habit-check:v1/);
  assert.match(s,/textbook\.html#s2-c8/);
+});
+test('initial measurement uses registration weight without overwriting saved rows',()=>{
+ const s=source['measurements.html'];
+ assert.match(s,/equineris:registration:v1/);
+ assert.match(s,/equineris:body-measurements:v1/);
+ assert.match(s,/if\(Object\.keys\(getAll\(\)\)\.length!==0\)return/);
+ assert.match(s,/date\.value=today\(\);showDay\(\);prefillRegistrationWeight\(\);renderHistory\(\)/);
+ assert.match(s,/all\[day\]=\{\.\.\.\(all\[day\]\|\|\{\}\),weight:w,waist:a\}/);
 });
 test('food diary stays connected across three recording stages',()=>{
  assert.match(source['record.html'],/id="diaryStep2Link"/);
