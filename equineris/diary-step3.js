@@ -161,6 +161,7 @@
  const aliasGroups=[{"terms":["ごはん","ご飯","白ごはん","白ご飯","らいす","rice","gohan"],"targets":["めし・水稲","米・水稲穀粒","赤飯"]},{"terms":["たまご","玉子","えっぐ","egg","eggs","tamago"],"targets":["鶏卵","うずら卵","卵豆腐","ピータン"]},{"terms":["ぎゅうにゅう","みるく","milk","gyunyu"],"targets":["牛乳","加工乳","生乳","乳飲料"]},{"terms":["よーぐると","yogurt","yoghurt"],"targets":["ヨーグルト"]},{"terms":["ちーず","cheese"],"targets":["チーズ"]},{"terms":["とうふ","tofu"],"targets":["豆腐"]},{"terms":["なっとう","natto","nattou"],"targets":["納豆"]},{"terms":["ぱん","bread","pan"],"targets":["パン","クロワッサン","マフィン","デニッシュ","ナン","ピザクラスト"]},{"terms":["さかな","おさかな","fish","seafood"],"targets":["魚介類"]},{"terms":["まぐろ","tuna","maguro"],"targets":["マグロ"]},{"terms":["しゃけ","さーもん","salmon"],"targets":["サケ","サーモン","マスノスケ"]},{"terms":["えび","shrimp","prawn"],"targets":["エビ","えび"]},{"terms":["いか","squid"],"targets":["イカ","いか"]},{"terms":["たこ","octopus"],"targets":["タコ","たこ"]},{"terms":["ぎゅうにく","beef"],"targets":["肉類・牛肉"]},{"terms":["ぶたにく","pork"],"targets":["肉類・豚肉"]},{"terms":["とりにく","chicken"],"targets":["肉類・鶏肉"]},{"terms":["おにく","にく","meat"],"targets":["肉類"]},{"terms":["やさい","vegetable","vegetables","veggie"],"targets":["野菜"]},{"terms":["くだもの","ふるーつ","fruit","fruits"],"targets":["果物"]},{"terms":["ばなな","banana"],"targets":["バナナ"]},{"terms":["りんご","apple","apples"],"targets":["りんご"]},{"terms":["みかん","orange","mandarin"],"targets":["みかん"]},{"terms":["いちご","strawberry","strawberries"],"targets":["いちご"]},{"terms":["ぶどう","grape","grapes"],"targets":["ぶどう"]},{"terms":["にんじん","carrot","carrots"],"targets":["にんじん"]},{"terms":["じゃがいも","ぽてと","potato","potatoes"],"targets":["じゃが芋","ポテト"]},{"terms":["さつまいも","sweetpotato","sweet potato"],"targets":["さつま芋"]},{"terms":["かぼちゃ","pumpkin","squash"],"targets":["かぼちゃ"]},{"terms":["きゅうり","cucumber"],"targets":["きゅうり"]},{"terms":["とまと","tomato"],"targets":["トマト"]},{"terms":["なすび","eggplant","aubergine"],"targets":["なす"]},{"terms":["きのこ","mushroom","mushrooms"],"targets":["きのこ","しいたけ","しめじ","まいたけ","エリンギ","マッシュルーム","なめこ","えのきたけ","ひらたけ"]},{"terms":["こーひー","coffee"],"targets":["コーヒー"]},{"terms":["ここあ","cocoa"],"targets":["ココア"]},{"terms":["ちょこれーと","chocolate"],"targets":["チョコレート","チョココロネ"]},{"terms":["あいす","icecream","ice cream"],"targets":["アイスクリーム","ラクトアイス","アイスミルク"]},{"terms":["ばたー","butter"],"targets":["バター"]},{"terms":["あぶら","おいる","oil"],"targets":["油","オイル"]},{"terms":["さとう","sugar"],"targets":["砂糖"]},{"terms":["みそ","miso"],"targets":["みそ"]},{"terms":["しょうゆ","soy sauce","soysauce"],"targets":["しょうゆ"]},{"terms":["うどん","udon"],"targets":["うどん"]},{"terms":["そば","soba"],"targets":["そば"]},{"terms":["すぱげってぃ","すぱげてぃ","ぱすた","spaghetti","pasta"],"targets":["スパゲッティ","マカロニ"]},{"terms":["びーる","beer"],"targets":["ビール"]},{"terms":["わいん","wine"],"targets":["ワイン"]}];
  // 既存食品マスター検索にある別名・分類検索を、そのままステップ3でも使用する。
  aliasGroups.push({terms:['ちくわ','チクワ'],targets:['焼き竹輪']});
+ aliasGroups.push({terms:['ほうれん草','ホウレン草'],targets:['ほうれんそう']});
  function normalizeText(value) {
  return String(value??'').normalize('NFKC').toLocaleLowerCase('ja')
   .replace(/[ァ-ヶ]/g,c=>String.fromCharCode(c.charCodeAt(0)-0x60))
@@ -346,6 +347,10 @@ function filterFoodRecords(records,rawQuery,group) {
    if(!storeFoods(pickerMeal,list))return;
    const savedMeal=pickerMeal;
    closeFoodPicker();
+   searchTarget[savedMeal]=null;
+   $('[data-food-query="'+savedMeal+'"]').value='';
+   $('[data-search-mode="'+savedMeal+'"]').textContent='食品を追加する';
+   $('[data-search-results="'+savedMeal+'"]').replaceChildren();
    renderFoods(savedMeal);
    message('食品マスターから「'+f.name+'」を記録しました。'+(grams===null?'重量を入力すると点数を計算できます。':'点数と4群の小計を更新しました。'));
  });
