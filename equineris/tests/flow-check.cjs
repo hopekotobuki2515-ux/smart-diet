@@ -10,7 +10,7 @@ const read=name=>fs.readFileSync(path.join(root,name),'utf8');
 const source=Object.fromEntries(
  ['setup.html','textbook.html','textbook-data.js','goal-calculator.js','week-1-goal.html',
   'habit-intro.html','habit-check.html','habit-check-card.js','record.html','measurements.html','diary-step2.html',
-  'diary-step3.html','diary-step2.js','diary-step3.js','trainer-link.js']
+  'diary-step3.html','diary-step2.js','diary-step3.js','trainer-link.js','weight-trend.js']
   .map(name=>[name,read(name)])
 );
 const test=(label,fn)=>{fn();process.stdout.write('PASS '+label+'\n');};
@@ -230,7 +230,8 @@ test('starting BMI stays recorded after later daily weight measurements',()=>{
   const store=new Map(Object.entries(seed));
   const ids=['recordDate','bodyWeight','bodyWaist','saveStatus','historyRows','metricForm',
    'recordTitle','back','startHeight','startWeight','startBMI','saveBaseline','baselineStatus',
-   'goalStartWeight','goalTargetWeight','goalLossWeight','goalLossRate','goalHistoryStatus'];
+   'goalStartWeight','goalTargetWeight','goalLossWeight','goalLossRate','goalHistoryStatus',
+  'weightTrendChart','weightChartStatus'];
   const els=Object.fromEntries(ids.map(id=>[id,new MockEl('input')]));
   const document={referrer:'',getElementById:id=>els[id],createElement:tag=>new MockEl(tag)};
   const localStorage={getItem:key=>store.get(key)??null,setItem:(key,val)=>store.set(key,String(val))};
@@ -416,7 +417,8 @@ test('saving historical weights before goal setup keeps fields and does not brea
  assert.equal(partial.goalWeightKg,undefined);
  const ids=['recordDate','bodyWeight','bodyWaist','saveStatus','historyRows','metricForm',
   'recordTitle','back','startHeight','startWeight','startBMI','saveBaseline','baselineStatus',
-  'goalStartWeight','goalTargetWeight','goalLossWeight','goalLossRate','goalHistoryStatus'];
+  'goalStartWeight','goalTargetWeight','goalLossWeight','goalLossRate','goalHistoryStatus',
+  'weightTrendChart','weightChartStatus'];
  const elements=Object.fromEntries(ids.map(id=>[id,new MockEl('input')]));
  const session=new Map(first.localData);
  vm.runInNewContext(scriptOf(source['measurements.html'])[0],{
@@ -527,7 +529,8 @@ test('after the checklist, STEP2 and STEP3 advance to STEP4 food diary',()=>{
 test('saved goal is shown on measurements page without modifying daily logs',()=>{
  const ids=['recordDate','bodyWeight','bodyWaist','saveStatus','historyRows','metricForm',
    'recordTitle','back','startHeight','startWeight','startBMI','saveBaseline','baselineStatus',
-   'goalStartWeight','goalTargetWeight','goalLossWeight','goalLossRate','goalHistoryStatus'];
+   'goalStartWeight','goalTargetWeight','goalLossWeight','goalLossRate','goalHistoryStatus',
+  'weightTrendChart','weightChartStatus'];
  const nodes=Object.fromEntries(ids.map(id=>[id,new MockEl('input')]));
  const daily={'2026-11-22':{weight:78,waist:85}};
  const storage=new Map([
@@ -545,6 +548,79 @@ test('saved goal is shown on measurements page without modifying daily logs',()=
  assert.equal(nodes.goalLossWeight.textContent,'6.4 kg');
  assert.equal(nodes.goalLossRate.textContent,'8%');
  assert.equal(storage.get('equineris:body-measurements:v1'),JSON.stringify(daily));
+});
+test('weight trend uses actual dates and saved weights, without fabricated values',()=>{
+ const nodes=Object.fromEntries(['weightTrendChart','weightChartStatus'].map(id=>[id,new MockEl('svg')]));
+ const document={createElementNS:(_ns,tag)=>new MockEl(tag)};
+ const window={};
+ vm.runInNewContext(source['weight-trend.js'],{document,window,Date});
+ const graph=window.EquinerisWeightTrend;
+ assert.equal(graph.KEY,'equineris:body-measurements:v1');
+ let result=graph.render(nodes.weightTrendChart,nodes.weightChartStatus,{});
+ assert.equal(result.count,0);
+ assert.equal(nodes.weightTrendChart.children.length,0,'no invented sample line');
+ assert.match(nodes.weightChartStatus.textContent,/体重を記録すると/);
+ result=graph.render(nodes.weightTrendChart,nodes.weightChartStatus,{
+  '2026-11-10':{weight:78,waist:90},
+  '2026-11-01':{weight:80,waist:92},
+  '2026-11-04':{waist:91},
+  '2026-11-12':{weight:76.5},
+  '2026-02-30':{weight:55},
+  '2026-11-15':{weight:null}
+ });
+ assert.equal(result.count,3);
+ assert.equal(result.first,80);
+ assert.equal(result.last,76.5);
+ const dots=nodes.weightTrendChart.children.filter(el=>el.tagName==='circle');
+ const lines=nodes.weightTrendChart.children.filter(el=>el.tagName==='path');
+ assert.equal(dots.length,3);
+ assert.equal(lines.length,1);
+ assert.ok(Number(dots[2].attributes.cy)>Number(dots[0].attributes.cy),'decreasing kg is a downward screen line');
+ assert.match(nodes.weightChartStatus.textContent,/－3\.5 kg/);
+ result=graph.render(nodes.weightTrendChart,nodes.weightChartStatus,{
+  '2026-11-01':{weight:70},'2026-11-03':{weight:72}
+ });
+ assert.equal(result.count,2);
+ const risingDots=nodes.weightTrendChart.children.filter(el=>el.tagName==='circle');
+ assert.ok(Number(risingDots[1].attributes.cy)<Number(risingDots[0].attributes.cy),
+  'real increases must not be falsely drawn as a decrease');
+});
+test('weight trend updates after saving and deleting records on the measurements page',()=>{
+ const key='equineris:body-measurements:v1';
+ const ids=['recordDate','bodyWeight','bodyWaist','saveStatus','historyRows','metricForm',
+  'recordTitle','back','startHeight','startWeight','startBMI','saveBaseline','baselineStatus',
+  'goalStartWeight','goalTargetWeight','goalLossWeight','goalLossRate','goalHistoryStatus',
+  'weightTrendChart','weightChartStatus'];
+ const els=Object.fromEntries(ids.map(id=>[id,new MockEl('input')]));
+ const document={referrer:'',getElementById:id=>els[id],
+  createElement:tag=>new MockEl(tag),createElementNS:(_ns,tag)=>new MockEl(tag)};
+ const storage=new Map();
+ const localStorage={getItem:k=>storage.get(k)??null,setItem:(k,v)=>storage.set(k,String(v))};
+ const window={confirm(){return true}};
+ vm.runInNewContext(source['weight-trend.js'],{document,window,Date});
+ vm.runInNewContext(scriptOf(source['measurements.html'])[0],
+  {document,window,localStorage,Date,URL,location:{origin:'https://example.test'}});
+ const dots=()=>els.weightTrendChart.children.filter(n=>n.tagName==='circle');
+ const paths=()=>els.weightTrendChart.children.filter(n=>n.tagName==='path');
+ assert.equal(dots().length,0);
+ assert.equal(storage.get(key),undefined,'opening the graph must not create a record');
+ els.recordDate.value='2026-11-01';els.bodyWeight.value='80';els.bodyWaist.value='90';
+ els.metricForm.fire('submit');
+ assert.equal(dots().length,1);
+ assert.equal(paths().length,0);
+ els.recordDate.value='2026-11-10';els.bodyWeight.value='78';els.bodyWaist.value='';
+ els.metricForm.fire('submit');
+ assert.equal(dots().length,2);
+ assert.equal(paths().length,1);
+ assert.match(els.weightChartStatus.textContent,/－2\.0 kg/);
+ assert.equal(JSON.parse(storage.get(key))['2026-11-01'].weight,80);
+ assert.equal(JSON.parse(storage.get(key))['2026-11-10'].weight,78);
+ const firstHistory=els.historyRows.children[0];
+ assert.ok(firstHistory,'latest history present');
+ firstHistory.children[1].click();
+ assert.equal(dots().length,1,'deleting latest record refreshes graph');
+ assert.equal(paths().length,0);
+ assert.equal(JSON.parse(storage.get(key))['2026-11-10'],undefined);
 });
 test('STEP5 can advance; STEP6 correctly finishes',()=>{
  const t=textbookScenario('#s5-c16');
