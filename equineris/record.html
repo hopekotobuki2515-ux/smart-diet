@@ -99,6 +99,22 @@ dialog h2{font-size:17px;margin:0 0 8px}.dialog-date{font-size:12px;color:var(--
 .four-group-reference-row>div{min-width:0;writing-mode:horizontal-tb;overflow-wrap:break-word;word-break:normal}
 .four-group-reference-row b{display:block;font-size:13px;line-height:1.6}
 .four-group-reference-row span{display:block;margin-top:2px;font-size:12px;line-height:1.75;color:#526b5d}
+/* Detailed Group 4 reference: display and filtering only. */
+.group4-food-index{margin-top:16px;padding-top:14px;border-top:1px solid #dce7db;min-width:0}
+.group4-food-index h4{margin:0 0 7px;font-size:15px;line-height:1.5}
+.group4-food-index-intro,.group4-food-status{margin:0 0 10px;font-size:12px;line-height:1.7;color:#526b5d}
+.group4-field-label{display:block;margin:10px 0 5px;font-size:12px;font-weight:700}
+.group4-control{display:block;width:100%;min-height:42px;padding:9px 10px;border:1px solid #cbd7cd;border-radius:9px;background:#fff;color:#24443c;font-size:14px}
+.group4-food-count{margin:11px 0 7px;font-size:12px;font-weight:700;color:#285d4a}
+.group4-food-table-wrap{max-height:300px;overflow:auto;border:1px solid #dce7db;border-radius:9px;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.group4-food-table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:12px;line-height:1.55}
+.group4-food-table th,.group4-food-table td{padding:9px 8px;border-bottom:1px solid #e4ebe4;text-align:left;vertical-align:top;overflow-wrap:anywhere}
+.group4-food-table th{position:sticky;top:0;z-index:1;background:#ecf5ed;color:#24443c}
+.group4-food-table th:last-child,.group4-food-table td:last-child{width:82px;text-align:right;white-space:nowrap}
+.group4-food-table td strong,.group4-food-table td small{display:block}
+.group4-food-table td small{margin-top:2px;color:#60776a;font-size:11px}
+.group4-food-status{margin:8px 0 0}
+
 </style>
 </head>
 <body><main class="viewport"><div class="page">
@@ -194,6 +210,24 @@ dialog h2{font-size:17px;margin:0 0 8px}.dialog-date{font-size:12px;color:var(--
 <div class="four-group-reference-row"><strong>糖類</strong><div><b>砂糖・甘味料など</b><span>砂糖・はちみつ・ジャム</span></div></div>
 <div class="four-group-reference-row"><strong>その他</strong><div><b>調味料・菓子・酒類など</b><span>味付けに使う調味料・お菓子・アルコール飲料</span></div></div>
 <p class="group4-detail-note">料理や加工食品は複数の食品群を含むことがあります。材料を確認して群分けしてください。</p>
+<section class="group4-food-index" data-group4-quickref aria-label="第4群の食品一覧">
+  <h4>第4群の食品一覧</h4>
+  <p class="group4-food-index-intro">食品名や分類から探せます。表示重量は1点（80kcal）に相当する量です。</p>
+  <label class="group4-field-label" for="group4FoodSearch">食品名で検索</label>
+  <input id="group4FoodSearch" class="group4-control" type="search" data-group4-search placeholder="例：ご飯、食パン、砂糖" autocomplete="off">
+  <label class="group4-field-label" for="group4FoodCategory">分類で絞り込む</label>
+  <select id="group4FoodCategory" class="group4-control" data-group4-category aria-label="第4群の食品分類">
+    <option value="">すべての分類</option>
+  </select>
+  <p class="group4-food-count" data-group4-count aria-live="polite">食品一覧を読み込んでいます。</p>
+  <div class="group4-food-table-wrap" role="region" aria-label="第4群食品の1点重量一覧" tabindex="0">
+    <table class="group4-food-table">
+      <thead><tr><th scope="col">食品名・分類</th><th scope="col">1点分の量</th></tr></thead>
+      <tbody data-group4-results><tr><td colspan="2">食品一覧を読み込んでいます。</td></tr></tbody>
+    </table>
+  </div>
+  <p class="group4-food-status" data-group4-status aria-live="polite">食品一覧を読み込んでいます。</p>
+</section>
 </div>
 </section></section></div>
   <div class="meal-controls"><button type="button" id="mealPrev" hidden>〈 前へ</button><span id="mealCounter">1 / 6</span><button type="button" id="mealNext">次へ 〉</button></div>
@@ -487,4 +521,5 @@ openPhotos().then(db=>{
 }).catch(()=>{photoInputs.forEach(i=>i.disabled=true);showPhotoStatus('写真保存を利用できません。メモと○は使用できます。',true);});
 
 </script>
+<script src="./group4-reference.js?v=20261122a"></script>
 </body></html>
