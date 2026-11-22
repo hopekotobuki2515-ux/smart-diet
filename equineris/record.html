@@ -43,7 +43,7 @@ input,button,textarea{font:inherit}button{cursor:pointer}
 .meal-tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;margin:0 0 9px}
 .meal-tab{min-width:0;min-height:46px;padding:6px 2px;border:1px solid #cbdacc;border-radius:10px;background:#f3f7f1;color:var(--ink);font-size:14px;font-weight:750}
 .meal-tab[aria-pressed="true"]{background:var(--green);color:#fff;border-color:var(--green)}
-.meal-track{display:flex;align-items:stretch;width:100%;min-width:0;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;overscroll-behavior-inline:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.meal-track{display:flex;align-items:flex-start;width:100%;min-width:0;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;overscroll-behavior-inline:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .meal-track::-webkit-scrollbar{display:none}
 .meal-slide{flex:0 0 100%;width:100%;min-width:0;scroll-snap-align:start;scroll-snap-stop:always;padding:1px;writing-mode:horizontal-tb}
 .slide-heading{font-size:14px;line-height:1.4;margin:1px 0 6px}
@@ -268,8 +268,15 @@ function storePhoto(mode,action){
 const getPhoto=id=>storePhoto('readonly',s=>s.get(id));
 const putPhoto=x=>storePhoto('readwrite',s=>s.put(x));
 const removePhoto=id=>storePhoto('readwrite',s=>s.delete(id));
+function fitActiveSlideHeight(){
+ const active=slides[activeMeal];
+ if(!active)return;
+ const height=Math.ceil(active.getBoundingClientRect().height);
+ if(height>0)track.style.height=height+'px';
+}
 function renderMeal(i){
  activeMeal=Math.max(0,Math.min(slides.length-1,i));
+ fitActiveSlideHeight();
  mealTabs.forEach((b,n)=>b.setAttribute('aria-pressed',String(n===activeMeal)));
  document.getElementById('mealCounter').textContent=(activeMeal+1)+' / '+slides.length;
  document.getElementById('mealPrev').hidden=activeMeal===0;
@@ -297,6 +304,10 @@ track.addEventListener('scroll',()=>{
  });
 },{passive:true});
 window.addEventListener('resize',()=>{track.scrollLeft=activeMeal*track.clientWidth;renderMeal(activeMeal);});
+if(typeof ResizeObserver==='function'){
+ const slideSizeObserver=new ResizeObserver(()=>fitActiveSlideHeight());
+ slides.forEach(slide=>slideSizeObserver.observe(slide));
+}
 function setPhotoBusy(busy){
  photoBusy=busy;photoInputs.forEach(i=>i.disabled=busy||!photoDB);
 }
