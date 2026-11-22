@@ -246,7 +246,7 @@ function filterFoodRecords(records,rawQuery,group) {
        if(storeFoods(meal,list)){
          searchTarget[meal]=null;
          $('[data-food-query="'+meal+'"]').value='';
-         $('[data-search-mode="'+meal+'"]').textContent='食品を追加する';
+         $('[data-search-mode="'+meal+'"]').textContent='追加する食品を選んでください';
          results.replaceChildren();
          renderFoods(meal);
          message('食品マスターに照合しました。重量をg単位で確認してください。');
@@ -264,7 +264,7 @@ function filterFoodRecords(records,rawQuery,group) {
      $('[data-time="'+meal+'"]').value=inherited('time',meal);
      searchTarget[meal]=null;
      $('[data-food-query="'+meal+'"]').value='';
-     $('[data-search-mode="'+meal+'"]').textContent='食品を追加する';
+     $('[data-search-mode="'+meal+'"]').textContent='追加する食品を選んでください';
      $('[data-search-results="'+meal+'"]').replaceChildren();
      renderFoods(meal);
    }
@@ -349,7 +349,7 @@ function filterFoodRecords(records,rawQuery,group) {
    closeFoodPicker();
    searchTarget[savedMeal]=null;
    $('[data-food-query="'+savedMeal+'"]').value='';
-   $('[data-search-mode="'+savedMeal+'"]').textContent='食品を追加する';
+   $('[data-search-mode="'+savedMeal+'"]').textContent='追加する食品を選んでください';
    $('[data-search-results="'+savedMeal+'"]').replaceChildren();
    renderFoods(savedMeal);
    message('食品マスターから「'+f.name+'」を記録しました。'+(grams===null?'重量を入力すると点数を計算できます。':'点数と4群の小計を更新しました。'));
@@ -363,7 +363,7 @@ function filterFoodRecords(records,rawQuery,group) {
    list.push({name:name.slice(0,100),grams:null,rawAmount:null,rawUnit:'g',sourceGroup:'',masterIndex:null,masterName:'',masterGroup:'',masterGramsPerPoint:null});
    if(storeFoods(meal,list)){
      query.value='';searchTarget[meal]=null;
-     $('[data-search-mode="'+meal+'"]').textContent='食品を追加する';
+     $('[data-search-mode="'+meal+'"]').textContent='追加する食品を選んでください';
      $('[data-search-results="'+meal+'"]').replaceChildren();
      renderFoods(meal);
      message('食品を手入力で追加しました。マスターに照合するまで点数は未計算です。');
@@ -373,7 +373,7 @@ function filterFoodRecords(records,rawQuery,group) {
    const meal=button.dataset.searchReset;
    searchTarget[meal]=null;
    $('[data-food-query="'+meal+'"]').value='';
-   $('[data-search-mode="'+meal+'"]').textContent='食品を追加する';
+   $('[data-search-mode="'+meal+'"]').textContent='追加する食品を選んでください';
    $('[data-search-results="'+meal+'"]').replaceChildren();
  }));
  $('#saveButton').addEventListener('click',()=>{
