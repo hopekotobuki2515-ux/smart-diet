@@ -134,6 +134,12 @@ h1{font-size:26px;text-align:center;line-height:1.4;margin:20px 0 10px}
    const raw=localStorage.getItem(GOAL_KEY);
    if(raw===null){message(goalHistoryStatus,'教材STEP2で目標体重を設定すると、ここに記録が表示されます。');return;}
    const row=JSON.parse(raw);
+   // 過去の体重だけを先に保存した場合は、未設定の目標体重をエラー扱いしない。
+   if(row&&typeof row==='object'&&!Array.isArray(row)&&row.goalWeightKg==null&&
+    ('weightAt20Kg' in row||'longestWeightKg' in row)){
+    message(goalHistoryStatus,'以前の体重は保存済みです。3か月後の目標体重はまだ設定されていません。');
+    return;
+   }
    const start=Number(row?.startWeightKg),target=Number(row?.goalWeightKg);
    if(!row||typeof row!=='object'||Array.isArray(row)||
     !Number.isFinite(start)||start<=0||!Number.isFinite(target)||target<=0||target>=start)
