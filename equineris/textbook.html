@@ -59,6 +59,11 @@ a,button,input{font:inherit}button{cursor:pointer}
 .visual-title{font-size:13px;font-weight:800;color:var(--green);line-height:1.55}
 .visual-row{border:1px solid #e3e9e0;background:#fffefd;border-radius:9px;min-height:40px;display:flex;gap:8px;align-items:center;padding:9px 12px;font-size:14px;line-height:1.6}
 .visual-row:before{content:"•";font-weight:900;color:var(--gold);font-size:17px}
+.bmi-demo{display:flex;flex-direction:column;gap:10px;margin-top:10px;padding-top:13px;border-top:1px solid #d3dfd2}
+.bmi-demo label{display:block;font-size:13px;font-weight:750;color:var(--ink)}
+.bmi-demo input{display:block;width:100%;min-width:0;min-height:45px;margin-top:6px;border:1px solid #b9cebc;border-radius:10px;padding:9px 12px;background:#fff;color:var(--ink);font-size:16px}
+.bmi-demo-result{display:block;border-radius:10px;background:#fff;border:1px solid #d9e5da;padding:12px;font-size:17px;font-weight:800;color:var(--green);font-variant-numeric:tabular-nums}
+.bmi-demo-help{margin:0;font-size:11px;line-height:1.7;color:var(--muted)}
 .message-card .signature{margin:4px 0 0;text-align:right;font-size:13px;line-height:1.5;font-weight:700;color:var(--sub)}
 .message-card .message-notes{display:flex;flex-direction:column;gap:5px;padding:10px 12px;border-radius:10px;background:#f0f6ee;color:var(--sub)}
 .message-card .message-notes p{margin:0;font-size:12px;line-height:1.6}
@@ -168,6 +173,16 @@ a,button,input{font:inherit}button{cursor:pointer}
   catch(e){status.textContent='このブラウザでは保存できません。閲覧は続けられますが、再読み込み後に状態が残らない場合があります。';return false}
  };
  const normalize=s=>String(s).normalize('NFKC').toLocaleLowerCase('ja-JP').replace(/\s+/g,' ').trim();
+ // STEP2のBMIカードのみ。登録値を参照し、登録データは変更しない。
+ const registrationForBMI=()=>{
+  try{
+   const item=JSON.parse(localStorage.getItem('equineris:registration:v1')||'null');
+   if(!item||typeof item.heightCm!=='string'||typeof item.weightKg!=='string')return null;
+   const h=Number(item.heightCm),w=Number(item.weightKg);
+   if(!Number.isFinite(h)||h<=0||!Number.isFinite(w)||w<=0)return null;
+   return {heightCm:h,weightKg:w};
+  }catch(e){return null;}
+ };
  const jump=(id)=>{
   const found=CARDS.get(id);if(!found)return;
   const state=controls.get(found.step.id);if(!state)return;
@@ -274,6 +289,38 @@ a,button,input{font:inherit}button{cursor:pointer}
     const visual=create('section','visual');visual.setAttribute('aria-label',c.visualTitle||'図解・ポイント');
     visual.append(create('div','visual-title',c.visualTitle||''));
     for(const point of c.points)visual.append(create('div','visual-row',point));
+    if(c.id==='s2-c3'){
+     const demo=create('div','bmi-demo');
+     const heightLabel=create('label','','登録時の身長（cm）');
+     const heightField=create('input');
+     heightField.id='textbookBMIHeight';
+     heightField.type='number';heightField.min='0.1';heightField.step='0.1';heightField.inputMode='decimal';
+     heightField.setAttribute('aria-label','BMI計算用の身長（センチメートル）');
+     heightLabel.append(heightField);
+     const weightLabel=create('label','','登録時の体重（kg）');
+     const weightField=create('input');
+     weightField.id='textbookBMIWeight';
+     weightField.type='number';weightField.min='0.1';weightField.step='0.1';weightField.inputMode='decimal';
+     weightField.setAttribute('aria-label','BMI計算用の体重（キログラム）');
+     weightLabel.append(weightField);
+     const bmiResult=create('strong','bmi-demo-result','現在のBMI：—');
+     bmiResult.setAttribute('aria-live','polite');
+     const updateBMI=()=>{
+      const h=Number(heightField.value),w=Number(weightField.value);
+      const valid=heightField.value.trim()!==''&&weightField.value.trim()!==''&&
+       Number.isFinite(h)&&h>0&&Number.isFinite(w)&&w>0&&
+       heightField.checkValidity()&&weightField.checkValidity();
+      const bmi=valid?w/(h/100)**2:null;
+      bmiResult.textContent=bmi!==null&&Number.isFinite(bmi)?'現在のBMI：'+(Math.round(bmi*10+1e-9)/10).toFixed(1):'現在のBMI：—';
+     };
+     const registered=registrationForBMI();
+     if(registered){heightField.value=String(registered.heightCm);weightField.value=String(registered.weightKg);}
+     heightField.addEventListener('input',updateBMI);
+     weightField.addEventListener('input',updateBMI);
+     updateBMI();
+     demo.append(heightLabel,weightLabel,bmiResult,create('p','bmi-demo-help','初回登録の身長・体重を自動入力します。ここで数値を変更しても登録情報は書き換わりません。'));
+     visual.append(demo);
+    }
     article.append(visual);
    }
    track.append(article);
