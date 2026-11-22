@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fefdf8">
+<meta name="description" content="EQUINERISの食事記録STEP1〜3、写真、メモ、体重・腹囲を、保存した日付ごとに振り返るページ。">
+<title>これまでの記録 | EQUINERIS</title>
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;color-scheme:light;--ink:#183e38;--sub:#345e53;--muted:#65796f;--green:#285d4a;--edge:#dce7dc;--paper:#fffdfa}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;overflow-x:hidden}
+body{margin:0;min-width:280px;background:#e8eee8;color:var(--ink);overflow-x:hidden}
+button,select,a{font:inherit}
+button{cursor:pointer}
+[hidden]{display:none!important}
+:focus-visible{outline:3px solid #a6844e;outline-offset:2px}
+.page{width:100%;max-width:510px;min-height:100svh;padding:18px 14px max(32px,env(safe-area-inset-bottom));margin:0 auto;background:linear-gradient(158deg,#fefdf8,#f7faf4)}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:9px}
+.back{min-height:44px;display:inline-flex;align-items:center;color:var(--green);font-size:13px;font-weight:700;text-decoration:none}
+.wordmark{font-size:19px;font-weight:850;letter-spacing:.06em}.wordmark span{color:#a6844e}
+h1{font-size:25px;line-height:1.5;margin:14px 0 9px;text-align:center}
+.lead{max-width:400px;margin:0 auto 18px;font-size:14px;line-height:1.8;color:var(--sub);text-align:center}
+.review-card,.selector-card{background:var(--paper);border:1px solid var(--edge);border-radius:18px;padding:18px 16px;margin:13px 0;box-shadow:0 5px 18px rgba(20,70,40,.04);min-width:0}
+.review-card h2,.selector-card h2{font-size:19px;line-height:1.45;margin:0 0 13px;overflow-wrap:break-word}
+.review-card h3{font-size:17px;line-height:1.5;margin:0 0 13px}
+.review-card h4{font-size:15px;line-height:1.5;margin:0 0 9px}
+.selector-card label{display:block;font-weight:750;font-size:14px;line-height:1.6;margin-bottom:7px}
+.selector-card select{width:100%;height:48px;background:#fff;color:var(--ink);padding:9px 11px;border:1px solid #aac7b1;border-radius:12px;font-size:16px;min-width:0}
+.day-nav{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:11px}
+.day-nav button{min-height:46px;border:1px solid #b5cbb7;border-radius:11px;background:#f4f8f2;color:var(--green);font-weight:750;font-size:13px}
+.day-nav button:disabled{opacity:.45;cursor:default}
+.status{font-size:12px;line-height:1.7;color:var(--sub);margin:12px 2px 0;overflow-wrap:break-word}
+.status[data-error=true],.error{color:#a33b32}
+.meta{font-size:12px;line-height:1.65;color:var(--sub);margin:0 0 12px}
+.edit-links{display:flex;flex-wrap:wrap;gap:7px}
+.edit-link{color:var(--green);border:1px solid #c3d8c4;background:#f5f9f2;border-radius:10px;font-size:12px;font-weight:700;padding:10px 11px;min-height:44px;text-decoration:none;display:inline-flex;align-items:center;max-width:100%}
+.meal-result{border-top:1px solid var(--edge);padding:15px 0}
+.meal-result:first-of-type{border-top:none;padding-top:3px}
+.meal-note{white-space:pre-wrap;overflow-wrap:break-word;font-size:14px;line-height:1.85;margin:0 0 10px;color:var(--ink)}
+.food-items{margin:7px 0 10px;padding-left:19px;color:var(--sub);font-size:13px;line-height:1.85;overflow-wrap:break-word}
+.food-items li{padding:2px 0}
+.marks{font-size:12px;line-height:1.8;color:var(--sub);margin:8px 0}
+.review-photos{display:flex;flex-direction:column;gap:8px}
+.review-photos:empty{display:none}
+.review-photo{display:block;width:100%;max-width:100%;height:auto;max-height:360px;object-fit:contain;border-radius:12px;background:#f0f6f0}
+.metric{font-size:16px;font-weight:750;line-height:1.75;margin:0 0 12px}
+.text-link{font-size:13px;font-weight:750;color:var(--green);text-underline-offset:4px}
+.empty{font-size:14px;line-height:1.8;color:var(--sub);padding:10px}
+.related{margin-top:22px;padding:18px 16px;border-radius:16px;border:1px solid var(--edge);background:#fffdfa}
+.related h2{font-size:15px;margin:0 0 9px}
+.related a{display:block;font-size:13px;color:var(--green);font-weight:750;line-height:1.7;padding:9px 0}
+.note{font-size:12px;line-height:1.8;color:var(--muted);margin:15px 2px}
+@media(max-width:350px){.page{padding-inline:10px}.review-card,.selector-card{padding:16px 12px}.edit-links{gap:6px}}
+@media(min-width:650px){.page{border:1px solid var(--edge);border-radius:20px;margin:20px auto;min-height:calc(100svh - 40px)}}
+</style>
+</head>
+<body>
+<main class="page">
+ <nav class="topbar" aria-label="記録ページのナビゲーション">
+  <a class="back" href="./record.html">〈 食事記録に戻る</a>
+  <span class="wordmark" aria-label="EQUINERIS">EQUI<span>NERIS</span></span>
+ </nav>
+ <h1>これまでの記録</h1>
+ <p class="lead">記録した日付を選ぶと、食事の写真・メモ・食材と体重・腹囲をまとめて振り返れます。</p>
+ <section class="selector-card" aria-labelledby="selectTitle">
+  <h2 id="selectTitle">記録した日を選ぶ</h2>
+  <label for="reviewDate">保存済みの日付</label>
+  <select id="reviewDate" disabled><option>記録を確認しています</option></select>
+  <div class="day-nav">
+   <button id="olderRecord" type="button" disabled>〈 前の記録</button>
+   <button id="newerRecord" type="button" disabled>次の記録 〉</button>
+  </div>
+  <p id="listStatus" class="status" role="status" aria-live="polite"></p>
+ </section>
+ <div id="reviewDetail" aria-live="polite"></div>
+ <section class="related" aria-labelledby="relatedTitle">
+  <h2 id="relatedTitle">記録に戻る</h2>
+  <a href="./record.html">食事記録 STEP1</a>
+  <a href="./diary-step2.html">食事記録 STEP2</a>
+  <a href="./diary-step3.html">食事記録 STEP3</a>
+  <a href="./measurements.html">体重・腹囲と推移グラフ</a>
+ </section>
+ <p class="note">この画面は保存内容の確認専用です。既存の記録・写真・保存先は変更しません。ブラウザに保存された記録は別端末と自動同期されません。食品の点数計算は食事記録STEP3で確認してください。</p>
+</main>
+<script src="./record-history.js?v=20261123-unified-review"></script>
+</body>
+</html>
