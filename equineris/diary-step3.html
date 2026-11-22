@@ -187,6 +187,15 @@ dialog h2{font-size:17px;margin:0 0 8px}.dialog-date{font-size:12px;color:var(--
 .step3-footer{display:flex;flex-direction:column;gap:4px}
 .step3-footer a{font-size:13px;color:var(--green);padding:5px 0}
 @media(max-width:350px){.food-tools{gap:3px}.food-tools button{font-size:11px;padding:4px}.subtotal-cell strong{font-size:12px}.master-option small{font-size:10px}}
+
+/* Four-group quick reference: appended only to the final meal page. */
+.four-group-reference{margin:18px 0 8px;padding:12px;border:1px solid #dce7db;border-radius:12px;background:#fff;min-width:0}
+.four-group-reference h3{margin:0 0 9px;font-size:16px;line-height:1.4}
+.four-group-reference-row{display:grid;grid-template-columns:68px minmax(0,1fr);gap:9px;align-items:start;padding:10px 0;border-top:1px solid #e1eae1;min-width:0}
+.four-group-reference-row>strong{display:block;border-radius:8px;background:#ecf5ed;color:#285d4a;font-size:13px;line-height:1.5;text-align:center;padding:9px 1px}
+.four-group-reference-row>div{min-width:0;writing-mode:horizontal-tb;overflow-wrap:break-word;word-break:normal}
+.four-group-reference-row b{display:block;font-size:13px;line-height:1.6}
+.four-group-reference-row span{display:block;margin-top:2px;font-size:12px;line-height:1.75;color:#526b5d}
 </style>
 </head>
 <body><main class="viewport"><div class="page">
@@ -326,7 +335,13 @@ dialog h2{font-size:17px;margin:0 0 8px}.dialog-date{font-size:12px;color:var(--
 <h3 class="slide-heading">この食事の第1〜4群 小計</h3>
 <div class="subtotal-grid" data-group-subtotal="snack"></div>
 <p class="step3-meal-total" data-meal-total="snack">計算中…</p>
-</section>
+<section class="four-group-reference" aria-label="四群早見表">
+<h3>四群早見表</h3>
+<div class="four-group-reference-row"><strong>第1群</strong><div><b>乳・乳製品、卵</b><span>牛乳・ヨーグルト・チーズ・卵</span></div></div>
+<div class="four-group-reference-row"><strong>第2群</strong><div><b>魚介類、肉、豆・豆製品</b><span>魚・牛肉・豚肉・鶏肉・豆腐・納豆</span></div></div>
+<div class="four-group-reference-row"><strong>第3群</strong><div><b>野菜、果物、いも、きのこ・海藻</b><span>にんじん・りんご・じゃがいも・きのこ・海藻</span></div></div>
+<div class="four-group-reference-row"><strong>第4群</strong><div><b>穀類、油脂、砂糖・菓子など</b><span>ご飯・パン・麺・油脂・砂糖・調味料</span></div></div>
+</section></section>
 </div>
 <div class="meal-controls"><button type="button" id="mealPrev" disabled>〈 前へ</button><span id="mealCounter">1 / 5</span><button type="button" id="mealNext">次へ 〉</button></div>
 <div class="actions" hidden><button type="button" id="saveButton" class="action-button">記録を保存</button><button type="button" id="previewButton" class="action-button outline">記録を確認</button></div>
