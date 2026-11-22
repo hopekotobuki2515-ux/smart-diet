@@ -152,7 +152,7 @@
   });
   $$('[data-memo]').forEach(input=>input.addEventListener('input',()=>write(currentKey('memo:'+input.dataset.memo),input.value)));
   $$('[data-time]').forEach(input=>input.addEventListener('change',()=>write(currentKey('time:'+input.dataset.time),input.value)));
-  $('[data-mark]').forEach(input=>input.addEventListener('change',()=>{
+  $$('[data-mark]').forEach(input=>input.addEventListener('change',()=>{
     const [meal,group,index]=input.dataset.mark.split(':');
     if(linkedFood(meal,group,Number(index))){refreshMarks(meal);return;}
     write(currentKey('mark:'+meal+':'+group+':'+index),input.checked?'1':'0');
