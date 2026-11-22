@@ -308,6 +308,47 @@ function filterFoodRecords(records,rawQuery,group) {
  });
  $$('[data-memo]').forEach(input=>input.addEventListener('input',()=>put(key('memo:'+input.dataset.memo),input.value)));
  $$('[data-time]').forEach(input=>input.addEventListener('change',()=>put(key('time:'+input.dataset.time),input.value)));
+ // 食品マスター検索画面をフルスクリーンで表示し、選択した食品だけをステップ3に登録する。
+ const picker=$('#foodPickerDialog'),pickerFrame=$('#foodPickerFrame');
+ let pickerMeal=null,pickerRecordId=null;
+ function closeFoodPicker(){
+   if(picker.open)picker.close();
+   pickerFrame.removeAttribute('src');
+   pickerMeal=null;
+   pickerRecordId=null;
+ }
+ $$('[data-picker-open]').forEach(button=>button.addEventListener('click',()=>{
+   const meal=button.dataset.pickerOpen;
+   if(!MEALS.some(([name])=>name===meal))return;
+   pickerMeal=meal;
+   pickerRecordId=recordId;
+   pickerFrame.src=new URL('../food-search.html?diary-picker=1',location.href).href;
+   picker.showModal();
+ }));
+ $('#closeFoodPicker').addEventListener('click',closeFoodPicker);
+ picker.addEventListener('cancel',event=>{event.preventDefault();closeFoodPicker();});
+ window.addEventListener('message',event=>{
+   if(event.origin!==location.origin||event.source!==pickerFrame.contentWindow||!picker.open||!pickerMeal||pickerRecordId!==recordId)return;
+   const data=event.data;
+   if(!data||data.kind!=='smartdiet-diary-food-v1'||!master)return;
+   if(!Number.isInteger(data.masterIndex)||data.masterIndex<0||data.masterIndex>=master.length)return;
+   const f=master[data.masterIndex];
+   if(!f||data.name!==f.name||data.group!==f.group||data.gramsPerPoint!==f.gramsPerPoint)return;
+   const grams=data.grams;
+   if(grams!==null&&(!Number.isFinite(grams)||grams<=0||grams>10000))return;
+   const list=foods(pickerMeal);
+   if(list.length>=100){message('1食の食材は100件までです。',true);return;}
+   list.push({
+     name:f.name,grams,rawAmount:grams,rawUnit:'g',
+     sourceGroup:String(groupNumber(f)),masterIndex:data.masterIndex,
+     masterName:f.name,masterGroup:f.group,masterGramsPerPoint:f.gramsPerPoint
+   });
+   if(!storeFoods(pickerMeal,list))return;
+   const savedMeal=pickerMeal;
+   closeFoodPicker();
+   renderFoods(savedMeal);
+   message('食品マスターから「'+f.name+'」を記録しました。'+(grams===null?'重量を入力すると点数を計算できます。':'点数と4群の小計を更新しました。'));
+ });
  $$('[data-food-query]').forEach(input=>input.addEventListener('input',()=>drawResults(input.dataset.foodQuery)));
  $$('[data-add-manual]').forEach(button=>button.addEventListener('click',()=>{
    const meal=button.dataset.addManual,query=$('[data-food-query="'+meal+'"]');
