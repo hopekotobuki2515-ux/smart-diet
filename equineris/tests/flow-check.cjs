@@ -72,9 +72,9 @@ const textbookData=JSON.parse(
 test('six textbook steps and all unique lesson IDs are present',()=>{
  assert.equal(textbookData.length,6);
  const cards=textbookData.flatMap(step=>step.cards);
- assert.equal(cards.length,66);
+ assert.equal(cards.length,67);
  assert.equal(new Set(cards.map(c=>c.id)).size,cards.length);
- for(const id of ['s2-c6','s2-c8','s4-c4','s5-c1'])
+ for(const id of ['s2-goal','s2-c6','s2-c8','s4-c4','s5-c1'])
   assert.ok(cards.some(c=>c.id===id),id);
 });
 class MockEl {
@@ -124,11 +124,28 @@ function textbookScenario(hash='',seed={}){
  const next=navs.map(n=>n.children[2]),count=navs.map(n=>n.children[1]);
  return {sections,next,count,location,localData};
 }
+test('new goal card is a standalone slide after the intro, preserving old order',()=>{
+ const ids=textbookData[1].cards.map(card=>card.id);
+ assert.equal(ids.length,11);
+ assert.deepEqual(ids.slice(0,5),['s2-c1','s2-goal','s2-c2','s2-c3','s2-c4']);
+ assert.equal(ids[10],'s2-c10');
+ const t=textbookScenario('#s2-goal');
+ assert.equal(t.count[1].textContent,'2 / 11');
+ const track=t.sections[1].children.find(c=>c.className==='track');
+ assert.equal(track.children.length,11);
+ assert.equal(track.children[0].id,'s2-c1');
+ assert.equal(track.children[1].id,'s2-goal');
+ assert.equal(track.children[2].id,'s2-c2');
+ assert.equal(track.children[3].id,'s2-c3');
+ assert.equal(track.children[0].children.some(c=>c.className==='goal-calculator'),false);
+ assert.ok(track.children[1].children.find(c=>c.className==='visual').children.some(c=>c.className==='goal-calculator'));
+ assert.equal(track.children[2].children.find(c=>c.className==='visual').children.some(c=>c.className==='goal-calculator'),false);
+});
 test('STEP2 BMI example fills the registration and recalculates without saving',()=>{
  const seed={'equineris:registration:v1':JSON.stringify({name:'Test',heightCm:'170',weightKg:'70'})};
  const t=textbookScenario('#s2-c3',seed);
  const track=t.sections[1].children.find(x=>x.className==='track');
- const card=track.children[2];
+ const card=track.children[3];
  const visual=card.children.find(x=>x.className==='visual');
  const demo=visual.children.find(x=>x.className==='bmi-demo');
  assert.ok(demo,'BMI example');
@@ -182,7 +199,7 @@ test('registration weight computes STEP2 goal on second card and saves percentag
  for(let i=0;i<8;i++)t.next[0].click();
  assert.equal(t.count[0].textContent,'9 / 9');
  t.next[0].click();assert.ok(t.sections[1].scrolled);
- t.next[1].click();assert.equal(t.count[1].textContent,'2 / 10');
+ t.next[1].click();assert.equal(t.count[1].textContent,'2 / 11');
  const track=t.sections[1].children.find(c=>c.className==='track');
  const visual=track.children[1].children.find(c=>c.className==='visual');
  const calc=visual.children.find(c=>c.className==='goal-calculator');
@@ -248,7 +265,7 @@ test('goal calculator preserves existing optional goals and blocks missing regis
 });
 test('STEP2 food behavior introduction leads to 17-item checklist without repeated goal page',()=>{
  const t=textbookScenario('#s2-c7');
- assert.equal(t.count[1].textContent,'7 / 10');
+ assert.equal(t.count[1].textContent,'8 / 11');
  assert.match(t.next[1].textContent,/食行動チェック/);
  t.next[1].click();
  assert.equal(t.location.destination,'./habit-intro.html?from=textbook-step2');
@@ -257,7 +274,7 @@ test('STEP2 food behavior introduction leads to 17-item checklist without repeat
 });
 test('after the checklist, STEP2 and STEP3 advance to STEP4 food diary',()=>{
  const t=textbookScenario('#s2-c8');
- assert.equal(t.count[1].textContent,'8 / 10');
+ assert.equal(t.count[1].textContent,'9 / 11');
  t.next[1].click();t.next[1].click();t.next[1].click();
  assert.ok(t.sections[2].scrolled,'STEP3');
  for(let i=0;i<11;i++)t.next[2].click();
