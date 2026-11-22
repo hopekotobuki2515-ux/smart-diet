@@ -330,18 +330,37 @@ function filterFoodRecords(records,rawQuery,group) {
    $('.daily-area').hidden=activeSlide===0;
    fitActiveSlideHeight();
  }
+ // スワイプ中は選択を切り替えず、スクロール停止後に1画面幅の位置へ揃える。
+ let slideSettleTimer=null;
+ function nearestSlide(){
+   const width=track.clientWidth;
+   if(!width)return activeSlide;
+   return Math.max(0,Math.min(slides.length-1,Math.round(track.scrollLeft/width)));
+ }
+ function settleSlide(){
+   if(slideSettleTimer!==null){clearTimeout(slideSettleTimer);slideSettleTimer=null;}
+   const n=nearestSlide();
+   const target=n*track.clientWidth;
+   showSlide(n);
+   if(Math.abs(track.scrollLeft-target)>1){
+     track.scrollTo({left:target,behavior:'smooth'});
+   }
+ }
  function go(index,animate=true){
    const n=Math.max(0,Math.min(slides.length-1,index));
-   track.scrollTo({left:n*track.clientWidth,behavior:animate?'smooth':'auto'});showSlide(n);
+   if(slideSettleTimer!==null){clearTimeout(slideSettleTimer);slideSettleTimer=null;}
+   // ボタン操作は途中位置を通らないよう、対象スライドに直接合わせる。
+   track.scrollTo({left:n*track.clientWidth,behavior:'auto'});
+   showSlide(n);
  }
  tabs.forEach((b,i)=>b.addEventListener('click',()=>go(i)));
  $('#mealPrev').addEventListener('click',()=>go(activeSlide-1));
  $('#mealNext').addEventListener('click',()=>go(activeSlide+1));
- let scheduled=false;
  track.addEventListener('scroll',()=>{
-   if(scheduled)return;scheduled=true;
-   requestAnimationFrame(()=>{scheduled=false;showSlide(Math.round(track.scrollLeft/(track.clientWidth||1)));});
+   if(slideSettleTimer!==null)clearTimeout(slideSettleTimer);
+   slideSettleTimer=setTimeout(settleSlide,180);
  },{passive:true});
+ if('onscrollend' in track)track.addEventListener('scrollend',settleSlide,{passive:true});
  track.addEventListener('keydown',e=>{if(e.target!==track)return;if(e.key==='ArrowRight'){e.preventDefault();go(activeSlide+1);}if(e.key==='ArrowLeft'){e.preventDefault();go(activeSlide-1);}});
  window.addEventListener('resize',()=>{track.scrollLeft=activeSlide*track.clientWidth;fitActiveSlideHeight();});
  $('#targetPattern').addEventListener('change',()=>{
