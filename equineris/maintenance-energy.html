@@ -45,6 +45,12 @@ tbody th{text-align:left;font-weight:750}
 .ref-table th:first-child{width:29%}
 .ref-table th:not(:first-child){width:23.667%}
 .note{background:#f4f8f3;border-radius:12px;padding:14px;margin:16px 0 0;color:#486254;font-size:12px;line-height:1.8}
+.apply-box{margin-top:18px;padding:14px;border:1px solid var(--line);border-radius:12px;background:#f7faf6}
+.apply-box label{display:flex;align-items:flex-start;gap:10px;font-size:13px;line-height:1.7;cursor:pointer}
+.apply-box input{width:21px;height:21px;flex:0 0 21px;margin:1px 0 0;accent-color:var(--green)}
+.apply-button{display:block;width:100%;min-height:49px;margin-top:12px;border:0;border-radius:11px;background:var(--green);color:#fff;font-weight:800;font-size:15px}
+.apply-button:disabled{background:#b9c7bc;color:#415b4c;cursor:not-allowed}
+.apply-status{margin:10px 0 0;font-size:12px;line-height:1.65}
 .source{font-size:12px;color:var(--muted);line-height:1.8}
 .sep{height:1px;background:var(--line);margin:20px 0}
 footer{font-size:12px;color:var(--muted);line-height:1.8}
@@ -82,6 +88,7 @@ footer{font-size:12px;color:var(--muted);line-height:1.8}
 </table>
 </div>
 <p class="note">第1〜第3群を各3点（各240kcal）として確保し、残りを第4群へ配分した<strong>SMART Dietでの計算例</strong>です。これは国の資料に載っている四群別配分ではありません。表示点数は小数第2位までの四捨五入です。</p>
+<div class="apply-box"><label for="confirmMaintenance"><input id="confirmMaintenance" type="checkbox">この配分例を基に、トレーナーと維持期の目標点数を確認しました。</label><button id="applyToStep3" class="apply-button" type="button" disabled>確認した目標をステップ3へ反映する</button><p id="applyStatus" class="apply-status" role="status" aria-live="polite">確認した場合にだけ、ステップ3の1日の目標点数を変更します。記録済みの食品や点数計算は変更しません。</p></div>
 </section>
 <section class="card">
 <h2>年齢・身体活動レベル別 1日のエネルギー目安一覧</h2>
@@ -103,7 +110,7 @@ footer{font-size:12px;color:var(--muted);line-height:1.8}
 </section>
 <section class="card">
 <h2>体重維持期に使う際の注意</h2>
-<p>これらは参照体格に基づく<strong>一般的な目安</strong>であり、個人の維持カロリーや処方量を確定するものではありません。修了時の体重推移、活動量、食事記録を確認し、維持期の食事量はトレーナーと相談して決めます。減量中の15点・21点設定を自動変更するものではありません。</p>
+<p>これらは参照体格に基づく<strong>一般的な目安</strong>であり、個人の維持カロリーや処方量を確定するものではありません。修了時の体重推移、活動量、食事記録を確認し、維持期の食事量はトレーナーと相談して決めます。本人が確認後に反映操作をしたときだけ、ステップ3の目標表示を切り替えます。</p>
 <p class="source">出典：<a href="https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/kenkou_iryou/kenkou/eiyou/syokuji_kijyun.html" rel="noopener noreferrer" target="_blank">厚生労働省「日本人の食事摂取基準（2025年版）」</a>。数値照合：<a href="https://www.city.sakai.lg.jp/kenko/kenko/kenkozoshin/eiyo/eiyoseibun/ichinichi.html" rel="noopener noreferrer" target="_blank">堺市の年齢・活動レベル別一覧</a>。</p>
 </section>
 <footer>このページはSMART Diet修了後の参照用ページです。現段階では修了者認証によるアクセス制限は設けていません。</footer>
@@ -117,6 +124,37 @@ const $=id=>document.getElementById(id);
 const fmt=v=>v.toLocaleString("ja-JP");
 const fixed=v=>v.toFixed(2);
 const selectors=[$("sex"),$("age"),$("level")];
+const MAINT_KEY="equineris:maintenance-energy:v1:selected";
+const PATTERN_KEY="equineris:diary-step3:v1:target-pattern";
+const consent=$("confirmMaintenance"),applyButton=$("applyToStep3");
+function readyToApply(){
+  const sex=$("sex").value,age=$("age").value,level=$("level").value;
+  return Boolean(sex&&age&&level!==""&&typeof ENERGY[age]?.[sex]?.[Number(level)]==="number"&&!$("result").hidden);
+}
+function syncApplyButton(){applyButton.disabled=!consent.checked||!readyToApply();}
+function applyToDiary(){
+  if(!consent.checked||!readyToApply()){ $("applyStatus").textContent="トレーナーと確認した目標を選んでください。";return; }
+  const sex=$("sex").value,age=$("age").value,level=Number($("level").value);
+  const kcal=ENERGY[age][sex][level],total=kcal/80,targets=[3,3,3,total-9];
+  if(targets.some(v=>!Number.isFinite(v)||v<=0)||Math.abs(targets.reduce((a,b)=>a+b,0)*80-kcal)>1e-8){
+    $("applyStatus").textContent="合計点数を検証できないため反映を中止しました。";return;
+  }
+  const value=JSON.stringify({version:1,confirmed:true,sex,age,level,kcal,targets,confirmedAt:new Date().toISOString()});
+  try{
+    const previous=localStorage.getItem(MAINT_KEY);
+    localStorage.setItem(MAINT_KEY,value);
+    try{localStorage.setItem(PATTERN_KEY,"maintenance");}
+    catch(error){
+      if(previous===null)localStorage.removeItem(MAINT_KEY);
+      else localStorage.setItem(MAINT_KEY,previous);
+      throw error;
+    }
+  }catch(error){
+    $("applyStatus").textContent="目標の保存に失敗しました。ブラウザの保存設定をご確認ください。";return;
+  }
+  $("applyStatus").textContent="目標を保存しました。ステップ3を開きます。";
+  location.assign("./diary-step3.html");
+}
 function update(){
   const sex=$("sex").value,age=$("age").value,level=$("level").value;
   if(!sex||!age||level===""){
@@ -149,7 +187,9 @@ function update(){
   $("status").textContent="条件に対応する参照値を表示しています。";
   $("result").hidden=false;
 }
-selectors.forEach(el=>el.addEventListener("change",update));
+selectors.forEach(el=>el.addEventListener("change",()=>{consent.checked=false;update();syncApplyButton();}));
+consent.addEventListener("change",syncApplyButton);
+applyButton.addEventListener("click",applyToDiary);
 </script>
 </body>
 </html>
