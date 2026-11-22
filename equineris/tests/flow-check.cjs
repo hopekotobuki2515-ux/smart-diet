@@ -323,6 +323,40 @@ test('historical kg fields save and restore through the existing goal record',()
  assert.equal(reloadedForm.children[1].children[0].value,'58.5');
  assert.equal(reloadedForm.children[2].children[0].value,'67');
 });
+test('saving historical weights before goal setup keeps fields and does not break measurements page',()=>{
+ const REG='equineris:registration:v1',GOAL='equineris:week1:goal:v1';
+ const first=textbookScenario('#s2-weight-history',{[REG]:JSON.stringify({heightCm:'170',weightKg:'80'})});
+ const card=first.sections[1].children.find(c=>c.className==='track').children[7];
+ const form=card.children.find(c=>c.className==='visual').children.find(c=>c.id==='textbookWeightHistory');
+ const twenty=form.children[1].children[0],save=form.children[3];
+ twenty.value='61.5';twenty.fire('input');
+ save.click();
+ const partial=JSON.parse(first.localData.get(GOAL));
+ assert.equal(partial.startWeightKg,80);
+ assert.equal(partial.weightAt20Kg,61.5);
+ assert.equal(partial.longestWeightKg,null);
+ assert.equal(partial.goalWeightKg,undefined);
+ const ids=['recordDate','bodyWeight','bodyWaist','saveStatus','historyRows','metricForm',
+  'recordTitle','back','startHeight','startWeight','startBMI','saveBaseline','baselineStatus',
+  'goalStartWeight','goalTargetWeight','goalLossWeight','goalLossRate','goalHistoryStatus'];
+ const elements=Object.fromEntries(ids.map(id=>[id,new MockEl('input')]));
+ const session=new Map(first.localData);
+ vm.runInNewContext(scriptOf(source['measurements.html'])[0],{
+  document:{referrer:'',getElementById:id=>elements[id],createElement:tag=>new MockEl(tag)},
+  localStorage:{getItem:key=>session.get(key)??null,setItem:(key,v)=>session.set(key,String(v))},
+  window:{confirm(){return false;}},location:{origin:'https://example.test'},URL,Date
+ });
+ assert.match(elements.goalHistoryStatus.textContent,/まだ設定されていません/);
+ assert.equal(elements.goalHistoryStatus.dataset.error,'false');
+ const next=textbookScenario('#s2-goal',Object.fromEntries(first.localData));
+ const goalCard=next.sections[1].children.find(c=>c.className==='track').children[5];
+ const calculator=goalCard.children.find(c=>c.className==='visual').children.find(c=>c.className==='goal-calculator');
+ calculator.children[3].children[1].click();
+ calculator.children[6].click();
+ const combined=JSON.parse(next.localData.get(GOAL));
+ assert.equal(combined.weightAt20Kg,61.5);
+ assert.equal(combined.goalWeightKg,73.6);
+});
 test('STEP2 food behavior introduction leads to 17-item checklist without repeated goal page',()=>{
  const t=textbookScenario('#s2-c7');
  assert.equal(t.count[1].textContent,'9 / 12');
