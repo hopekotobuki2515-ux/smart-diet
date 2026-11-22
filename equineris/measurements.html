@@ -63,15 +63,6 @@ h1{font-size:26px;text-align:center;line-height:1.4;margin:20px 0 10px}
   </form>
   <p class="status" id="saveStatus" aria-live="polite"></p>
  </section>
- <section class="card" aria-labelledby="trainerTitle">
-  <h2 id="trainerTitle">トレーナーチェック（任意）</h2>
-  <label class="checkline"><input id="trainerRequest" type="checkbox"><span>この日の記録について、トレーナーチェックを希望する</span></label>
-  <p class="note">希望を選択しただけでは、トレーナーに自動送信されません。希望はこの端末内に保存されます。共有ボタンを押すと送信先を自分で選べます。</p>
-  <button id="saveRequest" class="secondary" type="button">チェック希望の選択を保存する</button>
-  <button id="shareRequest" class="secondary" type="button" style="margin-top:10px" disabled>確認依頼の内容を共有する</button>
-  <textarea id="shareFallback" class="sharebox" readonly hidden aria-label="共有する文章"></textarea>
-  <p class="status" id="requestStatus" aria-live="polite"></p>
- </section>
  <section class="card" aria-labelledby="historyTitle">
   <h2 id="historyTitle">体重・腹囲の記録履歴</h2>
   <p class="note">この端末のブラウザ内に保存された記録です。別端末との同期はありません。</p>
@@ -84,7 +75,7 @@ h1{font-size:26px;text-align:center;line-height:1.4;margin:20px 0 10px}
  const KEY='equineris:body-measurements:v1';
  const byId=id=>document.getElementById(id);
  const date=byId('recordDate'),weight=byId('bodyWeight'),waist=byId('bodyWaist');
- const request=byId('trainerRequest'),saveStatus=byId('saveStatus'),requestStatus=byId('requestStatus'),share=byId('shareRequest');
+ const saveStatus=byId('saveStatus');
  const history=byId('historyRows');
  const today=()=>{const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')};
  const validDate=s=>/^\d{4}-\d{2}-\d{2}$/.test(s)&&!Number.isNaN(new Date(s+'T00:00:00').getTime())&&new Date(s+'T00:00:00').getFullYear()===Number(s.slice(0,4))&&new Date(s+'T00:00:00').getMonth()+1===Number(s.slice(5,7))&&new Date(s+'T00:00:00').getDate()===Number(s.slice(8,10));
@@ -102,9 +93,6 @@ h1{font-size:26px;text-align:center;line-height:1.4;margin:20px 0 10px}
   const item=current();
   weight.value=item&&Number.isFinite(item.weight)?String(item.weight):'';
   waist.value=item&&Number.isFinite(item.waist)?String(item.waist):'';
-  request.checked=Boolean(item&&item.trainerRequested);
-  share.disabled=!request.checked||!(item&&(item.weight!==null||item.waist!==null));
-  byId('shareFallback').hidden=true;
  }
  function renderHistory(){
   history.replaceChildren();
@@ -119,7 +107,7 @@ h1{font-size:26px;text-align:center;line-height:1.4;margin:20px 0 10px}
    const detail=document.createElement('small');
    const w=Number.isFinite(item.weight)?item.weight+'kg':'未入力';
    const a=Number.isFinite(item.waist)?item.waist+'cm':'未入力';
-   detail.textContent='体重 '+w+'／腹囲 '+a+(item.trainerRequested?'／チェック希望あり':'');
+   detail.textContent='体重 '+w+'／腹囲 '+a;
    open.append(label,detail);
    open.addEventListener('click',()=>{date.value=day;showDay();byId('recordTitle').scrollIntoView({block:'start',behavior:'smooth'})});
    const del=document.createElement('button');del.type='button';del.className='history-delete';del.textContent='削除';
@@ -141,37 +129,14 @@ h1{font-size:26px;text-align:center;line-height:1.4;margin:20px 0 10px}
   if((w!==null&&(!Number.isFinite(w)||w<10||w>500))||(a!==null&&(!Number.isFinite(a)||a<20||a>300))){message(saveStatus,'体重・腹囲の数値を確認してください。',true);return false}
   try{
    const all=getAll();
-   all[day]={weight:w,waist:a,trainerRequested:Boolean(request.checked)};
+   all[day]={...(all[day]||{}),weight:w,waist:a};
    setAll(all);
    message(saveStatus,'記録を保存しました。');
-   share.disabled=!request.checked;
    renderHistory();return true;
   }catch(e){message(saveStatus,'保存できませんでした。ブラウザの保存設定を確認してください。',true);return false}
  }
  byId('metricForm').addEventListener('submit',e=>{e.preventDefault();saveDate()});
  date.addEventListener('change',()=>{showDay();message(saveStatus,'')});
- byId('saveRequest').addEventListener('click',()=>{
-  const day=date.value;
-  if(!validDate(day)){message(requestStatus,'日付を確認してください。',true);return}
-  try{
-   const all=getAll(),item=all[day];
-   if(!item||!(Number.isFinite(item.weight)||Number.isFinite(item.waist))){message(requestStatus,'先に体重または腹囲を保存してください。',true);return}
-   all[day]={...item,trainerRequested:request.checked};setAll(all);
-   share.disabled=!request.checked;
-   message(requestStatus,request.checked?'チェック希望をこの端末に保存しました。送信はしていません。':'チェック希望を解除しました。');
-   renderHistory();
-  }catch(e){message(requestStatus,'希望の変更を保存できませんでした。',true)}
- });
- share.addEventListener('click',async()=>{
-  const day=date.value,item=current();
-  if(!item||!item.trainerRequested){message(requestStatus,'先にチェック希望を保存してください。',true);return}
-  const body='EQUINERIS 測定記録のトレーナーチェック依頼\n日付：'+day+'\n体重：'+(Number.isFinite(item.weight)?item.weight+'kg':'未入力')+'\n腹囲：'+(Number.isFinite(item.waist)?item.waist+'cm':'未入力')+'\nトレーナーチェックを希望します。';
-  try{
-   if(navigator.share){await navigator.share({title:'EQUINERIS 測定記録の確認依頼',text:body});message(requestStatus,'共有操作を終了しました。相手への到達は共有先で確認してください。');return}
-   if(navigator.clipboard&&navigator.clipboard.writeText){await navigator.clipboard.writeText(body);message(requestStatus,'確認依頼文をコピーしました。送信先を選んで貼り付けてください。');return}
-   const fallback=byId('shareFallback');fallback.value=body;fallback.hidden=false;fallback.focus();fallback.select();message(requestStatus,'表示された文章をコピーし、送信先を選んで送ってください。');
-  }catch(e){if(e&&e.name==='AbortError'){message(requestStatus,'共有を取り消しました。');return}message(requestStatus,'共有できませんでした。別の方法で確認してください。',true)}
- });
  try{
   const ref=new URL(document.referrer),file=ref.pathname.split('/').pop();
   if(ref.origin===location.origin&&['record.html','diary-step2.html','diary-step3.html'].includes(file)){byId('back').href='./'+file+ref.search;}
