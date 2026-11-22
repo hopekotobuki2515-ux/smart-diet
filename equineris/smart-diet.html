@@ -225,6 +225,46 @@
       .lesson-actions .footnote{margin-top:2px}
     }
     @media(min-width:650px){.page.lesson-page{padding-inline:24px}}
+
+    /* ステップ1の説明カードを画面端まで拡大。文字・説明・横スワイプは維持。 */
+    .page.lesson-page{
+      padding-top:5px;
+      padding-right:3px;
+      padding-left:3px;
+      padding-bottom:max(5px,env(safe-area-inset-bottom))
+    }
+    .lesson-page .topbar{margin:0 9px}
+    .lesson-page .topbar .back{min-height:30px;font-size:12px}
+    .lesson-page .wordmark{margin-top:0;font-size:19px;line-height:1.05}
+    .lesson-heading{margin:1px 0 2px}
+    .lesson-heading .eyebrow{margin:0 0 1px;font-size:9px;line-height:1.1}
+    .lesson-heading h1{font-size:clamp(21px,5.5vw,25px);line-height:1.25}
+    .lesson-counter{margin:0 7px 2px;font-size:11px;line-height:1.15}
+    .lesson-viewport{flex:1 1 auto;min-height:0}
+    .lesson-slide .lesson-card{
+      height:100%;
+      border-radius:18px;
+      padding:clamp(12px,2svh,21px) clamp(14px,4vw,20px)
+    }
+    .lesson-card p{font-size:16px}
+    .lesson-dots{margin-top:1px}
+    .lesson-dots button{height:23px}
+    .lesson-actions{margin:2px 5px 0}
+    .lesson-actions .main-button{min-height:46px;padding:8px 35px 8px 13px}
+    .lesson-actions .footnote{margin-top:2px;font-size:10px;line-height:1.25}
+    @media(max-height:650px){
+      .page.lesson-page{padding-top:3px;padding-right:3px;padding-left:3px;padding-bottom:max(3px,env(safe-area-inset-bottom))}
+      .lesson-page .topbar .back{min-height:28px}
+      .lesson-page .wordmark{font-size:18px}
+      .lesson-heading h1{font-size:20px;line-height:1.2}
+      .lesson-slide .lesson-card{padding:9px 11px}
+      .lesson-card p{font-size:16px;line-height:1.35}
+      .lesson-dots button{height:20px}
+      .lesson-actions .main-button{min-height:44px}
+    }
+    @media(min-width:650px){
+      .page.lesson-page{padding-right:9px;padding-left:9px}
+    }
 </style>
 </head>
 <body>
