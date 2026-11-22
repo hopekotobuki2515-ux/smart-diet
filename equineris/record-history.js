@@ -144,6 +144,11 @@
    return {id,label,memo,time,foods,counts,archived:row.archives.filter(a=>
     a.meal===label||a.meal===id)};
   });
+  // 旧写真・メモ記録の「飲み物」「飲酒」も振り返りから落とさない。
+  for(const label of ['飲み物','飲酒']){
+   const archived=row.archives.filter(a=>a.meal===label);
+   if(archived.length)mealData.push({id:'archive-'+label,label,memo:'',time:'',foods:[],counts:[0,0,0,0],archived});
+  }
   return {meals:mealData,measurement:row.measurement};
  }
  function editUrl(step,row){
