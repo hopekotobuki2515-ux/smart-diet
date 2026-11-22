@@ -17,7 +17,7 @@
  const step2Key=(name,id=recordId)=>STEP2+'entry:'+id+':'+name;
  const today=()=>{const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');};
  const validDate=s=>{if(!/^\d{4}-\d{2}-\d{2}$/.test(s||''))return false;const d=new Date(s+'T12:00:00');return !Number.isNaN(d.getTime())&&[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')===s;};
- const slotDate=n=>read(STEP2+'slot-date:'+n)||read(STEP1+n+':date')||'';
+ const slotDate=n=>read(OWN+'slot-date:'+n)||read(STEP2+'slot-date:'+n)||read(STEP1+n+':date')||'';
  function slotFor(value){if(/^slot[1-3]$/.test(value))return Number(value.slice(-1));for(let n=1;n<=3;n++)if(slotDate(n)===value)return n;return null;}
  function idFor(date){const n=slotFor(date);return n?'slot'+n:date;}
  function inherited(name,meal){
@@ -252,8 +252,6 @@
    else populate(idFor(date));
    go(0,false);
  });
- // The optional stage-3 date for an unassigned legacy day is kept only in stage 3.
- const slotDateOriginal=slotDate;
  $$('[data-memo]').forEach(input=>input.addEventListener('input',()=>put(key('memo:'+input.dataset.memo),input.value)));
  $$('[data-time]').forEach(input=>input.addEventListener('change',()=>put(key('time:'+input.dataset.time),input.value)));
  $$('[data-food-query]').forEach(input=>input.addEventListener('input',()=>drawResults(input.dataset.foodQuery)));
@@ -263,7 +261,13 @@
    const list=foods(meal);
    if(list.length>=100){message('1食100件まで登録できます。',true);return;}
    list.push({name:name.slice(0,100),grams:null,rawAmount:null,rawUnit:'g',sourceGroup:'',masterIndex:null,masterName:'',masterGroup:'',masterGramsPerPoint:null});
-   if(storeFoods(meal,list)){query.value='';searchTarget[meal]=null;$('[data-search-results="'+meal+'"]').replaceChildren();renderFoods(meal);message('食品を手入力で追加しました。マスターに照合するまで点数は未計算です。');}
+   if(storeFoods(meal,list)){
+     query.value='';searchTarget[meal]=null;
+     $('[data-search-mode="'+meal+'"]').textContent='食品を追加する';
+     $('[data-search-results="'+meal+'"]').replaceChildren();
+     renderFoods(meal);
+     message('食品を手入力で追加しました。マスターに照合するまで点数は未計算です。');
+   }
  }));
  $$('[data-search-reset]').forEach(button=>button.addEventListener('click',()=>{
    const meal=button.dataset.searchReset;
@@ -313,16 +317,21 @@
  });}
  async function getPhoto(meal,id=recordId){
    let photo=await tx(pictureDB,'readonly',s=>s.get(id+':'+meal));
-   if(photo?.file instanceof Blob)return photo;
+   if(photo?.file instanceof Blob)return {...photo,sourceStep:3};
    photo=await tx(step2PhotoDB,'readonly',s=>s.get(id+':'+meal));
-   if(photo?.file instanceof Blob)return photo;
+   if(photo?.file instanceof Blob)return {...photo,sourceStep:2};
    const slot=slotFor(id);
-   return slot?tx(step1PhotoDB,'readonly',s=>s.get(slot+':'+meal)):null;
+   photo=slot?await tx(step1PhotoDB,'readonly',s=>s.get(slot+':'+meal)):null;
+   return photo?.file instanceof Blob?{...photo,sourceStep:1}:null;
  }
  const cleanUrls=()=>{imageUrls.forEach(u=>URL.revokeObjectURL(u));imageUrls.length=0;};
  async function refreshPhotos(){
    const id=recordId,version=++photoVersion;cleanUrls();
-   for(const [meal]of MEALS){$('#photo-view-'+meal).hidden=true;$('#photo-img-'+meal).removeAttribute('src');}
+   for(const [meal]of MEALS){
+     $('#photo-view-'+meal).hidden=true;
+     $('#photo-img-'+meal).removeAttribute('src');
+     $('[data-photo-remove="'+meal+'"]').hidden=true;
+   }
    if(!pictureDB&&!step2PhotoDB&&!step1PhotoDB)return;
    try{
      const results=await Promise.all(MEALS.map(async([meal])=>({meal,item:await getPhoto(meal,id)})));
@@ -331,6 +340,7 @@
        if(!(item?.file instanceof Blob))continue;
        const url=URL.createObjectURL(item.file);imageUrls.push(url);
        $('#photo-img-'+meal).src=url;$('#photo-view-'+meal).hidden=false;
+       $('[data-photo-remove="'+meal+'"]').hidden=item.sourceStep!==3;
      }
    }catch(e){photoMessage('写真を読み込めませんでした。',true);}
  }
