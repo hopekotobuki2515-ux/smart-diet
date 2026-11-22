@@ -235,7 +235,6 @@ dialog h2{font-size:17px;margin:0 0 8px}.dialog-date{font-size:12px;color:var(--
   <p class="status" id="photoStatus" role="status" aria-live="polite"></p>
   <a id="diaryStep2Link" class="stage-route" href="./diary-step2.html?day=1">食事記録 STEP2：食材名と分量へ進む 〉</a>
   <a class="measurement-link" href="./measurements.html">体重・腹囲を記録する（任意）</a>
-  <a id="programChoiceLink" class="measurement-link" href="./program-choice.html?day=1">12週間プログラムの進め方を選ぶ（17項目の食行動チェック）</a>
  </section>
 
 </div></main>
@@ -381,7 +380,6 @@ async function refreshPhotos(day){
 function loadDay(day){
  activeDay=day;
  document.getElementById('dayTitle').textContent='食事ダイアリー';
- document.getElementById('programChoiceLink').href='./program-choice.html?day='+day;
  document.getElementById('diaryStep2Link').href='./diary-step2.html?day='+day;
  for(const field of fields){
   let saved=null;
