@@ -265,13 +265,25 @@
     @media(min-width:650px){
       .page.lesson-page{padding-right:9px;padding-left:9px}
     }
+
+    /* 横スワイプカードの幅を親幅に固定し、1文字縦割れを防止 */
+    .lesson-viewport{width:100%;max-width:100%;min-width:0}
+    .lesson-slide-row{width:100%;max-width:100%;min-width:0;flex:0 0 100%}
+    .lesson-slide{flex:0 0 100%;width:100%;min-width:100%;max-width:100%}
+    .lesson-slide .lesson-card{width:100%;max-width:100%;min-width:0;box-sizing:border-box}
+    .lesson-slide .lesson-card h2,.lesson-slide .lesson-card p{
+      display:block;width:100%;min-width:0;max-width:100%;
+      writing-mode:horizontal-tb;text-orientation:mixed;
+      white-space:normal;word-break:normal;overflow-wrap:break-word;
+      text-wrap:pretty;
+    }
 </style>
 </head>
 <body>
 <main class="viewport">
   <article class="page lesson-page" aria-labelledby="lessonTitle">
     <nav class="topbar" aria-label="ページ移動">
-      <a href="./program-intro.html" class="back">〈 SMART Dietの説明へ戻る</a>
+      <a href="./program-intro.html?v=20261122-layout" class="back">〈 SMART Dietの説明へ戻る</a>
       <span class="step">STEP 01</span>
     </nav>
     <p class="wordmark" aria-label="EQUINERIS">EQUI<span>NERIS</span></p>
@@ -323,7 +335,7 @@
   if(Math.abs(dx)<55||Math.abs(dx)<Math.abs(dy)*1.4)return;
   if(dx<0){if(current<slides.length-1)go(current+1);else window.location.assign('./setup.html')}
   else if(current>0)go(current-1);
-  else window.location.assign('./program-intro.html');
+  else window.location.assign('./program-intro.html?v=20261122-layout');
  },{passive:true});
  v.addEventListener('touchcancel',()=>{x=null;y=null},{passive:true});
  v.addEventListener('keydown',e=>{
