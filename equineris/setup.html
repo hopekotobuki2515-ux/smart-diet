@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#fefdf8">
   <meta name="description" content="EQUINERISの初回設定。基本情報を入力し、BMIと12週間後の目標体重を確認します。">
-  <title>登録 | EQUINERIS</title>
+  <title>初回設定 | EQUINERIS</title>
   <style>
     :root {
       color-scheme:light;
@@ -57,26 +57,8 @@
     .unitwrap {position:relative}
     .unitwrap input {padding-right:54px}
     .unit {position:absolute;right:17px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;pointer-events:none}
-    .history-card {margin-top:0}
-    .goal-card {margin-top:0}
-    .slide-track {
-      display:flex;align-items:flex-start;width:100%;overflow-x:auto;overflow-y:hidden;
-      scroll-snap-type:x mandatory;overscroll-behavior-inline:contain;
-      -webkit-overflow-scrolling:touch;scrollbar-width:none;
-    }
-    .slide-track::-webkit-scrollbar {display:none}
-    .slide-track > .slide {flex:0 0 100%;min-width:0;scroll-snap-align:start;scroll-snap-stop:always}
-    .swipe-status {display:flex;align-items:center;justify-content:space-between;gap:10px;margin:15px 2px 7px;font-size:12px;color:var(--muted)}
-    .swipe-status strong {color:var(--ink);font-size:13px;font-variant-numeric:tabular-nums}
-    .swipe-dots {display:flex;justify-content:center;align-items:center;gap:6px;margin:0 0 10px}
-    .swipe-dot {min-width:44px;min-height:44px;border:0;background:transparent;display:flex;align-items:center;justify-content:center}
-    .swipe-dot::before {content:"";width:7px;height:7px;border-radius:50%;background:#cdd9ce;transition:width .2s,background .2s}
-    .swipe-dot[aria-current="step"]::before {width:26px;border-radius:8px;background:var(--green)}
-    .slide-actions {display:flex;flex-wrap:wrap;gap:10px;margin-top:4px}
-    .slide-actions .next {flex:1 1 180px;width:auto}
-    .slide-prev {flex:0 0 84px;min-height:56px;border:1px solid #b7cbbd;border-radius:15px;background:#fffdfa;color:var(--ink-light);font-weight:700}
-    .slide-actions .after {flex:1 1 100%;margin-top:5px}
-    [hidden] {display:none!important}
+    .history-card {margin-top:16px}
+    .goal-card {margin-top:16px}
     fieldset {border:0;padding:0;margin:0;min-width:0}
     legend {padding:0 0 5px;font-size:17px;font-weight:780;line-height:1.45}
     .goal-desc {color:var(--muted);font-size:12px;line-height:1.65;margin:0 0 16px}
@@ -108,7 +90,6 @@
     }
     .arrow {position:absolute;right:20px;font-size:23px;color:#e0c89d;line-height:1}
     .after {text-align:center;font-size:12px;color:var(--muted);line-height:1.9;margin:17px 0 0}
-    .preview-link {display:flex;align-items:center;justify-content:center;min-height:48px;margin:0 auto 20px;padding:10px 14px;border:1px solid #d4e0d5;border-radius:12px;background:#f4f8f2;color:var(--ink-light);text-align:center;text-decoration:none;font-size:13px;font-weight:750;max-width:350px}
     dialog {
       width:min(92vw,420px);max-height:90vh;max-height:90dvh;overflow-y:auto;
       border:1px solid #d3e0d6;border-radius:18px;padding:24px;
@@ -119,8 +100,6 @@
     dialog p {font-size:13px;line-height:1.85;margin:0 0 15px;color:var(--ink-light)}
     .summary {margin:0 0 16px;font-size:13px;line-height:1.9;white-space:pre-line;background:#f5f8f2;border:1px solid #dfe7db;border-radius:12px;padding:14px}
     .close {width:100%;min-height:48px;background:var(--green);color:#fff;border:0;border-radius:12px;font-size:15px;font-weight:750}
-    .guide-link {display:flex;align-items:center;justify-content:center;min-height:48px;padding:10px 14px;margin:12px 0;border:1px solid #244f41;border-radius:12px;background:linear-gradient(125deg,#285d4a,#143d32);color:#fffdf5;text-align:center;text-decoration:none;font-size:15px;font-weight:750}
-    .unsaved-note {font-size:11px;line-height:1.7;color:var(--muted);margin:0 0 12px}
     @media(max-width:340px) {
       .page {padding-inline:13px}
       .card {padding:20px 14px}
@@ -138,73 +117,210 @@
   <div class="page">
     <div class="topbar">
       <a class="back" href="./smart-diet.html" aria-label="EQUINERISの説明に戻る">〈 戻る</a>
-      <span class="step">REGISTRATION</span>
+      <span class="step">INITIAL SETUP</span>
     </div>
     <p class="wordmark" aria-label="EQUINERIS">EQUI<span>NERIS</span></p>
     <p class="eyebrow">YOUR FIRST STEP</p>
-    <h1>はじめに登録しましょう</h1>
-    <p class="lead">お名前はニックネームでも大丈夫です。<br>身長と現在の体重を入力してください。</p>
-    <form id="setupForm" autocomplete="on">
+    <h1>はじめに<br>あなたの情報を入力しましょう</h1>
+    <p class="lead">今の自分を知ることから。<br>12週間の目標づくりを始めましょう。</p>
+
+    <form id="setupForm" autocomplete="off">
       <section class="card" aria-labelledby="basic-title">
         <div class="sectionhead">
           <h2 id="basic-title">基本情報</h2>
-          <p>入力するのは、次の3項目だけです。</p>
+          <p>ご自身の現在の情報を入力してください。</p>
         </div>
         <label class="field">
-          <span class="field-label">名前 <span class="hint">（ニックネーム可）</span></span>
-          <input id="nickname" name="nickname" type="text" maxlength="40" placeholder="名前またはニックネーム" autocomplete="nickname" required>
+          <span class="field-label">お名前 <span class="hint">（ニックネームでもOK）</span></span>
+          <input id="nickname" name="nickname" type="text" maxlength="40" placeholder="お名前を入力" required>
+        </label>
+        <label class="field">
+          <span class="field-label">年齢</span>
+          <span class="unitwrap"><input id="age" name="age" type="number" inputmode="numeric" min="1" step="1" placeholder="年齢を入力" required><span class="unit">歳</span></span>
         </label>
         <label class="field">
           <span class="field-label">身長</span>
-          <span class="unitwrap"><input id="height" name="height" type="number" inputmode="decimal" min="0.1" step="0.1" placeholder="身長を入力" required><span class="unit">cm</span></span>
+          <span class="unitwrap"><input id="height" name="height" type="number" inputmode="decimal" min="1" step="0.1" placeholder="身長を入力" required><span class="unit">cm</span></span>
         </label>
+        <div class="metric metric-inline"><span class="metric-label">BMIが25になる体重</span><strong class="metric-output" id="bmi25Weight">—</strong></div>
+        <p class="note reference-note">BMI25の体重は身長からの参考計算値です。適切な目標体重を示すものではありません。</p>
         <label class="field">
-          <span class="field-label">現在の体重</span>
+          <span class="field-label">スタート時の体重</span>
           <span class="unitwrap"><input id="weight" name="weight" type="number" inputmode="decimal" min="0.1" step="0.1" placeholder="現在の体重を入力" required><span class="unit">kg</span></span>
         </label>
+        <div class="metric metric-inline"><span class="metric-label">現在のBMI</span><strong class="metric-output" id="bmiValue">—</strong></div>
+        <label class="field">
+          <span class="field-label">腹囲 <span class="hint">（おへその高さ）</span></span>
+          <span class="unitwrap"><input id="waist" name="waist" type="number" inputmode="decimal" min="0.1" step="0.1" placeholder="腹囲を入力" required><span class="unit">cm</span></span>
+        </label>
       </section>
+
+      <section class="card history-card" aria-labelledby="history-title">
+        <div class="sectionhead">
+          <h2 id="history-title">これまでの体重</h2>
+          <p>これまでの体重を振り返ってみましょう。覚えていない項目は空欄で構いません。</p>
+        </div>
+        <label class="field">
+          <span class="field-label">20歳の時の体重は何キロ？ <span class="hint">（任意）</span></span>
+          <span class="unitwrap"><input id="weightAt20" name="weightAt20" type="number" inputmode="decimal" min="0.1" step="0.1" placeholder="20歳の時の体重"><span class="unit">kg</span></span>
+        </label>
+        <label class="field">
+          <span class="field-label">最も長く維持していた体重は何キロ？ <span class="hint">（任意）</span></span>
+          <span class="unitwrap"><input id="longestWeight" name="longestWeight" type="number" inputmode="decimal" min="0.1" step="0.1" placeholder="長く維持した体重"><span class="unit">kg</span></span>
+        </label>
+      </section>
+
+      <section class="card goal-card" aria-labelledby="goal-title">
+        <fieldset>
+          <legend id="goal-title">3か月後の減量目標</legend>
+          <p class="goal-desc">減量率を選ぶと、3か月後の目標体重を計算して入力します。目標体重はご自身で変更できます。</p>
+          <div class="options" role="group" aria-label="3か月後の減量率">
+            <div class="option"><input id="rate5" name="rate" type="radio" value="5"><label for="rate5">5%</label></div>
+            <div class="option"><input id="rate8" name="rate" type="radio" value="8"><label for="rate8">8%</label></div>
+            <div class="option"><input id="rate10" name="rate" type="radio" value="10"><label for="rate10">10%</label></div>
+            <div class="option"><input id="rate15" name="rate" type="radio" value="15"><label for="rate15">15%</label></div>
+          </div>
+          <label class="field" style="margin-top:22px">
+            <span class="field-label">3か月後に私が目指す体重は？</span>
+            <span class="unitwrap"><input id="threeMonthGoal" name="threeMonthGoal" type="number" inputmode="decimal" min="0.1" step="0.1" placeholder="3か月後の目標体重" required><span class="unit">kg</span></span>
+          </label>
+          <label class="field">
+            <span class="field-label">将来私が目指す体重は？ <span class="hint">（任意）</span></span>
+            <span class="unitwrap"><input id="futureGoal" name="futureGoal" type="number" inputmode="decimal" min="0.1" step="0.1" placeholder="将来の目標体重"><span class="unit">kg</span></span>
+          </label>
+          <p class="goal-note">今の時点での目標で大丈夫です。途中で変更できます。<br>減量率は選択肢であり、安全性や達成を保証するものではありません。</p>
+        </fieldset>
+      </section>
+
       <div class="action">
-        <button class="next" type="submit" id="registerButton">登録して次へ <span class="arrow" aria-hidden="true">›</span></button>
-        <p class="after">入力内容はこの端末のブラウザ内に保存します。<br>アカウント登録や別端末との同期はまだできません。</p>
+        <button class="next" type="submit">次へ <span class="arrow" aria-hidden="true">›</span></button>
+        <p class="after">入力内容はこの端末のブラウザ内に保存します。<br>別端末との同期はまだできません。</p>
         <p class="after" id="registrationStatus" role="status" aria-live="polite" hidden></p>
       </div>
     </form>
   </div>
 </main>
+
 <script>
 'use strict';
-(()=>{
+(() => {
  const form=document.getElementById('setupForm');
- const name=document.getElementById('nickname');
- const height=document.getElementById('height');
- const weight=document.getElementById('weight');
- const status=document.getElementById('registrationStatus');
- const KEY='equineris:registration:v1';
- function showError(message){status.textContent=message;status.hidden=false;}
- try{
-  const saved=JSON.parse(localStorage.getItem(KEY)||'null');
-  if(saved&&typeof saved==='object'){
-   if(typeof saved.name==='string')name.value=saved.name;
-   if(typeof saved.heightCm==='string')height.value=saved.heightCm;
-   if(typeof saved.weightKg==='string')weight.value=saved.weightKg;
-  }
- }catch(error){showError('前回の入力内容を読み込めませんでした。');}
+ const byId=id=>document.getElementById(id);
+ const name=byId('nickname'),age=byId('age'),height=byId('height'),weight=byId('weight'),waist=byId('waist');
+ const weightAt20=byId('weightAt20'),longestWeight=byId('longestWeight');
+ const rateInputs=[...form.querySelectorAll('input[name="rate"]')];
+ const target=byId('threeMonthGoal'),future=byId('futureGoal');
+ const bmi=byId('bmiValue'),bmi25=byId('bmi25Weight'),status=byId('registrationStatus');
+ const REG_KEY='equineris:registration:v1';
+ const GOAL_KEY='equineris:week1:goal:v1';
+ const one=n=>Math.round((n+Number.EPSILON)*10)/10;
+ const fmt=n=>one(n).toFixed(1);
+ const getNumber=node=>node.value.trim()===''?null:Number(node.value);
+ const validNumber=node=>{const n=getNumber(node);return n!==null&&Number.isFinite(n)&&n>0&&node.checkValidity();};
+ const chosenRate=()=>rateInputs.find(x=>x.checked)||null;
+ const showError=message=>{status.textContent=message;status.hidden=false;};
+ const optionalNumber=(node,label)=>{
+  if(node.value.trim()==='')return null;
+  if(!validNumber(node))throw Error(label+'は0より大きい数値を入力してください。');
+  return one(Number(node.value));
+ };
+ const readObject=key=>{
+  const raw=localStorage.getItem(key);
+  if(raw===null)return {};
+  const data=JSON.parse(raw);
+  if(!data||typeof data!=='object'||Array.isArray(data))throw Error('Invalid stored data');
+  return data;
+ };
+ function calculate(){
+  const h=validNumber(height)?Number(height.value):null;
+  const w=validNumber(weight)?Number(weight.value):null;
+  const square=h===null?null:(h/100)**2;
+  bmi.textContent=square!==null&&w!==null?fmt(w/square):'—';
+  bmi25.textContent=square!==null?fmt(25*square)+' kg':'—';
+ }
+ function suggestTarget(){
+  const rate=chosenRate();
+  if(!rate)return;
+  target.value=validNumber(weight)?fmt(Number(weight.value)*(1-Number(rate.value)/100)):'';
+ }
+ function restore(){
+  try{
+   const reg=readObject(REG_KEY),goal=readObject(GOAL_KEY);
+   if(reg.name!=null)name.value=String(reg.name);
+   if(reg.age!=null)age.value=String(reg.age);
+   if(reg.heightCm!=null)height.value=String(reg.heightCm);
+   if(reg.weightKg!=null)weight.value=String(reg.weightKg);
+   if(reg.waistCm!=null)waist.value=String(reg.waistCm);
+   else if(reg.waist!=null)waist.value=String(reg.waist);
+   if(goal.weightAt20Kg!=null)weightAt20.value=String(goal.weightAt20Kg);
+   if(goal.longestWeightKg!=null)longestWeight.value=String(goal.longestWeightKg);
+   if(goal.futureGoalWeightKg!=null)future.value=String(goal.futureGoalWeightKg);
+   const currentWeight=Number(weight.value);
+   if(validNumber(weight)&&Number(goal.startWeightKg)===currentWeight&&Number(goal.goalWeightKg)>0){
+    target.value=String(goal.goalWeightKg);
+    const selected=Number(goal.selectedRatePercent);
+    if(goal.selectedRatePercent!==null&&[5,8,10,15].includes(selected)&&fmt(currentWeight*(1-selected/100))===fmt(Number(goal.goalWeightKg))){
+     const option=rateInputs.find(x=>Number(x.value)===selected);
+     if(option)option.checked=true;
+    }
+   }
+  }catch(error){showError('前回の設定を読み込めませんでした。保存済みデータは変更していません。');}
+  calculate();
+ }
+ rateInputs.forEach(input=>input.addEventListener('change',()=>{
+  if(input.checked)suggestTarget();
+  calculate();
+ }));
+ height.addEventListener('input',calculate);
+ weight.addEventListener('input',()=>{
+  if(chosenRate())suggestTarget();
+  calculate();
+ });
+ target.addEventListener('input',()=>{
+  // A manual target always takes precedence over the percentage presets.
+  rateInputs.forEach(x=>{x.checked=false;});
+ });
  form.addEventListener('submit',event=>{
   event.preventDefault();
-  const enteredName=name.value.trim();
-  const h=Number(height.value),w=Number(weight.value);
-  if(!enteredName){name.value='';name.focus();return;}
+  status.hidden=true;
   if(!form.reportValidity())return;
-  if(!Number.isFinite(h)||h<=0||!Number.isFinite(w)||w<=0){
-   showError('身長と体重は0より大きい数値を入力してください。');return;
+  const enteredName=name.value.trim();
+  if(!enteredName){name.focus();showError('名前を入力してください。');return;}
+  if(!validNumber(age)||!Number.isInteger(Number(age.value))||!validNumber(height)||!validNumber(weight)||!validNumber(waist)||!validNumber(target)){
+   showError('入力した数値を確認してください。');return;
   }
+  const w=Number(weight.value),g=Number(target.value);
+  if(g>=w){showError('3か月後の目標体重は現在の体重より小さい値を入力してください。');return;}
+  let w20,maintained,futureWeight;
   try{
-   localStorage.setItem(KEY,JSON.stringify({name:enteredName,heightCm:height.value,weightKg:weight.value}));
+   w20=optionalNumber(weightAt20,'20歳の時の体重');
+   maintained=optionalNumber(longestWeight,'最も長く維持していた体重');
+   futureWeight=optionalNumber(future,'将来の目標体重');
+  }catch(error){showError(error.message);return;}
+  const rate=chosenRate(),rateNumber=rate?Number(rate.value):null;
+  let oldReg=null,oldGoal=null;
+  try{
+   oldReg=localStorage.getItem(REG_KEY);
+   oldGoal=localStorage.getItem(GOAL_KEY);
+   const oldRegData=readObject(REG_KEY),oldGoalData=readObject(GOAL_KEY);
+   const registration={...oldRegData,name:enteredName,age:age.value,heightCm:height.value,weightKg:weight.value,waistCm:waist.value};
+   const goals={...oldGoalData,startWeightKg:w,goalWeightKg:one(g),lossKg:one(w-g),
+    selectedRatePercent:rateNumber,actualRatePercent:one((w-g)/w*100),
+    weightAt20Kg:w20,longestWeightKg:maintained,futureGoalWeightKg:futureWeight,selectedFutureBmi:null};
+   // Keep the existing storage keys read by other EQUINERIS pages.
+   localStorage.setItem(GOAL_KEY,JSON.stringify(goals));
+   localStorage.setItem(REG_KEY,JSON.stringify(registration));
   }catch(error){
-   showError('入力内容を保存できませんでした。ブラウザの保存設定を確認してください。');return;
+   try{
+    if(oldGoal!==null)localStorage.setItem(GOAL_KEY,oldGoal);else localStorage.removeItem(GOAL_KEY);
+    if(oldReg!==null)localStorage.setItem(REG_KEY,oldReg);else localStorage.removeItem(REG_KEY);
+   }catch(rollbackError){}
+   showError('入力内容を保存できませんでした。ブラウザの保存設定を確認してください。');
+   return;
   }
   window.location.assign('./textbook.html#s1-c1');
  });
+ restore();
 })();
 </script>
 </body>
