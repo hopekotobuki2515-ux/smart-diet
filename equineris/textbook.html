@@ -191,8 +191,9 @@ a,button,input{font:inherit}button{cursor:pointer}
   s.active=clamped;
   s.counter.textContent=(clamped+1)+' / '+s.cards.length;
   s.prev.disabled=clamped===0;
-  s.next.disabled=clamped===s.cards.length-1 && stepId!==4;
-  s.next.textContent=stepId===4 && clamped===s.cards.length-1?'記録へ 〉':stepId===2 && clamped===5?'目標設定へ 〉':'次へ 〉';
+  const atEnd=clamped===s.cards.length-1;
+  s.next.disabled=atEnd && stepId===6;
+  s.next.textContent=atEnd && stepId===4?'記録へ 〉':stepId===2 && clamped===5?'目標設定へ 〉':atEnd && stepId<6?'STEP '+(stepId+1)+'へ 〉':'次へ 〉';
  };
  function remember(id){if(!CARDS.has(id))return;last=id;persistent(LAST_KEY,last);setResume();}
  function renderResults(){
@@ -294,13 +295,20 @@ a,button,input{font:inherit}button{cursor:pointer}
    update(s.id,idx);remember(s.cards[idx].id);
   };
   prev.addEventListener('click',()=>go(state.active-1));
-  next.addEventListener('click',()=>{
-   if(s.id===4 && state.active===s.cards.length-1){window.location.assign('./record.html?day=1');return;}
-   if(s.id===2 && state.active===5){window.location.assign('./week-1-goal.html?from=textbook-step2&slide=goal');return;}
+  const advance=()=>{
+   if(s.id===2 && state.active===5){
+    window.location.assign('./week-1-goal.html?from=textbook-step2&slide=goal');return;
+   }
+   if(state.active===s.cards.length-1){
+    if(s.id===4){window.location.assign('./record.html?day=1');return;}
+    if(s.id<6){jump('s'+(s.id+1)+'-c1');return;}
+    return;
+   }
    go(state.active+1);
-  });
+  };
+  next.addEventListener('click',advance);
   track.addEventListener('keydown',e=>{
-   if(e.key==='ArrowRight'){e.preventDefault();if(s.id===2&&state.active===5){window.location.assign('./week-1-goal.html?from=textbook-step2&slide=goal');return;}go(state.active+1);}
+   if(e.key==='ArrowRight'){e.preventDefault();advance();}
    if(e.key==='ArrowLeft'){e.preventDefault();go(state.active-1);}
   });
   let frame=0;
