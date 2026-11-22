@@ -224,7 +224,7 @@ a,button,input{font:inherit}button{cursor:pointer}
   s.prev.disabled=clamped===0;
   const atEnd=clamped===s.cards.length-1;
   s.next.disabled=atEnd && stepId===6;
-  s.next.textContent=atEnd && stepId===4?'記録へ 〉':stepId===2 && clamped===6?'食行動チェックへ 〉':atEnd && stepId<6?'STEP '+(stepId+1)+'へ 〉':'次へ 〉';
+  s.next.textContent=atEnd && stepId===4?'記録へ 〉':stepId===2 && s.cards[clamped].id==='s2-c7'?'食行動チェックへ 〉':atEnd && stepId<6?'STEP '+(stepId+1)+'へ 〉':'次へ 〉';
  };
  function remember(id){if(!CARDS.has(id))return;last=id;persistent(LAST_KEY,last);setResume();}
  function renderResults(){
@@ -305,7 +305,7 @@ a,button,input{font:inherit}button{cursor:pointer}
     const visual=create('section','visual');visual.setAttribute('aria-label',c.visualTitle||'図解・ポイント');
     visual.append(create('div','visual-title',c.visualTitle||''));
     for(const point of c.points)visual.append(create('div','visual-row',point));
-    if(c.id==='s2-c2'){
+    if(c.id==='s2-goal'){
      if(window.EquinerisGoalCalculator)window.EquinerisGoalCalculator.mount(visual);
      else visual.append(create('p','help','目標体重の計算を読み込めませんでした。ページを再読み込みしてください。'));
     }
@@ -363,7 +363,7 @@ a,button,input{font:inherit}button{cursor:pointer}
   };
   prev.addEventListener('click',()=>go(state.active-1));
   const advance=()=>{
-   if(s.id===2 && state.active===6){
+   if(s.id===2 && s.cards[state.active].id==='s2-c7'){
     window.location.assign('./habit-intro.html?from=textbook-step2');return;
    }
    if(state.active===s.cards.length-1){
