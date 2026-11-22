@@ -188,6 +188,17 @@ dialog h2{font-size:17px;margin:0 0 8px}.dialog-date{font-size:12px;color:var(--
 .daily-area select{min-height:43px;border-radius:9px;border:1px solid #bbcfc0;background:#fff;color:var(--ink);padding:5px;font-size:14px;min-width:0}
 .daily-group small{font-size:11px}.daily-group strong{font-size:13px}
 .daily-total{font-size:16px;font-weight:850;margin:9px 0}
+.daily-food-summary{margin:14px 0 10px;padding:12px;border:1px solid #d5e4d8;border-radius:12px;background:#fff;min-width:0}
+.daily-food-summary h3{font-size:16px;margin:0 0 8px;line-height:1.5}
+.daily-food-meal{margin:8px 0 12px}
+.daily-food-meal h4{font-size:14px;margin:0 0 6px;color:var(--green)}
+.daily-food-list{list-style:none;margin:0;padding:0}
+.daily-food-item{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0;padding:10px 3px;border-top:1px solid #e3ede4}
+.daily-food-item .daily-food-name{min-width:0;flex:1}
+.daily-food-item strong{display:block;font-size:14px;overflow-wrap:anywhere}
+.daily-food-item small{display:block;margin-top:3px;font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+.daily-food-item b{flex:0 0 auto;font-size:15px;white-space:nowrap;color:var(--green)}
+.daily-food-empty{font-size:13px;color:var(--muted);margin:8px 0}
 .daily-status{font-size:12px;line-height:1.65;color:var(--muted)}
 .preview-meal{padding:9px 0;border-bottom:1px solid var(--line)}
 .preview-meal h3{font-size:15px;margin:5px 0}.preview-meal p,.preview-meal li{font-size:13px;line-height:1.6}
@@ -373,6 +384,10 @@ dialog h2{font-size:17px;margin:0 0 8px}.dialog-date{font-size:12px;color:var(--
 </select></label>
 <div class="subtotal-grid" id="dailyGroups"></div>
 <p id="dailyTotal" class="daily-total">計算中…</p>
+<section class="daily-food-summary" aria-label="1日の食材一覧">
+<h3>1日の食材一覧</h3>
+<div id="dailyFoodSummaryRows" aria-live="polite"></div>
+</section>
 <p id="unresolvedStatus" class="daily-status"></p>
 <p class="step3-note">点数は1点＝80kcalとして、入力重量(g) ÷ 食品マスターの1点重量(g)で計算します。表示のみ小数第2位に丸めます。15点・21点は教材の基準値であり、個人に適した必要量を断定するものではありません。</p>
 <p class="step3-note" id="masterStatus">食品マスターを読み込んでいます。</p>
@@ -381,5 +396,5 @@ dialog h2{font-size:17px;margin:0 0 8px}.dialog-date{font-size:12px;color:var(--
 </div></main>
 <dialog id="foodPickerDialog" class="food-picker-dialog" aria-label="食品マスターから食品を選択"><div class="food-picker-bar"><strong>食品マスターから選択</strong><button type="button" id="closeFoodPicker">閉じる</button></div><iframe id="foodPickerFrame" title="食品マスター検索・点数計算"></iframe></dialog>
 <dialog id="previewDialog" aria-label="食事ダイアリーの確認"><h2>記録の確認</h2><div id="previewRows"></div><button id="closePreview" class="close" type="button">閉じる</button></dialog>
-<script src="./diary-step3.js?v=c8e69a86"></script>
+<script src="./diary-step3.js?v=3b956f54"></script>
 </body></html>
