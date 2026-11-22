@@ -193,7 +193,7 @@ window.SMART_DIET_TEXTBOOK = [
     "id": "s2-weight-history",
     "tag": "過去の体重を振り返る",
     "title": "20歳の頃と、長く維持していた体重",
-    "body": "覚えている範囲で入力しましょう。わからない項目は空欄でも構いません。",
+    "body": "覚えている体重を入力しましょう。空欄でも大丈夫です。",
     "visualTitle": "以前の体重を記録する",
     "points": []
    },
