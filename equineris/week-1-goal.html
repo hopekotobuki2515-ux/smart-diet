@@ -187,6 +187,21 @@
     .slide-forward{margin-top:18px}
     .goal-slide-back{display:inline-flex;align-items:center;min-height:44px;margin:12px 0 0;padding:6px 8px;border:0;background:transparent;color:var(--green);font-size:13px;font-weight:750;cursor:pointer}
     @media(prefers-reduced-motion:reduce){.slide-track{scroll-behavior:auto}}
+
+    /* iPhoneでも中間位置で停止しない、3枚固定幅のスライド */
+    .slide-track.goal-slide-track{
+      display:block;position:relative;width:100%;overflow:hidden;
+      scroll-snap-type:none;-webkit-overflow-scrolling:auto;
+      overscroll-behavior-x:none;touch-action:pan-y;
+    }
+    .goal-slide-row{
+      display:flex;align-items:flex-start;width:100%;min-width:0;
+      transform:translate3d(0,0,0);
+      transition:transform 230ms ease-out;
+      will-change:transform;
+    }
+    .goal-slide-row>.goal-slide{flex:0 0 100%;width:100%;min-width:0;scroll-snap-align:none}
+    @media(prefers-reduced-motion:reduce){.goal-slide-row{transition:none}}
 </style>
 </head>
 <body>
@@ -216,6 +231,7 @@
    <button class="swipe-dot" type="button" data-goal-slide="2" aria-label="3枚目：BMI自動計算"></button>
   </div>
   <div class="slide-track goal-slide-track" id="goalSlideTrack" role="region" aria-label="第1週の動機づけと目標設定（全3枚）" tabindex="0">
+   <div class="goal-slide-row" id="goalSlideRow">
    <section class="slide goal-slide" id="motivationSlide" aria-label="1枚目：減量の動機づけ">
     <div class="card motivation-card">
      <h2>なぜ、減量が必要なのか？</h2>
@@ -311,6 +327,7 @@
     <a class="goal-next bmi-slide-action" href="./habit-check.html?from=goal">次へ：食行動チェック ›</a>
     <button type="button" id="backToGoal" class="goal-slide-back">〈 減量目標設定へ戻る</button>
    </section>
+   </div>
   </div>
  </div>
 </main>
@@ -488,32 +505,28 @@
   note.textContent='登録情報を読み込めませんでした。';
  }
 })();
-/* 1枚目：動機づけ → 2枚目：目標設定 → 3枚目：BMI自動計算 */
+/* iOSのスナップ停止ずれを避ける固定幅3枚切り替え */
 (()=>{
- const track=document.getElementById('goalSlideTrack');
- const slides=[...track.querySelectorAll('.goal-slide')];
+ const viewport=document.getElementById('goalSlideTrack');
+ const row=document.getElementById('goalSlideRow');
+ const slides=[...row.querySelectorAll('.goal-slide')];
  const heading=document.getElementById('goalSlideHeading');
  const lead=document.getElementById('goalSlideLead');
  const status=document.getElementById('goalSlideStatus');
  const dots=[...document.querySelectorAll('[data-goal-slide]')];
- const forward=document.getElementById('toGoalSlide');
- const backward=document.getElementById('backToMotivation');
- const toBMI=document.getElementById('toBMISlide');
- const backGoal=document.getElementById('backToGoal');
  const labels=[
   {title:'なぜ、減量が必要なのか？',lead:'減量を始める理由を考え、次の画面で目標を決めましょう。'},
   {title:'スマートダイエットの<br>減量目標設定',lead:'12週間後、あなたは何kgを目指したいですか？<br>まずは現在の体重から目標を考えましょう。'},
   {title:'BMIとは？',lead:'登録した身長と体重から自動計算したBMIを確認します。'}
  ];
- let active=0;
- let settleTimer=null;
- const supportsScrollEnd='onscrollend' in track;
+ let active=0,touchX=null,touchY=null;
  function measure(){
   const height=slides[active].offsetHeight;
-  if(height>0)track.style.height=height+'px';
+  if(height>0)viewport.style.height=height+'px';
  }
- function render(index){
+ function go(index){
   active=Math.max(0,Math.min(slides.length-1,index));
+  row.style.transform='translate3d(-'+(active*100)+'%,0,0)';
   heading.innerHTML=labels[active].title;
   lead.innerHTML=labels[active].lead;
   status.textContent=(active+1)+' / '+slides.length;
@@ -524,51 +537,37 @@
   slides.forEach((slide,i)=>{slide.inert=i!==active;});
   measure();
  }
- function go(index){
-  const safe=Math.max(0,Math.min(slides.length-1,index));
-  render(safe);
-  const left=safe*track.clientWidth;
-  if(typeof track.scrollTo==='function'){
-   const reduced=typeof window.matchMedia==='function'&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-   track.scrollTo({left,behavior:reduced?'auto':'smooth'});
-  }else{
-   track.scrollLeft=left;
-  }
- }
- forward.addEventListener('click',()=>go(1));
- backward.addEventListener('click',()=>go(0));
- toBMI.addEventListener('click',()=>go(2));
- backGoal.addEventListener('click',()=>go(1));
+ document.getElementById('toGoalSlide').addEventListener('click',()=>go(1));
+ document.getElementById('backToMotivation').addEventListener('click',()=>go(0));
+ document.getElementById('toBMISlide').addEventListener('click',()=>go(2));
+ document.getElementById('backToGoal').addEventListener('click',()=>go(1));
  dots.forEach((dot,i)=>dot.addEventListener('click',()=>go(i)));
- // スワイプ中の中間位置では見出し・高さ・inert属性を変更しない。
- // スナップが終わってから確定したスライドだけを反映する。
- function finishScroll(){
-  if(settleTimer!==null){window.clearTimeout(settleTimer);settleTimer=null;}
-  const width=track.clientWidth||1;
-  const index=Math.max(0,Math.min(slides.length-1,Math.round(track.scrollLeft/width)));
-  if(index!==active)render(index);
-  else measure();
- }
- if(supportsScrollEnd){
-  track.addEventListener('scrollend',finishScroll);
- }else{
-  // scrollend未対応環境のみ、最後のスクロールイベントから判定する。
-  track.addEventListener('scroll',()=>{
-   if(settleTimer!==null)window.clearTimeout(settleTimer);
-   settleTimer=window.setTimeout(finishScroll,180);
-  },{passive:true});
- }
- window.addEventListener('resize',()=>{
-  track.scrollLeft=active*track.clientWidth;
-  measure();
+ viewport.addEventListener('touchstart',event=>{
+  if(event.touches.length!==1){touchX=null;touchY=null;return;}
+  touchX=event.touches[0].clientX;
+  touchY=event.touches[0].clientY;
+ },{passive:true});
+ viewport.addEventListener('touchend',event=>{
+  if(touchX===null||!event.changedTouches.length)return;
+  const dx=event.changedTouches[0].clientX-touchX;
+  const dy=event.changedTouches[0].clientY-touchY;
+  touchX=null;touchY=null;
+  if(Math.abs(dx)<45||Math.abs(dx)<Math.abs(dy)*1.3)return;
+  go(active+(dx<0?1:-1));
+ },{passive:true});
+ viewport.addEventListener('touchcancel',()=>{touchX=null;touchY=null;},{passive:true});
+ viewport.addEventListener('keydown',event=>{
+  if(event.target!==viewport)return;
+  if(event.key==='ArrowRight'){event.preventDefault();go(active+1);}
+  if(event.key==='ArrowLeft'){event.preventDefault();go(active-1);}
  });
+ window.addEventListener('resize',measure);
  if(typeof ResizeObserver==='function'){
   const observer=new ResizeObserver(measure);
   slides.forEach(slide=>observer.observe(slide));
  }
- render(0);
+ go(0);
  requestAnimationFrame(measure);
-})();
-</script>
+})();</script>
 </body>
 </html>
