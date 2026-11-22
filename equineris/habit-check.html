@@ -169,7 +169,8 @@ const day=[1,2,3].includes(queryDay)?queryDay:1;
 document.getElementById('choiceLink').href='./habit-intro.html?day='+day;
 document.getElementById('diaryLink').href='./record.html?day='+day;
 document.getElementById('groupsLink').href='./food-groups.html?day='+day;
-const fromGoal=new URLSearchParams(window.location.search).get('from')==='goal';
+const flowSource=new URLSearchParams(window.location.search).get('from');
+const fromGoal=flowSource==='goal'||flowSource==='textbook-step2';
 if(fromGoal){
  document.title='食行動チェック | SMART Diet · EQUINERIS';
  const heading=document.getElementById('habitTitle');
@@ -183,6 +184,12 @@ if(fromGoal){
  document.getElementById('choiceLink').href='./week-1-goal.html';
  document.getElementById('choiceLink').textContent='〈 減量目標設定へ戻る';
  document.getElementById('diaryLink').hidden=true;
+ if(flowSource==='textbook-step2'){
+  document.getElementById('choiceLink').href='./habit-intro.html?from=textbook-step2';
+  document.getElementById('choiceLink').textContent='〈 食行動チェックの説明へ戻る';
+  document.getElementById('groupsLink').href='./textbook.html#s2-c8';
+  document.getElementById('groupsLink').textContent='次へ：具体的な行動目標を考える ›';
+ }
 }
 
 function selected(){return boxes.filter(box=>box.checked).map(box=>box.dataset.habit);}
