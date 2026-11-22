@@ -64,6 +64,18 @@ h1{font-size:26px;text-align:center;line-height:1.4;margin:20px 0 10px}
   <button id="saveBaseline" class="secondary" type="button" disabled>減量スタート時のBMIを記録する</button>
   <p class="status" id="baselineStatus" role="status" aria-live="polite"></p>
  </section>
+ <section class="card" aria-labelledby="goalHistoryTitle">
+  <h2 id="goalHistoryTitle">3か月後の減量目標</h2>
+  <p class="note">教材STEP2で記録した目標体重と減量率を表示します。毎日の体重・腹囲とは別に保存されます。</p>
+  <div aria-live="polite">
+   <div class="baseline-metric"><span>設定時の体重</span><strong id="goalStartWeight">—</strong></div>
+   <div class="baseline-metric"><span>目標体重</span><strong id="goalTargetWeight">—</strong></div>
+   <div class="baseline-metric"><span>減量目標</span><strong id="goalLossWeight">—</strong></div>
+   <div class="baseline-metric"><span>減量率</span><strong id="goalLossRate">—</strong></div>
+  </div>
+  <p class="status" id="goalHistoryStatus" role="status" aria-live="polite"></p>
+  <a class="back" href="./textbook.html#s2-c2">教材STEP2の目標設定を確認する</a>
+ </section>
  <section class="card" aria-labelledby="recordTitle">
   <h2 id="recordTitle">今日の身体の記録</h2>
   <form id="metricForm">
@@ -89,12 +101,16 @@ h1{font-size:26px;text-align:center;line-height:1.4;margin:20px 0 10px}
  const KEY='equineris:body-measurements:v1';
  const REG_KEY='equineris:registration:v1';
  const START_KEY='equineris:body-start-bmi:v1';
+ const GOAL_KEY='equineris:week1:goal:v1';
  const byId=id=>document.getElementById(id);
  const date=byId('recordDate'),weight=byId('bodyWeight'),waist=byId('bodyWaist');
  const saveStatus=byId('saveStatus');
  const history=byId('historyRows');
  const baselineHeight=byId('startHeight'),baselineWeight=byId('startWeight'),baselineBMI=byId('startBMI');
  const baselineButton=byId('saveBaseline'),baselineStatus=byId('baselineStatus');
+ const goalWeightStart=byId('goalStartWeight'),goalWeightTarget=byId('goalTargetWeight');
+ const goalWeightLoss=byId('goalLossWeight'),goalRate=byId('goalLossRate');
+ const goalHistoryStatus=byId('goalHistoryStatus');
  const fixed1=n=>(Math.round(n*10+1e-9)/10).toFixed(1);
  function readRegistration(){
   const item=JSON.parse(localStorage.getItem(REG_KEY)||'null');
@@ -112,6 +128,32 @@ h1{font-size:26px;text-align:center;line-height:1.4;margin:20px 0 10px}
    !Number.isFinite(item.weightKg)||item.weightKg<10||item.weightKg>500||
    !Number.isFinite(item.bmi)||item.bmi<=0)throw Error('Invalid start BMI record');
   return item;
+ }
+ function renderGoal(){
+  try{
+   const raw=localStorage.getItem(GOAL_KEY);
+   if(raw===null){message(goalHistoryStatus,'教材STEP2で目標体重を設定すると、ここに記録が表示されます。');return;}
+   const row=JSON.parse(raw);
+   const start=Number(row?.startWeightKg),target=Number(row?.goalWeightKg);
+   if(!row||typeof row!=='object'||Array.isArray(row)||
+    !Number.isFinite(start)||start<=0||!Number.isFinite(target)||target<=0||target>=start)
+    throw Error('Invalid goal');
+   const loss=start-target;
+   goalWeightStart.textContent=fixed1(start)+' kg';
+   goalWeightTarget.textContent=fixed1(target)+' kg';
+   goalWeightLoss.textContent=fixed1(loss)+' kg';
+   const preset=[5,8,10,15].includes(row.selectedRatePercent)?row.selectedRatePercent:null;
+   goalRate.textContent=(preset===null?fixed1(loss/start*100):String(preset))+'%'+(preset===null?'（手動設定）':'');
+   let registered=null;
+   try{registered=readRegistration();}catch(e){}
+   if(registered&&Math.abs(registered.weightKg-start)>0.00001){
+    message(goalHistoryStatus,'登録時の体重と保存済みの開始体重が異なります。必要に応じて教材で目標を設定し直してください。');
+   }else{
+    message(goalHistoryStatus,'教材で記録した減量目標です。毎日の測定値では変更されません。');
+   }
+  }catch(e){
+   message(goalHistoryStatus,'目標記録を読み込めませんでした。既存データは変更していません。',true);
+  }
  }
  function renderBaseline(){
   baselineButton.disabled=true;
@@ -227,7 +269,7 @@ h1{font-size:26px;text-align:center;line-height:1.4;margin:20px 0 10px}
   const ref=new URL(document.referrer),file=ref.pathname.split('/').pop();
   if(ref.origin===location.origin&&['record.html','diary-step2.html','diary-step3.html'].includes(file)){byId('back').href='./'+file+ref.search;}
  }catch(e){/* referrer may be absent */}
- date.value=today();showDay();prefillRegistrationWeight();renderBaseline();renderHistory();
+ date.value=today();showDay();prefillRegistrationWeight();renderBaseline();renderGoal();renderHistory();
 })();
 </script>
 </body>
