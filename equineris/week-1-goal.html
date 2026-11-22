@@ -143,7 +143,7 @@
     .goal-result .metric:first-child{border-top:0}
     .goal-notice{margin:15px 0 0;padding:12px;border-radius:11px;background:#f9f8f1;color:var(--ink-light);font-size:12px;line-height:1.75}
     .goal-error{margin:14px 0;font-size:12px;line-height:1.7;color:#933e36}
-    .goal-next{display:flex;min-height:49px;justify-content:center;align-items:center;text-align:center;text-decoration:none;margin-top:14px;padding:10px 15px;border:1px solid #bbd2c0;border-radius:12px;background:#f5faf3;color:var(--green);font-size:14px;font-weight:750}
+    .goal-next{width:100%;cursor:pointer;display:flex;min-height:49px;justify-content:center;align-items:center;text-align:center;text-decoration:none;margin-top:14px;padding:10px 15px;border:1px solid #bbd2c0;border-radius:12px;background:#f5faf3;color:var(--green);font-size:14px;font-weight:750}
     .goal-link{color:var(--green);font-weight:750}
     .goal-optional{margin-top:10px;font-size:11px;color:var(--muted);line-height:1.75}
     .bmi-explain{margin:9px 0 19px;padding:14px 15px;border:1px solid var(--outline);border-radius:13px;background:#fffdfa}
@@ -173,6 +173,11 @@
     .goal-slide-track{margin-top:0;overflow-anchor:none;overscroll-behavior-x:none}
     .page{overflow-anchor:none}
     .goal-slide{width:100%;min-width:0}
+    .bmi-auto-panel{margin:13px 0;padding:10px 14px;background:#f1f7f1;border:1px solid #dce8dd;border-radius:13px}
+    .bmi-auto-panel .metric:first-child{border-top:0}
+    .bmi-auto-panel .metric-output{font-size:18px;white-space:nowrap;font-variant-numeric:tabular-nums}
+    .bmi-auto-help{margin:10px 0 0;color:var(--muted);font-size:12px;line-height:1.75}
+    .bmi-slide-action{margin-top:16px}
     .motivation-card{text-align:left}
     .motivation-card h2{margin:0 0 20px;font-size:18px;line-height:1.55;color:var(--ink)}
     .motivation-card p{margin:0 0 18px;color:var(--ink-light);font-size:14px;line-height:1.95;word-break:normal;overflow-wrap:break-word}
@@ -202,14 +207,15 @@
    <p class="lead goal-header-measure" aria-hidden="true">12週間後、あなたは何kgを目指したいですか？<br>まずは現在の体重から目標を考えましょう。</p>
   </div>
   <div class="swipe-status" aria-live="polite">
-   <strong id="goalSlideStatus">1 / 2</strong>
+   <strong id="goalSlideStatus">1 / 3</strong>
    <span>左右にスワイプして切り替え</span>
   </div>
   <div class="swipe-dots" role="group" aria-label="画面を選ぶ">
    <button class="swipe-dot" type="button" data-goal-slide="0" aria-label="1枚目：動機づけ" aria-current="step"></button>
    <button class="swipe-dot" type="button" data-goal-slide="1" aria-label="2枚目：減量目標設定"></button>
+   <button class="swipe-dot" type="button" data-goal-slide="2" aria-label="3枚目：BMI自動計算"></button>
   </div>
-  <div class="slide-track goal-slide-track" id="goalSlideTrack" role="region" aria-label="第1週の動機づけと目標設定（全2枚）" tabindex="0">
+  <div class="slide-track goal-slide-track" id="goalSlideTrack" role="region" aria-label="第1週の動機づけと目標設定（全3枚）" tabindex="0">
    <section class="slide goal-slide" id="motivationSlide" aria-label="1枚目：減量の動機づけ">
     <div class="card motivation-card">
      <h2>なぜ、減量が必要なのか？</h2>
@@ -234,13 +240,7 @@
      <div class="metric"><span class="metric-label">現在の体重（登録値）</span><strong class="metric-output" id="startWeight">未登録</strong></div>
      <div class="metric"><span class="metric-label">BMIが25になる体重（参考値）</span><strong class="metric-output reference-weight" id="bmi25Weight">—</strong></div>
     </div>
-    <section class="bmi-explain" aria-labelledby="bmiExplainTitle">
-     <h3 id="bmiExplainTitle">BMIとは？</h3>
-     <p>BMIは、身長と体重から計算する成人の体格の目安です。</p>
-     <p class="bmi-formula">BMI ＝ 体重（kg）÷ 身長（m）÷ 身長（m）</p>
-     <p><strong>BMI22</strong>：標準体重の計算に使われる値。<br><strong>BMI25以上</strong>：日本では肥満に分類される目安。</p>
-     <p>BMIだけでは体脂肪率や減量の必要性は判断できません。表示体重は参考値です。</p>
-    </section>
+<p class="reference-info">BMIの説明と自動計算は次のスライドで確認できます。</p>
     <div class="history-fields">
      <h3>これまでの体重（任意）</h3>
      <label class="field"><span class="field-label">20歳の時の体重</span>
@@ -283,11 +283,33 @@
    <div class="action">
     <button type="submit" class="next" id="saveGoal" disabled>目標を保存 <span class="arrow" aria-hidden="true">›</span></button>
     <p id="goalStatus" class="goal-error" role="status" aria-live="polite" hidden></p>
-    <a href="./habit-check.html?from=goal" class="goal-next">次へ：食行動チェック ›</a>
+    <button type="button" id="toBMISlide" class="goal-next">次へ：BMIとは？・自動計算 ›</button>
     <p class="goal-optional">目標は、この端末のブラウザ内だけに保存されます。別端末への同期は未対応です。</p>
     <a href="./setup.html" class="goal-link">現在の体重を登録・変更する</a>
    </div>
   </form>
+   </section>
+   <section class="slide goal-slide" id="bmiSlide" aria-label="3枚目：BMIとは？・自動計算">
+    <button type="button" id="backToGoal" class="goal-slide-back">〈 減量目標設定へ戻る</button>
+    <div class="card">
+    <section class="bmi-explain" aria-labelledby="bmiExplainTitle">
+     <h3 id="bmiExplainTitle">BMIとは？</h3>
+     <p>BMIは、身長と体重から計算する成人の体格の目安です。</p>
+     <p class="bmi-formula">BMI ＝ 体重（kg）÷ 身長（m）÷ 身長（m）</p>
+     <p><strong>BMI22</strong>：標準体重の計算に使われる値。<br><strong>BMI25以上</strong>：日本では肥満に分類される目安。</p>
+     <p>BMIだけでは体脂肪率や減量の必要性は判断できません。表示体重は参考値です。</p>
+    </section>
+     <h3>登録した身長・体重から自動計算</h3>
+     <div class="bmi-auto-panel" aria-live="polite">
+      <div class="metric"><span class="metric-label">身長</span><strong class="metric-output" id="bmiAutoHeight">—</strong></div>
+      <div class="metric"><span class="metric-label">現在の体重</span><strong class="metric-output" id="bmiAutoWeight">—</strong></div>
+      <div class="metric"><span class="metric-label">現在のBMI</span><strong class="metric-output" id="bmiAutoCurrent">—</strong></div>
+      <div class="metric"><span class="metric-label">BMI22に相当する体重</span><strong class="metric-output" id="bmiAuto22">—</strong></div>
+      <div class="metric"><span class="metric-label">BMI25に相当する体重</span><strong class="metric-output" id="bmiAuto25">—</strong></div>
+     </div>
+     <p class="bmi-auto-help" id="bmiAutoStatus" role="status" aria-live="polite">登録情報を確認しています。</p>
+    </div>
+    <a class="goal-next bmi-slide-action" href="./habit-check.html?from=goal">次へ：食行動チェック ›</a>
    </section>
   </div>
  </div>
@@ -441,7 +463,32 @@
  draw();
 })();
 
-/* 1枚目：減量の動機づけ → 2枚目：元の減量目標設定フォーム */
+
+/* BMIは登録済み体重・身長を読み取り、データを書き換えない */
+(()=>{
+ const get=id=>document.getElementById(id);
+ const round=n=>(Math.round(n*10+1e-9)/10).toFixed(1);
+ const note=get('bmiAutoStatus');
+ try {
+  const saved=JSON.parse(localStorage.getItem('equineris:registration:v1')||'null');
+  const height=Number(saved?.heightCm), weight=Number(saved?.weightKg);
+  if(!saved||typeof saved.heightCm!=='string'||typeof saved.weightKg!=='string'||
+     !Number.isFinite(height)||height<=0||!Number.isFinite(weight)||weight<=0){
+   note.textContent='身長と現在の体重を先に登録してください。';
+   return;
+  }
+  const square=(height/100)**2;
+  get('bmiAutoHeight').textContent=round(height)+' cm';
+  get('bmiAutoWeight').textContent=round(weight)+' kg';
+  get('bmiAutoCurrent').textContent=round(weight/square);
+  get('bmiAuto22').textContent=round(22*square)+' kg';
+  get('bmiAuto25').textContent=round(25*square)+' kg';
+  note.textContent='登録済みの情報から自動計算した参考値です。';
+ } catch(error) {
+  note.textContent='登録情報を読み込めませんでした。';
+ }
+})();
+/* 1枚目：動機づけ → 2枚目：目標設定 → 3枚目：BMI自動計算 */
 (()=>{
  const track=document.getElementById('goalSlideTrack');
  const slides=[...track.querySelectorAll('.goal-slide')];
@@ -451,9 +498,12 @@
  const dots=[...document.querySelectorAll('[data-goal-slide]')];
  const forward=document.getElementById('toGoalSlide');
  const backward=document.getElementById('backToMotivation');
+ const toBMI=document.getElementById('toBMISlide');
+ const backGoal=document.getElementById('backToGoal');
  const labels=[
   {title:'なぜ、減量が必要なのか？',lead:'減量を始める理由を考え、次の画面で目標を決めましょう。'},
-  {title:'スマートダイエットの<br>減量目標設定',lead:'12週間後、あなたは何kgを目指したいですか？<br>まずは現在の体重から目標を考えましょう。'}
+  {title:'スマートダイエットの<br>減量目標設定',lead:'12週間後、あなたは何kgを目指したいですか？<br>まずは現在の体重から目標を考えましょう。'},
+  {title:'BMIとは？',lead:'登録した身長と体重から自動計算したBMIを確認します。'}
  ];
  let active=0;
  let settleTimer=null;
@@ -487,6 +537,8 @@
  }
  forward.addEventListener('click',()=>go(1));
  backward.addEventListener('click',()=>go(0));
+ toBMI.addEventListener('click',()=>go(2));
+ backGoal.addEventListener('click',()=>go(1));
  dots.forEach((dot,i)=>dot.addEventListener('click',()=>go(i)));
  // スワイプ中の中間位置では見出し・高さ・inert属性を変更しない。
  // スナップが終わってから確定したスライドだけを反映する。
