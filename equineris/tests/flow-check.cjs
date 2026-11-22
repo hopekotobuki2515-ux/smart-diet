@@ -60,6 +60,20 @@ test('initial measurement uses registration weight without overwriting saved row
  assert.match(s,/date\.value=today\(\);showDay\(\);prefillRegistrationWeight\(\);renderBaseline\(\);renderGoal\(\);renderHistory\(\)/);
  assert.match(s,/all\[day\]=\{\.\.\.\(all\[day\]\|\|\{\}\),weight:w,waist:a\}/);
 });
+test('STEP1 hides the old Other dropdown but keeps current food logging and saves',()=>{
+ const page=source['record.html'];
+ assert.doesNotMatch(page,/<details class="sub-nav">/);
+ assert.doesNotMatch(page,/<summary>その他<\/summary>/);
+ assert.doesNotMatch(page,/id="dailyResultLink"/);
+ assert.doesNotMatch(page,/href="\.\/photo-record\.html"/);
+ assert.doesNotMatch(page,/href="\.\/daily-result\.html/);
+ assert.doesNotMatch(page,/getElementById\('dailyResultLink'\)/);
+ assert.match(page,/id="diaryStep2Link"/);
+ assert.match(page,/id="previewButton"/);
+ assert.match(page,/const PREFIX='equineris:paper-first3:v1:'/);
+ assert.match(page,/localStorage\.setItem\(key\(activeDay,field\.dataset\.diaryKey\),value\)/);
+ assert.match(page,/photoInputs\.forEach\(input=>input\.addEventListener\('change'/);
+});
 test('food diary stays connected across three recording stages',()=>{
  assert.match(source['record.html'],/id="diaryStep2Link"/);
  assert.match(source['diary-step2.html'],/id="diaryStep3Link"/);
