@@ -1,0 +1,25 @@
+name: EQUINERIS flow regression
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'equineris/**'
+      - '.github/workflows/equineris-flow.yml'
+  pull_request:
+    paths:
+      - 'equineris/**'
+      - '.github/workflows/equineris-flow.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  flow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check page syntax, lesson navigation, goals, checklist and food diary
+        run: node equineris/tests/flow-check.cjs
