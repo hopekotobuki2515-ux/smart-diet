@@ -34,9 +34,6 @@ button{cursor:pointer}
 h1{margin:0;font-size:clamp(22px,6vw,29px);line-height:1.5}
 .lead{margin:10px auto 0;max-width:360px;font-size:13px;line-height:1.85;color:var(--ink-light)}
 .notice{padding:12px 14px;margin:0 0 17px;background:#f9f8f1;border-left:3px solid #d7c5a3;border-radius:0 11px 11px 0;color:var(--ink-light);font-size:12px;line-height:1.85}
-.day-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 16px}
-.day-tab{min-width:0;min-height:56px;padding:8px 4px;background:#fffdfa;border:1px solid #dbe5db;border-radius:14px;color:var(--ink-light);font-size:15px;font-weight:750}
-.day-tab[aria-pressed="true"]{background:var(--green);border-color:var(--green);color:#fff}
 .card{width:100%;min-width:0;padding:21px 14px;background:#fffdfa;border:1px solid var(--outline);border-radius:20px;box-shadow:0 8px 24px rgba(21,67,45,.035)}
 .card h2{font-size:18px;margin:0 0 7px}
 .explanation{font-size:12px;line-height:1.9;color:var(--ink-light);margin:0 0 15px}
@@ -156,15 +153,11 @@ dialog h2{margin:0 0 13px;font-size:17px}
       <p class="lead">まず3日間、食事の記録をお試し。<br>写真・メモ・○入力を使ってみましょう。</p>
     </header>
     <p class="notice">メモ・○と写真は、このブラウザ内に保存されます。利用者アカウントやさくらサーバーへの同期は未実装です。ブラウザのデータを削除すると記録が消える場合があります。</p>
-    <div class="day-tabs" role="group" aria-label="記録する日を選択">
-      <button class="day-tab" data-day="1" type="button" aria-pressed="true">1日目</button>
-      <button class="day-tab" data-day="2" type="button" aria-pressed="false">2日目</button>
-      <button class="day-tab" data-day="3" type="button" aria-pressed="false">3日目</button>
-    </div>
     <section class="card" id="week-1-diary" aria-labelledby="dayTitle">
-      <h2 id="dayTitle">1日目の食事ダイアリー</h2>
+      <h2 id="dayTitle">食事ダイアリー</h2>
       <p class="explanation">食事の写真を選び、記入例を参考に食品群に○を付けましょう。メモ欄は各食事の記入例の下にあります。朝食から間食まで左右にスワイプできます。</p>
-      <label class="date-row" for="diary-date"><span>記録する日付</span><input id="diary-date" type="date" data-diary-key="date"></label>
+      <label class="date-row" for="diary-date"><span>記録する日付</span><input id="diary-date" type="date" aria-describedby="dateHelp"></label>
+       <p id="dateHelp" class="small-note">日付を選ぶと、その日の記録に切り替わります。最初の3日分の記録に対応しています。</p>
       <div class="meal-tabs" role="group" aria-label="食事を選択">
         <button type="button" class="meal-tab" data-meal-tab="0" aria-pressed="true">朝食</button>
         <button type="button" class="meal-tab" data-meal-tab="1" aria-pressed="false">昼食</button>
@@ -274,7 +267,7 @@ dialog h2{margin:0 0 13px;font-size:17px}
   </div>
 </main>
 <dialog id="previewDialog" aria-labelledby="previewTitle">
-  <h2 id="previewTitle">1日目の食事ダイアリー</h2>
+  <h2 id="previewTitle">食事ダイアリー</h2>
   <p class="dialog-date" id="previewDate"></p>
   <table class="preview-layout" aria-label="食事ダイアリーの確認">
     <colgroup><col><col class="group"><col class="group"><col class="group"><col class="group"></colgroup>
@@ -288,7 +281,6 @@ dialog h2{margin:0 0 13px;font-size:17px}
 const PREFIX='equineris:paper-first3:v1:';
 const MEALS=[['breakfast','朝食'],['lunch','昼食'],['dinner','夕食'],['snack','間食']];
 const fields=[...document.querySelectorAll('[data-diary-key]')];
-const tabs=[...document.querySelectorAll('[data-day]')];
 const mealTabs=[...document.querySelectorAll('[data-meal-tab]')];
 const slides=[...document.querySelectorAll('[data-slide]')];
 const track=document.getElementById('mealTrack');
@@ -358,7 +350,6 @@ track.addEventListener('scroll',()=>{
 window.addEventListener('resize',()=>{track.scrollLeft=activeMeal*track.clientWidth;renderMeal(activeMeal);});
 function setPhotoBusy(busy){
  photoBusy=busy;photoInputs.forEach(i=>i.disabled=busy||!photoDB);
- tabs.forEach(t=>t.disabled=busy);
 }
 function clearPhotos(){
  photoEpoch++;revoke(photoUrls);
@@ -386,8 +377,7 @@ async function refreshPhotos(day){
 }
 function loadDay(day){
  activeDay=day;
- tabs.forEach(tab=>tab.setAttribute('aria-pressed',String(Number(tab.dataset.day)===day)));
- document.getElementById('dayTitle').textContent=day+'日目の食事ダイアリー';
+ document.getElementById('dayTitle').textContent='食事ダイアリー';
  document.getElementById('dailyResultLink').href='./daily-result.html?day='+day;
  document.getElementById('programChoiceLink').href='./program-choice.html?day='+day;
  for(const field of fields){
@@ -396,7 +386,8 @@ function loadDay(day){
   catch(e){canStore=false;showStatus('自動保存を利用できません。',true);}}
   if(field.type==='checkbox')field.checked=saved==='checked';else field.value=saved??'';
  }
- if(canStore)showStatus(day+'日目のメモと○は自動保存されます。');
+ dateField.value=dateForDay(day);
+ if(canStore)showStatus('メモと○は自動保存されます。');
  refreshPhotos(day);
 }
 function save(field){
@@ -405,18 +396,54 @@ function save(field){
  try{
   if(value)localStorage.setItem(key(activeDay,field.dataset.diaryKey),value);
   else localStorage.removeItem(key(activeDay,field.dataset.diaryKey));
-  showStatus(activeDay+'日目の変更を保存しました。');
+  showStatus('記録を保存しました。');
  }catch(e){canStore=false;showStatus('保存できませんでした。ブラウザ設定をご確認ください。',true);}
 }
 fields.forEach(f=>f.addEventListener(f.type==='checkbox'?'change':'input',()=>save(f)));
-tabs.forEach(tab=>tab.addEventListener('click',()=>{
- const day=Number(tab.dataset.day);
- if(!photoBusy&&day!==activeDay){
-  loadDay(day);
-  goMeal(0,false);
+function dateForDay(day){
+ try{return localStorage.getItem(key(day,'date'))||'';}
+ catch(e){return '';}
+}
+function hasSavedText(day){
+ try{
+  const prefix=PREFIX+day+':';
+  for(let i=0;i<localStorage.length;i++)if(localStorage.key(i).startsWith(prefix))return true;
+ }catch(e){return true;}
+ return false;
+}
+function dayForDate(value){
+ for(let d=1;d<=3;d++)if(dateForDay(d)===value)return d;
+ return null;
+}
+async function unusedDay(){
+ for(let d=1;d<=3;d++){
+  if(hasSavedText(d))continue;
+  // 写真のみ残った旧データを上書きしない。
+  if(photoDB){
+   try{
+    const photos=await Promise.all(MEALS.map(async([meal])=>getPhoto(photoId(d,meal))));
+    if(photos.some(p=>p&&p.file instanceof Blob))continue;
+   }catch(e){return null;}
+  }
+  return d;
  }
-}));
-dateField.addEventListener('change',()=>goMeal(0,false));
+ return null;
+}
+async function chooseDate(value){
+ if(photoBusy){dateField.value=dateForDay(activeDay);showStatus('写真の保存が終わってから日付を変更してください。');return;}
+ if(!canStore){dateField.value=dateForDay(activeDay);showStatus('日付を保存できないため変更できません。',true);return;}
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(value)){dateField.value=dateForDay(activeDay);return;}
+ if(!photoDB){dateField.value=dateForDay(activeDay);showStatus('写真の保存先を確認できないため、日付変更を中止しました。',true);return;}
+ const existing=dayForDate(value);
+ const target=existing||await unusedDay();
+ if(target===null){dateField.value=dateForDay(activeDay);showStatus('この画面は最初の3日分の記録用です。既存の記録は変更していません。',true);return;}
+ if(!existing){
+  try{localStorage.setItem(key(target,'date'),value);}
+  catch(e){dateField.value=dateForDay(activeDay);showStatus('日付を保存できませんでした。',true);return;}
+ }
+ loadDay(target);goMeal(0,false);
+}
+dateField.addEventListener('change',()=>{void chooseDate(dateField.value)});
 photoInputs.forEach(input=>input.addEventListener('change',async()=>{
  const file=input.files&&input.files[0];if(!file)return;
  if(!file.type.startsWith('image/')){showPhotoStatus('画像ファイルを選んでください。',true);input.value='';return;}
@@ -424,7 +451,7 @@ photoInputs.forEach(input=>input.addEventListener('change',async()=>{
  try{
   await putPhoto({id:photoId(day,m),file});
   if(day===activeDay)await refreshPhotos(day);
-  showPhotoStatus(day+'日目の写真をブラウザ内に保存しました。');
+  showPhotoStatus('写真をブラウザ内に保存しました。');
  }catch(e){showPhotoStatus('写真を保存できません。空き容量・保存設定を確認してください。',true);}
  finally{input.value='';setPhotoBusy(false);renderMeal(activeMeal);}
 }));
@@ -441,7 +468,7 @@ document.querySelectorAll('[data-photo-remove]').forEach(b=>b.addEventListener('
 function node(tag,text){const e=document.createElement(tag);if(text!==undefined)e.textContent=text;return e;}
 async function showPreview(){
  const day=activeDay;
- document.getElementById('previewTitle').textContent=day+'日目の食事ダイアリー';
+ document.getElementById('previewTitle').textContent='食事ダイアリー';
  document.getElementById('previewDate').textContent=dateField.value?'記録日：'+dateField.value:'記録日：未入力';
  revoke(dialogUrls);previewRows.replaceChildren();
  let photos=[];
