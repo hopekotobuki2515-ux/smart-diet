@@ -68,6 +68,9 @@ test('STEP1 hides the old Other dropdown but keeps current food logging and save
  assert.doesNotMatch(page,/href="\.\/photo-record\.html"/);
  assert.doesNotMatch(page,/href="\.\/daily-result\.html/);
  assert.doesNotMatch(page,/getElementById\('dailyResultLink'\)/);
+ assert.doesNotMatch(page,/id="programChoiceLink"/);
+ assert.doesNotMatch(page,/getElementById\('programChoiceLink'\)/);
+ assert.doesNotMatch(page,/href="\.\/program-choice\.html/);
  assert.match(page,/id="diaryStep2Link"/);
  assert.match(page,/id="previewButton"/);
  assert.match(page,/const PREFIX='equineris:paper-first3:v1:'/);
