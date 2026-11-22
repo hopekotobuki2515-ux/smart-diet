@@ -116,7 +116,7 @@ h1{font-size:26px;text-align:center;line-height:1.4;margin:20px 0 10px}
  function renderBaseline(){
   baselineButton.disabled=true;
   try{
-   const snapshot=readBaseline(),registered=readRegistration();
+   const snapshot=readBaseline(),registered=snapshot?null:readRegistration();
    const values=snapshot||registered;
    if(!values){
     baselineHeight.textContent='—';baselineWeight.textContent='—';baselineBMI.textContent='—';
