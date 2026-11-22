@@ -1,180 +1,111 @@
 <!doctype html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#fefdf8">
-  <meta name="description" content="EQUINERISのイントロダクションと食事記録の説明。最初の3日間は写真と簡単なメモで、普段の食事を記録します。">
-  <title>イントロダクションと記録の説明 | EQUINERIS</title>
-  <style>
-    :root {
-      color-scheme:light;
-      font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
-      --ink:#183e38;--ink-light:#31564d;--muted:#64776a;
-      --gold:#a6844e;--gold-light:#d7c5a3;--green:#285d4a;
-      --outline:#e7e5d9;--cream:#fefdf8;
-    }
-    *,*::before,*::after{box-sizing:border-box}
-    html{-webkit-text-size-adjust:100%;overflow-x:hidden}
-    body{margin:0;min-width:280px;overflow-x:hidden;color:var(--ink);background:#e8eee8}
-    button,a{font:inherit;touch-action:manipulation}
-    button{cursor:pointer}
-    :focus-visible{outline:3px solid var(--gold);outline-offset:3px}
-    .viewport{min-height:100svh;display:flex;justify-content:center}
-    .page{
-      width:100%;max-width:510px;min-height:100svh;
-      padding:22px 20px max(36px,env(safe-area-inset-bottom));
-      background:linear-gradient(157deg,#fefdf8 0%,#fafaf6 46%,#f0f5ef 100%);
-      box-shadow:0 18px 70px rgba(25,54,41,.055);
-    }
-    .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px}
-    .back{min-height:44px;display:inline-flex;align-items:center;text-decoration:none;color:var(--ink-light);font-size:13px;font-weight:650}
-    .step{font-size:10px;font-weight:800;letter-spacing:.18em;color:var(--gold)}
-    .wordmark{text-align:center;margin:12px 0 0;font-weight:800;font-size:27px;letter-spacing:.11em;line-height:1.15}
-    .wordmark span{color:var(--gold)}
-    .heading{text-align:center;margin:35px 0 23px}
-    .eyebrow{margin:0 0 11px;color:var(--gold);font-size:10px;font-weight:800;letter-spacing:.21em}
-    h1{margin:0;font-size:clamp(25px,6.3vw,30px);line-height:1.5;letter-spacing:.015em}
-    .heading>p:last-child{margin:13px auto 0;max-width:360px;color:var(--ink-light);font-size:13px;line-height:1.85}
-    .keep-phrase{white-space:nowrap}
-    .feature{
-      position:relative;isolation:isolate;overflow:hidden;
-      border-radius:21px;border:1px solid #d9e4d9;
-      background:linear-gradient(135deg,#f4f8f2,#fffdf9);
-      padding:21px 18px 18px;text-align:center;
-    }
-    .feature:before{
-      content:"";position:absolute;z-index:-1;top:-95px;right:-98px;
-      width:220px;height:220px;border-radius:50%;
-      background:radial-gradient(circle,#e4eee2 0%,transparent 72%);
-    }
-    .rings{position:relative;width:130px;height:130px;margin:0 auto 15px;display:grid;place-items:center}
-    .rings:before,.rings:after{content:"";position:absolute;border-radius:50%}
-    .rings:before{inset:2px;border:1px solid #a9c0ad}
-    .rings:after{inset:15px -5px;border:1px solid #ccb48c;transform:rotate(-28deg)}
-    .rings-inner{
-      width:85px;height:85px;display:flex;flex-direction:column;justify-content:center;
-      align-items:center;border-radius:50%;background:#fffefa;border:1px solid #d9e5d8;
-      box-shadow:0 5px 20px rgba(30,75,45,.08);
-    }
-    .rings-num{font-size:34px;line-height:1;font-weight:780;color:var(--green);letter-spacing:-.035em}
-    .rings-unit{margin-top:6px;font-size:10px;font-weight:750;color:var(--gold);letter-spacing:.15em}
-    .feature h2{margin:0;font-size:17px;line-height:1.5}
-    .feature p{margin:8px auto 0;max-width:340px;font-size:12px;line-height:1.85;color:var(--ink-light)}
-    /* 3 DAYS直下の2つのテキストを、端末幅に依存しない横書き・全幅の段落として固定 */
-    .feature > h2,.feature > p{
-      display:block;width:100%;max-width:100%;min-width:0;
-      writing-mode:horizontal-tb;text-orientation:mixed;
-      white-space:normal;word-break:normal;overflow-wrap:break-word;
-    }
-    .section-label{font-size:11px;color:var(--gold);letter-spacing:.16em;font-weight:800;margin:28px 0 13px}
-    .timeline{display:grid;grid-template-columns:minmax(0,1fr);width:100%;min-width:0;gap:12px}
-    .tile{
-      display:grid;grid-template-columns:42px minmax(0,1fr);align-items:start;gap:12px;width:100%;min-width:0;
-      border:1px solid var(--outline);border-radius:17px;background:#fffdfa;
-      padding:18px 15px 17px;box-shadow:0 7px 22px rgba(21,67,45,.025);
-    }
-    .num{
-      width:42px;height:42px;display:grid;place-items:center;border-radius:13px;
-      border:1px solid #d7e4d7;background:#eef5ee;color:var(--green);
-      font-size:13px;letter-spacing:.07em;font-weight:800;
-    }
-    .tile>div{min-width:0;width:100%;writing-mode:horizontal-tb;word-break:normal;overflow-wrap:break-word}
-    .tile h3{margin:1px 0 6px;font-size:15px;line-height:1.55}
-    .tile p{margin:0;color:var(--ink-light);font-size:12px;line-height:1.85}
-    .mini-notice{
-      margin:17px 0 0;padding:14px 16px;border-left:3px solid var(--gold-light);
-      background:#f9f8f1;color:var(--ink-light);border-radius:0 11px 11px 0;
-      font-size:12px;line-height:1.85;
-    }
-    .actions{margin-top:26px}
-    .main-button{
-      display:flex;align-items:center;justify-content:center;position:relative;width:100%;text-decoration:none;
-      min-height:57px;padding:13px 41px;border:1px solid #244f41;border-radius:15px;
-      background:linear-gradient(125deg,#285d4a,#143d32);color:#fffdf5;
-      font-size:17px;font-weight:800;letter-spacing:.04em;
-      box-shadow:0 11px 24px rgba(24,66,48,.13);
-    }
-    .arrow{position:absolute;right:20px;color:#e0c89d;font-size:23px;line-height:1}
-    .footnote{text-align:center;color:var(--muted);font-size:11px;line-height:1.85;margin:15px auto 0;max-width:360px}
-    dialog{
-      width:min(92vw,400px);border:1px solid #d3e0d6;border-radius:18px;padding:24px;
-      background:#fffdf9;color:var(--ink);box-shadow:0 24px 70px rgba(13,49,32,.23)
-    }
-    dialog::backdrop{background:rgba(12,34,25,.5)}
-    dialog h2{font-size:20px;margin:0 0 10px}
-    dialog p{font-size:13px;line-height:1.9;color:var(--ink-light);margin:0 0 16px}
-    .close{min-height:47px;width:100%;border:0;border-radius:12px;background:var(--green);color:#fff;font-size:15px;font-weight:750}
-    @media(max-width:340px){.page{padding-inline:13px}.tile{padding:15px 12px;grid-template-columns:37px minmax(0,1fr);gap:9px}.num{width:37px;height:37px}}
-    @media(min-width:650px){.viewport{padding:24px}.page{border-radius:25px;border:1px solid var(--outline);min-height:calc(100svh - 48px);padding-inline:34px}}
-    /* 記録見本は入力・保存を行わない表示専用 */
-    .record-sample{margin-top:25px;padding:13px;border:1px solid #d9e4d9;border-radius:18px;background:#fffdfa}
-    .record-sample h2{font-size:18px;line-height:1.5;margin:0 0 12px}
-    .record-sample .sample-section{margin:12px 0 0}
-    .record-sample .sample-label{display:block;margin:0 0 6px;font-size:13px;font-weight:800;color:var(--ink)}
-    .record-sample .sample-photo{width:100%;display:flex;align-items:center;justify-content:center;border:1px solid #e3e9df;border-radius:12px;background:#f7f8ee;overflow:hidden}
-    .record-sample .sample-photo svg{width:100%;height:auto;display:block;max-height:250px}
-    .record-sample .sample-memo{padding:13px 12px;border:1px solid #a8beb0;border-radius:10px;background:#fff;color:var(--ink);font-size:16px;line-height:1.65}
-    .record-sample .sample-groups{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;border:1px solid #d0dfd2;border-radius:9px;overflow:hidden}
-    .record-sample .sample-group{min-width:0;border-right:1px solid #d0dfd2;text-align:center;padding:0 1px 7px}
-    .record-sample .sample-group:last-child{border-right:0}
-    .record-sample .sample-group-head{padding:8px 2px;min-height:74px;border-bottom:1px solid #d0dfd2;background:#edf5ef}
-    .record-sample .sample-group-head strong{display:block;font-size:13px}
-    .record-sample .sample-group-head small{display:block;color:#426454;font-size:10px;line-height:1.4;font-weight:500;margin-top:4px;word-break:normal;overflow-wrap:break-word}
-    .record-sample .sample-mark{width:23px;height:23px;display:grid;place-items:center;margin:8px auto 0;border:1px solid #a2b7a7;border-radius:50%;font-size:17px;line-height:1;background:#fff;color:transparent}
-    .record-sample .sample-mark.is-on{color:var(--green);border:2px solid var(--green);font-weight:800}
-    .record-sample .sample-note{font-size:11px;line-height:1.7;color:var(--muted);margin:9px 0 0}
-    @media(max-width:340px){.record-sample{padding:9px}.record-sample .sample-group-head small{font-size:9px}.record-sample .sample-group-head{min-height:82px}}
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<meta name="description" content="SMART Diet食事記録の記入見本。写真、メモ、4群の○チェックの入力方法を確認できます。">
+<title>食事記録の見本 | SMART Diet</title>
+<style>
+
+:root{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;color-scheme:light;--ink:#24443c;--green:#285d4a;--mint:#ecf5ed;--line:#cbd7cd;--muted:#60776a}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;overflow-x:hidden}
+body{margin:0;min-width:280px;overflow-x:hidden;background:#fff;color:var(--ink)}
+input,button,textarea{font:inherit}button{cursor:pointer}
+:focus-visible{outline:3px solid #e5a748;outline-offset:2px}
+[hidden]{display:none!important}
+.viewport{width:100%;min-height:100svh;margin:0;padding:0}
+.page{width:100%;max-width:100%;min-height:100svh;margin:0 auto;padding:8px 8px max(24px,env(safe-area-inset-bottom));background:#fff}
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:2px 0 8px;border-bottom:1px solid #dbe4dc}
+.back{min-height:36px;display:flex;align-items:center;color:var(--green);font-size:13px;text-decoration:none;font-weight:700;white-space:nowrap}
+.toolbar-title{font-size:16px;line-height:1.4;margin:0;font-weight:800}
+.date-row{display:flex;align-items:center;gap:5px;justify-content:flex-end;font-size:12px;font-weight:700;min-width:0}
+.date-row input{width:min(150px,40vw);height:40px;border:1px solid #c9d8cc;border-radius:9px;background:#fff;padding:5px;font-size:15px;color:var(--ink)}
+.card{padding:0;margin:0;border:0;background:#fff;box-shadow:none}
+#dayTitle,.explanation,#dateHelp{display:none!important}
+.photo-area{margin:8px 0 0;min-width:0}
+.photo-pane{min-width:0}
+.photo-choose{display:flex;align-items:center;justify-content:center;position:relative;width:100%;min-height:190px;aspect-ratio:4/3;background:#f0f6f0;border:1px dashed #a0baa5;border-radius:12px;color:var(--green);font-size:16px;font-weight:750;overflow:hidden}
+.photo-choose:before{content:"＋";font-size:31px;margin-right:8px;font-weight:400}
+.photo-choose input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.photo-choose:focus-within{outline:3px solid #d7b271;outline-offset:2px}
+.photo-choose input:disabled{cursor:wait}
+.photo-view{width:100%;text-align:center}
+.photo-view img{display:block;width:100%;height:auto;max-height:min(49svh,470px);object-fit:contain;border-radius:10px;background:#f2f7f1;margin:0 auto}
+.photo-remove{min-height:36px;margin:7px 0;padding:6px 11px;border:1px solid #e0cfcc;border-radius:9px;background:#fff;color:#8b3a38;font-size:12px}
+.photo-pane:has(.photo-view:not([hidden])) .photo-choose{aspect-ratio:auto;min-height:44px;font-size:13px;background:#fff;border-style:solid}
+.photo-pane:has(.photo-view:not([hidden])) .photo-choose:before{font-size:17px}
+.memo-area{margin:10px 0 8px}
+.memo-label{display:block;font-size:13px;font-weight:750;margin:0 0 5px}
+.meal-memo{display:block;width:100%;min-height:84px;resize:vertical;border:1px solid #a8beb0;border-radius:10px;background:#fff;padding:10px 12px;color:var(--ink);font-size:16px;line-height:1.55;writing-mode:horizontal-tb;word-break:normal;overflow-wrap:break-word}
+.switch-header{display:flex;align-items:center;justify-content:space-between;margin:10px 0 4px}
+.switch-header strong{font-size:14px}
+.switch-header span{font-size:12px;color:var(--muted)}
+.meal-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin:0 0 9px}
+.meal-tab{min-width:0;min-height:46px;padding:6px 2px;border:1px solid #cbdacc;border-radius:10px;background:#f3f7f1;color:var(--ink);font-size:14px;font-weight:750}
+.meal-tab[aria-pressed="true"]{background:var(--green);color:#fff;border-color:var(--green)}
+.meal-track{display:flex;align-items:stretch;width:100%;min-width:0;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;overscroll-behavior-inline:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.meal-track::-webkit-scrollbar{display:none}
+.meal-slide{flex:0 0 100%;width:100%;min-width:0;scroll-snap-align:start;scroll-snap-stop:always;padding:1px;writing-mode:horizontal-tb}
+.slide-heading{font-size:14px;line-height:1.4;margin:1px 0 6px}
+.diary-table{width:100%;table-layout:fixed;border-collapse:collapse;background:#fff}
+.diary-table th,.diary-table td{border:1px solid var(--line);text-align:center}
+.diary-table th{font-size:12px;background:var(--mint);min-height:35px;padding:7px 2px;white-space:normal;line-height:1.4;word-break:normal;overflow-wrap:break-word}.diary-table th small{display:block;font-size:10px;line-height:1.35;font-weight:500;margin-top:4px;color:#426454}
+.diary-table td{width:25%;vertical-align:top}
+.diary-table .mark{display:grid;place-items:center;min-height:36px;position:relative;cursor:pointer}
+.diary-table .mark+.mark{border-top:1px dotted #d8e1d8}
+.mark input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}
+.mark span{display:block;width:20px;height:20px;border:1px solid #829b8a;border-radius:50%;background:#fff}
+.mark input:checked+span{border:3px solid var(--green);background:#dcf2df;box-shadow:inset 0 0 0 5px white}
+.mark input:focus-visible+span{outline:3px solid #dfb65b;outline-offset:2px}
+.meal-controls{display:flex;align-items:center;justify-content:space-between;gap:6px;margin:10px 0 4px}
+.meal-controls button{min-height:40px;min-width:75px;border:1px solid #c6d7ca;border-radius:9px;color:var(--green);background:#f5faf4;font-size:13px;font-weight:750}
+.meal-controls span{font-variant-numeric:tabular-nums;font-size:13px;color:var(--muted)}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:9px 0 0}
+.action-button{min-height:48px;min-width:0;border-radius:11px;border:1px solid var(--green);background:var(--green);color:#fff;font-weight:800;font-size:15px}
+.action-button.outline{background:#fff;color:var(--green)}
+.status{margin:6px 0;min-height:0;font-size:12px;line-height:1.6;color:var(--green)}
+.status[data-error="true"]{color:#a32f2d}
+.status:not([data-error="true"]){font-size:11px}
+.sub-nav{margin:8px 0 0}
+.sub-nav summary{font-size:12px;min-height:38px;color:var(--muted);cursor:pointer;padding:10px 2px}
+.sub-nav a{display:block;padding:12px 6px;border-top:1px solid #e4ece3;text-decoration:none;color:var(--green);font-size:13px}
+dialog{width:min(98vw,550px);max-height:88dvh;overflow:auto;border:1px solid #cbd9cc;border-radius:14px;padding:12px;background:white;color:var(--ink)}
+dialog::backdrop{background:#0e2a204d}
+dialog h2{font-size:17px;margin:0 0 8px}.dialog-date{font-size:12px;color:var(--muted)}
+.preview-layout{width:100%;border-collapse:collapse;table-layout:fixed;font-size:11px}
+.preview-layout th,.preview-layout td{border:1px solid var(--line);text-align:center;vertical-align:top;padding:5px 2px;overflow-wrap:break-word}
+.preview-layout th{background:var(--mint)}
+.preview-layout td:first-child{text-align:left;white-space:pre-wrap;overflow-wrap:anywhere}
+.preview-layout td.circle{font-size:18px;white-space:pre-line;line-height:1.4}
+.preview-layout img{display:block;width:100%;height:auto;max-height:140px;object-fit:contain}
+.preview-memo{white-space:pre-wrap;overflow-wrap:break-word}
+.close{width:100%;min-height:45px;margin-top:12px;border:0;border-radius:9px;background:var(--green);color:#fff}
+@media(max-width:350px){.page{padding-inline:5px}.toolbar-title{font-size:14px}.date-row input{width:133px}.meal-tab{font-size:13px}}
+
+
+/* record.htmlと同一の表示幅・余白・群分け表を使用。見本だけ読み取り専用。 */
+.sample-heading{font-size:17px;font-weight:800;line-height:1.5;margin:12px 0 10px}
+.sample-photo{display:flex;align-items:center;justify-content:center;width:100%;border:1px solid #dce6dd;border-radius:12px;overflow:hidden;background:#f0f6f0}
+.sample-photo svg{display:block;width:100%;height:auto;max-height:320px}
+.sample-on span{border:3px solid var(--green);background:#dcf2df;box-shadow:inset 0 0 0 5px white}
+.sample-caption{margin:8px 0 0;font-size:12px;color:var(--muted);line-height:1.6}
+.sample-start{display:flex;align-items:center;justify-content:center;margin:16px 0 0;text-decoration:none;border-radius:11px;min-height:52px;background:var(--green);color:#fff;font-weight:800;font-size:16px}
+
+</style>
 </head>
 <body>
-<main class="viewport">
-  <article class="page">
-    <nav class="topbar" aria-label="ページ移動">
-      <a href="./setup.html" class="back">〈 初回設定へ戻る</a>
-      <span class="step">INTRODUCTION</span>
-    </nav>
-    <p class="wordmark" aria-label="EQUINERIS">EQUI<span>NERIS</span></p>
-    <header class="heading">
-      <p class="eyebrow">INTRODUCTION · はじめに</p>
-      <h1>知ることから始まる、<br>新しい食習慣。</h1>
-      <p>EQUINERISは、12週間かけて食事について学ぶ<span class="keep-phrase">プログラムです。</span><br>最初から食べ方を変える必要はありません。まず、いつもの食事を知ることから始めます。</p>
-    </header>
-    <section class="feature" aria-labelledby="feature-title">
-      <div class="rings" aria-hidden="true"><div class="rings-inner"><span class="rings-num">3</span><span class="rings-unit">DAYS</span></div></div>
-      <h2 id="feature-title">最初の3日間は、お試し記録</h2>
-      <p>写真・メモ・○入力を実際に試し、無理なく続けられそうか確かめる3日間です。できれば平日2日と休日1日を選びます。</p>
-    </section>
-    <p class="section-label">RECORDING GUIDE · 食事記録の説明</p>
-    <div class="timeline">
-      <section class="tile" aria-labelledby="step-1-title">
-        <span class="num" aria-hidden="true">01</span>
-        <div>
-          <h3 id="step-1-title">まずは食事の写真を撮る</h3>
-          <p>朝食・昼食・夕食を、普段どおりに撮影して残します。きれいに撮ることより、続けて記録することを優先します。</p>
-        </div>
-      </section>
-      <section class="tile" aria-labelledby="step-2-title">
-        <span class="num" aria-hidden="true">02</span>
-        <div>
-          <h3 id="step-2-title">間食・飲み物・お酒も記録する</h3>
-          <p>お菓子、飲み物、お酒なども忘れずに。写真が難しい場合は、分かる範囲で短いメモを残します。</p>
-        </div>
-      </section>
-      <section class="tile" aria-labelledby="step-3-title">
-        <span class="num" aria-hidden="true">03</span>
-        <div>
-          <h3 id="step-3-title">記録を振り返り、続け方を考える</h3>
-          <p>3日間の記録を見返し、写真・メモ・○入力が生活に合うか確かめます。点数計算はせず、食品群は分かる範囲で○を付けてみましょう。</p>
-        </div>
-      </section>
-    </div>
-    <section class="record-sample" aria-labelledby="sampleTitle">
-      <h2 id="sampleTitle">食事記録の見本（朝食）</h2>
-      <div class="sample-section">
-        <span class="sample-label">① 食事の写真</span>
-        <div class="sample-photo">
-          <svg viewBox="0 0 480 258" role="img" aria-label="食パン、ゆで卵、ヨーグルトを載せた朝食のイメージ" xmlns="http://www.w3.org/2000/svg">
+<main class="viewport"><div class="page">
+<header class="toolbar">
+<a class="back" href="./setup.html">〈 戻る</a>
+<h1 class="toolbar-title">食事記録の見本</h1>
+<span style="font-size:12px;color:var(--muted)">見本</span>
+</header>
+<section class="card" aria-labelledby="sample-heading">
+<h2 class="sample-heading" id="sample-heading">朝食の記入例</h2>
+<div class="photo-area">
+ <div class="sample-photo"><svg viewBox="0 0 480 258" role="img" aria-label="食パン、ゆで卵、ヨーグルトを載せた朝食のイメージ" xmlns="http://www.w3.org/2000/svg">
             <rect width="480" height="258" fill="#eef3ea"/>
             <rect x="20" y="15" width="440" height="228" rx="20" fill="#f8f7ef"/>
             <ellipse cx="238" cy="136" rx="157" ry="96" fill="#d9e2d7"/>
@@ -198,42 +129,19 @@
               <ellipse cx="54" cy="17" rx="34" ry="11" fill="#f9f8f3"/>
               <path d="M17 55H91" stroke="#a7c4d7" stroke-width="5" opacity=".7"/>
             </g>
-          </svg>
-        </div>
-      </div>
-      <div class="sample-section">
-        <span class="sample-label">② メモ</span>
-        <div class="sample-memo">食パン1枚、ゆで卵1個、ヨーグルト1個</div>
-      </div>
-      <div class="sample-section">
-        <span class="sample-label">③ 食品群に○を付ける</span>
-        <div class="sample-groups" role="group" aria-label="朝食の食品群チェック見本">
-      <div class="sample-group" aria-label="第1群、2個に丸">
-        <div class="sample-group-head"><strong>第1群</strong><small>乳・乳製品／卵</small></div>
-        <span class="sample-mark is-on" aria-hidden="true">○</span><span class="sample-mark is-on" aria-hidden="true">○</span><span class="sample-mark" aria-hidden="true">　</span><span class="sample-mark" aria-hidden="true">　</span><span class="sample-mark" aria-hidden="true">　</span>
-      </div>
-      <div class="sample-group" aria-label="第2群、0個に丸">
-        <div class="sample-group-head"><strong>第2群</strong><small>魚・肉／豆製品</small></div>
-        <span class="sample-mark" aria-hidden="true">　</span><span class="sample-mark" aria-hidden="true">　</span><span class="sample-mark" aria-hidden="true">　</span><span class="sample-mark" aria-hidden="true">　</span><span class="sample-mark" aria-hidden="true">　</span>
-      </div>
-      <div class="sample-group" aria-label="第3群、0個に丸">
-        <div class="sample-group-head"><strong>第3群</strong><small>野菜・きのこ／いも・果物</small></div>
-        <span class="sample-mark" aria-hidden="true">　</span><span class="sample-mark" aria-hidden="true">　</span><span class="sample-mark" aria-hidden="true">　</span><span class="sample-mark" aria-hidden="true">　</span><span class="sample-mark" aria-hidden="true">　</span>
-      </div>
-      <div class="sample-group" aria-label="第4群、1個に丸">
-        <div class="sample-group-head"><strong>第4群</strong><small>米・パン・麺／油脂・調味料・酒</small></div>
-        <span class="sample-mark is-on" aria-hidden="true">○</span><span class="sample-mark" aria-hidden="true">　</span><span class="sample-mark" aria-hidden="true">　</span><span class="sample-mark" aria-hidden="true">　</span><span class="sample-mark" aria-hidden="true">　</span>
-      </div>
-        </div>
-        <p class="sample-note">第1群：卵とヨーグルトの2つに○。第4群：食パンに○。写真はイラストによる見本です。ここでは記録は保存されません。</p>
-      </div>
-    </section>
-    <p class="mini-notice">まずは記録のしやすさを試してみてください。3日間のお試し後に、12週間プログラムを始めるか、食事記録だけを続けるか選べます。選択は後から変更できます。</p>
-    <div class="actions">
-      <a id="recordButton" class="main-button" href="./record.html">お試し記録を始める <span class="arrow" aria-hidden="true">›</span></a>
-      <p class="footnote">食事の記録は、この端末のブラウザ内にのみ保存されます。利用者アカウントへの同期はまだ実装していません。</p>
-    </div>
-  </article>
-</main>
-</body>
-</html>
+          </svg></div>
+</div>
+<div class="memo-area">
+<label class="memo-label" for="sampleMemo">朝食のメモ</label>
+<textarea class="meal-memo" id="sampleMemo" rows="2" readonly>食パン1枚、ゆで卵1個、ヨーグルト1個</textarea>
+</div>
+<div class="switch-header"><strong>朝食</strong><span>第1〜4群を確認</span></div>
+<h3 class="slide-heading">朝食の群分けチェック</h3>
+<table class="diary-table food-groups" aria-label="朝食の食品群チェック完成見本">
+<thead><tr><th scope="col">第1群<small>乳・乳製品／卵</small></th><th scope="col">第2群<small>魚・肉／豆製品</small></th><th scope="col">第3群<small>野菜・きのこ／いも・果物</small></th><th scope="col">第4群<small>米・パン・麺／油脂・調味料・酒</small></th></tr></thead>
+<tbody><tr><td><div class="mark sample-on" aria-label="○"><span aria-hidden="true"></span></div><div class="mark sample-on" aria-label="○"><span aria-hidden="true"></span></div><div class="mark " aria-label="未チェック"><span aria-hidden="true"></span></div><div class="mark " aria-label="未チェック"><span aria-hidden="true"></span></div><div class="mark " aria-label="未チェック"><span aria-hidden="true"></span></div></td><td><div class="mark " aria-label="未チェック"><span aria-hidden="true"></span></div><div class="mark " aria-label="未チェック"><span aria-hidden="true"></span></div><div class="mark " aria-label="未チェック"><span aria-hidden="true"></span></div><div class="mark " aria-label="未チェック"><span aria-hidden="true"></span></div><div class="mark " aria-label="未チェック"><span aria-hidden="true"></span></div></td><td><div class="mark " aria-label="未チェック"><span aria-hidden="true"></span></div><div class="mark " aria-label="未チェック"><span aria-hidden="true"></span></div><div class="mark " aria-label="未チェック"><span aria-hidden="true"></span></div><div class="mark " aria-label="未チェック"><span aria-hidden="true"></span></div><div class="mark " aria-label="未チェック"><span aria-hidden="true"></span></div></td><td><div class="mark sample-on" aria-label="○"><span aria-hidden="true"></span></div><div class="mark " aria-label="未チェック"><span aria-hidden="true"></span></div><div class="mark " aria-label="未チェック"><span aria-hidden="true"></span></div><div class="mark " aria-label="未チェック"><span aria-hidden="true"></span></div><div class="mark " aria-label="未チェック"><span aria-hidden="true"></span></div></td></tr></tbody></table>
+<p class="sample-caption">卵とヨーグルトは第1群に2個、食パンは第4群に1個の○を付けます。写真はイラストによる見本です。</p>
+<a class="sample-start" href="./record.html">食事記録を始める</a>
+</section>
+</div></main>
+</body></html>
