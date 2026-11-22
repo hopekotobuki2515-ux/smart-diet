@@ -352,6 +352,26 @@ test('weight history uses a separate STEP2 slide immediately after page seven',(
  assert.equal(t.count[1].textContent,'9 / 13');
  assert.match(t.next[1].textContent,/食行動チェック/);
 });
+test('historical-weight guidance is exactly two sentence lines without changing text',()=>{
+ const data=textbookData[1].cards[7];
+ assert.equal(data.id,'s2-weight-history');
+ const t=textbookScenario('#s2-weight-history');
+ const track=t.sections[1].children.find(c=>c.className==='track');
+ const history=track.children[7];
+ const para=history.children.find(c=>c.className==='lesson-body');
+ assert.ok(para,'history description');
+ assert.equal(para.children.length,2);
+ assert.equal(para.children[0].className,'weight-history-line');
+ assert.equal(para.children[1].className,'weight-history-line');
+ assert.equal(para.children[0].textContent,'覚えている体重を入力しましょう。');
+ assert.equal(para.children[1].textContent,'空欄でも大丈夫です。');
+ assert.equal(para.children.map(c=>c.textContent).join(''),data.body);
+ assert.match(source['textbook.html'],/\.weight-history-line\{display:block\}/);
+ const prev=track.children[6].children.find(c=>c.className==='lesson-body');
+ const next=track.children[8].children.find(c=>c.className==='lesson-body');
+ assert.equal(prev.children.length,0);
+ assert.equal(next.children.length,0);
+});
 test('historical kg fields save and restore through the existing goal record',()=>{
  const reg={'equineris:registration:v1':JSON.stringify({name:'Test',heightCm:'170',weightKg:'80'})};
  const starting={...reg,'equineris:week1:goal:v1':JSON.stringify({startWeightKg:80,goalWeightKg:73.6,selectedRatePercent:8})};
