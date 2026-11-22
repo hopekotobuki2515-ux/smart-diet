@@ -213,7 +213,7 @@
  const bmi=byId('bmiValue'),bmi25=byId('bmi25Weight'),status=byId('registrationStatus');
  const REG_KEY='equineris:registration:v1';
  const GOAL_KEY='equineris:week1:goal:v1';
- const one=n=>Math.round((n+Number.EPSILON)*10)/10;
+ const one=n=>Math.round(n*10+1e-9)/10;
  const fmt=n=>one(n).toFixed(1);
  const getNumber=node=>node.value.trim()===''?null:Number(node.value);
  const validNumber=node=>{const n=getNumber(node);return n!==null&&Number.isFinite(n)&&n>0&&node.checkValidity();};
