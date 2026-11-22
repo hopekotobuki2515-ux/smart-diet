@@ -80,6 +80,22 @@ a,button,input{font:inherit}button{cursor:pointer}
 .goal-calc-result{font-size:13px;line-height:1.7;margin:0;font-variant-numeric:tabular-nums;color:var(--green);font-weight:800}
 .goal-calc-save{width:100%;min-height:47px;border-radius:11px;border:1px solid var(--green);background:var(--green);color:#fff;font-size:14px;font-weight:800;padding:10px}
 .goal-calc-save:disabled{opacity:.45;cursor:default}
+.habit-mini{display:flex;flex-direction:column;gap:9px;min-width:0}
+.habit-mini-guide{font-size:12px;line-height:1.6;color:var(--sub);margin:0}
+.habit-mini-list{display:flex;flex-direction:column;max-height:290px;overflow-y:auto;overscroll-behavior-y:contain;touch-action:pan-y;border:1px solid #d5e1d5;border-radius:11px;background:#fff;scrollbar-width:thin}
+.habit-mini-row{display:flex;position:relative;align-items:flex-start;gap:7px;padding:8px 10px;min-height:48px;color:var(--ink);font-size:14px;line-height:1.55;cursor:pointer}
+.habit-mini-row+.habit-mini-row{border-top:1px solid #e7ece5}
+.habit-mini-checkbox{position:absolute;top:6px;left:6px;width:40px;height:40px;margin:0;opacity:0;cursor:pointer}
+.habit-mini-mark{flex:0 0 26px;display:grid;place-items:start center;min-height:28px;font-size:25px;line-height:1}
+.habit-mini-mark:before{content:"□";color:#425549}
+.habit-mini-checkbox:checked+.habit-mini-mark:before{content:"○";font-size:29px;font-weight:800;color:#c35b34}
+.habit-mini-checkbox:focus-visible+.habit-mini-mark{outline:3px solid var(--gold);outline-offset:1px;border-radius:4px}
+.habit-mini-text{flex:1;min-width:0;overflow-wrap:break-word;word-break:normal}
+.habit-mini-count{margin:0;font-size:12px;font-weight:800;color:var(--green)}
+.habit-mini-save{min-height:46px;width:100%;border:1px solid var(--green);border-radius:11px;background:var(--green);color:#fff;font-size:14px;font-weight:800}
+.habit-mini-save:disabled{opacity:.45;cursor:default}
+.habit-mini-status{margin:0;min-height:1.3em;font-size:11px;line-height:1.65;color:var(--sub)}
+.habit-mini-status[data-error="true"]{color:#a12b2b}
 .message-card .signature{margin:4px 0 0;text-align:right;font-size:13px;line-height:1.5;font-weight:700;color:var(--sub)}
 .message-card .message-notes{display:flex;flex-direction:column;gap:5px;padding:10px 12px;border-radius:10px;background:#f0f6ee;color:var(--sub)}
 .message-card .message-notes p{margin:0;font-size:12px;line-height:1.6}
@@ -146,8 +162,9 @@ a,button,input{font:inherit}button{cursor:pointer}
 </main>
 <a class="to-top" href="#top" aria-label="教材の目次と検索へ戻る">↑ 目次</a>
 <noscript>教材の表示・検索にはJavaScriptを有効にしてください。</noscript>
-<script src="./textbook-data.js?v=20261123-card-flow-fix"></script>
+<script src="./textbook-data.js?v=20261123-habit-card"></script>
 <script src="./goal-calculator.js?v=20261123-card-flow-fix"></script>
+<script src="./habit-check-card.js?v=20261123-habit-card"></script>
 <script>
 'use strict';
 (()=>{
@@ -311,7 +328,7 @@ a,button,input{font:inherit}button{cursor:pointer}
      article.append(list);
     }
    }else{
-    const interactive=c.id==='s2-goal'||c.id==='s2-weight-history';
+    const interactive=c.id==='s2-goal'||c.id==='s2-weight-history'||c.id==='s2-habit-check';
     const visual=create('section',interactive?'visual visual--interactive':'visual');
     visual.setAttribute('aria-label',c.visualTitle||'図解・ポイント');
     if(!interactive)visual.append(create('div','visual-title',c.visualTitle||''));
@@ -324,6 +341,11 @@ a,button,input{font:inherit}button{cursor:pointer}
      if(window.EquinerisGoalCalculator&&window.EquinerisGoalCalculator.mountHistory)
       window.EquinerisGoalCalculator.mountHistory(visual);
      else visual.append(create('p','help','以前の体重の記録を読み込めませんでした。ページを再読み込みしてください。'));
+    }
+    if(c.id==='s2-habit-check'){
+     if(window.EquinerisHabitCheckCard&&window.EquinerisHabitCheckCard.mount)
+      window.EquinerisHabitCheckCard.mount(visual);
+     else visual.append(create('p','help','食行動チェック表を読み込めませんでした。ページを再読み込みしてください。'));
     }
     if(c.id==='s2-c3'){
      const demo=create('div','bmi-demo');
@@ -380,9 +402,6 @@ a,button,input{font:inherit}button{cursor:pointer}
   };
   prev.addEventListener('click',()=>go(state.active-1));
   const advance=()=>{
-   if(s.id===2 && s.cards[state.active].id==='s2-c7'){
-    window.location.assign('./habit-intro.html?from=textbook-step2');return;
-   }
    if(state.active===s.cards.length-1){
     if(s.id===4){window.location.assign('./record.html?day=1');return;}
     if(s.id<6){jump('s'+(s.id+1)+'-c1');return;}
