@@ -70,6 +70,7 @@ a,button,input{font:inherit}button{cursor:pointer}
 .slide-nav button:disabled{opacity:.42;cursor:default}
 .slide-nav .next{background:#285d4a;color:#fff;border-color:#285d4a}
 .slide-nav .counter{font-size:12px;font-weight:800;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.diary-route{display:flex;align-items:center;justify-content:center;min-height:52px;padding:12px 16px;border-radius:12px;background:var(--green);color:#fff;text-decoration:none;font-size:15px;font-weight:800;line-height:1.5;text-align:center}
 .step-footer{display:flex;justify-content:flex-end;margin:0 4px}.step-footer a{color:var(--sub);font-size:12px;min-height:40px;display:inline-flex;align-items:center;text-decoration:underline}
 .end-card{border-radius:17px;border:1px solid #d7e4d6;padding:21px 14px 24px;text-align:center;background:#fffdf9;margin:20px 0}
 .end-card h2{font-size:20px}.end-card p{font-size:14px;line-height:1.85}
@@ -191,7 +192,8 @@ a,button,input{font:inherit}button{cursor:pointer}
   s.active=clamped;
   s.counter.textContent=(clamped+1)+' / '+s.cards.length;
   s.prev.disabled=clamped===0;
-  s.next.disabled=clamped===s.cards.length-1;
+  s.next.disabled=clamped===s.cards.length-1 && stepId!==4;
+  s.next.textContent=stepId===4 && clamped===s.cards.length-1?'食事記録 STEP1へ 〉':'次へ 〉';
  };
  function remember(id){if(!CARDS.has(id))return;last=id;persistent(LAST_KEY,last);setResume();}
  function renderResults(){
@@ -274,6 +276,11 @@ a,button,input{font:inherit}button{cursor:pointer}
     for(const point of c.points)visual.append(create('div','visual-row',point));
     article.append(visual);
    }
+   if(s.id===4 && c.id==='s4-c4'){
+    const link=create('a','diary-route','食事記録 STEP1：食べたものを記録する 〉');
+    link.href='./record.html?day=1';
+    article.append(link);
+   }
    track.append(article);
    CARDS.get(c.id).bookmark=bookmark;
   });
@@ -293,7 +300,10 @@ a,button,input{font:inherit}button{cursor:pointer}
    update(s.id,idx);remember(s.cards[idx].id);
   };
   prev.addEventListener('click',()=>go(state.active-1));
-  next.addEventListener('click',()=>go(state.active+1));
+  next.addEventListener('click',()=>{
+   if(s.id===4 && state.active===s.cards.length-1){window.location.assign('./record.html?day=1');return;}
+   go(state.active+1);
+  });
   track.addEventListener('keydown',e=>{
    if(e.key==='ArrowRight'){e.preventDefault();go(state.active+1);}
    if(e.key==='ArrowLeft'){e.preventDefault();go(state.active-1);}
