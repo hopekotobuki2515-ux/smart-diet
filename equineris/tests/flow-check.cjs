@@ -57,7 +57,7 @@ test('initial measurement uses registration weight without overwriting saved row
  assert.match(s,/equineris:registration:v1/);
  assert.match(s,/equineris:body-measurements:v1/);
  assert.match(s,/if\(Object\.keys\(getAll\(\)\)\.length!==0\)return/);
- assert.match(s,/date\.value=today\(\);showDay\(\);prefillRegistrationWeight\(\);renderBaseline\(\);renderHistory\(\)/);
+ assert.match(s,/date\.value=today\(\);showDay\(\);prefillRegistrationWeight\(\);renderBaseline\(\);renderGoal\(\);renderHistory\(\)/);
  assert.match(s,/all\[day\]=\{\.\.\.\(all\[day\]\|\|\{\}\),weight:w,waist:a\}/);
 });
 test('food diary stays connected across three recording stages',()=>{
