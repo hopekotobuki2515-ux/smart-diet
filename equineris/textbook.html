@@ -55,6 +55,7 @@ a,button,input{font:inherit}button{cursor:pointer}
 .bookmark[aria-pressed="true"]{background:#fdf0d7;color:#795c30;border-color:#dfc494}
 .lesson-card h3{font-size:clamp(18px,5.1vw,21px);line-height:1.5;margin:0;font-weight:850;writing-mode:horizontal-tb;text-orientation:mixed;white-space:normal;word-break:normal;overflow-wrap:break-word}
 .lesson-body{font-size:16px;line-height:1.85;color:var(--sub);margin:0;letter-spacing:0;writing-mode:horizontal-tb;text-orientation:mixed;white-space:normal;word-break:normal;overflow-wrap:break-word;text-wrap:pretty}
+.weight-history-line{display:block}
 .visual{flex:1 0 auto;min-height:130px;border-radius:13px;background:#eef5ed;border:1px solid #e1ebdf;padding:14px;display:flex;flex-direction:column;justify-content:center;gap:9px}
 .visual-title{font-size:13px;font-weight:800;color:var(--green);line-height:1.55}
 .visual-row{border:1px solid #e3e9e0;background:#fffefd;border-radius:9px;min-height:40px;display:flex;gap:8px;align-items:center;padding:9px 12px;font-size:14px;line-height:1.6}
@@ -309,7 +310,17 @@ a,button,input{font:inherit}button{cursor:pointer}
    });
    head.append(bookmark);article.append(head);
    const h=create('h3','',c.title);article.append(h);
-   article.append(create('p','lesson-body',c.body));
+   const body=create('p','lesson-body');
+   if(c.id==='s2-weight-history'){
+    const breakAt=c.body.indexOf('。')+1;
+    if(breakAt>0&&breakAt<c.body.length){
+     body.append(
+      create('span','weight-history-line',c.body.slice(0,breakAt)),
+      create('span','weight-history-line',c.body.slice(breakAt))
+     );
+    }else body.textContent=c.body;
+   }else body.textContent=c.body;
+   article.append(body);
    if(c.tag==='村田健作からのメッセージ'){
     const signature=create('p','signature',c.visualTitle||'村田 健作');
     article.append(signature);
