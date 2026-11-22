@@ -214,8 +214,8 @@ dialog h2{font-size:17px;margin:0 0 8px}.dialog-date{font-size:12px;color:var(--
 .step3-footer a{font-size:13px;color:var(--green);padding:5px 0}
 @media(max-width:350px){.food-tools{gap:3px}.food-tools button{font-size:11px;padding:4px}.subtotal-cell strong{font-size:12px}.master-option small{font-size:10px}}
 
-/* Four-group quick reference: appended only to the final meal page. */
-.four-group-reference{margin:18px 0 8px;padding:12px;border:1px solid #dce7db;border-radius:12px;background:#fff;min-width:0}
+/* Four-group reference: dedicated final slide after the snack record. */
+.four-group-reference{margin:1px 0 8px;padding:12px;border:1px solid #dce7db;border-radius:12px;background:#fff;min-width:0}
 .four-group-reference h3{margin:0 0 9px;font-size:16px;line-height:1.4}
 .four-group-reference-row{display:grid;grid-template-columns:68px minmax(0,1fr);gap:9px;align-items:start;padding:10px 0;border-top:1px solid #e1eae1;min-width:0}
 .four-group-reference-row>strong{display:block;border-radius:8px;background:#ecf5ed;color:#285d4a;font-size:13px;line-height:1.5;text-align:center;padding:9px 1px}
@@ -231,7 +231,7 @@ dialog h2{font-size:17px;margin:0 0 8px}.dialog-date{font-size:12px;color:var(--
 <section class="card" aria-label="ステップ3 食事と点数記録">
 <div class="switch-header"><strong id="currentMealLabel">見本</strong><span>左右にスワイプ</span></div>
 <div class="meal-tabs" role="group" aria-label="食事を選択"><button type="button" class="meal-tab" data-meal-tab="0" aria-pressed="true">見本</button><button type="button" class="meal-tab" data-meal-tab="1" aria-pressed="false">朝食</button><button type="button" class="meal-tab" data-meal-tab="2" aria-pressed="false">昼食</button><button type="button" class="meal-tab" data-meal-tab="3" aria-pressed="false">夕食</button><button type="button" class="meal-tab" data-meal-tab="4" aria-pressed="false">間食</button></div>
-<div class="meal-track" id="mealTrack" tabindex="0" role="region" aria-label="見本、朝食、昼食、夕食、間食を横スクロール">
+<div class="meal-track" id="mealTrack" tabindex="0" role="region" aria-label="見本、朝食、昼食、夕食、間食、四群早見表を横スクロール">
 <section class="meal-slide" data-slide="0" aria-label="ステップ3の計算見本">
 <h2 class="step3-heading">見本：夕食 19:30</h2>
 <div class="sample-photo"><svg viewBox="0 0 480 258" role="img" aria-label="焼き魚、ごはん、野菜を盛り付けた夕食のイメージ図" xmlns="http://www.w3.org/2000/svg">
@@ -368,6 +368,8 @@ dialog h2{font-size:17px;margin:0 0 8px}.dialog-date{font-size:12px;color:var(--
 <h3 class="slide-heading">この食事の第1〜4群 小計</h3>
 <div class="subtotal-grid" data-group-subtotal="snack"></div>
 <p class="step3-meal-total" data-meal-total="snack">計算中…</p>
+</section>
+<section class="meal-slide" data-slide="reference" aria-label="四群早見表">
 <section class="four-group-reference" aria-label="四群早見表">
 <h3>四群早見表</h3>
 <div class="four-group-reference-row"><strong>第1群</strong><div><b>乳・乳製品、卵</b><span>牛乳・ヨーグルト・チーズ・卵</span></div></div>
@@ -376,7 +378,7 @@ dialog h2{font-size:17px;margin:0 0 8px}.dialog-date{font-size:12px;color:var(--
 <div class="four-group-reference-row"><strong>第4群</strong><div><b>穀類、油脂、砂糖・菓子など</b><span>ご飯・パン・麺・油脂・砂糖・調味料</span></div></div>
 </section></section>
 </div>
-<div class="meal-controls"><button type="button" id="mealPrev" disabled>〈 前へ</button><span id="mealCounter">1 / 5</span><button type="button" id="mealNext">次へ 〉</button></div>
+<div class="meal-controls"><button type="button" id="mealPrev" disabled>〈 前へ</button><span id="mealCounter">1 / 6</span><button type="button" id="mealNext">次へ 〉</button></div>
 <div class="actions" hidden><button type="button" id="saveButton" class="action-button">記録を保存</button><button type="button" id="previewButton" class="action-button outline">記録を確認</button></div>
 <p id="saveStatus" class="status" role="status" aria-live="polite"></p>
 <p id="photoStatus" class="status" role="status" aria-live="polite"></p>
@@ -404,5 +406,5 @@ dialog h2{font-size:17px;margin:0 0 8px}.dialog-date{font-size:12px;color:var(--
 </div></main>
 <dialog id="foodPickerDialog" class="food-picker-dialog" aria-label="食品マスターから食品を選択"><div class="food-picker-bar"><strong>食品マスターから選択</strong><button type="button" id="closeFoodPicker">閉じる</button></div><iframe id="foodPickerFrame" title="食品マスター検索・点数計算"></iframe></dialog>
 <dialog id="previewDialog" aria-label="食事ダイアリーの確認"><h2>記録の確認</h2><div id="previewRows"></div><button id="closePreview" class="close" type="button">閉じる</button></dialog>
-<script src="./diary-step3.js?v=maint20261122a"></script>
+<script src="./diary-step3.js?v=ref20261122a"></script>
 </body></html>
