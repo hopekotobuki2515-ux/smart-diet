@@ -156,7 +156,7 @@ dialog h2{font-size:17px;margin:0 0 8px}.dialog-date{font-size:12px;color:var(--
 .step3-search label{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:750}
 .step3-search input{height:43px;width:100%;min-width:0;padding:7px;border:1px solid #b7ccbb;border-radius:8px;font-size:16px;color:var(--ink);background:#fff}
 .step3-search-results{display:flex;flex-direction:column;gap:5px;max-height:300px;overflow-y:auto}
-.master-option{display:flex;justify-content:space-between;align-items:center;gap:7px;text-align:left;border:1px solid #c9dacd;border-radius:8px;padding:8px;background:#fff;color:var(--ink);font-size:13px;min-height:43px}
+.master-option{display:flex;justify-content:space-between;align-items:center;gap:9px;text-align:left;border:2px solid #7ba88d;border-radius:11px;padding:11px 12px;background:#f6fbf6;color:var(--ink);font-size:15px;font-weight:750;min-height:52px}
 .master-option span{min-width:0;overflow-wrap:anywhere}.master-option small{font-size:11px;color:var(--green);text-align:right;flex-shrink:0}
 .step3-search-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px}
 .step3-search-actions button{min-height:43px;padding:6px 10px;border:1px solid #bed1c2;border-radius:9px;color:var(--green);background:#fff;font-size:12px;font-weight:750}
@@ -259,7 +259,7 @@ dialog h2{font-size:17px;margin:0 0 8px}.dialog-date{font-size:12px;color:var(--
 <h3>食材・分量・点数</h3>
 <div class="step3-food-list" data-food-list="breakfast"></div>
 <div class="step3-search">
- <p class="step3-search-label" data-search-mode="breakfast">食品を追加する</p>
+ <p class="step3-search-label" data-search-mode="breakfast">追加する食品を選んでください</p>
  <button type="button" class="step3-picker-open" data-picker-open="breakfast">食品マスターの画面で探す・記録に追加</button>
  <label>食品マスターを検索<input type="search" data-food-query="breakfast" maxlength="100" placeholder="例：シロサケ、めし、玉ねぎ" autocomplete="off"></label>
  <div class="step3-search-results" data-search-results="breakfast" aria-live="polite"></div>
@@ -285,7 +285,7 @@ dialog h2{font-size:17px;margin:0 0 8px}.dialog-date{font-size:12px;color:var(--
 <h3>食材・分量・点数</h3>
 <div class="step3-food-list" data-food-list="lunch"></div>
 <div class="step3-search">
- <p class="step3-search-label" data-search-mode="lunch">食品を追加する</p>
+ <p class="step3-search-label" data-search-mode="lunch">追加する食品を選んでください</p>
  <button type="button" class="step3-picker-open" data-picker-open="lunch">食品マスターの画面で探す・記録に追加</button>
  <label>食品マスターを検索<input type="search" data-food-query="lunch" maxlength="100" placeholder="例：シロサケ、めし、玉ねぎ" autocomplete="off"></label>
  <div class="step3-search-results" data-search-results="lunch" aria-live="polite"></div>
@@ -311,7 +311,7 @@ dialog h2{font-size:17px;margin:0 0 8px}.dialog-date{font-size:12px;color:var(--
 <h3>食材・分量・点数</h3>
 <div class="step3-food-list" data-food-list="dinner"></div>
 <div class="step3-search">
- <p class="step3-search-label" data-search-mode="dinner">食品を追加する</p>
+ <p class="step3-search-label" data-search-mode="dinner">追加する食品を選んでください</p>
  <button type="button" class="step3-picker-open" data-picker-open="dinner">食品マスターの画面で探す・記録に追加</button>
  <label>食品マスターを検索<input type="search" data-food-query="dinner" maxlength="100" placeholder="例：シロサケ、めし、玉ねぎ" autocomplete="off"></label>
  <div class="step3-search-results" data-search-results="dinner" aria-live="polite"></div>
@@ -337,7 +337,7 @@ dialog h2{font-size:17px;margin:0 0 8px}.dialog-date{font-size:12px;color:var(--
 <h3>食材・分量・点数</h3>
 <div class="step3-food-list" data-food-list="snack"></div>
 <div class="step3-search">
- <p class="step3-search-label" data-search-mode="snack">食品を追加する</p>
+ <p class="step3-search-label" data-search-mode="snack">追加する食品を選んでください</p>
  <button type="button" class="step3-picker-open" data-picker-open="snack">食品マスターの画面で探す・記録に追加</button>
  <label>食品マスターを検索<input type="search" data-food-query="snack" maxlength="100" placeholder="例：シロサケ、めし、玉ねぎ" autocomplete="off"></label>
  <div class="step3-search-results" data-search-results="snack" aria-live="polite"></div>
@@ -381,5 +381,5 @@ dialog h2{font-size:17px;margin:0 0 8px}.dialog-date{font-size:12px;color:var(--
 </div></main>
 <dialog id="foodPickerDialog" class="food-picker-dialog" aria-label="食品マスターから食品を選択"><div class="food-picker-bar"><strong>食品マスターから選択</strong><button type="button" id="closeFoodPicker">閉じる</button></div><iframe id="foodPickerFrame" title="食品マスター検索・点数計算"></iframe></dialog>
 <dialog id="previewDialog" aria-label="食事ダイアリーの確認"><h2>記録の確認</h2><div id="previewRows"></div><button id="closePreview" class="close" type="button">閉じる</button></dialog>
-<script src="./diary-step3.js?v=66d7097e"></script>
+<script src="./diary-step3.js?v=c8e69a86"></script>
 </body></html>
