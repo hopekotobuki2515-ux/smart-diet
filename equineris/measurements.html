@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fefdf8">
+<meta name="description" content="EQUINERISで体重と腹囲を必要な日に記録し、端末内の履歴を確認できます。">
+<title>体重・腹囲の記録 | EQUINERIS</title>
+<style>
+:root{color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;--ink:#183e38;--sub:#31564d;--muted:#667a6d;--green:#285d4a;--gold:#a6844e;--edge:#dce7dc}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;overflow-x:hidden}
+body{margin:0;min-width:280px;background:#e8eee8;color:var(--ink);overflow-x:hidden}
+button,input,a{font:inherit;touch-action:manipulation}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+.page{width:100%;max-width:510px;min-height:100svh;margin:0 auto;padding:20px 18px max(30px,env(safe-area-inset-bottom));background:linear-gradient(157deg,#fefdf8,#fbfbf6 55%,#f0f5ef)}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.back{display:inline-flex;align-items:center;min-height:44px;text-decoration:none;color:var(--sub);font-weight:700;font-size:13px}
+.wordmark{font-weight:800;font-size:20px;letter-spacing:.08em}.wordmark span{color:var(--gold)}
+h1{font-size:26px;text-align:center;line-height:1.4;margin:20px 0 10px}
+.lead{font-size:14px;text-align:center;line-height:1.8;color:var(--sub);margin:0 auto 20px;max-width:370px}
+.card{background:#fffdfa;border:1px solid var(--edge);border-radius:20px;padding:20px 17px;margin:14px 0;box-shadow:0 8px 25px rgba(21,67,45,.04)}
+.card h2{font-size:18px;margin:0 0 14px}
+.field{display:block;margin:0 0 18px}
+.field>span{display:block;font-size:14px;font-weight:750;margin-bottom:7px}
+.field input{display:block;width:100%;min-width:0;min-height:52px;border:1px solid #bbd0bd;border-radius:12px;padding:12px 14px;background:#fff;color:var(--ink);font-size:17px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.note{font-size:12px;line-height:1.75;color:var(--muted);margin:6px 0 14px}
+.primary{display:flex;align-items:center;justify-content:center;width:100%;min-height:53px;border:1px solid var(--green);border-radius:13px;background:var(--green);color:white;font-weight:800;font-size:16px;text-align:center;padding:10px}
+.secondary{display:flex;align-items:center;justify-content:center;width:100%;min-height:48px;border:1px solid #a3c0ab;border-radius:12px;background:#f4f8f2;color:var(--green);font-weight:750;padding:10px;text-align:center}
+.secondary:disabled{opacity:.45;cursor:default}
+.checkline{display:flex;gap:12px;align-items:flex-start;font-size:14px;line-height:1.55;font-weight:750;margin-bottom:8px}
+.checkline input{width:22px;height:22px;flex:0 0 22px;accent-color:var(--green);margin:0}
+.status{min-height:1.5em;font-size:13px;line-height:1.7;color:var(--green);font-weight:700;margin:12px 0 0;white-space:pre-wrap}
+.status[data-error="true"]{color:#aa3e31}
+.history-row{padding:13px 0;border-top:1px solid var(--edge);display:flex;align-items:center;gap:8px}
+.history-row:first-child{border:0}
+.history-open{flex:1;text-align:left;border:0;background:transparent;color:var(--sub);padding:8px 0;line-height:1.6}
+.history-open strong{display:block;font-size:14px}.history-open small{font-size:12px;color:var(--muted)}
+.history-delete{border:1px solid #e2cdcb;border-radius:10px;background:#fff7f5;color:#994f47;font-size:12px;padding:10px;min-height:44px}
+.sharebox{width:100%;min-height:90px;font-size:13px;line-height:1.6;padding:10px;border-radius:10px;border:1px solid #c6d8c9;color:var(--sub)}
+[hidden]{display:none!important}
+@media(max-width:350px){.page{padding-inline:12px}.card{padding:16px 13px}.two{gap:7px}.field input{padding:8px;font-size:16px}}
+@media(min-width:650px){.page{border:1px solid var(--edge);border-radius:24px;margin:22px auto;min-height:calc(100svh - 44px)}}
+</style>
+</head>
+<body>
+<main class="page">
+ <nav class="topbar"><a id="back" class="back" href="./record.html">〈 食事記録に戻る</a><span class="wordmark">EQUI<span>NERIS</span></span></nav>
+ <h1>体重・腹囲を記録する</h1>
+ <p class="lead">必要な日に記録できます。体重と腹囲は、どちらか一方だけでも保存できます。</p>
+ <section class="card" aria-labelledby="recordTitle">
+  <h2 id="recordTitle">今日の身体の記録</h2>
+  <form id="metricForm">
+   <label class="field"><span>記録日</span><input id="recordDate" type="date" required></label>
+   <div class="two">
+    <label class="field"><span>体重（kg）</span><input id="bodyWeight" type="number" inputmode="decimal" step="0.1" min="10" max="500" placeholder="例：65.0"></label>
+    <label class="field"><span>腹囲（cm）</span><input id="bodyWaist" type="number" inputmode="decimal" step="0.1" min="20" max="300" placeholder="例：82.0"></label>
+   </div>
+   <p class="note">腹囲はおへその高さで、なるべく同じ条件で測定してください。未入力の項目は保存されません。</p>
+   <button class="primary" type="submit">測定記録を保存する</button>
+  </form>
+  <p class="status" id="saveStatus" aria-live="polite"></p>
+ </section>
+ <section class="card" aria-labelledby="trainerTitle">
+  <h2 id="trainerTitle">トレーナーチェック（任意）</h2>
+  <label class="checkline"><input id="trainerRequest" type="checkbox"><span>この日の記録について、トレーナーチェックを希望する</span></label>
+  <p class="note">希望を選択しただけでは、トレーナーに自動送信されません。希望はこの端末内に保存されます。共有ボタンを押すと送信先を自分で選べます。</p>
+  <button id="saveRequest" class="secondary" type="button">チェック希望の選択を保存する</button>
+  <button id="shareRequest" class="secondary" type="button" style="margin-top:10px" disabled>確認依頼の内容を共有する</button>
+  <textarea id="shareFallback" class="sharebox" readonly hidden aria-label="共有する文章"></textarea>
+  <p class="status" id="requestStatus" aria-live="polite"></p>
+ </section>
+ <section class="card" aria-labelledby="historyTitle">
+  <h2 id="historyTitle">体重・腹囲の記録履歴</h2>
+  <p class="note">この端末のブラウザ内に保存された記録です。別端末との同期はありません。</p>
+  <div id="historyRows"></div>
+ </section>
+</main>
+<script>
+'use strict';
+(()=>{
+ const KEY='equineris:body-measurements:v1';
+ const byId=id=>document.getElementById(id);
+ const date=byId('recordDate'),weight=byId('bodyWeight'),waist=byId('bodyWaist');
+ const request=byId('trainerRequest'),saveStatus=byId('saveStatus'),requestStatus=byId('requestStatus'),share=byId('shareRequest');
+ const history=byId('historyRows');
+ const today=()=>{const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')};
+ const validDate=s=>/^\d{4}-\d{2}-\d{2}$/.test(s)&&!Number.isNaN(new Date(s+'T00:00:00').getTime())&&new Date(s+'T00:00:00').getFullYear()===Number(s.slice(0,4))&&new Date(s+'T00:00:00').getMonth()+1===Number(s.slice(5,7))&&new Date(s+'T00:00:00').getDate()===Number(s.slice(8,10));
+ const message=(target,text,error=false)=>{target.textContent=text;target.dataset.error=String(error)};
+ function getAll(){
+  const raw=localStorage.getItem(KEY);
+  if(raw===null)return {};
+  const value=JSON.parse(raw);
+  if(!value||typeof value!=='object'||Array.isArray(value))throw Error('記録形式が正しくありません');
+  return value;
+ }
+ function setAll(rows){localStorage.setItem(KEY,JSON.stringify(rows))}
+ function current(){try{return getAll()[date.value]||null}catch(e){message(saveStatus,'保存済みデータを読み込めませんでした。変更せずに確認してください。',true);return null}}
+ function showDay(){
+  const item=current();
+  weight.value=item&&Number.isFinite(item.weight)?String(item.weight):'';
+  waist.value=item&&Number.isFinite(item.waist)?String(item.waist):'';
+  request.checked=Boolean(item&&item.trainerRequested);
+  share.disabled=!request.checked||!(item&&(item.weight!==null||item.waist!==null));
+  byId('shareFallback').hidden=true;
+ }
+ function renderHistory(){
+  history.replaceChildren();
+  let rows;
+  try{rows=Object.entries(getAll()).filter(([d,v])=>validDate(d)&&v&&typeof v==='object').sort((a,b)=>b[0].localeCompare(a[0]));}
+  catch(e){message(saveStatus,'履歴を読み込めませんでした。既存データは変更していません。',true);return}
+  if(!rows.length){const p=document.createElement('p');p.className='note';p.textContent='まだ記録がありません。';history.append(p);return}
+  for(const [day,item] of rows){
+   const row=document.createElement('div');row.className='history-row';
+   const open=document.createElement('button');open.type='button';open.className='history-open';
+   const label=document.createElement('strong');label.textContent=day;
+   const detail=document.createElement('small');
+   const w=Number.isFinite(item.weight)?item.weight+'kg':'未入力';
+   const a=Number.isFinite(item.waist)?item.waist+'cm':'未入力';
+   detail.textContent='体重 '+w+'／腹囲 '+a+(item.trainerRequested?'／チェック希望あり':'');
+   open.append(label,detail);
+   open.addEventListener('click',()=>{date.value=day;showDay();byId('recordTitle').scrollIntoView({block:'start',behavior:'smooth'})});
+   const del=document.createElement('button');del.type='button';del.className='history-delete';del.textContent='削除';
+   del.setAttribute('aria-label',day+'の体重・腹囲の記録を削除');
+   del.addEventListener('click',()=>{
+    if(!window.confirm(day+'の測定記録を削除しますか？'))return;
+    try{const all=getAll();delete all[day];setAll(all);showDay();renderHistory();message(saveStatus,day+'の記録を削除しました。')}
+    catch(e){message(saveStatus,'記録を削除できませんでした。',true)}
+   });
+   row.append(open,del);history.append(row);
+  }
+ }
+ function saveDate(){
+  const day=date.value;
+  if(!validDate(day)){message(saveStatus,'正しい日付を入力してください。',true);return false}
+  const w=weight.value.trim()===''?null:Number(weight.value);
+  const a=waist.value.trim()===''?null:Number(waist.value);
+  if(w===null&&a===null){message(saveStatus,'体重か腹囲のどちらかを入力してください。',true);return false}
+  if((w!==null&&(!Number.isFinite(w)||w<10||w>500))||(a!==null&&(!Number.isFinite(a)||a<20||a>300))){message(saveStatus,'体重・腹囲の数値を確認してください。',true);return false}
+  try{
+   const all=getAll();
+   all[day]={weight:w,waist:a,trainerRequested:Boolean(request.checked)};
+   setAll(all);
+   message(saveStatus,'記録を保存しました。');
+   share.disabled=!request.checked;
+   renderHistory();return true;
+  }catch(e){message(saveStatus,'保存できませんでした。ブラウザの保存設定を確認してください。',true);return false}
+ }
+ byId('metricForm').addEventListener('submit',e=>{e.preventDefault();saveDate()});
+ date.addEventListener('change',()=>{showDay();message(saveStatus,'')});
+ byId('saveRequest').addEventListener('click',()=>{
+  const day=date.value;
+  if(!validDate(day)){message(requestStatus,'日付を確認してください。',true);return}
+  try{
+   const all=getAll(),item=all[day];
+   if(!item||!(Number.isFinite(item.weight)||Number.isFinite(item.waist))){message(requestStatus,'先に体重または腹囲を保存してください。',true);return}
+   all[day]={...item,trainerRequested:request.checked};setAll(all);
+   share.disabled=!request.checked;
+   message(requestStatus,request.checked?'チェック希望をこの端末に保存しました。送信はしていません。':'チェック希望を解除しました。');
+   renderHistory();
+  }catch(e){message(requestStatus,'希望の変更を保存できませんでした。',true)}
+ });
+ share.addEventListener('click',async()=>{
+  const day=date.value,item=current();
+  if(!item||!item.trainerRequested){message(requestStatus,'先にチェック希望を保存してください。',true);return}
+  const body='EQUINERIS 測定記録のトレーナーチェック依頼\n日付：'+day+'\n体重：'+(Number.isFinite(item.weight)?item.weight+'kg':'未入力')+'\n腹囲：'+(Number.isFinite(item.waist)?item.waist+'cm':'未入力')+'\nトレーナーチェックを希望します。';
+  try{
+   if(navigator.share){await navigator.share({title:'EQUINERIS 測定記録の確認依頼',text:body});message(requestStatus,'共有操作を終了しました。相手への到達は共有先で確認してください。');return}
+   if(navigator.clipboard&&navigator.clipboard.writeText){await navigator.clipboard.writeText(body);message(requestStatus,'確認依頼文をコピーしました。送信先を選んで貼り付けてください。');return}
+   const fallback=byId('shareFallback');fallback.value=body;fallback.hidden=false;fallback.focus();fallback.select();message(requestStatus,'表示された文章をコピーし、送信先を選んで送ってください。');
+  }catch(e){if(e&&e.name==='AbortError'){message(requestStatus,'共有を取り消しました。');return}message(requestStatus,'共有できませんでした。別の方法で確認してください。',true)}
+ });
+ try{
+  const ref=new URL(document.referrer),file=ref.pathname.split('/').pop();
+  if(ref.origin===location.origin&&['record.html','diary-step2.html','diary-step3.html'].includes(file)){byId('back').href='./'+file+ref.search;}
+ }catch(e){/* referrer may be absent */}
+ date.value=today();showDay();renderHistory();
+})();
+</script>
+</body>
+</html>
