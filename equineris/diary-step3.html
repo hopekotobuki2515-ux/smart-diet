@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="ja"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<meta name="description" content="SMART Diet食事ダイアリー・ステップ3。食材と調味料を細かく記録し、食品マスターに基づき1点80kcalで各群の小計・1日合計を計算します。">
+<title>食事ダイアリー ステップ3 | SMART Diet</title>
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;color-scheme:light;--ink:#24443c;--green:#285d4a;--mint:#ecf5ed;--line:#cbd7cd;--muted:#60776a}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;overflow-x:hidden}
+body{margin:0;min-width:280px;overflow-x:hidden;background:#fff;color:var(--ink)}
+input,button,textarea{font:inherit}button{cursor:pointer}
+:focus-visible{outline:3px solid #e5a748;outline-offset:2px}
+[hidden]{display:none!important}
+.viewport{width:100%;min-height:100svh;margin:0;padding:0}
+.page{width:100%;max-width:100%;min-height:100svh;margin:0 auto;padding:8px 8px max(24px,env(safe-area-inset-bottom));background:#fff}
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:2px 0 8px;border-bottom:1px solid #dbe4dc}
+.back{min-height:36px;display:flex;align-items:center;color:var(--green);font-size:13px;text-decoration:none;font-weight:700;white-space:nowrap}
+.toolbar-title{font-size:16px;line-height:1.4;margin:0;font-weight:800}
+.date-row{display:flex;align-items:center;gap:5px;justify-content:flex-end;font-size:12px;font-weight:700;min-width:0}
+.date-row input{width:min(150px,40vw);height:40px;border:1px solid #c9d8cc;border-radius:9px;background:#fff;padding:5px;font-size:15px;color:var(--ink)}
+.card{padding:0;margin:0;border:0;background:#fff;box-shadow:none}
+#dayTitle,.explanation,#dateHelp{display:none!important}
+.photo-area{margin:8px 0 0;min-width:0}
+.photo-pane{min-width:0}
+.photo-choose{display:flex;align-items:center;justify-content:center;position:relative;width:100%;min-height:190px;aspect-ratio:4/3;background:#f0f6f0;border:1px dashed #a0baa5;border-radius:12px;color:var(--green);font-size:16px;font-weight:750;overflow:hidden}
+.photo-choose:before{content:"＋";font-size:31px;margin-right:8px;font-weight:400}
+.photo-choose input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.photo-choose:focus-within{outline:3px solid #d7b271;outline-offset:2px}
+.photo-choose input:disabled{cursor:wait}
+.photo-view{width:100%;text-align:center}
+.photo-view img{display:block;width:100%;height:auto;max-height:min(49svh,470px);object-fit:contain;border-radius:10px;background:#f2f7f1;margin:0 auto}
+.photo-remove{min-height:36px;margin:7px 0;padding:6px 11px;border:1px solid #e0cfcc;border-radius:9px;background:#fff;color:#8b3a38;font-size:12px}
+.photo-pane:has(.photo-view:not([hidden])) .photo-choose{aspect-ratio:auto;min-height:44px;font-size:13px;background:#fff;border-style:solid}
+.photo-pane:has(.photo-view:not([hidden])) .photo-choose:before{font-size:17px}
+.memo-area{margin:10px 0 8px}
+.memo-label{display:block;font-size:13px;font-weight:750;margin:0 0 5px}
+.meal-memo{display:block;width:100%;min-height:84px;resize:vertical;border:1px solid #a8beb0;border-radius:10px;background:#fff;padding:10px 12px;color:var(--ink);font-size:16px;line-height:1.55;writing-mode:horizontal-tb;word-break:normal;overflow-wrap:break-word}
+.switch-header{display:flex;align-items:center;justify-content:space-between;margin:10px 0 4px}
+.switch-header strong{font-size:14px}
+.switch-header span{font-size:12px;color:var(--muted)}
+.meal-tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;margin:0 0 9px}
+.meal-tab{min-width:0;min-height:46px;padding:6px 2px;border:1px solid #cbdacc;border-radius:10px;background:#f3f7f1;color:var(--ink);font-size:14px;font-weight:750}
+.meal-tab[aria-pressed="true"]{background:var(--green);color:#fff;border-color:var(--green)}
+.meal-track{display:flex;align-items:stretch;width:100%;min-width:0;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;overscroll-behavior-inline:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.meal-track::-webkit-scrollbar{display:none}
+.meal-slide{flex:0 0 100%;width:100%;min-width:0;scroll-snap-align:start;scroll-snap-stop:always;padding:1px;writing-mode:horizontal-tb}
+.slide-heading{font-size:14px;line-height:1.4;margin:1px 0 6px}
+.diary-table{width:100%;table-layout:fixed;border-collapse:collapse;background:#fff}
+.diary-table th,.diary-table td{border:1px solid var(--line);text-align:center}
+.diary-table th{font-size:12px;background:var(--mint);min-height:35px;padding:7px 2px;white-space:normal;line-height:1.4;word-break:normal;overflow-wrap:break-word}.diary-table th small{display:block;font-size:10px;line-height:1.35;font-weight:500;margin-top:4px;color:#426454}
+.diary-table td{width:25%;vertical-align:top}
+.diary-table .mark{display:grid;place-items:center;min-height:36px;position:relative;cursor:pointer}
+.diary-table .mark+.mark{border-top:1px dotted #d8e1d8}
+.mark input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}
+.mark span{display:block;width:20px;height:20px;border:1px solid #829b8a;border-radius:50%;background:#fff}
+.mark input:checked+span{border:3px solid var(--green);background:#dcf2df;box-shadow:inset 0 0 0 5px white}
+.mark input:focus-visible+span{outline:3px solid #dfb65b;outline-offset:2px}
+.meal-controls{display:flex;align-items:center;justify-content:space-between;gap:6px;margin:10px 0 4px}
+.meal-controls button{min-height:40px;min-width:75px;border:1px solid #c6d7ca;border-radius:9px;color:var(--green);background:#f5faf4;font-size:13px;font-weight:750}
+.meal-controls span{font-variant-numeric:tabular-nums;font-size:13px;color:var(--muted)}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:9px 0 0}
+.action-button{min-height:48px;min-width:0;border-radius:11px;border:1px solid var(--green);background:var(--green);color:#fff;font-weight:800;font-size:15px}
+.action-button.outline{background:#fff;color:var(--green)}
+.status{margin:6px 0;min-height:0;font-size:12px;line-height:1.6;color:var(--green)}
+.status[data-error="true"]{color:#a32f2d}
+.status:not([data-error="true"]){font-size:11px}
+.sub-nav{margin:8px 0 0}
+.sub-nav summary{font-size:12px;min-height:38px;color:var(--muted);cursor:pointer;padding:10px 2px}
+.sub-nav a{display:block;padding:12px 6px;border-top:1px solid #e4ece3;text-decoration:none;color:var(--green);font-size:13px}
+dialog{width:min(98vw,550px);max-height:88dvh;overflow:auto;border:1px solid #cbd9cc;border-radius:14px;padding:12px;background:white;color:var(--ink)}
+dialog::backdrop{background:#0e2a204d}
+dialog h2{font-size:17px;margin:0 0 8px}.dialog-date{font-size:12px;color:var(--muted)}
+.preview-layout{width:100%;border-collapse:collapse;table-layout:fixed;font-size:11px}
+.preview-layout th,.preview-layout td{border:1px solid var(--line);text-align:center;vertical-align:top;padding:5px 2px;overflow-wrap:break-word}
+.preview-layout th{background:var(--mint)}
+.preview-layout td:first-child{text-align:left;white-space:pre-wrap;overflow-wrap:anywhere}
+.preview-layout td.circle{font-size:18px;white-space:pre-line;line-height:1.4}
+.preview-layout img{display:block;width:100%;height:auto;max-height:140px;object-fit:contain}
+.preview-memo{white-space:pre-wrap;overflow-wrap:break-word}
+.close{width:100%;min-height:45px;margin-top:12px;border:0;border-radius:9px;background:var(--green);color:#fff}
+.sample-photo{display:flex;align-items:center;justify-content:center;width:100%;border:1px solid #dce6dd;border-radius:12px;overflow:hidden;background:#f0f6f0}
+.sample-photo svg{display:block;width:100%;height:auto;max-height:min(49svh,320px)}
+.sample-on span{border:3px solid var(--green);background:#dcf2df;box-shadow:inset 0 0 0 5px #fff}
+.sample-memo{display:flex;align-items:center;min-height:70px;line-height:1.55}
+.sample-caption{margin:8px 0;font-size:12px;color:var(--muted)}
+.meal-slide>.photo-pane{margin:8px 0 0}
+.meal-slide>.memo-pane{margin:10px 0 8px}
+@media(max-width:350px){.page{padding-inline:5px}.toolbar-title{font-size:14px}.date-row input{width:133px}.meal-tab{font-size:13px}}
+
+
+/* Existing first-step diary CSS is reused above; these are stage 2-only additions. */
+#dayTitle{display:block!important}
+.stage2-title{font-size:17px;line-height:1.45;margin:6px 0 11px}
+.meal-slide{align-self:stretch}
+.meal-slide>.photo-pane{margin-top:8px}
+.meal-slide>.memo-pane{margin:10px 0 8px}
+.stage2-time{margin:8px 0 11px}
+.stage2-time label{display:flex;align-items:center;gap:12px;font-size:13px;font-weight:700}
+.stage2-time input{min-height:43px;padding:6px;border:1px solid #adc3b3;border-radius:9px;background:white;color:var(--ink);font-size:16px}
+.stage2-foods{margin:11px 0}
+.stage2-foods h3{font-size:15px;margin:5px 0 8px}
+.stage2-list{display:flex;flex-direction:column;gap:5px}
+.stage2-list p{margin:5px 0;font-size:12px;color:var(--muted)}
+.food-line{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:6px;padding:8px 4px;border-bottom:1px solid #e0e8df;font-size:13px}
+.food-line .food-name{min-width:0;overflow-wrap:anywhere;font-weight:700}
+.food-line .food-amount{white-space:nowrap;font-size:12px}
+.food-line button{min-width:43px;min-height:39px;font-size:12px;color:#933c3a;border-radius:8px;border:1px solid #ddcecb;background:#fff}
+.food-line .food-group-edit{grid-column:1 / -1;display:flex;flex-direction:row;align-items:center;justify-content:space-between;gap:8px;border-top:1px dotted #dce6dc;padding-top:7px;font-size:12px;font-weight:750;color:var(--green)}
+.food-line .food-group-edit select{flex:0 1 156px;max-width:65%;min-width:0;min-height:40px;font-size:15px;border:1px solid #b5cabb;border-radius:8px;padding:6px 8px;background:white;color:var(--ink)}
+
+.stage2-food-form{border:1px solid #d4e5d7;border-radius:11px;padding:9px;margin-top:8px;background:#f7faf6;display:flex;flex-direction:column;gap:8px}
+.stage2-food-form label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:750;min-width:0}
+.stage2-food-form input,.stage2-food-form select{height:42px;min-width:0;width:100%;padding:7px;border:1px solid #b5cabb;border-radius:8px;background:#fff;color:var(--ink);font-size:16px}
+.stage2-form-grid{display:grid;grid-template-columns:1.1fr .8fr 1.15fr;gap:5px}
+.stage2-add-food{min-height:44px;border:0;border-radius:9px;background:var(--green);color:#fff;font-size:14px;font-weight:800}
+.example-foods{border:1px solid #dce5d9;border-radius:10px;overflow:hidden}
+.example-foods>div{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:6px;align-items:center;padding:9px;border-bottom:1px solid #e1e9df;font-size:13px}
+.example-foods>div:last-child{border:0}
+.example-foods small{font-size:11px;color:var(--muted)}
+.stage2-hint{color:var(--muted);font-size:12px;line-height:1.7}
+.example-groups{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1px solid #d0dccc;border-radius:8px;overflow:hidden}
+.example-groups span{padding:10px 2px;border-right:1px solid #d0dccc;text-align:center;font-size:12px;background:#eff7ee}
+.example-groups span:last-child{border:0}
+.meal-controls button:disabled{opacity:.42;cursor:default}
+.preview-meal{padding:10px 0;border-bottom:1px solid #d8e3da}
+.preview-meal h3{font-size:15px}
+.preview-meal p{white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px}
+.preview-meal ul{font-size:13px;line-height:1.7;padding-left:20px}
+.stage2-note{font-size:12px;line-height:1.65;color:var(--muted);margin:9px 0}
+@media(max-width:350px){.stage2-form-grid{gap:3px}.stage2-food-form select{padding-inline:2px}}
+
+
+/* Stage 2's adopted full-width diary layout and swipe model are reused above. */
+#dayTitle{display:block!important}
+.step3-heading{font-size:17px;line-height:1.45;margin:8px 0 10px}
+.meal-slide>.photo-pane{margin:8px 0}.meal-slide>.memo-pane{margin:10px 0}
+.step3-time{margin:8px 0}.step3-time label{display:flex;gap:12px;align-items:center;font-weight:700;font-size:13px}
+.step3-time input{min-height:42px;border:1px solid #b3cbbb;border-radius:9px;padding:6px;background:#fff;color:var(--ink);font-size:16px}
+.step3-foods{margin:10px 0}.step3-foods h3{font-size:15px;margin:7px 0 9px}
+.step3-food-list{display:flex;flex-direction:column;gap:8px}
+.step3-food-row{border:1px solid #d6e4d8;border-radius:11px;padding:9px;background:#fff}
+.step3-food-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.step3-food-head strong{font-size:14px;overflow-wrap:anywhere;min-width:0}
+.food-points{white-space:nowrap;color:var(--green);font-size:15px;font-weight:850}
+.food-unresolved{white-space:nowrap;color:#ad5926;font-size:12px;font-weight:800}
+.food-meta{font-size:11px;color:var(--muted);margin:4px 0}
+.food-tools{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:5px;align-items:end;margin-top:7px}
+.food-tools button{min-height:43px;border-radius:8px;padding:6px;border:1px solid #b9cebd;background:#f5faf4;color:var(--green);font-size:12px;font-weight:700}
+.food-tools .food-delete-btn{color:#963f3e;background:#fff;border-color:#ddcbcb}
+.food-grams{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:700}
+.food-grams input{width:100%;min-width:0;min-height:43px;padding:6px;border:1px solid #b7ccbb;border-radius:8px;background:#fff;color:var(--ink);font-size:16px}
+.step3-search{background:#f5faf4;border:1px solid #d8e6d9;border-radius:11px;padding:9px;margin:10px 0 8px}
+.step3-search-label{font-size:13px;font-weight:800;margin:3px 0 7px}
+.step3-search label{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:750}
+.step3-search input{height:43px;width:100%;min-width:0;padding:7px;border:1px solid #b7ccbb;border-radius:8px;font-size:16px;color:var(--ink);background:#fff}
+.step3-search-results{display:flex;flex-direction:column;gap:5px;max-height:300px;overflow-y:auto}
+.master-option{display:flex;justify-content:space-between;align-items:center;gap:7px;text-align:left;border:1px solid #c9dacd;border-radius:8px;padding:8px;background:#fff;color:var(--ink);font-size:13px;min-height:43px}
+.master-option span{min-width:0;overflow-wrap:anywhere}.master-option small{font-size:11px;color:var(--green);text-align:right;flex-shrink:0}
+.step3-search-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px}
+.step3-search-actions button{min-height:43px;padding:6px 10px;border:1px solid #bed1c2;border-radius:9px;color:var(--green);background:#fff;font-size:12px;font-weight:750}
+.step3-note{font-size:12px;line-height:1.65;color:var(--muted);margin:8px 0}
+.subtotal-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;width:100%;border:1px solid #ccdace;border-radius:9px;overflow:hidden}
+.subtotal-cell{display:flex;flex-direction:column;gap:4px;align-items:center;text-align:center;justify-content:center;min-width:0;padding:9px 2px;border-right:1px solid #ccdace;background:#f5faf4}
+.subtotal-cell:last-child{border-right:0}
+.subtotal-cell small{font-size:11px;line-height:1.4;color:var(--muted)}
+.subtotal-cell strong{font-size:13px;color:var(--ink);font-weight:850;white-space:nowrap}
+.subtotal-warning{font-size:10px!important;color:#ae4d25!important;overflow-wrap:anywhere}
+.step3-meal-total,.sample-total{font-size:14px;font-weight:800;margin:8px 0 10px}
+.example-point-rows{border:1px solid #d2e0d4;border-radius:9px;overflow:hidden}
+.example-point-rows>div{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;align-items:center;gap:5px;padding:9px 5px;border-bottom:1px solid #e1e9e2;font-size:12px}
+.example-point-rows>div:last-child{border-bottom:0}
+.example-point-rows>div span:first-child{overflow-wrap:anywhere}
+.example-point-rows>div b{white-space:nowrap;font-size:13px}
+.example-point-rows small{color:var(--muted);font-size:10px}
+.daily-area{margin:13px 0;padding:10px 0;border-top:1px solid var(--line)}
+.daily-area h2{font-size:16px;margin:4px 0 8px}
+.daily-area label{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:750;margin:8px 0}
+.daily-area select{min-height:43px;border-radius:9px;border:1px solid #bbcfc0;background:#fff;color:var(--ink);padding:5px;font-size:14px;min-width:0}
+.daily-group small{font-size:11px}.daily-group strong{font-size:13px}
+.daily-total{font-size:16px;font-weight:850;margin:9px 0}
+.daily-status{font-size:12px;line-height:1.65;color:var(--muted)}
+.preview-meal{padding:9px 0;border-bottom:1px solid var(--line)}
+.preview-meal h3{font-size:15px;margin:5px 0}.preview-meal p,.preview-meal li{font-size:13px;line-height:1.6}
+.preview-meal ul{padding-left:19px}
+.step3-footer{display:flex;flex-direction:column;gap:4px}
+.step3-footer a{font-size:13px;color:var(--green);padding:5px 0}
+@media(max-width:350px){.food-tools{gap:3px}.food-tools button{font-size:11px;padding:4px}.subtotal-cell strong{font-size:12px}.master-option small{font-size:10px}}
+</style>
+</head>
+<body><main class="viewport"><div class="page">
+<header class="toolbar"><a class="back" href="./diary-step2.html">〈 ステップ2</a>
+<h1 class="toolbar-title" id="dayTitle">ステップ3</h1>
+<label class="date-row" for="diary-date">日付<input id="diary-date" type="date" aria-label="記録する日付"></label></header>
+<section class="card" aria-label="ステップ3 食事と点数記録">
+<div class="switch-header"><strong id="currentMealLabel">見本</strong><span>左右にスワイプ</span></div>
+<div class="meal-tabs" role="group" aria-label="食事を選択"><button type="button" class="meal-tab" data-meal-tab="0" aria-pressed="true">見本</button><button type="button" class="meal-tab" data-meal-tab="1" aria-pressed="false">朝食</button><button type="button" class="meal-tab" data-meal-tab="2" aria-pressed="false">昼食</button><button type="button" class="meal-tab" data-meal-tab="3" aria-pressed="false">夕食</button><button type="button" class="meal-tab" data-meal-tab="4" aria-pressed="false">間食</button></div>
+<div class="meal-track" id="mealTrack" tabindex="0" role="region" aria-label="見本、朝食、昼食、夕食、間食を横スクロール">
+<section class="meal-slide" data-slide="0" aria-label="ステップ3の計算見本">
+<h2 class="step3-heading">見本：夕食 19:30</h2>
+<div class="sample-photo"><svg viewBox="0 0 480 258" role="img" aria-label="焼き魚、ごはん、野菜を盛り付けた夕食のイメージ図" xmlns="http://www.w3.org/2000/svg">
+  <rect width="480" height="258" fill="#eff5ed"/><ellipse cx="237" cy="132" rx="181" ry="112" fill="#dce7dc"/><ellipse cx="237" cy="127" rx="174" ry="104" fill="#fffefa" stroke="#ccd8c9" stroke-width="4"/>
+  <path d="M124 129Q166 88 242 118L279 137L242 154Q164 179 124 129Z" fill="#ec9579" stroke="#c57859" stroke-width="5"/>
+  <path d="M151 128Q189 115 246 136" fill="none" stroke="#f8c5aa" stroke-width="7"/>
+  <g fill="#72a176"><circle cx="146" cy="98" r="19"/><circle cx="168" cy="81" r="18"/><circle cx="181" cy="102" r="18"/><circle cx="151" cy="161" r="15"/></g>
+  <g transform="translate(297 33)"><path d="M0 48Q2 115 65 113Q126 117 137 48Z" fill="#9bb9c9" stroke="#7b9bab" stroke-width="3"/>
+  <ellipse cx="70" cy="45" rx="68" ry="31" fill="#fffefa" stroke="#98b3bd" stroke-width="3"/><ellipse cx="70" cy="44" rx="51" ry="19" fill="#faf9f5"/></g>
+  <g transform="translate(296 170)"><ellipse cx="56" cy="23" rx="51" ry="22" fill="#88634c"/><ellipse cx="56" cy="17" rx="43" ry="15" fill="#bd946b"/><path d="M30 14L47 22L72 11" fill="none" stroke="#4f8f58" stroke-width="7"/></g>
+</svg></div>
+<div class="memo-pane"><div class="memo-label">メモ</div><div class="meal-memo sample-memo">ごはん、魚のホイル焼き、みそ汁。調味料・油も記録。</div></div>
+<h3 class="slide-heading">食材ごとの点数（1点＝80kcal）</h3>
+<div class="example-point-rows">
+<div><span>めし・水稲・精白米</span><span>80g</span><small>第4群</small><b>1.60点</b></div>
+<div><span>シロサケ</span><span>65g</span><small>第2群</small><b>1.08点</b></div>
+<div><span>玉ねぎ</span><span>20g</span><small>第3群</small><b>0.09点</b></div>
+<div><span>青ピーマン</span><span>15g</span><small>第3群</small><b>0.04点</b></div>
+<div><span>ぶなしめじ</span><span>20g</span><small>第3群</small><b>0.05点</b></div>
+<div><span>米みそ・淡色辛みそ</span><span>10g</span><small>第4群</small><b>0.25点</b></div>
+<div><span>なたね油</span><span>5g</span><small>第4群</small><b>0.56点</b></div>
+</div>
+<p class="step3-note">各食品の「1点に相当する重量」は食品マスターを参照しています。点数は表示時に小数第2位へ丸めています。</p>
+<h3 class="slide-heading">1食の4群別小計</h3>
+<div class="subtotal-grid sample-subtotals">
+<div class="subtotal-cell"><small>第1群</small><strong>0.00点</strong></div><div class="subtotal-cell"><small>第2群</small><strong>1.08点</strong></div><div class="subtotal-cell"><small>第3群</small><strong>0.18点</strong></div><div class="subtotal-cell"><small>第4群</small><strong>2.41点</strong></div>
+</div>
+<p class="sample-total">夕食の小計：3.67点</p>
+<p class="step3-note">見本には保存できません。次の「朝食」から入力します。</p>
+</section>
+<section class="meal-slide" data-slide="1" aria-label="朝食のステップ3入力">
+<h2 class="step3-heading">朝食</h2>
+<div class="photo-pane">
+ <div class="photo-view" id="photo-view-breakfast" hidden><img id="photo-img-breakfast" alt="朝食の食事写真"><button type="button" class="photo-remove" data-photo-remove="breakfast">ステップ3の写真を削除</button></div>
+ <label class="photo-choose"><span>食事写真を選ぶ</span><input data-photo="breakfast" type="file" accept="image/*" aria-label="朝食の食事写真" disabled></label>
+</div>
+<div class="step3-time"><label>食事時刻 <input type="time" data-time="breakfast" aria-label="朝食の時刻"></label></div>
+<div class="memo-pane"><label class="memo-label" for="memo-breakfast">メモ</label><textarea class="meal-memo" id="memo-breakfast" data-memo="breakfast" rows="2" placeholder="料理名・外食先・気づいたこと"></textarea></div>
+<section class="step3-foods" aria-label="朝食の食材と点数">
+<h3>食材・分量・点数</h3>
+<div class="step3-food-list" data-food-list="breakfast"></div>
+<div class="step3-search">
+ <p class="step3-search-label" data-search-mode="breakfast">食品を追加する</p>
+ <label>食品マスターを検索<input type="search" data-food-query="breakfast" maxlength="100" placeholder="例：シロサケ、めし、玉ねぎ" autocomplete="off"></label>
+ <div class="step3-search-results" data-search-results="breakfast" aria-live="polite"></div>
+ <div class="step3-search-actions">
+  <button type="button" data-add-manual="breakfast">マスターにない食品を手入力</button>
+  <button type="button" data-search-reset="breakfast">選択を解除</button>
+ </div>
+</div>
+</section>
+<h3 class="slide-heading">この食事の第1〜4群 小計</h3>
+<div class="subtotal-grid" data-group-subtotal="breakfast"></div>
+<p class="step3-meal-total" data-meal-total="breakfast">計算中…</p>
+</section>
+<section class="meal-slide" data-slide="2" aria-label="昼食のステップ3入力">
+<h2 class="step3-heading">昼食</h2>
+<div class="photo-pane">
+ <div class="photo-view" id="photo-view-lunch" hidden><img id="photo-img-lunch" alt="昼食の食事写真"><button type="button" class="photo-remove" data-photo-remove="lunch">ステップ3の写真を削除</button></div>
+ <label class="photo-choose"><span>食事写真を選ぶ</span><input data-photo="lunch" type="file" accept="image/*" aria-label="昼食の食事写真" disabled></label>
+</div>
+<div class="step3-time"><label>食事時刻 <input type="time" data-time="lunch" aria-label="昼食の時刻"></label></div>
+<div class="memo-pane"><label class="memo-label" for="memo-lunch">メモ</label><textarea class="meal-memo" id="memo-lunch" data-memo="lunch" rows="2" placeholder="料理名・外食先・気づいたこと"></textarea></div>
+<section class="step3-foods" aria-label="昼食の食材と点数">
+<h3>食材・分量・点数</h3>
+<div class="step3-food-list" data-food-list="lunch"></div>
+<div class="step3-search">
+ <p class="step3-search-label" data-search-mode="lunch">食品を追加する</p>
+ <label>食品マスターを検索<input type="search" data-food-query="lunch" maxlength="100" placeholder="例：シロサケ、めし、玉ねぎ" autocomplete="off"></label>
+ <div class="step3-search-results" data-search-results="lunch" aria-live="polite"></div>
+ <div class="step3-search-actions">
+  <button type="button" data-add-manual="lunch">マスターにない食品を手入力</button>
+  <button type="button" data-search-reset="lunch">選択を解除</button>
+ </div>
+</div>
+</section>
+<h3 class="slide-heading">この食事の第1〜4群 小計</h3>
+<div class="subtotal-grid" data-group-subtotal="lunch"></div>
+<p class="step3-meal-total" data-meal-total="lunch">計算中…</p>
+</section>
+<section class="meal-slide" data-slide="3" aria-label="夕食のステップ3入力">
+<h2 class="step3-heading">夕食</h2>
+<div class="photo-pane">
+ <div class="photo-view" id="photo-view-dinner" hidden><img id="photo-img-dinner" alt="夕食の食事写真"><button type="button" class="photo-remove" data-photo-remove="dinner">ステップ3の写真を削除</button></div>
+ <label class="photo-choose"><span>食事写真を選ぶ</span><input data-photo="dinner" type="file" accept="image/*" aria-label="夕食の食事写真" disabled></label>
+</div>
+<div class="step3-time"><label>食事時刻 <input type="time" data-time="dinner" aria-label="夕食の時刻"></label></div>
+<div class="memo-pane"><label class="memo-label" for="memo-dinner">メモ</label><textarea class="meal-memo" id="memo-dinner" data-memo="dinner" rows="2" placeholder="料理名・外食先・気づいたこと"></textarea></div>
+<section class="step3-foods" aria-label="夕食の食材と点数">
+<h3>食材・分量・点数</h3>
+<div class="step3-food-list" data-food-list="dinner"></div>
+<div class="step3-search">
+ <p class="step3-search-label" data-search-mode="dinner">食品を追加する</p>
+ <label>食品マスターを検索<input type="search" data-food-query="dinner" maxlength="100" placeholder="例：シロサケ、めし、玉ねぎ" autocomplete="off"></label>
+ <div class="step3-search-results" data-search-results="dinner" aria-live="polite"></div>
+ <div class="step3-search-actions">
+  <button type="button" data-add-manual="dinner">マスターにない食品を手入力</button>
+  <button type="button" data-search-reset="dinner">選択を解除</button>
+ </div>
+</div>
+</section>
+<h3 class="slide-heading">この食事の第1〜4群 小計</h3>
+<div class="subtotal-grid" data-group-subtotal="dinner"></div>
+<p class="step3-meal-total" data-meal-total="dinner">計算中…</p>
+</section>
+<section class="meal-slide" data-slide="4" aria-label="間食のステップ3入力">
+<h2 class="step3-heading">間食</h2>
+<div class="photo-pane">
+ <div class="photo-view" id="photo-view-snack" hidden><img id="photo-img-snack" alt="間食の食事写真"><button type="button" class="photo-remove" data-photo-remove="snack">ステップ3の写真を削除</button></div>
+ <label class="photo-choose"><span>食事写真を選ぶ</span><input data-photo="snack" type="file" accept="image/*" aria-label="間食の食事写真" disabled></label>
+</div>
+<div class="step3-time"><label>食事時刻 <input type="time" data-time="snack" aria-label="間食の時刻"></label></div>
+<div class="memo-pane"><label class="memo-label" for="memo-snack">メモ</label><textarea class="meal-memo" id="memo-snack" data-memo="snack" rows="2" placeholder="料理名・外食先・気づいたこと"></textarea></div>
+<section class="step3-foods" aria-label="間食の食材と点数">
+<h3>食材・分量・点数</h3>
+<div class="step3-food-list" data-food-list="snack"></div>
+<div class="step3-search">
+ <p class="step3-search-label" data-search-mode="snack">食品を追加する</p>
+ <label>食品マスターを検索<input type="search" data-food-query="snack" maxlength="100" placeholder="例：シロサケ、めし、玉ねぎ" autocomplete="off"></label>
+ <div class="step3-search-results" data-search-results="snack" aria-live="polite"></div>
+ <div class="step3-search-actions">
+  <button type="button" data-add-manual="snack">マスターにない食品を手入力</button>
+  <button type="button" data-search-reset="snack">選択を解除</button>
+ </div>
+</div>
+</section>
+<h3 class="slide-heading">この食事の第1〜4群 小計</h3>
+<div class="subtotal-grid" data-group-subtotal="snack"></div>
+<p class="step3-meal-total" data-meal-total="snack">計算中…</p>
+</section>
+</div>
+<div class="meal-controls"><button type="button" id="mealPrev" disabled>〈 前へ</button><span id="mealCounter">1 / 5</span><button type="button" id="mealNext">次へ 〉</button></div>
+<div class="actions" hidden><button type="button" id="saveButton" class="action-button">記録を保存</button><button type="button" id="previewButton" class="action-button outline">記録を確認</button></div>
+<p id="saveStatus" class="status" role="status" aria-live="polite"></p>
+<p id="photoStatus" class="status" role="status" aria-live="polite"></p>
+</section>
+<section class="daily-area" aria-label="1日の4群別合計">
+<h2>1日の合計点数</h2>
+<label for="targetPattern">点数配分の目安
+<select id="targetPattern">
+<option value="15">15点基準：第1〜3群 各3点／第4群 6点</option>
+<option value="21">21点基準：第1〜3群 各3点／第4群 12点</option>
+<option value="none">目標との比較を表示しない</option>
+</select></label>
+<div class="subtotal-grid" id="dailyGroups"></div>
+<p id="dailyTotal" class="daily-total">計算中…</p>
+<p id="unresolvedStatus" class="daily-status"></p>
+<p class="step3-note">点数は1点＝80kcalとして、入力重量(g) ÷ 食品マスターの1点重量(g)で計算します。表示のみ小数第2位に丸めます。15点・21点は教材の基準値であり、個人に適した必要量を断定するものではありません。</p>
+<p class="step3-note" id="masterStatus">食品マスターを読み込んでいます。</p>
+</section>
+<div class="step3-footer"><a href="./diary-step2.html">ステップ2へ戻る</a><a href="../food-search.html">食品マスターの詳細を確認</a></div>
+</div></main>
+<dialog id="previewDialog" aria-label="食事ダイアリーの確認"><h2>記録の確認</h2><div id="previewRows"></div><button id="closePreview" class="close" type="button">閉じる</button></dialog>
+<script src="./diary-step3.js"></script>
+</body></html>
