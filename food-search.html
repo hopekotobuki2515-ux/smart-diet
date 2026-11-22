@@ -50,6 +50,8 @@
 .nutrient-unapproved{background:#f2f7f3;border-radius:10px;padding:10px;color:#335f44;line-height:1.6;font-size:13px}
 .nutrient-action,.nutrient-entry{display:block;width:100%;margin-top:12px;border:1px solid #76b18a;background:#f0f9f2;color:#245d3a;min-height:44px;border-radius:10px;font:inherit;font-size:14px;font-weight:700;cursor:pointer}
 .nutrient-entry{margin-top:12px}
+.food-diary-add{display:block;width:100%;min-height:54px;margin-top:12px;padding:12px 14px;border:2px solid #245d3a;border-radius:12px;background:#245d3a;color:#fff;font-size:16px;font-weight:800;line-height:1.45;text-align:center;cursor:pointer}
+.food-diary-add:focus-visible{outline:3px solid #d9a75b;outline-offset:2px}
 .nutrient-point-details{border:1px solid #d9e6da;border-radius:10px;margin-top:10px;padding:12px}
 .nutrient-point-details summary{cursor:pointer;color:#286d4f;font-weight:700}
 .nutrient-point-details label{display:block;margin-top:9px;font-size:13px}
@@ -271,7 +273,7 @@ function render(){
   if(isChickenSkin(food))card.append(make('p','food-search-help','※ これは鶏皮だけの数値です。鶏むね肉の点数とは異なります。'));
   card.append(label,output);
     if(diaryPickerMode){
-      const addToDiary=make('button','nutrient-action','この食品を食事記録に追加');
+      const addToDiary=make('button','food-diary-add','この食品を記録に追加する');
       addToDiary.type='button';
       addToDiary.addEventListener('click',()=>{
         const raw=input.value.trim();
