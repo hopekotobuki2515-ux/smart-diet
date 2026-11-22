@@ -161,7 +161,7 @@ test('STEP2 page 5 explains, page 6 calculates and page 7 reviews past weights',
  assert.match(cards[5].body,/前のページで紹介した減量率/);
  assert.match(cards[6].body,/3か月後の目標を決めたら/);
  assert.match(cards[6].body,/次のページで記録/);
- assert.match(cards[7].body,/覚えている範囲で/);
+ assert.equal(cards[7].body,'覚えている体重を入力しましょう。空欄でも大丈夫です。');
  const t=textbookScenario('#s2-c5');
  const track=t.sections[1].children.find(c=>c.className==='track');
  assert.match(source['textbook.html'],/\.track\{display:flex;align-items:stretch/);
