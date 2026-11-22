@@ -150,14 +150,29 @@
     message('記録はこのブラウザに保存されます。');
     void refreshPhotos();
   }
+  let slideHeightFrame=0;
+  function fitActiveSlideHeight(){
+    if(slideHeightFrame)return;
+    slideHeightFrame=requestAnimationFrame(()=>{
+      slideHeightFrame=0;
+      const active=slides[activeSlide];if(!active)return;
+      const h=Math.ceil(active.scrollHeight);
+      if(h>0&&track.style.height!==h+'px')track.style.height=h+'px';
+    });
+  }
+  if(typeof ResizeObserver==='function'){
+    const slideObserver=new ResizeObserver(()=>fitActiveSlideHeight());
+    slides.forEach(slide=>slideObserver.observe(slide));
+  }
   function displaySlide(index) {
     activeSlide=Math.max(0,Math.min(slides.length-1,index));
     tabs.forEach((b,i)=>b.setAttribute('aria-pressed',String(i===activeSlide)));
-    $('#currentMealLabel').textContent=tabs[activeSlide].textContent;
+    $('#currentMealLabel').textContent=tabs[activeSlide]?.textContent||'四群早見表';
     $('#mealCounter').textContent=(activeSlide+1)+' / '+slides.length;
     $('#mealPrev').disabled=activeSlide===0;
     $('#mealNext').disabled=activeSlide===slides.length-1;
-    $('.actions').hidden=activeSlide===0;
+    $('.actions').hidden=activeSlide===0||activeSlide===slides.length-1;
+    fitActiveSlideHeight();
   }
   function goToSlide(index,animate=true) {
     const next=Math.max(0,Math.min(slides.length-1,index));
@@ -172,7 +187,7 @@
     if(pending)return;pending=true;
     requestAnimationFrame(()=>{pending=false;displaySlide(Math.round(track.scrollLeft/(track.clientWidth||1)));});
   },{passive:true});
-  window.addEventListener('resize',()=>{track.scrollLeft=activeSlide*track.clientWidth;});
+  window.addEventListener('resize',()=>{track.scrollLeft=activeSlide*track.clientWidth;fitActiveSlideHeight();});
   dateInput.addEventListener('change',()=>{
     const date=dateInput.value;
     if(savingPhoto){dateInput.value=oldSlot(recordId)?oldDayDate(oldSlot(recordId)):recordId;photoMessage('写真の保存が終わってから日付を変更してください。');return;}
