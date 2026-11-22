@@ -57,7 +57,7 @@ test('initial measurement uses registration weight without overwriting saved row
  assert.match(s,/equineris:registration:v1/);
  assert.match(s,/equineris:body-measurements:v1/);
  assert.match(s,/if\(Object\.keys\(getAll\(\)\)\.length!==0\)return/);
- assert.match(s,/date\.value=today\(\);showDay\(\);prefillRegistrationWeight\(\);renderHistory\(\)/);
+ assert.match(s,/date\.value=today\(\);showDay\(\);prefillRegistrationWeight\(\);renderBaseline\(\);renderHistory\(\)/);
  assert.match(s,/all\[day\]=\{\.\.\.\(all\[day\]\|\|\{\}\),weight:w,waist:a\}/);
 });
 test('food diary stays connected across three recording stages',()=>{
@@ -80,7 +80,7 @@ test('six textbook steps and all unique lesson IDs are present',()=>{
 class MockEl {
  constructor(tag='div'){
   this.tagName=tag;this.children=[];this.handlers={};this.attributes={};
-  this.className='';this.textContent='';this.value='';this.clientWidth=360;
+  this.className='';this.textContent='';this.value='';this.dataset={};this.clientWidth=360;
   this.scrollLeft=0;this.hidden=false;this.disabled=false;
  }
  append(...nodes){this.children.push(...nodes);}
@@ -89,10 +89,12 @@ class MockEl {
  getAttribute(key){return this.attributes[key];}
  addEventListener(event,fn){(this.handlers[event]??=[]).push(fn);}
  click(){if(!this.disabled)for(const f of this.handlers.click??[])f({target:this,preventDefault(){}});}
+ fire(type){for(const f of this.handlers[type]??[])f({target:this,preventDefault(){}});}
+ checkValidity(){if(this.tagName!=='input')return true;const n=Number(this.value);return this.value.trim()!==''&&Number.isFinite(n)&&n>=0.1;}
  scrollTo(opts){this.scrollLeft=opts.left;}
  scrollIntoView(){this.scrolled=true;}
 }
-function textbookScenario(hash=''){
+function textbookScenario(hash='',seed={}){
  const names=['steps','stepIndex','searchInput','favoritesButton','resumeButton',
   'resultPanel','resultTitle','resultList','storageStatus'];
  const elements=Object.fromEntries(names.map(name=>[name,new MockEl()]));
@@ -104,7 +106,7 @@ function textbookScenario(hash=''){
  const location={hash,destination:null,assign(to){this.destination=to;}};
  const window={SMART_DIET_TEXTBOOK:textbookData,location,
   addEventListener:(type,fn)=>{(events[type]??=[]).push(fn);}};
- const localData=new Map();
+ const localData=new Map(Object.entries(seed));
  const localStorage={
   getItem:key=>localData.get(key)??null,
   setItem:(key,val)=>localData.set(key,val)
@@ -121,6 +123,57 @@ function textbookScenario(hash=''){
  const next=navs.map(n=>n.children[2]),count=navs.map(n=>n.children[1]);
  return {sections,next,count,location};
 }
+test('STEP2 BMI example fills the registration and recalculates without saving',()=>{
+ const seed={'equineris:registration:v1':JSON.stringify({name:'Test',heightCm:'170',weightKg:'70'})};
+ const t=textbookScenario('#s2-c3',seed);
+ const track=t.sections[1].children.find(x=>x.className==='track');
+ const card=track.children[2];
+ const visual=card.children.find(x=>x.className==='visual');
+ const demo=visual.children.find(x=>x.className==='bmi-demo');
+ assert.ok(demo,'BMI example');
+ const h=demo.children[0].children[0],w=demo.children[1].children[0],out=demo.children[2];
+ assert.equal(h.value,'170');
+ assert.equal(w.value,'70');
+ assert.equal(out.textContent,'現在のBMI：24.2');
+ h.value='165';h.fire('input');
+ assert.equal(out.textContent,'現在のBMI：25.7');
+ assert.equal(JSON.parse(seed['equineris:registration:v1']).heightCm,'170');
+});
+test('starting BMI stays recorded after later daily weight measurements',()=>{
+ const REG='equineris:registration:v1',BASE='equineris:body-start-bmi:v1',DAILY='equineris:body-measurements:v1';
+ function measurementScenario(seed){
+  const store=new Map(Object.entries(seed));
+  const ids=['recordDate','bodyWeight','bodyWaist','saveStatus','historyRows','metricForm',
+   'recordTitle','back','startHeight','startWeight','startBMI','saveBaseline','baselineStatus'];
+  const els=Object.fromEntries(ids.map(id=>[id,new MockEl('input')]));
+  const document={referrer:'',getElementById:id=>els[id],createElement:tag=>new MockEl(tag)};
+  const localStorage={getItem:key=>store.get(key)??null,setItem:(key,val)=>store.set(key,String(val))};
+  const script=scriptOf(source['measurements.html'])[0];
+  vm.runInNewContext(script,{document,localStorage,window:{confirm(){return false;}},
+   location:{origin:'https://example.test'},URL,Date});
+  return {els,store};
+ }
+ const initial={name:'Test',heightCm:'170',weightKg:'70'};
+ const a=measurementScenario({[REG]:JSON.stringify(initial)});
+ assert.equal(a.els.startHeight.textContent,'170.0 cm');
+ assert.equal(a.els.startWeight.textContent,'70.0 kg');
+ assert.equal(a.els.startBMI.textContent,'24.2（未記録）');
+ assert.equal(a.els.saveBaseline.disabled,false);
+ assert.equal(a.store.get(BASE),undefined);
+ a.els.saveBaseline.click();
+ const snapshot=JSON.parse(a.store.get(BASE));
+ assert.equal(snapshot.heightCm,170);
+ assert.equal(snapshot.weightKg,70);
+ assert.ok(Math.abs(snapshot.bmi-70/(1.7**2))<1e-12);
+ assert.equal(a.els.startBMI.textContent,'24.2（記録済み）');
+ assert.equal(a.els.saveBaseline.disabled,true);
+ const later=measurementScenario({[REG]:JSON.stringify({...initial,weightKg:'65'}),
+  [BASE]:a.store.get(BASE),[DAILY]:JSON.stringify({'2026-11-22':{weight:65,waist:80}})});
+ assert.equal(later.els.startWeight.textContent,'70.0 kg');
+ assert.equal(later.els.startBMI.textContent,'24.2（記録済み）');
+ assert.equal(later.els.saveBaseline.disabled,true);
+ assert.equal(JSON.parse(later.store.get(DAILY))['2026-11-22'].weight,65);
+});
 test('STEP1 reaches STEP2; STEP2 opens the target-weight lesson',()=>{
  const t=textbookScenario();
  assert.equal(t.sections.length,6);
