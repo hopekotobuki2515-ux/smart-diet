@@ -124,33 +124,31 @@ function textbookScenario(hash='',seed={}){
  const next=navs.map(n=>n.children[2]),count=navs.map(n=>n.children[1]);
  return {sections,next,count,location,localData};
 }
-test('standalone goal card is seventh after original STEP2 sixth page',()=>{
+test('standalone goal card appears immediately after STEP2 page five',()=>{
  const ids=textbookData[1].cards.map(card=>card.id);
  assert.equal(ids.length,11);
- assert.deepEqual(ids.slice(0,8),['s2-c1','s2-c2','s2-c3','s2-c4','s2-c5','s2-c6','s2-goal','s2-c7']);
- assert.equal(ids[10],'s2-c10');
+ assert.deepEqual(ids,['s2-c1','s2-c2','s2-c3','s2-c4','s2-c5','s2-goal','s2-c6','s2-c7','s2-c8','s2-c9','s2-c10']);
  const t=textbookScenario('#s2-goal');
- assert.equal(t.count[1].textContent,'7 / 11');
+ assert.equal(t.count[1].textContent,'6 / 11');
  const track=t.sections[1].children.find(c=>c.className==='track');
  assert.equal(track.children.length,11);
- assert.equal(track.children[5].id,'s2-c6');
- assert.equal(track.children[6].id,'s2-goal');
- assert.equal(track.children[7].id,'s2-c7');
- const oldSixth=track.children[5].children.find(c=>c.className==='visual');
- const goalSeventh=track.children[6].children.find(c=>c.className==='visual');
- const nextOld=track.children[7].children.find(c=>c.className==='visual');
- assert.equal(oldSixth.children.some(c=>c.className==='goal-calculator'),false);
- assert.ok(goalSeventh.children.some(c=>c.className==='goal-calculator'));
- assert.equal(nextOld.children.some(c=>c.className==='goal-calculator'),false);
+ assert.equal(track.children[4].id,'s2-c5');
+ assert.equal(track.children[5].id,'s2-goal');
+ assert.equal(track.children[6].id,'s2-c6');
+ const prevCard=track.children[4].children.find(c=>c.className==='visual');
+ const calculator=track.children[5].children.find(c=>c.className==='visual');
+ const nextCard=track.children[6].children.find(c=>c.className==='visual');
+ assert.equal(prevCard.children.some(c=>c.className==='goal-calculator'),false);
+ assert.ok(calculator.children.some(c=>c.className==='goal-calculator'));
+ assert.equal(nextCard.children.some(c=>c.className==='goal-calculator'),false);
 });
-test('sixth STEP2 page advances to new seventh goal card then original seventh page',()=>{
- const t=textbookScenario('#s2-c6');
+test('STEP2 fifth page advances to new sixth goal card then original sixth page',()=>{
+ const t=textbookScenario('#s2-c5');
+ assert.equal(t.count[1].textContent,'5 / 11');
+ t.next[1].click();
  assert.equal(t.count[1].textContent,'6 / 11');
  t.next[1].click();
  assert.equal(t.count[1].textContent,'7 / 11');
- t.next[1].click();
- assert.equal(t.count[1].textContent,'8 / 11');
- assert.match(t.next[1].textContent,/食行動チェック/);
 });
 test('STEP2 BMI example fills the registration and recalculates without saving',()=>{
  const seed={'equineris:registration:v1':JSON.stringify({name:'Test',heightCm:'170',weightKg:'70'})};
@@ -204,17 +202,17 @@ test('starting BMI stays recorded after later daily weight measurements',()=>{
  assert.equal(later.els.saveBaseline.disabled,true);
  assert.equal(JSON.parse(later.store.get(DAILY))['2026-11-22'].weight,65);
 });
-test('registration weight computes STEP2 goal on seventh standalone card and saves percentages',()=>{
+test('registration weight computes STEP2 goal on sixth standalone card and saves percentages',()=>{
  const t=textbookScenario('',{'equineris:registration:v1':JSON.stringify({heightCm:'170',weightKg:'80'})});
  assert.equal(t.sections.length,6);
  for(let i=0;i<8;i++)t.next[0].click();
  assert.equal(t.count[0].textContent,'9 / 9');
  t.next[0].click();assert.ok(t.sections[1].scrolled);
- for(let i=0;i<6;i++)t.next[1].click();assert.equal(t.count[1].textContent,'7 / 11');
+ for(let i=0;i<5;i++)t.next[1].click();assert.equal(t.count[1].textContent,'6 / 11');
  const track=t.sections[1].children.find(c=>c.className==='track');
- const visual=track.children[6].children.find(c=>c.className==='visual');
+ const visual=track.children[5].children.find(c=>c.className==='visual');
  const calc=visual.children.find(c=>c.className==='goal-calculator');
- assert.ok(calc,'STEP2 seventh card calculator');
+ assert.ok(calc,'STEP2 sixth card calculator');
  const start=calc.children[2],rate=calc.children[3].children;
  const target=calc.children[4].children[0],out=calc.children[5],save=calc.children[6];
  assert.equal(start.textContent,'スタート時の体重：80.0 kg');
@@ -238,7 +236,7 @@ test('registration weight computes STEP2 goal on seventh standalone card and sav
 });
 test('goal calculator preserves existing optional goals and blocks missing registration',()=>{
  const absent=textbookScenario('#s2-goal');
- const absentCard=absent.sections[1].children.find(c=>c.className==='track').children[6];
+ const absentCard=absent.sections[1].children.find(c=>c.className==='track').children[5];
  const absentCalc=absentCard.children.find(c=>c.className==='visual').children.find(c=>c.className==='goal-calculator');
  assert.equal(absentCalc.children[3].children[0].disabled,true);
  assert.equal(absentCalc.children[4].children[0].disabled,true);
@@ -250,7 +248,7 @@ test('goal calculator preserves existing optional goals and blocks missing regis
    selectedRatePercent:8,weightAt20Kg:62,longestWeightKg:72,futureGoalWeightKg:68,selectedFutureBmi:22})
  };
  const prior=textbookScenario('#s2-goal',seed);
- const card=prior.sections[1].children.find(c=>c.className==='track').children[6];
+ const card=prior.sections[1].children.find(c=>c.className==='track').children[5];
  const calc=card.children.find(c=>c.className==='visual').children.find(c=>c.className==='goal-calculator');
  assert.equal(calc.children[4].children[0].value,'73.6');
  assert.equal(calc.children[3].children[1].getAttribute('aria-pressed'),'true');
@@ -268,7 +266,7 @@ test('goal calculator preserves existing optional goals and blocks missing regis
   'equineris:registration:v1':JSON.stringify({heightCm:'170',weightKg:'80'}),
   'equineris:week1:goal:v1':malformed
  });
- const badCard=blocked.sections[1].children.find(c=>c.className==='track').children[6];
+ const badCard=blocked.sections[1].children.find(c=>c.className==='track').children[5];
  const badCalc=badCard.children.find(c=>c.className==='visual').children.find(c=>c.className==='goal-calculator');
  badCalc.children[3].children[1].click();
  assert.equal(badCalc.children[6].disabled,true);
