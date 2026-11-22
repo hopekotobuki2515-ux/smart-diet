@@ -88,7 +88,7 @@
     return manuallyChecked||linkedFood(meal,group,index);
   }
   function refreshMarks(meal=null){
-    $('[data-mark]').forEach(box=>{
+    $$('[data-mark]').forEach(box=>{
       const [m,group,indexValue]=box.dataset.mark.split(':');
       if(meal!==null&&meal!==m)return;
       const index=Number(indexValue);
