@@ -271,7 +271,7 @@
 <main class="viewport">
   <article class="page lesson-page" aria-labelledby="lessonTitle">
     <nav class="topbar" aria-label="ページ移動">
-      <a href="./index.html" class="back">〈 オープニングへ戻る</a>
+      <a href="./program-intro.html" class="back">〈 SMART Dietの説明へ戻る</a>
       <span class="step">STEP 01</span>
     </nav>
     <p class="wordmark" aria-label="EQUINERIS">EQUI<span>NERIS</span></p>
@@ -280,17 +280,13 @@
         <p class="eyebrow">SMART DIET · STEP 01</p>
         <h1 id="lessonTitle">なぜ減量が必要なのか？</h1>
       </header>
-      <p class="lesson-counter" id="lessonCounter" aria-live="polite">1 / 4</p>
-      <div class="lesson-viewport" id="lessonViewport" tabindex="0" role="region" aria-label="ステップ1の説明（全4枚）">
+      <p class="lesson-counter" id="lessonCounter" aria-live="polite">1 / 2</p>
+      <div class="lesson-viewport" id="lessonViewport" tabindex="0" role="region" aria-label="説明（全2枚）">
        <div class="lesson-slide-row" id="lessonSlideRow"><section class="lesson-slide" aria-label="1枚目：まず、肥満について"><div class="lesson-card"><h2>まず、肥満について</h2><p>まずは、なぜ減量が必要になるのか、一緒に考えてみましょう。</p><p>肥満とは、単に体重が重いことではなく、体脂肪が過剰に蓄積した状態をいいます。</p><p>脂肪がつく場所によって、皮下脂肪型と内臓脂肪型があります。</p><p>体重の数字だけでなく、自分の身体を知ることが大切です。</p></div></section>
-<section class="lesson-slide" aria-label="2枚目：内臓脂肪と健康の関係"><div class="lesson-card"><h2>内臓脂肪と健康の関係</h2><p>特に内臓脂肪が過剰に蓄積すると、高血圧・脂質異常・高血糖などと関連することがあります。</p><p>内臓脂肪の多さは、体重や外見だけでは判断できません。</p><p>BMIは身長と体重から計算する体格の目安ですが、脂肪のつき方までは分かりません。</p><p>だからこそ、まず自分の身体の状態を確認していきましょう。</p></div></section>
-<section class="lesson-slide" aria-label="3枚目：SMART Dietとは？"><div class="lesson-card"><h2>SMART Dietとは？</h2><p>SMART Dietは、食事を記録して、学んで、振り返る12週間のプログラムです。</p><p>食事の記録と学習を通して、自分に合った食べ方を身につけ、目標体重に近づくためのサポートを行います。</p><p>ただ食べる量を減らすのではなく、食品の選び方や組み合わせ、適切な食事量を少しずつ学びます。</p></div></section>
-<section class="lesson-slide" aria-label="4枚目：12週間の進め方"><div class="lesson-card"><h2>12週間の進め方</h2><p>① 食事について学ぶ</p><p>4つの食品群、食事の量、エネルギーの考え方を順番に学びます。</p><p>② 記録と振り返りを続ける</p><p>毎日の記録と週ごとの振り返りを通して、減量目標に向けた行動をサポートします。</p></div></section></div>
+<section class="lesson-slide" aria-label="2枚目：内臓脂肪と健康の関係"><div class="lesson-card"><h2>内臓脂肪と健康の関係</h2><p>特に内臓脂肪が過剰に蓄積すると、高血圧・脂質異常・高血糖などと関連することがあります。</p><p>内臓脂肪の多さは、体重や外見だけでは判断できません。</p><p>BMIは身長と体重から計算する体格の目安ですが、脂肪のつき方までは分かりません。</p><p>だからこそ、まず自分の身体の状態を確認していきましょう。</p></div></section></div>
       </div>
       <div class="lesson-dots" role="group" aria-label="説明を選ぶ"><button type="button" data-slide="0" aria-current="step" aria-label="1枚目：まず、肥満について"></button>
-<button type="button" data-slide="1" aria-label="2枚目：内臓脂肪と健康の関係"></button>
-<button type="button" data-slide="2" aria-label="3枚目：SMART Dietとは？"></button>
-<button type="button" data-slide="3" aria-label="4枚目：12週間の進め方"></button></div>
+<button type="button" data-slide="1" aria-label="2枚目：内臓脂肪と健康の関係"></button></div>
     </div>
     <div class="actions lesson-actions">
       <a class="main-button" id="lessonNext" href="./setup.html">次の説明へ<span class="arrow" aria-hidden="true">›</span></a>
@@ -327,7 +323,7 @@
   if(Math.abs(dx)<55||Math.abs(dx)<Math.abs(dy)*1.4)return;
   if(dx<0){if(current<slides.length-1)go(current+1);else window.location.assign('./setup.html')}
   else if(current>0)go(current-1);
-  else window.location.assign('./index.html');
+  else window.location.assign('./program-intro.html');
  },{passive:true});
  v.addEventListener('touchcancel',()=>{x=null;y=null},{passive:true});
  v.addEventListener('keydown',e=>{
