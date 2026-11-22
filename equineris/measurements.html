@@ -94,6 +94,20 @@ h1{font-size:26px;text-align:center;line-height:1.4;margin:20px 0 10px}
   weight.value=item&&Number.isFinite(item.weight)?String(item.weight):'';
   waist.value=item&&Number.isFinite(item.waist)?String(item.waist):'';
  }
+ // 初回登録の体重を、測定履歴がまだない場合だけ入力欄へ表示する。
+ // 自動保存はせず、翌日以降の測定値を推測して補完しない。
+ function prefillRegistrationWeight(){
+  try{
+   if(Object.keys(getAll()).length!==0)return;
+   const saved=JSON.parse(localStorage.getItem('equineris:registration:v1')||'null');
+   if(!saved||typeof saved.weightKg!=='string')return;
+   const value=Number(saved.weightKg);
+   if(!Number.isFinite(value)||value<10||value>500)return;
+   weight.value=saved.weightKg;
+   if(!weight.checkValidity()){weight.value='';return;}
+   message(saveStatus,'初回登録時の体重を入力しました。現在の測定値を確認してから保存してください。');
+  }catch(e){/* 未登録・破損時は既存履歴と入力欄に触れない */}
+ }
  function renderHistory(){
   history.replaceChildren();
   let rows;
@@ -141,7 +155,7 @@ h1{font-size:26px;text-align:center;line-height:1.4;margin:20px 0 10px}
   const ref=new URL(document.referrer),file=ref.pathname.split('/').pop();
   if(ref.origin===location.origin&&['record.html','diary-step2.html','diary-step3.html'].includes(file)){byId('back').href='./'+file+ref.search;}
  }catch(e){/* referrer may be absent */}
- date.value=today();showDay();renderHistory();
+ date.value=today();showDay();prefillRegistrationWeight();renderHistory();
 })();
 </script>
 </body>
