@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#fefdf8">
-  <meta name="description" content="EQUINERISは、あなたの減量目標達成を12週間にわたってサポートするプログラムです。食事記録と学習を通して食べ方を見直します。">
-  <title>EQUINERISとは？ | EQUINERIS</title>
+  <meta name="description" content="SMART Diet ステップ1。肥満と内臓脂肪について知り、自分の身体を確認するところから始めましょう。">
+  <title>なぜ減量が必要なのか？ | EQUINERIS</title>
 <style>
     :root {
       color-scheme:light;
@@ -119,58 +119,97 @@
     .secondary-button:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
     .guest-note{margin:10px auto 0;max-width:350px;text-align:center;color:var(--muted);
       font-size:11px;line-height:1.7}
-  </style>
+  
+    /* ステップ1：一画面・大きな本文・横スワイプを基準にする。 */
+    html,body{height:100%;overflow-y:hidden;overscroll-behavior-y:none}
+    .viewport{height:100svh;min-height:0;overflow:hidden}
+    .page.lesson-page{
+      height:100svh;min-height:0;overflow:hidden;
+      display:flex;flex-direction:column;
+      padding-top:clamp(10px,2svh,22px);
+      padding-bottom:max(12px,env(safe-area-inset-bottom));
+    }
+    .lesson-page .topbar{flex:0 0 auto}
+    .lesson-page .wordmark{flex:0 0 auto;margin-top:clamp(4px,1svh,12px);font-size:clamp(24px,7vw,29px)}
+    .lesson-main{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;justify-content:center}
+    .lesson-heading{margin:0 0 clamp(10px,2svh,20px)}
+    .lesson-heading .eyebrow{margin:0 0 6px;font-size:11px}
+    .lesson-heading h1{font-size:clamp(22px,5.8vw,27px);line-height:1.45}
+    .lesson-card{width:100%;border:1px solid #d9e4d9;border-radius:20px;background:#fffdfa;
+      padding:clamp(13px,2.3svh,20px) clamp(14px,4vw,20px);
+      box-shadow:0 8px 24px rgba(21,67,45,.035);text-align:left}
+    .lesson-card p{font-size:16px;line-height:1.55;font-weight:400;color:var(--ink-light);
+      margin:0 0 clamp(10px,1.6svh,17px);word-break:normal;overflow-wrap:break-word}
+    .lesson-card p:last-child{margin-bottom:0}
+    .lesson-card strong{font-weight:750;color:var(--ink)}
+    .lesson-actions{flex:0 0 auto;margin-top:clamp(10px,2svh,18px)}
+    .lesson-actions .main-button{font-size:16px;letter-spacing:0;min-height:52px;padding:10px 32px 10px 16px}
+    .lesson-actions .footnote{margin:clamp(5px,.9svh,9px) auto 0;font-size:11px;line-height:1.4}
+    @media(max-height:650px){
+      .page.lesson-page{padding-top:7px;padding-bottom:8px}
+      .lesson-page .topbar .back{min-height:34px}
+      .lesson-page .wordmark{margin-top:2px;font-size:23px}
+      .lesson-heading{margin-bottom:7px}
+      .lesson-heading h1{font-size:21px;line-height:1.3}
+      .lesson-heading .eyebrow{font-size:9px;margin-bottom:3px}
+      .lesson-card{padding:10px 12px;border-radius:15px}
+      .lesson-card p{font-size:16px;line-height:1.42;margin-bottom:7px}
+      .lesson-actions{margin-top:8px}
+      .lesson-actions .main-button{min-height:45px;padding-block:7px;font-size:15px}
+      .lesson-actions .footnote{margin-top:3px}
+    }
+    @media(min-width:650px){
+      .viewport{padding:24px}
+      .page.lesson-page{height:calc(100svh - 48px);min-height:0}
+    }
+</style>
 </head>
 <body>
 <main class="viewport">
-  <article class="page">
+  <article class="page lesson-page" aria-labelledby="lessonTitle">
     <nav class="topbar" aria-label="ページ移動">
       <a href="./index.html" class="back">〈 オープニングへ戻る</a>
-      <span class="step">EQUINERIS</span>
+      <span class="step">STEP 01</span>
     </nav>
     <p class="wordmark" aria-label="EQUINERIS">EQUI<span>NERIS</span></p>
-    <header class="heading">
-      <p class="eyebrow">ABOUT EQUINERIS</p>
-      <h1>EQUINERISとは？</h1>
-      <p>あなたの減量目標の達成をサポートする、12週間のプログラムです。</p>
-    </header>
-    <section class="feature" aria-labelledby="feature-title">
-      <div class="rings" aria-hidden="true"><div class="rings-inner"><span class="rings-num">12</span><span class="rings-unit">WEEKS</span></div></div>
-      <h2 id="feature-title">食事を記録して、学んで、振り返る。</h2>
-      <p>EQUINERISは、食事の記録と学習を通して、自分に合った食べ方を身につけ、目標体重に近づくためのサポートを行います。</p>
-    </section>
-    <p class="section-label">HOW IT WORKS · 12週間の進め方</p>
-    <div class="timeline">
-      <section class="tile" aria-labelledby="step-1-title">
-        <span class="num" aria-hidden="true">01</span>
-        <div>
-          <h3 id="step-1-title">まずは3日間のお試しから</h3>
-          <p>いつもの食事を写真や短いメモで記録します。最初から食事を変えたり、カロリーを計算したりする必要はありません。</p>
-        </div>
-      </section>
-      <section class="tile" aria-labelledby="step-2-title">
-        <span class="num" aria-hidden="true">02</span>
-        <div>
-          <h3 id="step-2-title">12週間で目標達成を目指す</h3>
-          <p>4つの食品群、食事の量、エネルギーの考え方を順番に学びます。</p>
-        </div>
-      </section>
-      <section class="tile" aria-labelledby="step-3-title">
-        <span class="num" aria-hidden="true">03</span>
-        <div>
-          <h3 id="step-3-title">記録と振り返りを続ける</h3>
-          <p>毎日の記録と週ごとの振り返りを通して、減量目標に向けた行動をサポートします。</p>
-        </div>
+    <div class="lesson-main">
+      <header class="heading lesson-heading">
+        <p class="eyebrow">SMART DIET · STEP 01</p>
+        <h1 id="lessonTitle">なぜ減量が必要なのか？</h1>
+      </header>
+      <section class="lesson-card" aria-label="ステップ1の指導">
+        <p>まず、減量がなぜ必要なのか、一緒に考えてみましょう。</p>
+        <p>肥満とは、単に体重が重いことではなく、<strong>体脂肪が過剰に蓄積した状態</strong>をいいます。</p>
+        <p>特に内臓のまわりに脂肪が増えると、血圧や血糖、血中脂質などに影響し、健康上のリスクが高まることがあります。</p>
+        <p>大切なのは、体重の数字だけを追わないこと。まず、今の自分の身体を一緒に確認しましょう。</p>
       </section>
     </div>
-    <p class="mini-notice">ただ食べる量を減らすのではなく、食品の選び方や組み合わせ、適切な食事量を少しずつ学んでいきます。</p>
-    <div class="actions">
-      <a class="main-button" href="./setup.html">登録して進む <span class="arrow" aria-hidden="true">›</span></a>
-      <a class="secondary-button" id="guestRecordLink" href="./record.html">登録せずに食事記録だけ使う</a>
-      <p class="guest-note">現在は3日間のお試し記録です。記録はこの端末のブラウザ内に保存されます。</p>
-      <p class="footnote">あなたの目標に向けて、一緒に始めましょう。</p>
+    <div class="actions lesson-actions">
+      <a class="main-button" id="lessonNext" href="./setup.html">次へ：自分の状態を確認する<span class="arrow" aria-hidden="true">›</span></a>
+      <p class="footnote">左にスワイプしても次へ進めます</p>
     </div>
   </article>
 </main>
+<script>
+'use strict';
+(()=>{
+ const page=document.querySelector('.lesson-page');
+ let startX=null,startY=null;
+ page.addEventListener('touchstart',event=>{
+  if(event.touches.length!==1){startX=null;startY=null;return;}
+  startX=event.touches[0].clientX;
+  startY=event.touches[0].clientY;
+ },{passive:true});
+ page.addEventListener('touchend',event=>{
+  if(startX===null||event.changedTouches.length===0)return;
+  const dx=event.changedTouches[0].clientX-startX;
+  const dy=event.changedTouches[0].clientY-startY;
+  startX=null;startY=null;
+  if(Math.abs(dx)<65||Math.abs(dx)<Math.abs(dy)*1.5)return;
+  window.location.assign(dx<0?'./setup.html':'./index.html');
+ },{passive:true});
+ page.addEventListener('touchcancel',()=>{startX=null;startY=null;},{passive:true});
+})();
+</script>
 </body>
 </html>
