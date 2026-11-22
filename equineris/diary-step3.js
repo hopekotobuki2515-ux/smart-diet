@@ -327,6 +327,7 @@ function filterFoodRecords(records,rawQuery,group) {
    $('#mealPrev').disabled=activeSlide===0;
    $('#mealNext').disabled=activeSlide===slides.length-1;
    $('.actions').hidden=activeSlide===0;
+   $('.daily-area').hidden=activeSlide===0;
    fitActiveSlideHeight();
  }
  function go(index,animate=true){
