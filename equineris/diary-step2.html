@@ -42,7 +42,7 @@ input,button,textarea{font:inherit}button{cursor:pointer}
 .meal-tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;margin:0 0 9px}
 .meal-tab{min-width:0;min-height:46px;padding:6px 2px;border:1px solid #cbdacc;border-radius:10px;background:#f3f7f1;color:var(--ink);font-size:14px;font-weight:750}
 .meal-tab[aria-pressed="true"]{background:var(--green);color:#fff;border-color:var(--green)}
-.meal-track{display:flex;align-items:stretch;width:100%;min-width:0;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;overscroll-behavior-inline:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.meal-track{display:flex;align-items:flex-start;width:100%;min-width:0;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;overscroll-behavior-inline:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .meal-track::-webkit-scrollbar{display:none}
 .meal-slide{flex:0 0 100%;width:100%;min-width:0;scroll-snap-align:start;scroll-snap-stop:always;padding:1px;writing-mode:horizontal-tb}
 .slide-heading{font-size:14px;line-height:1.4;margin:1px 0 6px}
@@ -130,8 +130,8 @@ dialog h2{font-size:17px;margin:0 0 8px}.dialog-date{font-size:12px;color:var(--
 .stage2-note{font-size:12px;line-height:1.65;color:var(--muted);margin:9px 0}
 @media(max-width:350px){.stage2-form-grid{gap:3px}.stage2-food-form select{padding-inline:2px}}
 
-/* Four-group quick reference: appended only to the final meal page. */
-.four-group-reference{margin:18px 0 8px;padding:12px;border:1px solid #dce7db;border-radius:12px;background:#fff;min-width:0}
+/* Four-group reference: dedicated final slide after the snack record. */
+.four-group-reference{margin:1px 0 8px;padding:12px;border:1px solid #dce7db;border-radius:12px;background:#fff;min-width:0}
 .four-group-reference h3{margin:0 0 9px;font-size:16px;line-height:1.4}
 .four-group-reference-row{display:grid;grid-template-columns:68px minmax(0,1fr);gap:9px;align-items:start;padding:10px 0;border-top:1px solid #e1eae1;min-width:0}
 .four-group-reference-row>strong{display:block;border-radius:8px;background:#ecf5ed;color:#285d4a;font-size:13px;line-height:1.5;text-align:center;padding:9px 1px}
@@ -149,7 +149,7 @@ dialog h2{font-size:17px;margin:0 0 8px}.dialog-date{font-size:12px;color:var(--
 <section class="card" aria-label="ステップ2の食事ダイアリー">
 <div class="switch-header"><strong id="currentMealLabel">見本</strong><span>左右にスワイプ</span></div>
 <div class="meal-tabs" role="group" aria-label="食事の切り替え"><button type="button" class="meal-tab" data-meal-tab="0" aria-pressed="true">見本</button><button type="button" class="meal-tab" data-meal-tab="1" aria-pressed="false">朝食</button><button type="button" class="meal-tab" data-meal-tab="2" aria-pressed="false">昼食</button><button type="button" class="meal-tab" data-meal-tab="3" aria-pressed="false">夕食</button><button type="button" class="meal-tab" data-meal-tab="4" aria-pressed="false">間食</button></div>
-<div class="meal-track" id="mealTrack" tabindex="0" role="region" aria-label="見本、朝食、昼食、夕食、間食の横スクロール">
+<div class="meal-track" id="mealTrack" tabindex="0" role="region" aria-label="見本、朝食、昼食、夕食、間食、四群早見表の横スクロール">
 
 <section class="meal-slide" data-slide="0" aria-label="ステップ2の記入見本">
   <h2 class="stage2-title">見本：昼食 12:30</h2>
@@ -275,6 +275,8 @@ dialog h2{font-size:17px;margin:0 0 8px}.dialog-date{font-size:12px;color:var(--
   </section>
   <div class="switch-header"><strong>4群チェック</strong><span>タップして○</span></div>
   <table class="diary-table food-groups" aria-label="間食の群分けチェック"><thead><tr><th scope="col">第1群<small>乳・乳製品／卵</small></th><th scope="col">第2群<small>魚・肉／豆製品</small></th><th scope="col">第3群<small>野菜・きのこ／いも・果物</small></th><th scope="col">第4群<small>米・パン・麺／油脂・調味料</small></th></tr></thead><tbody><tr><td><label class="mark" title="間食の第1群、1個目"><input type="checkbox" data-mark="snack:1:0" aria-label="間食 第1群 1個目"><span aria-hidden="true"></span></label><label class="mark" title="間食の第1群、2個目"><input type="checkbox" data-mark="snack:1:1" aria-label="間食 第1群 2個目"><span aria-hidden="true"></span></label><label class="mark" title="間食の第1群、3個目"><input type="checkbox" data-mark="snack:1:2" aria-label="間食 第1群 3個目"><span aria-hidden="true"></span></label><label class="mark" title="間食の第1群、4個目"><input type="checkbox" data-mark="snack:1:3" aria-label="間食 第1群 4個目"><span aria-hidden="true"></span></label><label class="mark" title="間食の第1群、5個目"><input type="checkbox" data-mark="snack:1:4" aria-label="間食 第1群 5個目"><span aria-hidden="true"></span></label></td><td><label class="mark" title="間食の第2群、1個目"><input type="checkbox" data-mark="snack:2:0" aria-label="間食 第2群 1個目"><span aria-hidden="true"></span></label><label class="mark" title="間食の第2群、2個目"><input type="checkbox" data-mark="snack:2:1" aria-label="間食 第2群 2個目"><span aria-hidden="true"></span></label><label class="mark" title="間食の第2群、3個目"><input type="checkbox" data-mark="snack:2:2" aria-label="間食 第2群 3個目"><span aria-hidden="true"></span></label><label class="mark" title="間食の第2群、4個目"><input type="checkbox" data-mark="snack:2:3" aria-label="間食 第2群 4個目"><span aria-hidden="true"></span></label><label class="mark" title="間食の第2群、5個目"><input type="checkbox" data-mark="snack:2:4" aria-label="間食 第2群 5個目"><span aria-hidden="true"></span></label></td><td><label class="mark" title="間食の第3群、1個目"><input type="checkbox" data-mark="snack:3:0" aria-label="間食 第3群 1個目"><span aria-hidden="true"></span></label><label class="mark" title="間食の第3群、2個目"><input type="checkbox" data-mark="snack:3:1" aria-label="間食 第3群 2個目"><span aria-hidden="true"></span></label><label class="mark" title="間食の第3群、3個目"><input type="checkbox" data-mark="snack:3:2" aria-label="間食 第3群 3個目"><span aria-hidden="true"></span></label><label class="mark" title="間食の第3群、4個目"><input type="checkbox" data-mark="snack:3:3" aria-label="間食 第3群 4個目"><span aria-hidden="true"></span></label><label class="mark" title="間食の第3群、5個目"><input type="checkbox" data-mark="snack:3:4" aria-label="間食 第3群 5個目"><span aria-hidden="true"></span></label></td><td><label class="mark" title="間食の第4群、1個目"><input type="checkbox" data-mark="snack:4:0" aria-label="間食 第4群 1個目"><span aria-hidden="true"></span></label><label class="mark" title="間食の第4群、2個目"><input type="checkbox" data-mark="snack:4:1" aria-label="間食 第4群 2個目"><span aria-hidden="true"></span></label><label class="mark" title="間食の第4群、3個目"><input type="checkbox" data-mark="snack:4:2" aria-label="間食 第4群 3個目"><span aria-hidden="true"></span></label><label class="mark" title="間食の第4群、4個目"><input type="checkbox" data-mark="snack:4:3" aria-label="間食 第4群 4個目"><span aria-hidden="true"></span></label><label class="mark" title="間食の第4群、5個目"><input type="checkbox" data-mark="snack:4:4" aria-label="間食 第4群 5個目"><span aria-hidden="true"></span></label></td></tr></tbody></table>
+</section>
+<section class="meal-slide" data-slide="reference" aria-label="四群早見表">
 <section class="four-group-reference" aria-label="四群早見表">
 <h3>四群早見表</h3>
 <div class="four-group-reference-row"><strong>第1群</strong><div><b>乳・乳製品、卵</b><span>牛乳・ヨーグルト・チーズ・卵</span></div></div>
@@ -283,7 +285,7 @@ dialog h2{font-size:17px;margin:0 0 8px}.dialog-date{font-size:12px;color:var(--
 <div class="four-group-reference-row"><strong>第4群</strong><div><b>穀類、油脂、砂糖・菓子など</b><span>ご飯・パン・麺・油脂・砂糖・調味料</span></div></div>
 </section></section>
 </div>
-<div class="meal-controls"><button type="button" id="mealPrev" disabled>〈 前へ</button><span id="mealCounter">1 / 5</span><button type="button" id="mealNext">次へ 〉</button></div>
+<div class="meal-controls"><button type="button" id="mealPrev" disabled>〈 前へ</button><span id="mealCounter">1 / 6</span><button type="button" id="mealNext">次へ 〉</button></div>
 <div class="actions" hidden><button type="button" class="action-button" id="saveButton">記録を保存</button><button type="button" class="action-button outline" id="previewButton">記録を確認</button></div>
 <p class="status" id="saveStatus" role="status" aria-live="polite"></p>
 <p class="status" id="photoStatus" role="status" aria-live="polite"></p>
@@ -291,5 +293,5 @@ dialog h2{font-size:17px;margin:0 0 8px}.dialog-date{font-size:12px;color:var(--
 <p class="stage2-note">ステップ2は食品名と分量の記録まで。点数計算・栄養計算はステップ3で行います。</p>
 </div></main>
 <dialog id="previewDialog" aria-labelledby="previewTitle"><h2 id="previewTitle">食事記録を確認</h2><div id="previewRows"></div><button type="button" id="closePreview" class="close">閉じる</button></dialog>
-<script src="./diary-step2.js?v=84221900"></script>
+<script src="./diary-step2.js?v=ref20261122a"></script>
 </body></html>
