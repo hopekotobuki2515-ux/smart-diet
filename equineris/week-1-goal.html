@@ -32,9 +32,9 @@
     .step {font-size:10px;letter-spacing:.19em;color:var(--gold);font-weight:800}
     .wordmark {text-align:center;margin:12px 0 0;font-size:27px;letter-spacing:.11em;font-weight:800;line-height:1.15}
     .wordmark span {color:var(--gold)}
-    .eyebrow {text-align:center;margin:30px 0 9px;color:var(--gold);font-size:10px;font-weight:800;letter-spacing:.2em}
+    .eyebrow {text-align:center;margin:18px 0 7px;color:var(--gold);font-size:10px;font-weight:800;letter-spacing:.2em}
     h1 {text-align:center;font-size:clamp(23px,6.2vw,29px);line-height:1.48;letter-spacing:.025em;margin:0}
-    .lead {margin:12px auto 26px;text-align:center;font-size:13px;line-height:1.8;color:var(--ink-light);max-width:350px}
+    .lead {margin:9px auto 15px;text-align:center;font-size:13px;line-height:1.8;color:var(--ink-light);max-width:350px}
     .card {
       padding:22px 18px;background:#fffdfa;border:1px solid var(--outline);
       border-radius:20px;box-shadow:0 8px 24px rgba(21,67,45,.035);
@@ -66,9 +66,9 @@
     }
     .slide-track::-webkit-scrollbar {display:none}
     .slide-track > .slide {flex:0 0 100%;min-width:0;scroll-snap-align:start}
-    .swipe-status {display:flex;align-items:center;justify-content:space-between;gap:10px;margin:15px 2px 7px;font-size:12px;color:var(--muted)}
+    .swipe-status {display:flex;align-items:center;justify-content:space-between;gap:10px;margin:9px 2px 4px;font-size:12px;color:var(--muted)}
     .swipe-status strong {color:var(--ink);font-size:13px;font-variant-numeric:tabular-nums}
-    .swipe-dots {display:flex;justify-content:center;align-items:center;gap:6px;margin:0 0 10px}
+    .swipe-dots {display:flex;justify-content:center;align-items:center;gap:6px;margin:0 0 5px}
     .swipe-dot {min-width:44px;min-height:44px;border:0;background:transparent;display:flex;align-items:center;justify-content:center}
     .swipe-dot::before {content:"";width:7px;height:7px;border-radius:50%;background:#cdd9ce;transition:width .2s,background .2s}
     .swipe-dot[aria-current="step"]::before {width:26px;border-radius:8px;background:var(--green)}
@@ -185,7 +185,7 @@
     .motivation-card .motivation-question{font-size:17px;font-weight:800;line-height:1.7;color:var(--green)}
     .motivation-card .closing{margin-bottom:0}
     .slide-forward{margin-top:18px}
-    .goal-slide-back{display:inline-flex;align-items:center;min-height:44px;margin:0 0 9px;padding:6px 8px;border:0;background:transparent;color:var(--green);font-size:13px;font-weight:750;cursor:pointer}
+    .goal-slide-back{display:inline-flex;align-items:center;min-height:44px;margin:12px 0 0;padding:6px 8px;border:0;background:transparent;color:var(--green);font-size:13px;font-weight:750;cursor:pointer}
     @media(prefers-reduced-motion:reduce){.slide-track{scroll-behavior:auto}}
 </style>
 </head>
@@ -229,7 +229,6 @@
     <button class="next slide-forward" id="toGoalSlide" type="button">目標設定へ進む <span class="arrow" aria-hidden="true">›</span></button>
    </section>
    <section class="slide goal-slide" id="targetSlide" aria-label="2枚目：スマートダイエットの減量目標設定">
-    <button class="goal-slide-back" id="backToMotivation" type="button">〈 動機づけを読み直す</button>
     <form id="goalForm" autocomplete="off">
    <section class="card" aria-labelledby="goalCardTitle">
     <div class="sectionhead">
@@ -288,9 +287,9 @@
     <a href="./setup.html" class="goal-link">現在の体重を登録・変更する</a>
    </div>
   </form>
+    <button class="goal-slide-back" id="backToMotivation" type="button">〈 動機づけを読み直す</button>
    </section>
    <section class="slide goal-slide" id="bmiSlide" aria-label="3枚目：BMIとは？・自動計算">
-    <button type="button" id="backToGoal" class="goal-slide-back">〈 減量目標設定へ戻る</button>
     <div class="card">
     <section class="bmi-explain" aria-labelledby="bmiExplainTitle">
      <h3 id="bmiExplainTitle">BMIとは？</h3>
@@ -310,6 +309,7 @@
      <p class="bmi-auto-help" id="bmiAutoStatus" role="status" aria-live="polite">登録情報を確認しています。</p>
     </div>
     <a class="goal-next bmi-slide-action" href="./habit-check.html?from=goal">次へ：食行動チェック ›</a>
+    <button type="button" id="backToGoal" class="goal-slide-back">〈 減量目標設定へ戻る</button>
    </section>
   </div>
  </div>
