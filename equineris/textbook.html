@@ -46,7 +46,7 @@ a,button,input{font:inherit}button{cursor:pointer}
 .step-num{flex:0 0 auto;min-width:62px;text-align:center;border:1px solid #d7c8ad;color:#8e6d3d;background:#fffaf0;font-size:11px;font-weight:850;padding:6px;border-radius:9px;letter-spacing:.07em}
 .step-heading h2{font-size:clamp(18px,5vw,21px);line-height:1.4;margin:0;min-width:0;word-break:normal;overflow-wrap:break-word}
 .step-instruction{margin:0 2px 10px;font-size:12px;color:var(--muted);line-height:1.7}
-.track{display:flex;align-items:stretch;gap:0;max-width:100%;width:100%;position:relative;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scroll-padding:0;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.track{display:flex;align-items:flex-start;gap:0;max-width:100%;width:100%;position:relative;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scroll-padding:0;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .track::-webkit-scrollbar{display:none}
 .lesson-card{scroll-snap-align:start;scroll-snap-stop:always;flex:0 0 100%;min-width:0;width:100%;max-width:100%;min-height:540px;display:flex;flex-direction:column;gap:13px;border:1px solid #d5e1d5;background:var(--paper);border-radius:18px;padding:18px 17px;overflow:visible;word-break:normal;overflow-wrap:break-word}
 .card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
@@ -64,7 +64,8 @@ a,button,input{font:inherit}button{cursor:pointer}
 .bmi-demo input{display:block;width:100%;min-width:0;min-height:45px;margin-top:6px;border:1px solid #b9cebc;border-radius:10px;padding:9px 12px;background:#fff;color:var(--ink);font-size:16px}
 .bmi-demo-result{display:block;border-radius:10px;background:#fff;border:1px solid #d9e5da;padding:12px;font-size:17px;font-weight:800;color:var(--green);font-variant-numeric:tabular-nums}
 .bmi-demo-help{margin:0;font-size:11px;line-height:1.7;color:var(--muted)}
-.goal-calculator{display:flex;flex-direction:column;gap:11px;margin-top:10px;padding:14px 12px;border:1px solid #cddfcf;border-radius:13px;background:#f8fbf6;min-width:0}
+.goal-calculator{display:flex;flex-direction:column;gap:9px;margin:0;padding:0;border:0;background:transparent;min-width:0}
+.visual--interactive{flex:0 0 auto;min-height:0;justify-content:flex-start;gap:7px;padding:12px}
 .goal-calculator h4{font-size:16px;line-height:1.5;margin:0;color:var(--green)}
 .goal-calc-description,.goal-calc-status{font-size:12px;line-height:1.7;margin:0;color:var(--sub)}
 .goal-calc-status[data-error="true"]{color:#aa3e31}
@@ -145,8 +146,8 @@ a,button,input{font:inherit}button{cursor:pointer}
 </main>
 <a class="to-top" href="#top" aria-label="教材の目次と検索へ戻る">↑ 目次</a>
 <noscript>教材の表示・検索にはJavaScriptを有効にしてください。</noscript>
-<script src="./textbook-data.js?v=20261123-history-after7"></script>
-<script src="./goal-calculator.js?v=20261123-history-after7"></script>
+<script src="./textbook-data.js?v=20261123-card-flow-fix"></script>
+<script src="./goal-calculator.js?v=20261123-card-flow-fix"></script>
 <script>
 'use strict';
 (()=>{
@@ -215,9 +216,17 @@ a,button,input{font:inherit}button{cursor:pointer}
   resume.disabled=false;
   resume.textContent='前回：STEP '+f.step.id+'・'+(f.index+1)+'枚目へ';
  };
+ // フレックスの最大カード高を他のカードへ伝播させない。表示中カードの実測高だけを使う。
+ const fitActiveCard=(state,idx)=>{
+  const card=state.track.children[idx];
+  if(!card||!state.track.style)return;
+  const height=card.offsetHeight;
+  if(Number.isFinite(height)&&height>0)state.track.style.height=height+'px';
+ };
  const update=(stepId,idx)=>{
   const s=controls.get(stepId);if(!s)return;
   const clamped=Math.max(0,Math.min(idx,s.cards.length-1));
+  fitActiveCard(s,clamped);
   if(s.active===clamped)return;
   s.active=clamped;
   s.counter.textContent=(clamped+1)+' / '+s.cards.length;
@@ -302,8 +311,10 @@ a,button,input{font:inherit}button{cursor:pointer}
      article.append(list);
     }
    }else{
-    const visual=create('section','visual');visual.setAttribute('aria-label',c.visualTitle||'図解・ポイント');
-    visual.append(create('div','visual-title',c.visualTitle||''));
+    const interactive=c.id==='s2-goal'||c.id==='s2-weight-history';
+    const visual=create('section',interactive?'visual visual--interactive':'visual');
+    visual.setAttribute('aria-label',c.visualTitle||'図解・ポイント');
+    if(!interactive)visual.append(create('div','visual-title',c.visualTitle||''));
     for(const point of c.points)visual.append(create('div','visual-row',point));
     if(c.id==='s2-goal'){
      if(window.EquinerisGoalCalculator)window.EquinerisGoalCalculator.mount(visual);
@@ -361,6 +372,7 @@ a,button,input{font:inherit}button{cursor:pointer}
   root.append(section);
   const state={track,section,prev,next,counter,cards:s.cards,active:0};
   controls.set(s.id,state);
+  fitActiveCard(state,0);
   const go=(i)=>{
    const idx=Math.max(0,Math.min(i,s.cards.length-1));
    track.scrollTo({left:idx*track.clientWidth,behavior:'smooth'});
@@ -395,6 +407,10 @@ a,button,input{font:inherit}button{cursor:pointer}
    });
   },{passive:true});
  }
+ // 画面回転やフォント読み込み後にも高さを再計測する。
+ const refitTracks=()=>{for(const state of controls.values())fitActiveCard(state,state.active);};
+ window.addEventListener('resize',refitTracks);
+ window.addEventListener('load',refitTracks);
  updateFavoriteBtns();setResume();
  search.addEventListener('input',()=>{resultsMode='search';favView.setAttribute('aria-pressed','false');renderResults()});
  favView.addEventListener('click',()=>{
