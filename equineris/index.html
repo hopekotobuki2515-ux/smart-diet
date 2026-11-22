@@ -107,7 +107,39 @@
       .welcome { min-height: min(870px, calc(100svh - 56px)); border: 1px solid var(--outline); border-radius: 25px; }
     }
     @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
-  </style>
+  
+    /* オープニングを画面内に収め、縦スクロールをなくす。 */
+    html,body{height:100%;overflow-y:hidden;overscroll-behavior-y:none}
+    .viewport{height:100svh;min-height:0;overflow:hidden}
+    .welcome{height:100%;min-height:0;display:grid;grid-template-rows:auto minmax(0,1fr) auto auto;justify-items:center;align-items:center;row-gap:clamp(4px,1.1svh,12px);padding-top:clamp(10px,2svh,24px);padding-bottom:max(10px,env(safe-area-inset-bottom))}
+    .brand-header{align-self:start}
+    .brand{margin-top:clamp(4px,1svh,10px)}
+    .brand-rule{margin:clamp(5px,.8svh,9px) 0 clamp(4px,.6svh,8px)}
+    .science-art{height:100%;min-height:0;margin:0;align-self:stretch;display:grid;place-items:center}
+    .orbit{width:auto;height:min(205px,51vw,calc(100% - 26px));aspect-ratio:1}
+    .intro{align-self:end}
+    .intro h1{margin-bottom:clamp(4px,.8svh,10px)}
+    .intro p{line-height:1.65}
+    .actions{align-self:end;margin:0}
+    .login{margin-top:clamp(2px,.6svh,10px)}
+    .footer-note{margin-top:clamp(2px,.5svh,8px)}
+    @media(max-height:680px){
+      .welcome{padding-top:8px;padding-bottom:8px;row-gap:3px}
+      .brand{font-size:clamp(29px,8vw,38px)}
+      .tagline{font-size:13px;line-height:1.4}
+      .eyebrow{font-size:9px}
+      .brand-rule{margin:4px 0}
+      .intro h1{font-size:20px;line-height:1.28;margin-bottom:4px}
+      .intro p{font-size:12px;line-height:1.45}
+      .start{min-height:50px;padding-block:10px}
+      .login{min-height:38px;padding-block:7px}
+      .footer-note{font-size:9px}
+    }
+    @media(min-width:650px){
+      .viewport{height:100svh;padding:28px}
+      .welcome{height:100%;min-height:0}
+    }
+</style>
 </head>
 <body>
   <main class="viewport">
