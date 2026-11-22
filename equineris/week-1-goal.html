@@ -573,7 +573,8 @@
   const next=document.querySelector('.bmi-slide-action');
   if(next)next.href='./habit-intro.html?from=textbook-step2';
  }
- go(fromTextbook?1:0);
+ const requestedSlide=new URLSearchParams(location.search).get('slide');
+ go(fromTextbook?(requestedSlide==='bmi'?2:1):0);
  requestAnimationFrame(measure);
 })();</script>
 </body>
