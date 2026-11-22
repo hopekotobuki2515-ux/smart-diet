@@ -34,6 +34,9 @@ h1{font-size:26px;text-align:center;line-height:1.4;margin:20px 0 10px}
 .checkline input{width:22px;height:22px;flex:0 0 22px;accent-color:var(--green);margin:0}
 .status{min-height:1.5em;font-size:13px;line-height:1.7;color:var(--green);font-weight:700;margin:12px 0 0;white-space:pre-wrap}
 .status[data-error="true"]{color:#aa3e31}
+.baseline-metric{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:11px 0;border-top:1px solid var(--edge);font-size:13px;line-height:1.6;color:var(--sub)}
+.baseline-metric:first-child{border:0}
+.baseline-metric strong{font-size:17px;font-variant-numeric:tabular-nums;color:var(--ink);white-space:nowrap}
 .history-row{padding:13px 0;border-top:1px solid var(--edge);display:flex;align-items:center;gap:8px}
 .history-row:first-child{border:0}
 .history-open{flex:1;text-align:left;border:0;background:transparent;color:var(--sub);padding:8px 0;line-height:1.6}
@@ -50,6 +53,17 @@ h1{font-size:26px;text-align:center;line-height:1.4;margin:20px 0 10px}
  <nav class="topbar"><a id="back" class="back" href="./record.html">〈 食事記録に戻る</a><span class="wordmark">EQUI<span>NERIS</span></span></nav>
  <h1>体重・腹囲を記録する</h1>
  <p class="lead">必要な日に記録できます。体重と腹囲は、どちらか一方だけでも保存できます。</p>
+ <section class="card" aria-labelledby="baselineTitle">
+  <h2 id="baselineTitle">減量スタート時のBMI</h2>
+  <p class="note">初回登録の身長と体重からBMIを自動計算します。「記録する」を押すとスタート時の値として保存し、日々の測定値では上書きしません。</p>
+  <div aria-live="polite">
+   <div class="baseline-metric"><span>スタート時の身長</span><strong id="startHeight">—</strong></div>
+   <div class="baseline-metric"><span>スタート時の体重</span><strong id="startWeight">—</strong></div>
+   <div class="baseline-metric"><span>減量スタート時のBMI</span><strong id="startBMI">—</strong></div>
+  </div>
+  <button id="saveBaseline" class="secondary" type="button" disabled>減量スタート時のBMIを記録する</button>
+  <p class="status" id="baselineStatus" role="status" aria-live="polite"></p>
+ </section>
  <section class="card" aria-labelledby="recordTitle">
   <h2 id="recordTitle">今日の身体の記録</h2>
   <form id="metricForm">
@@ -73,10 +87,68 @@ h1{font-size:26px;text-align:center;line-height:1.4;margin:20px 0 10px}
 'use strict';
 (()=>{
  const KEY='equineris:body-measurements:v1';
+ const REG_KEY='equineris:registration:v1';
+ const START_KEY='equineris:body-start-bmi:v1';
  const byId=id=>document.getElementById(id);
  const date=byId('recordDate'),weight=byId('bodyWeight'),waist=byId('bodyWaist');
  const saveStatus=byId('saveStatus');
  const history=byId('historyRows');
+ const baselineHeight=byId('startHeight'),baselineWeight=byId('startWeight'),baselineBMI=byId('startBMI');
+ const baselineButton=byId('saveBaseline'),baselineStatus=byId('baselineStatus');
+ const fixed1=n=>(Math.round(n*10+1e-9)/10).toFixed(1);
+ function readRegistration(){
+  const item=JSON.parse(localStorage.getItem(REG_KEY)||'null');
+  if(!item||typeof item.heightCm!=='string'||typeof item.weightKg!=='string')return null;
+  const h=Number(item.heightCm),w=Number(item.weightKg);
+  if(!Number.isFinite(h)||h<=0||!Number.isFinite(w)||w<10||w>500)return null;
+  return {heightCm:h,weightKg:w};
+ }
+ function readBaseline(){
+  const raw=localStorage.getItem(START_KEY);
+  if(raw===null)return null;
+  const item=JSON.parse(raw);
+  if(!item||typeof item!=='object'||Array.isArray(item)||
+   !Number.isFinite(item.heightCm)||item.heightCm<=0||
+   !Number.isFinite(item.weightKg)||item.weightKg<10||item.weightKg>500||
+   !Number.isFinite(item.bmi)||item.bmi<=0)throw Error('Invalid start BMI record');
+  return item;
+ }
+ function renderBaseline(){
+  baselineButton.disabled=true;
+  try{
+   const snapshot=readBaseline(),registered=readRegistration();
+   const values=snapshot||registered;
+   if(!values){
+    baselineHeight.textContent='—';baselineWeight.textContent='—';baselineBMI.textContent='—';
+    message(baselineStatus,'初回登録の身長・体重が確認できません。先に登録してください。');
+    return;
+   }
+   const bmi=snapshot?snapshot.bmi:values.weightKg/(values.heightCm/100)**2;
+   baselineHeight.textContent=fixed1(values.heightCm)+' cm';
+   baselineWeight.textContent=fixed1(values.weightKg)+' kg';
+   baselineBMI.textContent=fixed1(bmi)+(snapshot?'（記録済み）':'（未記録）');
+   if(snapshot){
+    message(baselineStatus,'減量スタート時のBMIを記録済みです。以降の体重測定では変更しません。');
+   }else{
+    baselineButton.disabled=false;
+    message(baselineStatus,'計算結果を確認し、ボタンを押すとスタート時のBMIを記録できます。');
+   }
+  }catch(e){
+   baselineButton.disabled=true;
+   message(baselineStatus,'スタート時BMIの記録を読み込めません。既存データを変更せずに確認してください。',true);
+  }
+ }
+ baselineButton.addEventListener('click',()=>{
+  try{
+   if(localStorage.getItem(START_KEY)!==null){renderBaseline();return;}
+   const values=readRegistration();
+   if(!values){renderBaseline();return;}
+   const bmi=values.weightKg/(values.heightCm/100)**2;
+   if(!Number.isFinite(bmi)||bmi<=0)throw Error('Invalid BMI');
+   localStorage.setItem(START_KEY,JSON.stringify({...values,bmi,recordedAt:new Date().toISOString()}));
+   renderBaseline();
+  }catch(e){message(baselineStatus,'BMIを記録できませんでした。保存設定を確認してください。',true);}
+ });
  const today=()=>{const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')};
  const validDate=s=>/^\d{4}-\d{2}-\d{2}$/.test(s)&&!Number.isNaN(new Date(s+'T00:00:00').getTime())&&new Date(s+'T00:00:00').getFullYear()===Number(s.slice(0,4))&&new Date(s+'T00:00:00').getMonth()+1===Number(s.slice(5,7))&&new Date(s+'T00:00:00').getDate()===Number(s.slice(8,10));
  const message=(target,text,error=false)=>{target.textContent=text;target.dataset.error=String(error)};
@@ -155,7 +227,7 @@ h1{font-size:26px;text-align:center;line-height:1.4;margin:20px 0 10px}
   const ref=new URL(document.referrer),file=ref.pathname.split('/').pop();
   if(ref.origin===location.origin&&['record.html','diary-step2.html','diary-step3.html'].includes(file)){byId('back').href='./'+file+ref.search;}
  }catch(e){/* referrer may be absent */}
- date.value=today();showDay();prefillRegistrationWeight();renderHistory();
+ date.value=today();showDay();prefillRegistrationWeight();renderBaseline();renderHistory();
 })();
 </script>
 </body>
