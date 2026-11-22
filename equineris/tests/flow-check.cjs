@@ -10,7 +10,8 @@ const read=name=>fs.readFileSync(path.join(root,name),'utf8');
 const source=Object.fromEntries(
  ['setup.html','textbook.html','textbook-data.js','goal-calculator.js','week-1-goal.html',
   'habit-intro.html','habit-check.html','habit-check-card.js','record.html','measurements.html','diary-step2.html',
-  'diary-step3.html','diary-step2.js','diary-step3.js','trainer-link.js','weight-trend.js']
+  'diary-step3.html','diary-step2.js','diary-step3.js','trainer-link.js','weight-trend.js',
+  'record-history.html','record-history.js']
   .map(name=>[name,read(name)])
 );
 const test=(label,fn)=>{fn();process.stdout.write('PASS '+label+'\n');};
@@ -76,6 +77,68 @@ test('STEP1 hides the old Other dropdown but keeps current food logging and save
  assert.match(page,/const PREFIX='equineris:paper-first3:v1:'/);
  assert.match(page,/localStorage\.setItem\(key\(activeDay,field\.dataset\.diaryKey\),value\)/);
  assert.match(page,/photoInputs\.forEach\(input=>input\.addEventListener\('change'/);
+});
+test('all recording stages link to read-only full-history review without old 3-day tabs',()=>{
+ const history=source['record-history.html'];
+ const script=source['record-history.js'];
+ for(const page of ['record.html','diary-step2.html','diary-step3.html','measurements.html'])
+  assert.match(source[page],/href="\.\/record-history\.html"/,page);
+ assert.match(history,/id="reviewDate"/);
+ assert.match(history,/id="olderRecord"/);
+ assert.match(history,/id="newerRecord"/);
+ assert.match(history,/record-history\.js\?v=/);
+ assert.match(script,/equineris:paper-first3:v1:/);
+ assert.match(script,/equineris:diary-step2:v1:/);
+ assert.match(script,/equineris:diary-step3:v1:/);
+ assert.match(script,/equineris:body-measurements:v1/);
+ assert.doesNotMatch(script,/localStorage\.setItem|\.put\(|\.delete\(/);
+});
+test('full history merges saved food, photo and body records by actual date and preserves old drinks',()=>{
+ const window={};
+ class FakeBlob {}
+ vm.runInNewContext(source['record-history.js'],{
+  window,document:{getElementById:()=>null},Date,Blob:FakeBlob,URL:{}
+ });
+ const model=window.EquinerisRecordHistory;
+ assert.ok(model);
+ const S1='equineris:paper-first3:v1:',S2='equineris:diary-step2:v1:',S3='equineris:diary-step3:v1:';
+ const values=new Map([
+  [S1+'1:date','2026-11-20'],
+  [S1+'1:breakfast-meal','卵とごはん'],
+  [S1+'1:breakfast-group-1','checked'],
+  [S2+'entry:slot1:foods:breakfast',JSON.stringify([{name:'ごはん',amount:100,unit:'g',group:'4',markIndex:0}])],
+  [S3+'entry:slot1:memo:breakfast','ごはん、野菜、卵'],
+  [S3+'entry:slot1:foods:breakfast',JSON.stringify([{name:'ごはん',grams:120,sourceGroup:'4',masterName:'',masterGramsPerPoint:null}])],
+  [S2+'entry:2026-11-22:foods:lunch',JSON.stringify([{name:'魚',amount:90,unit:'g',group:'2',markIndex:0}])],
+  [S2+'entry:2026-11-23:memo:lunch',''], // empty forms must not produce records
+  [S1+'2:date','2026-11-21'], // date-only slot must not produce records
+  [S2+'entry:2026-02-30:memo:dinner','不正日付'], // invalid calendar day
+  ['equineris:body-measurements:v1',JSON.stringify({'2026-11-20':{weight:76.5,waist:88},'2026-11-25':{weight:75,waist:null}})]
+ ]);
+ const storage={get length(){return values.size},key:i=>[...values.keys()][i]??null,
+  getItem:key=>values.get(key)??null,setItem(){throw Error('History must never overwrite user data')}};
+ const archived=[{day:1,date:'2026-11-20',meal:'飲み物',memo:'水',photo:new FakeBlob()}];
+ const records=model.collect(storage,{1:['1:breakfast'],2:['2026-11-22:lunch'],3:[]},archived);
+ assert.deepEqual(records.map(x=>x.key),['2026-11-25','2026-11-22','2026-11-20']);
+ const old=records[2],today=records[0];
+ assert.equal(old.slot,1);
+ assert.ok(old.sources.has(1)&&old.sources.has(2)&&old.sources.has(3)&&old.sources.has('archived'));
+ assert.equal(old.measurement.weight,76.5);
+ assert.equal(today.measurement.weight,75);
+ const r=model.summary(storage,old);
+ assert.equal(r.meals[0].memo,'ごはん、野菜、卵');
+ assert.equal(r.meals[0].foods[0].grams,120);
+ assert.equal(r.meals[0].counts[0],1);
+ assert.equal(r.meals[0].counts[3],1);
+ const drinks=r.meals.find(x=>x.label==='飲み物');
+ assert.ok(drinks);
+ assert.equal(drinks.archived[0].memo,'水');
+ assert.equal(model.editUrl(1,old),'./record.html?day=1');
+ assert.equal(model.editUrl(2,old),'./diary-step2.html?day=1');
+ assert.equal(model.editUrl(1,records[1]),null);
+ assert.equal(model.editUrl(3,records[1]),'./diary-step3.html?date=2026-11-22');
+ assert.equal(model.dateValid('2026-02-30'),false);
+ assert.equal(values.size,11,'no storage key may be modified by read-only review');
 });
 test('food diary stays connected across three recording stages',()=>{
  assert.match(source['record.html'],/id="diaryStep2Link"/);
