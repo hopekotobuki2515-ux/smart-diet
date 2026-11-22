@@ -93,6 +93,36 @@
    const sum=r.sums.reduce((a,b)=>a+b,0);
    total.textContent='1食の小計：'+fmt(sum)+'点'+(r.unknown||r.missing.some(Boolean)?'（未計算の食材あり）':'');
  }
+ function drawDailyFoods(){
+   const root=$('#dailyFoodSummaryRows');
+   root.replaceChildren();
+   let count=0;
+   for(const [meal,label] of MEALS){
+     const list=foods(meal);
+     if(!list.length)continue;
+     count+=list.length;
+     const section=elt('section',undefined,'daily-food-meal');
+     section.appendChild(elt('h4',label));
+     const entries=elt('ul',undefined,'daily-food-list');
+     for(const item of list){
+       const record=resolveMaster(item);
+       const group=record?record.group:(
+         ['1','2','3','4'].includes(String(item.sourceGroup))?'第'+item.sourceGroup+'群':'群未確定'
+       );
+       const li=elt('li',undefined,'daily-food-item');
+       const left=elt('span',undefined,'daily-food-name');
+       left.appendChild(elt('strong',item.name));
+       left.appendChild(elt('small',group+' ／ '+(item.grams===null?'重量未入力':item.grams+'g')));
+       const pts=foodPoints(item);
+       li.appendChild(left);
+       li.appendChild(elt('b',pts===null?'未計算':fmt(pts)+'点'));
+       entries.appendChild(li);
+     }
+     section.appendChild(entries);
+     root.appendChild(section);
+   }
+   if(!count)root.appendChild(elt('p','記録した食材はまだありません。','daily-food-empty'));
+ }
  function drawDaily(){
    const all=MEALS.map(([m])=>groupSums(m)),pattern=$('#targetPattern').value;
    const targets=pattern==='21'?[3,3,3,12]:pattern==='15'?[3,3,3,6]:null;
@@ -108,6 +138,7 @@
    }
    const dayTotal=totals.reduce((a,b)=>a+b,0);
    $('#dailyTotal').textContent='合計：'+fmt(dayTotal)+(targets?'/'+pattern:'')+'点';
+   drawDailyFoods();
    $('#unresolvedStatus').textContent=missing.reduce((a,b)=>a+b,0)+unknown>0?'未計算 '+(missing.reduce((a,b)=>a+b,0)+unknown)+'件。すべて照合するまで合計は確定しません。':'表示した食材の点数をすべて計算済みです。';
  }
  function drawAllTotals(){for(const [meal]of MEALS)drawGroupTable(meal);drawDaily();}
