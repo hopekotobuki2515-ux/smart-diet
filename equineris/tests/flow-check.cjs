@@ -8,7 +8,7 @@ const vm=require('node:vm');
 const root=path.resolve(__dirname,'..');
 const read=name=>fs.readFileSync(path.join(root,name),'utf8');
 const source=Object.fromEntries(
- ['setup.html','textbook.html','textbook-data.js','week-1-goal.html',
+ ['setup.html','textbook.html','textbook-data.js','goal-calculator.js','week-1-goal.html',
   'habit-intro.html','habit-check.html','record.html','measurements.html','diary-step2.html',
   'diary-step3.html','diary-step2.js','diary-step3.js','trainer-link.js']
   .map(name=>[name,read(name)])
@@ -112,6 +112,7 @@ function textbookScenario(hash='',seed={}){
   setItem:(key,val)=>localData.set(key,val)
  };
  const history={replaceState(_a,_b,url){location.hash=url;}};
+ vm.runInNewContext(source['goal-calculator.js'],{window,document,localStorage,Date});
  const inline=scriptOf(source['textbook.html']).find(s=>s.includes('const data=window.SMART_DIET_TEXTBOOK'));
  assert.ok(inline,'textbook script');
  vm.runInNewContext(inline,{
@@ -121,7 +122,7 @@ function textbookScenario(hash='',seed={}){
  const sections=elements.steps.children.filter(x=>x.className==='course-step');
  const navs=sections.map(s=>s.children.find(x=>x.className==='slide-nav'));
  const next=navs.map(n=>n.children[2]),count=navs.map(n=>n.children[1]);
- return {sections,next,count,location};
+ return {sections,next,count,location,localData};
 }
 test('STEP2 BMI example fills the registration and recalculates without saving',()=>{
  const seed={'equineris:registration:v1':JSON.stringify({name:'Test',heightCm:'170',weightKg:'70'})};
@@ -144,7 +145,8 @@ test('starting BMI stays recorded after later daily weight measurements',()=>{
  function measurementScenario(seed){
   const store=new Map(Object.entries(seed));
   const ids=['recordDate','bodyWeight','bodyWaist','saveStatus','historyRows','metricForm',
-   'recordTitle','back','startHeight','startWeight','startBMI','saveBaseline','baselineStatus'];
+   'recordTitle','back','startHeight','startWeight','startBMI','saveBaseline','baselineStatus',
+   'goalStartWeight','goalTargetWeight','goalLossWeight','goalLossRate','goalHistoryStatus'];
   const els=Object.fromEntries(ids.map(id=>[id,new MockEl('input')]));
   const document={referrer:'',getElementById:id=>els[id],createElement:tag=>new MockEl(tag)};
   const localStorage={getItem:key=>store.get(key)??null,setItem:(key,val)=>store.set(key,String(val))};
@@ -174,19 +176,44 @@ test('starting BMI stays recorded after later daily weight measurements',()=>{
  assert.equal(later.els.saveBaseline.disabled,true);
  assert.equal(JSON.parse(later.store.get(DAILY))['2026-11-22'].weight,65);
 });
-test('STEP1 reaches STEP2; STEP2 opens the target-weight lesson',()=>{
- const t=textbookScenario();
+test('registration weight computes STEP2 goal on second card and saves percentages',()=>{
+ const t=textbookScenario('',{'equineris:registration:v1':JSON.stringify({heightCm:'170',weightKg:'80'})});
  assert.equal(t.sections.length,6);
  for(let i=0;i<8;i++)t.next[0].click();
  assert.equal(t.count[0].textContent,'9 / 9');
- assert.equal(t.next[0].disabled,false);
- t.next[0].click();
- assert.ok(t.sections[1].scrolled);
- for(let i=0;i<5;i++)t.next[1].click();
- assert.equal(t.count[1].textContent,'6 / 10');
- assert.match(t.next[1].textContent,/目標設定/);
+ t.next[0].click();assert.ok(t.sections[1].scrolled);
+ t.next[1].click();assert.equal(t.count[1].textContent,'2 / 10');
+ const track=t.sections[1].children.find(c=>c.className==='track');
+ const visual=track.children[1].children.find(c=>c.className==='visual');
+ const calc=visual.children.find(c=>c.className==='goal-calculator');
+ assert.ok(calc,'STEP2 second card calculator');
+ const start=calc.children[2],rate=calc.children[3].children;
+ const target=calc.children[4].children[0],out=calc.children[5],save=calc.children[6];
+ assert.equal(start.textContent,'スタート時の体重：80.0 kg');
+ for(const [i,expected] of [[0,'76.0'],[1,'73.6'],[2,'72.0'],[3,'68.0']]){
+  rate[i].click();assert.equal(target.value,expected);assert.equal(save.disabled,false);
+ }
+ rate[1].click();save.click();
+ const saved=JSON.parse(t.localData.get('equineris:week1:goal:v1'));
+ assert.equal(saved.startWeightKg,80);
+ assert.equal(saved.goalWeightKg,73.6);
+ assert.equal(saved.lossKg,6.4);
+ assert.equal(saved.selectedRatePercent,8);
+ assert.equal(t.localData.get('equineris:body-measurements:v1'),undefined);
+ target.value='72.5';target.fire('input');
+ assert.equal(rate[1].getAttribute('aria-pressed'),'false');
+ save.click();
+ const edited=JSON.parse(t.localData.get('equineris:week1:goal:v1'));
+ assert.equal(edited.goalWeightKg,72.5);
+ assert.equal(edited.selectedRatePercent,null);
+ assert.match(out.textContent,/7.5 kg/);
+});
+test('STEP2 food behavior introduction leads to 17-item checklist without repeated goal page',()=>{
+ const t=textbookScenario('#s2-c7');
+ assert.equal(t.count[1].textContent,'7 / 10');
+ assert.match(t.next[1].textContent,/食行動チェック/);
  t.next[1].click();
- assert.equal(t.location.destination,'./week-1-goal.html?from=textbook-step2&slide=goal');
+ assert.equal(t.location.destination,'./habit-intro.html?from=textbook-step2');
 });
 test('after the checklist, STEP2 and STEP3 advance to STEP4 food diary',()=>{
  const t=textbookScenario('#s2-c8');
@@ -201,6 +228,28 @@ test('after the checklist, STEP2 and STEP3 advance to STEP4 food diary',()=>{
  assert.match(t.next[3].textContent,/記録へ/);
  t.next[3].click();
  assert.equal(t.location.destination,'./record.html?day=1');
+});
+test('saved goal is shown on measurements page without modifying daily logs',()=>{
+ const ids=['recordDate','bodyWeight','bodyWaist','saveStatus','historyRows','metricForm',
+   'recordTitle','back','startHeight','startWeight','startBMI','saveBaseline','baselineStatus',
+   'goalStartWeight','goalTargetWeight','goalLossWeight','goalLossRate','goalHistoryStatus'];
+ const nodes=Object.fromEntries(ids.map(id=>[id,new MockEl('input')]));
+ const daily={'2026-11-22':{weight:78,waist:85}};
+ const storage=new Map([
+  ['equineris:registration:v1',JSON.stringify({heightCm:'170',weightKg:'80'})],
+  ['equineris:week1:goal:v1',JSON.stringify({startWeightKg:80,goalWeightKg:73.6,selectedRatePercent:8,lossKg:6.4})],
+  ['equineris:body-measurements:v1',JSON.stringify(daily)]
+ ]);
+ vm.runInNewContext(scriptOf(source['measurements.html'])[0],{
+  document:{referrer:'',getElementById:id=>nodes[id],createElement:tag=>new MockEl(tag)},
+  localStorage:{getItem:key=>storage.get(key)??null,setItem:(key,v)=>storage.set(key,String(v))},
+  window:{confirm(){return false;}},location:{origin:'https://example.test'},URL,Date
+ });
+ assert.equal(nodes.goalStartWeight.textContent,'80.0 kg');
+ assert.equal(nodes.goalTargetWeight.textContent,'73.6 kg');
+ assert.equal(nodes.goalLossWeight.textContent,'6.4 kg');
+ assert.equal(nodes.goalLossRate.textContent,'8%');
+ assert.equal(storage.get('equineris:body-measurements:v1'),JSON.stringify(daily));
 });
 test('STEP5 can advance; STEP6 correctly finishes',()=>{
  const t=textbookScenario('#s5-c16');
