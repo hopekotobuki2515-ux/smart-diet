@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<title>SMART Diet｜6ステップ教材・検索・読み返し | EQUINERIS</title>
+<meta name="description" content="SMART Dietの6ステップを縦スクロールと横スワイプで学べる教材。キーワード検索、お気に入り、前回の続きからの閲覧に対応。">
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;color-scheme:light;--ink:#183e38;--sub:#345e53;--muted:#65796f;--green:#285d4a;--gold:#a6844e;--edge:#dce7dc;--paper:#fffdfa}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:66px;-webkit-text-size-adjust:100%;overflow-x:hidden}
+body{margin:0;min-width:280px;overflow-x:hidden;background:#e8eee8;color:var(--ink)}
+a,button,input{font:inherit}button{cursor:pointer}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+[hidden]{display:none!important}
+.wrap{width:100%;max-width:540px;min-height:100svh;margin:0 auto;padding:0 12px max(55px,env(safe-area-inset-bottom));background:linear-gradient(160deg,#fffdf8,#f3f8f2);box-shadow:0 8px 35px #204b3110}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 -12px;padding:10px 17px;background:#fffdf9;border-bottom:1px solid var(--edge)}
+.back{font-size:13px;font-weight:700;color:var(--sub);text-decoration:none;min-height:40px;display:inline-flex;align-items:center}
+.brand{font-size:18px;letter-spacing:.09em;font-weight:850;margin:0}.brand span{color:var(--gold)}
+.intro{padding:18px 6px 8px;text-align:center}
+.eyebrow{font-size:10px;color:var(--gold);letter-spacing:.17em;font-weight:800;margin:0 0 7px}
+.intro h1{font-size:clamp(23px,6vw,28px);line-height:1.45;margin:0 0 11px;word-break:normal;overflow-wrap:break-word}
+.intro>p:last-child{font-size:14px;line-height:1.8;color:var(--sub);margin:0}
+.toolbox{background:#fff;border:1px solid var(--edge);border-radius:17px;padding:14px;margin:14px 0 20px}
+.toolbox h2{font-size:17px;margin:0 0 10px}
+.search-label{font-size:13px;font-weight:700;display:block;margin-bottom:7px}
+.search-input{width:100%;height:48px;border:1px solid #b7d0be;border-radius:11px;padding:9px 12px;background:#fcfffb;color:var(--ink);font-size:16px}
+.quick-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0 0}
+.quick-actions button{border:1px solid #adcbb6;border-radius:10px;background:#eff7ee;color:var(--green);font-size:12px;font-weight:750;padding:10px 5px;min-height:44px;white-space:normal;word-break:normal}
+.quick-actions button:disabled{color:var(--muted);background:#f7f8f4;border-color:var(--edge);cursor:default}
+.quick-actions button[aria-pressed="true"]{background:#295d48;color:#fff;border-color:#295d48}
+.storage-note,.help{font-size:11px;line-height:1.6;color:var(--muted);margin:10px 0 0}
+.result-panel{margin-top:12px;padding-top:12px;border-top:1px solid var(--edge)}
+.result-title{font-weight:800;margin:0 0 9px;font-size:14px}
+.result-list{display:flex;flex-direction:column;gap:7px;max-height:310px;overflow:auto}
+.result-link{width:100%;text-align:left;border-radius:10px;border:1px solid var(--edge);background:#fafdf9;min-height:52px;padding:10px 12px;color:var(--ink)}
+.result-link strong{display:block;font-size:14px;line-height:1.45;word-break:normal;overflow-wrap:break-word}
+.result-link span{display:block;font-size:11px;margin-bottom:2px;color:var(--muted)}
+.catalog-title{font-size:15px;margin:18px 4px 10px}
+.index-links{display:flex;flex-direction:column;gap:7px}
+.index-links a{display:flex;gap:11px;align-items:center;min-height:43px;padding:10px 12px;border-radius:11px;text-decoration:none;background:#f3f8f1;border:1px solid var(--edge);color:var(--ink);font-size:13px;font-weight:750}
+.index-links b{color:var(--gold);font-size:12px;min-width:56px;letter-spacing:.04em}
+.course-step{scroll-margin-top:14px;margin:20px 0 25px}
+.step-heading{display:flex;align-items:flex-start;gap:10px;margin:0 3px 9px}
+.step-num{flex:0 0 auto;min-width:62px;text-align:center;border:1px solid #d7c8ad;color:#8e6d3d;background:#fffaf0;font-size:11px;font-weight:850;padding:6px;border-radius:9px;letter-spacing:.07em}
+.step-heading h2{font-size:clamp(18px,5vw,21px);line-height:1.4;margin:0;min-width:0;word-break:normal;overflow-wrap:break-word}
+.step-instruction{margin:0 2px 10px;font-size:12px;color:var(--muted);line-height:1.7}
+.track{display:flex;align-items:stretch;gap:0;max-width:100%;width:100%;position:relative;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scroll-padding:0;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.track::-webkit-scrollbar{display:none}
+.lesson-card{scroll-snap-align:start;scroll-snap-stop:always;flex:0 0 100%;min-width:0;width:100%;max-width:100%;min-height:540px;display:flex;flex-direction:column;gap:13px;border:1px solid #d5e1d5;background:var(--paper);border-radius:18px;padding:18px 17px;overflow:visible;word-break:normal;overflow-wrap:break-word}
+.card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.card-meta{font-size:11px;font-weight:700;color:var(--muted);padding-top:7px}
+.bookmark{flex:0 0 auto;min-height:37px;border:1px solid #d1ddcb;border-radius:9px;background:#f5f8f1;color:var(--green);padding:6px 9px;font-size:12px;font-weight:750}
+.bookmark[aria-pressed="true"]{background:#fdf0d7;color:#795c30;border-color:#dfc494}
+.lesson-card h3{font-size:clamp(18px,5.1vw,21px);line-height:1.5;margin:0;font-weight:850;writing-mode:horizontal-tb;text-orientation:mixed;white-space:normal;word-break:normal;overflow-wrap:break-word}
+.lesson-body{font-size:16px;line-height:1.85;color:var(--sub);margin:0;letter-spacing:0;writing-mode:horizontal-tb;text-orientation:mixed;white-space:normal;word-break:normal;overflow-wrap:break-word;text-wrap:pretty}
+.visual{flex:1 0 auto;min-height:130px;border-radius:13px;background:#eef5ed;border:1px solid #e1ebdf;padding:14px;display:flex;flex-direction:column;justify-content:center;gap:9px}
+.visual-title{font-size:13px;font-weight:800;color:var(--green);line-height:1.55}
+.visual-row{border:1px solid #e3e9e0;background:#fffefd;border-radius:9px;min-height:40px;display:flex;gap:8px;align-items:center;padding:9px 12px;font-size:14px;line-height:1.6}
+.visual-row:before{content:"•";font-weight:900;color:var(--gold);font-size:17px}
+.message-card .visual{flex:1;align-items:center;min-height:72px}.message-card .visual-title{font-size:15px}
+.slide-nav{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;margin:9px 0}
+.slide-nav button{min-height:44px;border:1px solid #b7ccb7;color:var(--green);border-radius:10px;background:#fff;font-size:13px;font-weight:700;padding:9px}
+.slide-nav button:disabled{opacity:.42;cursor:default}
+.slide-nav .next{background:#285d4a;color:#fff;border-color:#285d4a}
+.slide-nav .counter{font-size:12px;font-weight:800;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.step-footer{display:flex;justify-content:flex-end;margin:0 4px}.step-footer a{color:var(--sub);font-size:12px;min-height:40px;display:inline-flex;align-items:center;text-decoration:underline}
+.end-card{border-radius:17px;border:1px solid #d7e4d6;padding:21px 14px 24px;text-align:center;background:#fffdf9;margin:20px 0}
+.end-card h2{font-size:20px}.end-card p{font-size:14px;line-height:1.85}
+.end-card a{color:var(--green);font-size:14px;font-weight:700}
+.bottom-note{text-align:center;color:var(--muted);font-size:11px;line-height:1.8;padding:0 0 20px}
+.to-top{position:fixed;right:max(12px,calc((100vw - 540px)/2 + 12px));bottom:max(14px,env(safe-area-inset-bottom));z-index:10;display:flex;justify-content:center;align-items:center;background:#285d4a;color:#fff;text-decoration:none;border-radius:40px;min-width:76px;min-height:43px;padding:7px 11px;box-shadow:0 3px 12px #102c2550;font-size:12px;font-weight:700}
+@media(max-width:340px){.wrap{padding-inline:8px}.lesson-card{padding:14px 12px;min-height:520px}.lesson-body{font-size:16px;line-height:1.75}.step-heading h2{font-size:18px}.toolbox{padding:10px}}
+@media(min-width:700px){.wrap{border-left:1px solid var(--edge);border-right:1px solid var(--edge)}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.track{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<main class="wrap" id="top">
+ <nav class="topbar" aria-label="メインナビゲーション">
+  <a href="./learning.html" class="back">〈 12週間の学びに戻る</a>
+  <span class="brand" aria-label="EQUINERIS">EQUI<span>NERIS</span></span>
+ </nav>
+ <header class="intro">
+  <p class="eyebrow">SMART DIET · TEXTBOOK LIBRARY</p>
+  <h1>SMART Diet 教材を読み返す</h1>
+  <p>6つのステップは縦に、各ステップのカードは横にスワイプ。好きなところから、必要な内容だけ確認できます。</p>
+ </header>
+ <section class="toolbox" aria-labelledby="findTitle">
+  <h2 id="findTitle">知りたいことを探す</h2>
+  <label for="searchInput" class="search-label">キーワードで教材を検索</label>
+  <input id="searchInput" class="search-input" type="search" autocomplete="off" placeholder="例：BMI、食品群、外食、ウォーキング">
+  <div class="quick-actions">
+    <button type="button" id="favoritesButton" aria-pressed="false">☆ お気に入りを見る</button>
+    <button type="button" id="resumeButton" disabled>前回の続きから</button>
+  </div>
+  <p id="storageStatus" class="storage-note" role="status">お気に入りと前回の閲覧位置は、このブラウザに保存されます。別端末とは同期しません。</p>
+  <div id="resultPanel" class="result-panel" hidden>
+   <p class="result-title" id="resultTitle" aria-live="polite"></p>
+   <div id="resultList" class="result-list"></div>
+  </div>
+  <h3 class="catalog-title">ステップから選ぶ</h3>
+  <nav id="stepIndex" class="index-links" aria-label="ステップ目次"></nav>
+ </section>
+ <div id="steps" aria-live="off"></div>
+ <section class="end-card" aria-labelledby="endTitle">
+  <p class="eyebrow">12-WEEK PROGRAM</p>
+  <h2 id="endTitle">学びは何度でも振り返れます</h2>
+  <p>必要なときに、好きなカードへ戻ってください。12週間の学びや食事記録の機能は、これまでどおり別のページに残しています。</p>
+  <a href="./learning.html">12週間の学びへ戻る</a>
+ </section>
+ <p class="bottom-note">疾患別の内容は一般的な食生活の学習資料です。個別の診断・治療ではありません。教材に掲載された古い運動指標は当時の資料として扱っています。</p>
+</main>
+<a class="to-top" href="#top" aria-label="教材の目次と検索へ戻る">↑ 目次</a>
+<noscript>教材の表示・検索にはJavaScriptを有効にしてください。</noscript>
+<script src="./textbook-data.js"></script>
+<script>
+'use strict';
+(()=>{
+ const data=window.SMART_DIET_TEXTBOOK;
+ const root=document.getElementById('steps');
+ const index=document.getElementById('stepIndex');
+ const search=document.getElementById('searchInput');
+ const favView=document.getElementById('favoritesButton');
+ const resume=document.getElementById('resumeButton');
+ const panel=document.getElementById('resultPanel');
+ const resultTitle=document.getElementById('resultTitle');
+ const resultList=document.getElementById('resultList');
+ const status=document.getElementById('storageStatus');
+ if(!Array.isArray(data)||data.length!==6||data.some((s,i)=>s.id!==i+1||!Array.isArray(s.cards)||!s.cards.length)){
+  root.textContent='教材データを読み込めませんでした。再読み込みしてください。';return;
+ }
+ const CARDS=new Map();
+ for(const s of data)for(let i=0;i<s.cards.length;i++){
+  const c=s.cards[i];if(CARDS.has(c.id))throw Error('教材カードIDが重複しています: '+c.id);
+  CARDS.set(c.id,{step:s,index:i,card:c});
+ }
+ const FAV_KEY='equineris:textbook:favorites:v1';
+ const LAST_KEY='equineris:textbook:last:v1';
+ const saved=(key,fallback)=>{
+  try{const item=localStorage.getItem(key);return item===null?fallback:JSON.parse(item)}
+  catch(e){return fallback}
+ };
+ let favorites=new Set((Array.isArray(saved(FAV_KEY,[]))?saved(FAV_KEY,[]):[]).filter(k=>CARDS.has(k)));
+ let last=saved(LAST_KEY,null);if(!CARDS.has(last))last=null;
+ let resultsMode='none';
+ const controls=new Map();
+ const create=(tag,cls,text)=>{
+  const e=document.createElement(tag);
+  if(cls)e.className=cls;
+  if(text!==undefined)e.textContent=text;
+  return e;
+ };
+ const persistent=(key,value)=>{
+  try{localStorage.setItem(key,JSON.stringify(value));return true}
+  catch(e){status.textContent='このブラウザでは保存できません。閲覧は続けられますが、再読み込み後に状態が残らない場合があります。';return false}
+ };
+ const normalize=s=>String(s).normalize('NFKC').toLocaleLowerCase('ja-JP').replace(/\s+/g,' ').trim();
+ const jump=(id)=>{
+  const found=CARDS.get(id);if(!found)return;
+  const state=controls.get(found.step.id);if(!state)return;
+  state.track.scrollTo({left:found.index*state.track.clientWidth,behavior:'auto'});
+  update(found.step.id,found.index);
+  state.section.scrollIntoView({block:'start',behavior:'smooth'});
+  last=id;persistent(LAST_KEY,last);
+  setResume();
+  if(history.replaceState)history.replaceState(null,'','#'+id);
+ };
+ const setResume=()=>{
+  if(!last||!CARDS.has(last)){resume.disabled=true;resume.textContent='前回の続きから';return;}
+  const f=CARDS.get(last);
+  resume.disabled=false;
+  resume.textContent='前回：STEP '+f.step.id+'・'+(f.index+1)+'枚目へ';
+ };
+ const update=(stepId,idx)=>{
+  const s=controls.get(stepId);if(!s)return;
+  const clamped=Math.max(0,Math.min(idx,s.cards.length-1));
+  if(s.active===clamped)return;
+  s.active=clamped;
+  s.counter.textContent=(clamped+1)+' / '+s.cards.length;
+  s.prev.disabled=clamped===0;
+  s.next.disabled=clamped===s.cards.length-1;
+ };
+ function remember(id){if(!CARDS.has(id))return;last=id;persistent(LAST_KEY,last);setResume();}
+ function renderResults(){
+  resultList.replaceChildren();
+  const q=normalize(search.value);
+  const mode=resultsMode;
+  if(mode!=='favorites'&&!q){panel.hidden=true;return;}
+  panel.hidden=false;
+  const terms=q.split(' ').filter(Boolean);
+  const found=[];
+  for(const [id,entry] of CARDS){
+   if(mode==='favorites'&&!favorites.has(id))continue;
+   if(mode!=='favorites'){
+    const c=entry.card;
+    const text=normalize(entry.step.title+' '+c.tag+' '+c.title+' '+c.body+' '+c.visualTitle+' '+c.points.join(' '));
+    if(!terms.every(t=>text.includes(t)))continue;
+   }
+   found.push({id,entry});
+  }
+  resultTitle.textContent=(mode==='favorites'?'お気に入り':'検索結果')+'：'+found.length+'件';
+  if(!found.length){
+   resultList.append(create('p','help',mode==='favorites'?'保存したカードはまだありません。':'該当する内容が見つかりませんでした。'));
+   return;
+  }
+  for(const {id,entry} of found){
+   const button=create('button','result-link');button.type='button';
+   button.append(create('span','', 'STEP '+entry.step.id+' / '+(entry.index+1)+'枚目'));
+   button.append(create('strong','',entry.card.title));
+   button.addEventListener('click',()=>jump(id));
+   resultList.append(button);
+  }
+ }
+ const updateFavoriteBtns=()=>{
+  for(const [id,entry] of CARDS){
+   if(!entry.bookmark)continue;
+   const isOn=favorites.has(id);
+   entry.bookmark.setAttribute('aria-pressed',String(isOn));
+   entry.bookmark.textContent=isOn?'★ 保存済み':'☆ お気に入り';
+   entry.bookmark.setAttribute('aria-label',entry.card.title+(isOn?'をお気に入りから外す':'をお気に入りに保存する'));
+  }
+ };
+ for(const s of data){
+  const jumpLink=create('a','');
+  jumpLink.href='#step-'+s.id;
+  jumpLink.append(create('b','', 'STEP '+String(s.id).padStart(2,'0')));
+  jumpLink.append(create('span','',s.title));
+  index.append(jumpLink);
+  const section=create('section','course-step');section.id='step-'+s.id;
+  const heading=create('div','step-heading');heading.append(create('span','step-num','STEP '+String(s.id).padStart(2,'0')));
+  const title=create('h2','',s.title);heading.append(title);
+  section.append(heading);
+  section.append(create('p','step-instruction','左右にスワイプしてカードを読む／全'+s.cards.length+'枚'));
+  const track=create('div','track');track.setAttribute('aria-label','ステップ'+s.id+'の説明カード');track.setAttribute('role','region');track.tabIndex=0;
+  s.cards.forEach((c,i)=>{
+   const article=create('article','lesson-card'+(c.tag==='村田健作からのメッセージ'?' message-card':''));article.id=c.id;article.setAttribute('aria-label','STEP '+s.id+'：'+(i+1)+'枚目・'+c.title);
+   const head=create('div','card-head');
+   head.append(create('span','card-meta',String(i+1).padStart(2,'0')+' / '+String(s.cards.length).padStart(2,'0')+'　'+c.tag));
+   const bookmark=create('button','bookmark');bookmark.type='button';
+   bookmark.addEventListener('click',()=>{
+    if(favorites.has(c.id))favorites.delete(c.id);else favorites.add(c.id);
+    persistent(FAV_KEY,[...favorites]);updateFavoriteBtns();
+    if(resultsMode==='favorites')renderResults();
+    remember(c.id);
+   });
+   head.append(bookmark);article.append(head);
+   const h=create('h3','',c.title);article.append(h);
+   article.append(create('p','lesson-body',c.body));
+   const visual=create('section','visual');visual.setAttribute('aria-label',c.visualTitle||'図解・ポイント');
+   visual.append(create('div','visual-title',c.visualTitle||''));
+   for(const point of c.points)visual.append(create('div','visual-row',point));
+   article.append(visual);track.append(article);
+   CARDS.get(c.id).bookmark=bookmark;
+  });
+  section.append(track);
+  const nav=create('nav','slide-nav');nav.setAttribute('aria-label','ステップ'+s.id+'のカード移動');
+  const prev=create('button','prev','〈 前へ');prev.type='button';prev.disabled=true;
+  const counter=create('span','counter','1 / '+s.cards.length);counter.setAttribute('aria-live','polite');
+  const next=create('button','next','次へ 〉');next.type='button';
+  nav.append(prev,counter,next);section.append(nav);
+  const foot=create('div','step-footer');const a=create('a','','目次に戻る ↑');a.href='#top';foot.append(a);section.append(foot);
+  root.append(section);
+  const state={track,section,prev,next,counter,cards:s.cards,active:0};
+  controls.set(s.id,state);
+  const go=(i)=>{
+   const idx=Math.max(0,Math.min(i,s.cards.length-1));
+   track.scrollTo({left:idx*track.clientWidth,behavior:'smooth'});
+   update(s.id,idx);remember(s.cards[idx].id);
+  };
+  prev.addEventListener('click',()=>go(state.active-1));
+  next.addEventListener('click',()=>go(state.active+1));
+  track.addEventListener('keydown',e=>{
+   if(e.key==='ArrowRight'){e.preventDefault();go(state.active+1);}
+   if(e.key==='ArrowLeft'){e.preventDefault();go(state.active-1);}
+  });
+  let frame=0;
+  track.addEventListener('scroll',()=>{
+   if(frame)return;
+   frame=requestAnimationFrame(()=>{
+    frame=0;
+    const width=track.clientWidth;
+    if(!width)return;
+    const idx=Math.max(0,Math.min(Math.round(track.scrollLeft/width),s.cards.length-1));
+    if(idx!==state.active){update(s.id,idx);remember(s.cards[idx].id);}
+   });
+  },{passive:true});
+ }
+ updateFavoriteBtns();setResume();
+ search.addEventListener('input',()=>{resultsMode='search';favView.setAttribute('aria-pressed','false');renderResults()});
+ favView.addEventListener('click',()=>{
+  const toggle=resultsMode!=='favorites';resultsMode=toggle?'favorites':'none';
+  favView.setAttribute('aria-pressed',String(toggle));search.value='';renderResults();
+  if(toggle)panel.scrollIntoView({block:'nearest',behavior:'smooth'});
+ });
+ resume.addEventListener('click',()=>{if(last)jump(last)});
+ if(location.hash&&CARDS.has(location.hash.slice(1))){
+  window.addEventListener('load',()=>jump(location.hash.slice(1)),{once:true});
+ }
+})();
+</script>
+</body>
+</html>
