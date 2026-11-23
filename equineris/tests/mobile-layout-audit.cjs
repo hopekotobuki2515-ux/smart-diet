@@ -103,7 +103,7 @@ const ready=async(fn)=>{
    }
   }
   const outside=Math.max(root.scrollWidth,document.body.scrollWidth)-innerWidth;
-  return {width:innerWidth,docWidth:root.scrollWidth,outside:Math.round(outside),narrow:narrow.slice(0,15),narrowTotal:narrow.length,stacked:stacked.slice(0,10),stackedTotal:stacked.length,title:document.title,bodyText:document.body.innerText.trim().length,weekCards:document.querySelectorAll('#lessonTrack .point-slide').length,weekVisible:!document.querySelector('#lessonView')?.hidden,reader:document.documentElement.classList.contains('reader-mode'),targetVisible:!!(location.hash&&document.getElementById(location.hash.slice(1))?.getBoundingClientRect().height)};
+  return {width:innerWidth,docWidth:root.scrollWidth,outside:Math.round(outside),narrow:narrow.slice(0,15),narrowTotal:narrow.length,stacked:stacked.slice(0,10),stackedTotal:stacked.length,title:document.title,bodyText:document.body.innerText.trim().length,weekCards:document.querySelectorAll('#lessonTrack .point-slide').length,weekVisible:!document.querySelector('#lessonView')?.hidden,weekTextbookReady:(()=>{const entry=document.querySelector('#weekTextbookEntry'),items=[...document.querySelectorAll('#relatedTextbookLinks a')],panel=document.querySelector('#lessonTrack'),heading=document.querySelector('#lessonTitle');return !!(entry&&heading&&panel&&entry.getBoundingClientRect().top>=heading.getBoundingClientRect().top&&entry.getBoundingClientRect().bottom<=panel.getBoundingClientRect().top&&items.length>0&&items.every(x=>x.href.includes('textbook.html?week=')&&x.hash.length>2)&&entry.href===items[0].href);})(),reader:document.documentElement.classList.contains('reader-mode'),targetVisible:!!(location.hash&&document.getElementById(location.hash.slice(1))?.getBoundingClientRect().height)};
  })())`;
  for(const width of [320,390]){
   await cdp('Emulation.setDeviceMetricsOverride',{width,height:740,deviceScaleFactor:2,mobile:true});
@@ -116,6 +116,7 @@ const ready=async(fn)=>{
    const result=JSON.parse(await evalJS(probe));
    if(!result.title||result.bodyText<15)throw Error('Page content missing '+name+' at '+width+': '+JSON.stringify(result));
    if(name.startsWith('learning.html?week=')&&(result.weekCards!==4||!result.weekVisible))throw Error('Weekly cards did not render '+name+': '+JSON.stringify(result));
+   if(name.startsWith('learning.html?week=')&&!result.weekTextbookReady)throw Error('Missing or misplaced weekly reference textbook '+name+': '+JSON.stringify(result));
    if(name.startsWith('textbook.html#')&&(!result.reader||!result.targetVisible))throw Error('Textbook card did not render '+name+': '+JSON.stringify(result));
    if(result.outside>4||result.narrowTotal>0||result.stackedTotal>0){
     const item={file:name,width,outside:result.outside,narrow:result.narrow,narrowTotal:result.narrowTotal,stacked:result.stacked,stackedTotal:result.stackedTotal};
