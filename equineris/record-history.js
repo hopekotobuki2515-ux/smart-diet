@@ -2,6 +2,7 @@
 'use strict';
 (()=>{
  const S1='equineris:paper-first3:v1:';
+ const S1_DATE='equineris:diary-step1:v1:entry:';
  const S2='equineris:diary-step2:v1:';
  const S3='equineris:diary-step3:v1:';
  const BODY='equineris:body-measurements:v1';
@@ -27,10 +28,10 @@
  };
  const photoKey=(source,key)=>{
   if(typeof key!=='string')return null;
-  const match=source===1?/^([1-3]):(breakfast|lunch|dinner|snack)$/.exec(key):
+  const match=source===1?/^([1-3]|\d{4}-\d{2}-\d{2}):(breakfast|lunch|dinner|snack)$/.exec(key):
    /^(slot[1-3]|\d{4}-\d{2}-\d{2}):(breakfast|lunch|dinner|snack)$/.exec(key);
   if(!match)return null;
-  const id=source===1?'slot'+match[1]:match[1];
+  const id=source===1&&/^[1-3]$/.test(match[1])?'slot'+match[1]:match[1];
   return (/^slot[1-3]$/.test(id)||dateValid(id))?{id,meal:match[2]}:null;
  };
  function collect(storage,photos={},archives=[]){
@@ -67,6 +68,9 @@
    if(k.startsWith(S1)){
     const match=/^([1-3]):(.+)$/.exec(k.slice(S1.length));
     if(match&&nonEmpty(1,match[2],read(k)))ensure('slot'+match[1],1);
+   }else if(k.startsWith(S1_DATE)){
+    const match=/^(\d{4}-\d{2}-\d{2}):(.+)$/.exec(k.slice(S1_DATE.length));
+    if(match&&dateValid(match[1])&&nonEmpty(1,match[2],read(k)))ensure(match[1],1);
    }else{
     for(const [prefix,stage] of [[S2,2],[S3,3]]){
      if(!k.startsWith(prefix+'entry:'))continue;
@@ -115,7 +119,13 @@
  }
  function summary(storage,row){
   const get=(stage,name)=>{
-   if(stage===1)return row.slot?storage.getItem(S1+row.slot+':'+name):null;
+   if(stage===1){
+     if(row.date){
+      const dateVal=storage.getItem(S1_DATE+row.date+':'+name);
+      if(dateVal!==null)return dateVal;
+     }
+     return row.slot?storage.getItem(S1+row.slot+':'+name):null;
+    }
    const prefix=stage===2?S2:S3;
    const ids=[row.date,...row.ids[stage],row.slot?'slot'+row.slot:null].filter(Boolean);
    for(const id of [...new Set(ids)]){
@@ -152,10 +162,9 @@
   return {meals:mealData,measurement:row.measurement};
  }
  function editUrl(step,row){
-  if(step===1)return row.slot?'./record.html?day='+row.slot:null;
-  const base=step===2?'./diary-step2.html':'./diary-step3.html';
-  if(row.slot)return base+'?day='+row.slot;
-  return row.date?base+'?date='+encodeURIComponent(row.date):null;
+  if(![1,2,3].includes(step))return null;
+  if(row.date)return './record.html?stage='+step+'&date='+encodeURIComponent(row.date);
+  return row.slot?'./record.html?stage='+step+'&day='+row.slot:null;
  }
  // Expose pure read-only model functions for regression tests.
  window.EquinerisRecordHistory=Object.freeze({collect,summary,editUrl,dateValid});
