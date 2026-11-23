@@ -8,8 +8,8 @@ const vm=require('node:vm');
 const root=path.resolve(__dirname,'..');
 const read=name=>fs.readFileSync(path.join(root,name),'utf8');
 const source=Object.fromEntries(
- ['setup.html','textbook.html','textbook-data.js','goal-calculator.js','week-1-goal.html',
-  'habit-intro.html','habit-check.html','habit-check-card.js','record.html','record-unified.js','diary-step1.html','measurements.html','diary-step2.html',
+ ['index.html','setup.html','textbook.html','textbook-data.js','goal-calculator.js','week-1-goal.html',
+  'habit-intro.html','habit-check.html','habit-check-card.js','record.html','record-unified.js','record-weight.js','diary-step1.html','measurements.html','diary-step2.html',
   'diary-step3.html','diary-step2.js','diary-step3.js','trainer-link.js','weight-trend.js',
   'record-history.html','record-history.js']
   .map(name=>[name,read(name)])
@@ -207,22 +207,22 @@ test('single recording URL switches STEP1, STEP2, STEP3 and history without navi
  vm.runInNewContext(source['record-unified.js'],{
   window,document,localStorage,history,location,Date,URL,URLSearchParams,MutationObserver:class{}
  });
- assert.equal(frame.getAttribute('src'),'./diary-step1.html?date=2026-11-21&ui=20261123-four-groups-restored');
+ assert.equal(frame.getAttribute('src'),'./diary-step1.html?date=2026-11-21&ui=20261123-record-only-weight');
  assert.equal(buttons[0].attrs['aria-selected'],'true');
  buttons[1].fire('click');
- assert.equal(frame.getAttribute('src'),'./diary-step2.html?date=2026-11-21&ui=20261123-four-groups-restored');
+ assert.equal(frame.getAttribute('src'),'./diary-step2.html?date=2026-11-21&ui=20261123-record-only-weight');
  buttons[2].fire('click');
- assert.equal(frame.getAttribute('src'),'./diary-step3.html?date=2026-11-21&ui=20261123-four-groups-restored');
+ assert.equal(frame.getAttribute('src'),'./diary-step3.html?date=2026-11-21&ui=20261123-record-only-weight');
  assert.equal(values.get('equineris:diary:input-stage:v1'),'3');
  buttons[3].fire('click');
- assert.equal(frame.getAttribute('src'),'./record-history.html?ui=20261123-four-groups-restored');
+ assert.equal(frame.getAttribute('src'),'./record-history.html?ui=20261123-record-only-weight');
  assert.equal(dateBox.hidden,true);
  assert.equal(values.get('equineris:diary:input-stage:v1'),'3','history should not reset input stage');
  buttons[0].fire('click');
- assert.equal(frame.getAttribute('src'),'./diary-step1.html?date=2026-11-21&ui=20261123-four-groups-restored');
+ assert.equal(frame.getAttribute('src'),'./diary-step1.html?date=2026-11-21&ui=20261123-record-only-weight');
  assert.equal(dateBox.hidden,false);
  date.value='2026-12-01';date.fire('change');
- assert.equal(frame.getAttribute('src'),'./diary-step1.html?date=2026-12-01&ui=20261123-four-groups-restored');
+ assert.equal(frame.getAttribute('src'),'./diary-step1.html?date=2026-12-01&ui=20261123-record-only-weight');
  assert.equal(values.get('equineris:diary:selected-date:v1'),'2026-12-01');
  assert.ok(urls.every(url=>url.startsWith('/smart-diet/equineris/record.html?')));
  const legacy=new Map([['equineris:paper-first3:v1:1:breakfast-meal','旧写真の記録']]);
@@ -232,10 +232,10 @@ test('single recording URL switches STEP1, STEP2, STEP3 and history without navi
   getElementById:id=>({recordDate:date2,dateBox:box2,recordStatus:status2,recordFrame:frame2})[id]};
  vm.runInNewContext(source['record-unified.js'],{window,document:doc2,localStorage:store,history,
   location:{...location,search:'?day=1'},Date,URL,URLSearchParams,MutationObserver:class{}});
- assert.equal(frame2.getAttribute('src'),'./diary-step1.html?day=1&ui=20261123-four-groups-restored','old three-day records must remain readable');
+ assert.equal(frame2.getAttribute('src'),'./diary-step1.html?day=1&ui=20261123-record-only-weight','old three-day records must remain readable');
  assert.equal(date2.value,'','undated legacy slot must not be assigned a fabricated date');
  date2.value='2026-11-29';date2.fire('change');
- assert.equal(frame2.getAttribute('src'),'./diary-step1.html?date=2026-11-29&ui=20261123-four-groups-restored');
+ assert.equal(frame2.getAttribute('src'),'./diary-step1.html?date=2026-11-29&ui=20261123-record-only-weight');
  assert.equal(legacy.get('equineris:paper-first3:v1:1:breakfast-meal'),'旧写真の記録');
  const onlyPhotos=new Map();
  const photoStore={getItem:k=>onlyPhotos.get(k)??null,setItem:(k,v)=>onlyPhotos.set(k,String(v)),
@@ -247,7 +247,7 @@ test('single recording URL switches STEP1, STEP2, STEP3 and history without navi
   window,document:doc3,localStorage:photoStore,history,
   location:{...location,search:'?stage=1&day=1'},Date,URL,URLSearchParams,MutationObserver:class{}
  });
- assert.equal(frame3.getAttribute('src'),'./diary-step1.html?day=1&ui=20261123-four-groups-restored',
+ assert.equal(frame3.getAttribute('src'),'./diary-step1.html?day=1&ui=20261123-record-only-weight',
   'photo-only old slot must be accessible from history, even without a localStorage text key');
 });
 test('embedded STEP forms route links within the same parent page and lock during photo saving',()=>{
@@ -280,7 +280,7 @@ test('embedded STEP forms route links within the same parent page and lock durin
  vm.runInNewContext(source['record-unified.js'],{
   window,document:doc,localStorage:storage,history,location,Date,URL,URLSearchParams,MutationObserver:FakeObserver
  });
- assert.equal(frame.getAttribute('src'),'./diary-step1.html?date=2026-11-21&ui=20261123-four-groups-restored');
+ assert.equal(frame.getAttribute('src'),'./diary-step1.html?date=2026-11-21&ui=20261123-record-only-weight');
  frame.contentDocument=childDoc;
  frame.contentWindow={location:{href:'https://example.test/smart-diet/equineris/diary-step1.html?date=2026-11-21'}};
  frame.fire('load');
@@ -303,7 +303,7 @@ test('embedded STEP forms route links within the same parent page and lock durin
   target:{closest:()=>link},preventDefault(){this.defaultPrevented=true}};
  for(const fn of childEvents.click)fn(event);
  assert.equal(event.defaultPrevented,true);
- assert.equal(frame.getAttribute('src'),'./record-history.html?ui=20261123-four-groups-restored');
+ assert.equal(frame.getAttribute('src'),'./record-history.html?ui=20261123-record-only-weight');
  assert.equal(dateBox.hidden,true);
  assert.equal(location.pathname,'/smart-diet/equineris/record.html','URL pathname remains unchanged');
 });
@@ -321,6 +321,96 @@ test('review points match STEP3 food master; mismatched or missing amounts remai
   assert.equal(calculate(changed,master),null,'must not fabricate historical points');
  assert.match(source['record-history.js'],/この日の記録済み点数/);
  assert.match(source['record-history.js'],/fetch\('\.\.\/food-master\.json'/);
+});
+test('record-only entry skips registration, while the 12-week program route remains',()=>{
+ const opening=source['index.html'],unified=source['record.html'];
+ assert.match(opening,/id="recordOnlyLink" href="\.\/record\.html\?stage=1&amp;mode=record-only"/);
+ assert.match(opening,/12週間プログラムを始める/);
+ assert.match(opening,/start:'\.\/program-intro\.html'/);
+ assert.match(unified,/id="recordBackLink"/);
+ assert.match(unified,/id="quickWeightForm"/);
+ assert.match(unified,/id="quickWeight"/);
+ assert.match(unified,/record-weight\.js\?v=/);
+ assert.match(unified,/href="\.\/measurements\.html"/);
+});
+test('record-only mode survives same-page tab changes and hides mandatory program continuation',()=>{
+ class Control{
+  constructor(view){this.dataset={view};this.attributes={};this.handlers={};this.hidden=false;this.value='';this.textContent='';this.href='';this.disabled=false;}
+  addEventListener(type,fn){this.handlers[type]=fn;}
+  setAttribute(key,value){this.attributes[key]=String(value);}
+  getAttribute(key){return this.attributes[key]??null;}
+  fire(type){this.handlers[type]?.();}
+ }
+ const tabs=['1','2','3','history'].map(v=>new Control(v));
+ const date=new Control(),box=new Control(),status=new Control(),frame=new Control();
+ const back=new Control(),next=new Control(),quick=new Control();
+ const doc={querySelectorAll:()=>tabs,getElementById:id=>({
+  recordDate:date,dateBox:box,recordStatus:status,recordFrame:frame,
+  recordBackLink:back,nextLessonLink:next,quickWeightSection:quick
+ })[id]};
+ const state=new Map();
+ const storage={getItem:key=>state.get(key)??null,setItem:(key,val)=>state.set(key,String(val)),
+  get length(){return state.size},key:index=>[...state.keys()][index]};
+ const historyUrls=[],history={replaceState:(a,b,uri)=>historyUrls.push(uri)};
+ const location={pathname:'/smart-diet/equineris/record.html',
+  search:'?stage=1&mode=record-only&date=2026-11-23',origin:'https://example.test'};
+ vm.runInNewContext(source['record-unified.js'],{
+  window:{addEventListener(){}},document:doc,localStorage:storage,
+  history,location,Date,URL,URLSearchParams,MutationObserver:class{}
+ });
+ assert.equal(back.href,'./index.html');
+ assert.equal(back.textContent,'〈 はじめの画面へ');
+ assert.match(frame.getAttribute('src'),/diary-step1\.html\?date=2026-11-23/);
+ tabs[2].fire('click');
+ assert.equal(next.hidden,true,'record-only users must not be forced into lessons');
+ assert.equal(quick.hidden,false);
+ tabs[3].fire('click');
+ assert.equal(quick.hidden,true,'review does not need the edit-weight form');
+ tabs[1].fire('click');
+ assert.equal(quick.hidden,false);
+ assert.ok(historyUrls.every(u=>u.includes('mode=record-only')),'mode must remain in URL');
+});
+test('meal-page quick weight input saves by day without overwriting waist or corrupt data',()=>{
+ class El{
+  constructor(){this.value='';this.disabled=false;this.textContent='';this.dataset={};this.handlers={};}
+  addEventListener(t,fn){this.handlers[t]=fn;}
+  checkValidity(){return true;}
+  fire(t){return this.handlers[t]?.({preventDefault(){}});}
+ }
+ const date=new El(),form=new El(),input=new El(),button=new El(),status=new El();
+ date.value='2026-11-23';
+ const doc={getElementById:id=>({
+  recordDate:date,quickWeightForm:form,quickWeight:input,
+  quickWeightSave:button,quickWeightStatus:status
+ })[id]};
+ const values=new Map([['equineris:body-measurements:v1',JSON.stringify({
+  '2026-11-23':{waist:82,weight:75.1},
+  '2026-11-22':{weight:75.5,waist:83}
+ })]]);
+ const storage={getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,String(v))};
+ const win={addEventListener(){}};
+ vm.runInNewContext(source['record-weight.js'],{window:win,document:doc,localStorage:storage,Date});
+ const all=()=>JSON.parse(storage.getItem('equineris:body-measurements:v1'));
+ assert.equal(input.value,'75.1','existing body weight must load for selected day');
+ input.value='74.6';form.fire('submit');
+ assert.equal(all()['2026-11-23'].weight,74.6);
+ assert.equal(all()['2026-11-23'].waist,82,'existing waist remains untouched');
+ assert.equal(all()['2026-11-22'].weight,75.5,'other dates remain untouched');
+ date.value='2026-11-24';date.fire('change');
+ assert.equal(input.value,'','new date must not inherit yesterday weight');
+ input.value='73.4';form.fire('submit');
+ assert.equal(all()['2026-11-24'].weight,73.4);
+ const before=storage.getItem('equineris:body-measurements:v1');
+ input.value='73.45';form.fire('submit');
+ assert.equal(storage.getItem('equineris:body-measurements:v1'),before,'invalid precision must not overwrite');
+ input.value='';form.fire('submit');
+ assert.equal(storage.getItem('equineris:body-measurements:v1'),before,'empty input must not erase');
+ date.value='2026-11-23';date.fire('change');
+ assert.equal(input.value,'74.6','switching back restores existing entry');
+ storage.setItem('equineris:body-measurements:v1','{damaged');
+ input.value='70';form.fire('submit');
+ assert.equal(storage.getItem('equineris:body-measurements:v1'),'{damaged','invalid JSON must not be overwritten');
+ assert.equal(status.dataset.error,'true');
 });
 test('food diary stays connected across three recording stages',()=>{
  assert.match(source['diary-step1.html'],/id="diaryStep2Link"/);
