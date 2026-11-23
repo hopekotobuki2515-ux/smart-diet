@@ -1037,11 +1037,11 @@ test('after the checklist, STEP2 and STEP3 advance to STEP4 food diary',()=>{
  const t=textbookScenario('#s2-c8');
  assert.equal(t.count[1].textContent,'11 / 13');
  t.next[1].click();t.next[1].click();t.next[1].click();
- assert.ok(t.sections[2].scrolled,'STEP3');
+ assert.equal(t.sections[2].hidden,false,'STEP3 is visible'); assert.equal(t.window.lastScroll?.top,0);
  for(let i=0;i<11;i++)t.next[2].click();
  assert.equal(t.next[2].disabled,false);
  t.next[2].click();
- assert.ok(t.sections[3].scrolled,'STEP4');
+ assert.equal(t.sections[3].hidden,false,'STEP4 is visible'); assert.equal(t.window.lastScroll?.top,0);
  for(let i=0;i<3;i++)t.next[3].click();
  assert.match(t.next[3].textContent,/記録へ/);
  t.next[3].click();
