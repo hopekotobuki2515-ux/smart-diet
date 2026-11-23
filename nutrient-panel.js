@@ -138,19 +138,19 @@ function cardForRow(row){
   const card=textNode('article','card nutrient-result');
   const top=textNode('div','nutrient-card-heading');
   top.append(textNode('h2','',row.f),textNode('span','nutrient-pill',row.n));
-  card.append(top,textNode('p','food-result-meta','書籍 '+row.p+'ページ・掲載順位 '+row.rk+'・'+row.id));
+  card.append(top,textNode('p','food-result-meta','書籍 '+row.p+'ページ・'+row.rk+'番目・'+row.id));
   const facts=textNode('div','nutrient-facts');
   note(facts,'書籍の100gあたり',shown(row.a,row.u));
   if(row.t==='比較'){
     note(facts,'調理法',shown(row.m));
     note(facts,'原料100gの調理後重量',shown(row.cw,'g'));
-    note(facts,'調理後の掲載値',shown(row.cv,row.u));
+    note(facts,'調理後の数値（書籍）',shown(row.cv,row.u));
   }else{
     note(facts,'書籍の1点重量',shown(row.w,'g'));
-    note(facts,'書籍の1点掲載値',shown(row.b,row.u));
+    note(facts,'書籍の1点あたりの数値',shown(row.b,row.u));
   }
   card.append(facts);
-  if(row.num)card.append(textNode('p','nutrient-warning','注意：書籍の1点掲載値と単純換算値に差異があります。原因未確定です。'));
+  if(row.num)card.append(textNode('p','nutrient-warning','注意：書籍の1点あたりの数値と単純換算値に差異があります。原因は確認中です。'));
   if(row.trace)card.append(textNode('p','nutrient-warning','注意：「微量」の表記を0として計算しません。'));
   if(row.mi===null){
     card.append(textNode('p','nutrient-warning','食品マスターの対応先は未確定。書籍に載っていない栄養素もゼロとは扱いません。'));
@@ -183,7 +183,7 @@ function pageRender(){
     guide.append(icon,copy);
     results.append(guide);
   }else if(!total){
-    results.append(textNode('div','card nutrient-empty','該当する掲載データがありません。条件を変えてください。'));
+    results.append(textNode('div','card nutrient-empty','該当するデータがありません。検索条件を変えてください。'));
   }else{
     results.append(...matched.slice(start,start+chunk).map(cardForRow));
   }
@@ -216,7 +216,7 @@ function selectRows(){
   const focus=activeFoodIndex===null?'':'「'+humanFoodName(masterFoods[activeFoodIndex])+'」の未承認候補：';
   const status=$n('nutrientStatus');
   status.hidden=!hasInput;
-  if(hasInput)status.textContent=focus+matched.length+'行見つかりました。数値は書籍掲載値、食品マスターとの対応候補は未承認です。'+sortNote;
+  if(hasInput)status.textContent=focus+matched.length+'行見つかりました。数値は書籍に記載されたものです。食品マスターとの対応は確認中です。'+sortNote;
   pageRender();
 }
 function clearFocus(){
@@ -232,7 +232,7 @@ function showFoodNutrients(index){
   $n('nutrientKeyword').value='';
   const food=masterFoods[index];
   $n('nutrientFocusTitle').textContent=humanFoodName(food)+' ／ 1点＝'+food.gramsPerPoint+'g';
-  $n('nutrientFocusHint').textContent='この食品に対する書籍の栄養素はすべて対応未承認です。掲載のない栄養素は「0」ではありません。';
+  $n('nutrientFocusHint').textContent='この食品と書籍の栄養素データの対応は確認中です。書籍に記載がない栄養素の量も、0とは限りません。';
   $n('nutrientFocus').hidden=false;
   switchPane('nutrient');
   selectRows();
