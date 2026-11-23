@@ -118,7 +118,7 @@ a,button,input{font:inherit}button{cursor:pointer}
 .end-card a{color:var(--green);font-size:14px;font-weight:700}
 .bottom-note{text-align:center;color:var(--muted);font-size:11px;line-height:1.8;padding:0 0 20px}
 .to-top{position:fixed;right:max(12px,calc((100vw - 540px)/2 + 12px));bottom:max(14px,env(safe-area-inset-bottom));z-index:10;display:flex;justify-content:center;align-items:center;background:#285d4a;color:#fff;text-decoration:none;border-radius:40px;min-width:76px;min-height:43px;padding:7px 11px;box-shadow:0 3px 12px #102c2550;font-size:12px;font-weight:700}
-@media(max-width:340px){.wrap{padding-inline:8px}.lesson-card{padding:14px 12px;min-height:520px}.lesson-body{font-size:16px;line-height:1.75}.step-heading h2{font-size:18px}.toolbox{padding:10px}}
+@media(max-width:340px){.wrap{padding-inline:8px}.lesson-card{padding:14px 12px;min-height:0}.lesson-body{font-size:16px;line-height:1.75}.step-heading h2{font-size:18px}.toolbox{padding:10px}}
 @media(min-width:701px){.wrap{max-width:860px}}
 @media(min-width:700px){.wrap{border-left:1px solid var(--edge);border-right:1px solid var(--edge)}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.track{scroll-behavior:auto}}
@@ -235,7 +235,7 @@ a,button,input{font:inherit}button{cursor:pointer}
   showStep(found.step.id);
   state.track.scrollTo({left:found.index*state.track.clientWidth,behavior:'auto'});
   update(found.step.id,found.index);
-  state.section.scrollIntoView({block:'start',behavior:'smooth'});
+  window.scrollTo({top:Math.max(0,state.section.getBoundingClientRect().top+window.scrollY-14),behavior:'auto'});
   last=id;persistent(LAST_KEY,last);
   setResume();
   if(history.replaceState)history.replaceState(null,'','#'+id);
@@ -407,7 +407,7 @@ a,button,input{font:inherit}button{cursor:pointer}
   const counter=create('span','counter','1 / '+s.cards.length);counter.setAttribute('aria-live','polite');
   const next=create('button','next','次へ 〉');next.type='button';
   nav.append(prev,counter,next);section.append(nav);
-  const foot=create('div','step-footer');const a=create('a','','目次に戻る ↑');a.href='#top';foot.append(a);section.append(foot);
+  const foot=create('div','step-footer');const a=create('a','','目次に戻る ↑');a.href='#top';a.addEventListener('click',event=>{event.preventDefault();window.scrollTo({top:0,behavior:'auto'});});foot.append(a);section.append(foot);
   root.append(section);
   const state={track,section,prev,next,counter,cards:s.cards,active:0};
   controls.set(s.id,state);
