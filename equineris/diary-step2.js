@@ -2,6 +2,7 @@
 (() => {
   const PREFIX = 'equineris:diary-step2:v1:';
   const OLD = 'equineris:paper-first3:v1:';
+  const DATED_STEP1 = 'equineris:diary-step1:v1:entry:';
   const meals = [['breakfast','朝食'],['lunch','昼食'],['dinner','夕食'],['snack','間食']];
   const $ = (selector, root=document) => root.querySelector(selector);
   const $$ = (selector, root=document) => [...root.querySelectorAll(selector)];
@@ -22,7 +23,11 @@
     for(let n=1;n<=3;n++) if(oldDayDate(n)===value) return n;
     return null;
   }
-  function oldValue(name) { const n=oldSlot(recordId); return n?read(OLD+n+':'+name):null; }
+  function oldValue(name) {
+   const n=oldSlot(recordId);
+   if(n)return read(OLD+n+':'+name);
+   return dateValid(recordId)?read(DATED_STEP1+recordId+':'+name):null;
+  }
   function inherited(name,oldName) { const own=read(currentKey(name)); return own===null?(oldName?oldValue(oldName)||'':''):own; }
   function dateToday() {
     const d=new Date();
@@ -294,7 +299,8 @@
     const own=await photoTransaction(photoDB,'readonly',s=>s.get(key+':'+meal));
     if(own&&own.file instanceof Blob)return own;
     const n=oldSlot(key);
-    return n?photoTransaction(oldDB,'readonly',s=>s.get(n+':'+meal)):null;
+    if(n)return photoTransaction(oldDB,'readonly',s=>s.get(n+':'+meal));
+    return dateValid(key)?photoTransaction(oldDB,'readonly',s=>s.get(key+':'+meal)):null;
   }
   function revokeUrls(list){for(const url of list)URL.revokeObjectURL(url);list.length=0;}
   async function refreshPhotos(){
