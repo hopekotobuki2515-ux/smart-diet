@@ -585,7 +585,7 @@ test('only one STEP is visible, with STEP1 last card advancing to STEP2 and STEP
  assert.match(t.next[0].textContent,/STEP 2へ/);
  t.next[0].click();
  assert.deepEqual(visible(),[2]);
- assert.equal(t.count[1].textContent,'1 / 11');
+ assert.equal(t.count[1].textContent,'1 / 12');
  assert.equal(t.window.lastScroll?.top,0);
  assert.equal(t.sections[0].hidden,true);
  assert.equal(t.next[1].textContent,'次へ 〉');
