@@ -89,7 +89,11 @@
     .record-only{display:flex;align-items:center;justify-content:center;width:100%;min-height:50px;margin-top:10px;
       padding:10px 12px;border:1px solid #8eaf97;border-radius:14px;background:#f5faf4;
       color:#24543f;font-size:15px;font-weight:750;line-height:1.5;text-decoration:none;text-align:center}
-    .record-only:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+    .record-only:focus-visible,.continue-program:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+    .continue-program{display:flex;align-items:center;justify-content:center;width:100%;min-height:50px;margin-top:10px;
+      padding:10px 12px;border:1px solid #7da48b;border-radius:14px;background:#eaf3e8;
+      color:#1e4b39;font-size:15px;font-weight:780;line-height:1.5;text-decoration:none;text-align:center}
+    .continue-note{font-size:11px;line-height:1.55;color:#54665f;margin:4px 0 0;text-align:center}
     .record-caption{margin:5px 0 0;color:#54665f;font-size:11px;line-height:1.55;text-align:center}
     .arrow { position: absolute; right: 22px; color: #e0c89d; font-size: 25px; line-height: 1; }
     .login { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; margin-top: 18px; border: 0; background: none; padding: 11px 13px; color: #315a4a; font-size: 14px; font-weight: 650; text-decoration: underline; text-decoration-color: #a6b7a7; text-underline-offset: 5px; }
@@ -181,6 +185,8 @@
       </header>
       <div class="actions">
         <button class="start" id="startButton" type="button">12週間プログラムを始める<span class="arrow" aria-hidden="true">›</span></button>
+        <a class="continue-program" id="continueProgramLink" href="./textbook.html">プログラムの続きを再開する</a>
+        <p class="continue-note">前回の教材から再開。記録がない場合は教材一覧へ進みます。</p>
         <a class="record-only" id="recordOnlyLink" href="./record.html?stage=1&amp;mode=record-only">記録だけ始める</a>
         <p class="record-caption">プログラムや初回登録なしで、食事・体重の記録を始められます。</p>
         <button class="login" id="loginButton" type="button">ログインはこちら</button>
@@ -212,6 +218,20 @@
         :'ログイン画面への接続は次の制作工程で行います。既存の別アプリには移動しません。';
       if(typeof dialog.showModal==='function')dialog.showModal();
     }
+    // Restore the existing lesson card position. Never replace or reset saved progress.
+    // The textbook page validates hash IDs against its own actual card collection.
+    function findResumeHref(){
+      const home='./textbook.html';
+      try{
+        const value=JSON.parse(localStorage.getItem('equineris:textbook:last:v1')||'null');
+        return typeof value==='string'&&/^s[1-6]-c[0-9]+$/.test(value)
+          ?home+'#'+value:home;
+      }catch(error){return home;}
+    }
+    const continueLink=document.getElementById('continueProgramLink');
+    continueLink.addEventListener('click',()=>{
+      continueLink.href=findResumeHref();
+    });
     document.getElementById('startButton').addEventListener('click',()=>openNext('start'));
     document.getElementById('loginButton').addEventListener('click',()=>openNext('login'));
     document.getElementById('closeDialog').addEventListener('click',()=>dialog.close());
