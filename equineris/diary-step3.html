@@ -104,7 +104,8 @@ dialog h2{font-size:17px;margin:0 0 8px}.dialog-date{font-size:12px;color:var(--
 .stage2-list{display:flex;flex-direction:column;gap:5px}
 .stage2-list p{margin:5px 0;font-size:12px;color:var(--muted)}
 .food-line{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:6px;padding:8px 4px;border-bottom:1px solid #e0e8df;font-size:13px}
-.food-line .food-name{min-width:0;overflow-wrap:anywhere;font-weight:700}
+.food-line .food-name{min-width:0;overflow-wrap:break-word;word-break:normal;white-space:normal;writing-mode:horizontal-tb;font-weight:700}
+@media(max-width:480px){.food-line{grid-template-columns:minmax(0,1fr) auto}.food-line .food-name{grid-column:1/-1}.food-line .food-amount{grid-column:1}.food-line>button{grid-column:2}.food-line .food-group-edit{grid-column:1/-1}}
 .food-line .food-amount{white-space:nowrap;font-size:12px}
 .food-line button{min-width:43px;min-height:39px;font-size:12px;color:#933c3a;border-radius:8px;border:1px solid #ddcecb;background:#fff}
 .food-line .food-group-edit{grid-column:1 / -1;display:flex;flex-direction:row;align-items:center;justify-content:space-between;gap:8px;border-top:1px dotted #dce6dc;padding-top:7px;font-size:12px;font-weight:750;color:var(--green)}
