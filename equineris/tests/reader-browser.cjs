@@ -75,6 +75,8 @@ const ready=async(fn)=>{
   process.stdout.write('PASS '+width+'x'+height+' '+hash+' slides='+snap.cardCount+'\n');
  }
  ws.close();
-})().catch(e=>{console.error(e.stack||e);process.exitCode=1;}).finally(()=>{
- chrome.kill('SIGTERM');fs.rmSync(temp,{recursive:true,force:true});
+})().catch(e=>{console.error(e.stack||e);process.exitCode=1;}).finally(async()=>{
+ chrome.kill('SIGTERM');
+ await new Promise(resolve=>{if(chrome.exitCode!==null)resolve();else chrome.once('exit',resolve);});
+ fs.rmSync(temp,{recursive:true,force:true,maxRetries:8,retryDelay:250});
 });
