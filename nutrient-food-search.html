@@ -60,13 +60,13 @@ footer{padding:14px 8px;border-top:1px solid #e1e8e0;color:#738275}
 </header>
 <section class="counts" aria-label="登録データの規模"><div class="count"><b>27</b><span>栄養素</span></div><div class="count"><b>2,265</b><span>書籍のデータ</span></div><div class="count"><b>686</b><span>現行マスター</span></div></section>
 <div class="card"><div class="tabbar" role="tablist" aria-label="検索方向"><button id="nutrientTab" class="tab" role="tab" aria-selected="true" aria-controls="nutrientPane">栄養素 → 食品</button><button id="masterTab" class="tab" role="tab" aria-selected="false" aria-controls="masterPane">食品 → 栄養素</button></div>
-<div class="trust-note"><strong>データの確認状態</strong><span>書籍2,265行のうち、1,365行は686品目との<span class="emphasis">未承認候補</span>、900行は未連携。食品定義が確定していないため、この画面では候補として表示します。書籍に記載がない場合も、栄養素の量が0とは限りません。</span></div>
+<div class="trust-note"><strong>データの確認状態</strong><span>書籍2,265行のうち、1,365行は食品マスターとの対応候補、900行は対応付けが未確定です。照合結果は確認中のため、確定情報として扱わないでください。書籍に記載がない場合も、栄養素の量が0とは限りません。</span></div>
 </div>
 <section id="nutrientPane" role="tabpanel">
 <div class="card"><div class="section-header"><div><span class="step-label">SEARCH 01</span><h2>栄養素から食品を探す</h2><p>気になる栄養素を選んで、書籍の食品と食品マスターの候補を比較できます。</p></div><span class="section-icon">◎</span></div><div class="controls">
 <label for="nutrient">栄養素を選択<select id="nutrient"><option value="">すべての栄養素（27種類）</option></select></label>
 <label for="sourceQuery">食品名を入力<input id="sourceQuery" type="search" placeholder="例：牛乳、納豆、豆腐" autocomplete="off"></label>
-<label for="mappingFilter">食品マスターとの照合<select id="mappingFilter"><option value="all">照合候補あり・未連携の両方</option><option value="mapped">686品目に対応候補あり</option><option value="unmapped">対応候補未確定</option></select></label>
+<label for="mappingFilter">食品マスターとの照合<select id="mappingFilter"><option value="all">すべて表示</option><option value="mapped">食品マスターとの対応候補あり</option><option value="unmapped">食品マスターとの対応が未確定</option></select></label>
 <label for="sourceSort">表示順<select id="sourceSort"><option value="rank">書籍のページ順</option><option value="per100">100gあたりの含有量が多い順</option><option value="perpoint">1点あたりの含有量が多い順</option><option value="name">食品名の五十音順</option></select></label>
 </div><div class="quickbar" aria-label="栄養素の検索例"><span class="quicklabel">よく探す栄養素</span><div class="quick-buttons">
   <button type="button" class="quick-chip" data-nutrient-quick="鉄">鉄</button>
@@ -131,8 +131,8 @@ function openMasterFood(mi){const r=master[mi];selected=mi;$('masterQuery').valu
 function findFromSource(r){selected=null;$('masterGroup').value='';$('masterQuery').value=r.f.replace(/・(?:生|乾|ゆで|水煮)$/,'');openTab('master');searchMaster();}
 function openNutrientForFood(n,masterName){$('nutrient').value=n;$('sourceQuery').value='';$('mappingFilter').value='all';openTab('nutrient');searchSource();}
 function sourceCard(r){const a=makes('article','card item');const heading=makes('h3','',r.f);a.append(heading,makes('div','subtitle',`${r.n}｜書籍${r.p}ページ・${r.rk}番目｜${r.id}`));
- const tags=makes('div','badges');tags.append(pill('書籍の数値'));tags.append(r.mi===null?pill('マスター対応未確定','missing'):pill('マスターの対応候補あり・未承認','wait'));if(r.num)tags.append(pill('数値の確認必要','wait'));if(r.trace)tags.append(pill('微量','wait'));a.append(tags);
- let facts=[['100gあたり・原典値',show(r.a,r.u)]];
+ const tags=makes('div','badges');tags.append(pill('書籍の数値'));tags.append(r.mi===null?pill('マスター対応未確定','missing'):pill('対応候補あり（確認中）','wait'));if(r.num)tags.append(pill('数値の確認必要','wait'));if(r.trace)tags.append(pill('微量','wait'));a.append(tags);
+ let facts=[['100gあたりの数値（書籍）',show(r.a,r.u)]];
  if(r.t==='1点')facts.push(['書籍の1点重量',show(r.w,'g')],['書籍の1点あたり',show(r.b,r.u)]);
  else facts.push(['調理方法',show(r.m)],['調理後重量（原料100gから）',show(r.cw,'g')],['調理後の数値（書籍）',show(r.cv,r.u)]);
  addFields(a,...facts);
