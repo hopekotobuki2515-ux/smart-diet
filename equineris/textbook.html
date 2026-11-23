@@ -235,7 +235,15 @@ a,button,input{font:inherit}button{cursor:pointer}
   showStep(found.step.id);
   state.track.scrollTo({left:found.index*state.track.clientWidth,behavior:'auto'});
   update(found.step.id,found.index);
-  state.section.scrollIntoView({block:'start',behavior:'smooth'});
+  // STEP切替で高さが変わるため、描画後にページ全体のスクロール位置を決める。
+  requestAnimationFrame(()=>{
+   if(typeof state.section.getBoundingClientRect==='function'&&typeof window.scrollTo==='function'){
+    const top=state.section.getBoundingClientRect().top+(window.scrollY||0)-14;
+    window.scrollTo({top:Math.max(0,top),behavior:'auto'});
+   }else{
+    state.section.scrollIntoView({block:'start',behavior:'auto'});
+   }
+  });
   last=id;persistent(LAST_KEY,last);
   setResume();
   if(history.replaceState)history.replaceState(null,'','#'+id);
