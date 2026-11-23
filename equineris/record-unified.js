@@ -43,7 +43,9 @@
  const requestedStage=params.get('stage');
  const persistedStage=read(STAGE_KEY);
  let active=LABELS[requestedStage]?requestedStage:LABELS[persistedStage]?persistedStage:'1';
- let selectedDate=validDate(params.get('date'))?params.get('date'):(validDate(read(DATE_KEY))?read(DATE_KEY):today());
+ // A new record-only session should start on today's date, not an old edited date.
+ let selectedDate=validDate(params.get('date'))?params.get('date'):
+  (recordOnly?today():(validDate(read(DATE_KEY))?read(DATE_KEY):today()));
  let legacyDay=null;
  const rawDay=params.get('day');
  if(!validDate(params.get('date'))&&/^[123]$/.test(rawDay||'')){
