@@ -1147,7 +1147,7 @@ test('STEP5 can advance; STEP6 correctly finishes',()=>{
  const t=textbookScenario('#s5-c16');
  assert.equal(t.next[4].disabled,false);
  t.next[4].click();
- assert.ok(t.sections[5].scrolled);
+ assert.equal(t.sections[5].hidden,false); assert.equal(t.window.lastScroll?.top,0);
  const end=textbookScenario('#s6-c15');
  assert.equal(end.next[5].disabled,true);
 });
