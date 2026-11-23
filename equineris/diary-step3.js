@@ -1,6 +1,6 @@
 'use strict';
 (() => {
- const OWN='equineris:diary-step3:v1:',STEP2='equineris:diary-step2:v1:',STEP1='equineris:paper-first3:v1:';
+ const OWN='equineris:diary-step3:v1:',STEP2='equineris:diary-step2:v1:',STEP1='equineris:paper-first3:v1:',DATED_STEP1='equineris:diary-step1:v1:entry:';
  const MAINT_KEY='equineris:maintenance-energy:v1:selected';
  const MEALS=[['breakfast','朝食'],['lunch','昼食'],['dinner','夕食'],['snack','間食']];
  const $=(s,root=document)=>root.querySelector(s), $$=(s,root=document)=>[...root.querySelectorAll(s)];
@@ -25,7 +25,9 @@
    const own=read(key(name+':'+meal));if(own!==null)return own;
    const s2=read(step2Key(name+':'+meal));if(s2!==null)return s2;
    const slot=slotFor(recordId);
-   return name==='memo'&&slot?read(STEP1+slot+':'+meal+'-meal')||'':'';
+   if(name!=='memo')return '';
+    if(slot)return read(STEP1+slot+':'+meal+'-meal')||'';
+    return validDate(recordId)?read(DATED_STEP1+recordId+':'+meal+'-meal')||'':'';
  }
  function safeFoods(value){
    if(!value)return [];
@@ -533,7 +535,7 @@ function filterFoodRecords(records,rawQuery,group) {
    photo=await tx(step2PhotoDB,'readonly',s=>s.get(id+':'+meal));
    if(photo?.file instanceof Blob)return {...photo,sourceStep:2};
    const slot=slotFor(id);
-   photo=slot?await tx(step1PhotoDB,'readonly',s=>s.get(slot+':'+meal)):null;
+   photo=await tx(step1PhotoDB,'readonly',s=>s.get((slot||id)+':'+meal));
    return photo?.file instanceof Blob?{...photo,sourceStep:1}:null;
  }
  const cleanUrls=()=>{imageUrls.forEach(u=>URL.revokeObjectURL(u));imageUrls.length=0;};
