@@ -548,6 +548,33 @@ test('all twelve weeks reference existing textbook cards and preserve return lin
  assert.match(source['diary-step1.html'],/href="\.\/textbook\.html#s4-c1"/);
  assert.doesNotMatch(source['learning-data.js'],/振り返るします/);
 });
+test('all 12 original weekly curricula are fully mapped into four vertical-scroll lesson cards',()=>{
+ const match=source['learning.html'].match(/^const sectionGroupsByWeek=(.+);$/m);
+ assert.ok(match,'weekly card mapping missing');
+ const groups=JSON.parse(match[1]);
+ const lessons=JSON.parse(source['learning-data.js'].match(/Object\.freeze\((\[[\s\S]*\])\);/)[1]);
+ assert.equal(groups.length,12);
+ assert.equal(lessons.length,12);
+ let visible=0;
+ for(const [i,week] of lessons.entries()){
+  const weekGroups=groups[i];
+  assert.equal(weekGroups.length,4,'four cards required for week '+week.week);
+  const shown=weekGroups.flat();
+  const internal=week.sections.map((s,j)=>j).filter(j=>
+   /^(?:アプリに反映する際の方針|アプリでの見せ方|週の途中での声かけ|週の途中の声かけ)$/.test(week.sections[j].title));
+  const expected=week.sections.map((s,j)=>j).filter(j=>!internal.includes(j));
+  assert.deepEqual(shown.slice().sort((a,b)=>a-b),expected,'source sections missing or duplicated in week '+week.week);
+  for(const idx of shown)assert.ok(week.sections[idx].text.length,'empty section '+week.week+'/'+idx);
+  visible+=shown.length;
+ }
+ assert.equal(visible,81);
+ const view=source['learning.html'];
+ assert.ok(!view.includes('const briefByWeek='),'brief summaries must not replace source text');
+ assert.match(view,/appendLessonText\(body,original\.text\)/,'source text must be rendered');
+ assert.match(view,/body\.week-reading \.point-panel\.lesson-reading-card\{justify-content:flex-start/);
+ assert.match(view,/overflow-x:hidden;overflow-y:auto/,'scrollable card content must stay readable');
+ assert.match(view,/\.lesson-week-title-line\{display:block/,'week 12 title must wrap naturally');
+});
 class MockEl {
  constructor(tag='div'){
   this.tagName=tag;this.children=[];this.handlers={};this.attributes={};
