@@ -348,7 +348,7 @@ html.reader-mode .end-card,html.reader-mode .related-sites,html.reader-mode .bot
   const breakable=new Set(['visual','bmi-demo','goal-calculator','habit-mini','habit-mini-list','message-notes']);
   const piecesFrom=(node,ancestors=[])=>{
    if(node.classList?.contains('lesson-body') && !node.querySelector('input')){
-    const chunks=node.textContent.match(/[\\s\\S]{1,65}/gu)||[];
+    const chunks=node.textContent.match(/[^]{1,65}/gu)||[];
     if(chunks.length>1)return chunks.map(chunk=>{const p=node.cloneNode(false);p.textContent=chunk;return {leaf:p,ancestors};});
    }
    if([...breakable].some(cls=>node.classList?.contains(cls))&&node.children.length)
