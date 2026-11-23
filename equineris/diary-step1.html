@@ -414,6 +414,8 @@ function save(field){
 }
 fields.forEach(f=>f.addEventListener(f.type==='checkbox'?'change':'input',()=>save(f)));
 function dateForDay(day){
+ // New records are already keyed by calendar date; old slots keep their saved date.
+ if(typeof day==='string'&&validDate(day))return day;
  try{return localStorage.getItem(key(day,'date'))||'';}
  catch(e){return '';}
 }
