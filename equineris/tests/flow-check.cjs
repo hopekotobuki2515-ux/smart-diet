@@ -527,6 +527,20 @@ test('all twelve weeks reference existing textbook cards and preserve return lin
   }
   assert.equal(new Set(entries.map(item=>item[0])).size,entries.length);
  }
+ const lesson=source['learning.html'];
+ const headingIndex=lesson.indexOf('id="lessonTitle"');
+ const entryIndex=lesson.indexOf('id="weekTextbookEntry"');
+ const lessonTrackIndex=lesson.indexOf('id="lessonTrack"');
+ const relatedIndex=lesson.indexOf('id="relatedTextbook"');
+ const companionIndex=lesson.indexOf('id="lessonCompanion"');
+ assert.ok(headingIndex<entryIndex&&entryIndex<lessonTrackIndex,
+  'each weekly page must have a visible textbook entry immediately before the learning cards');
+ assert.ok(lessonTrackIndex<relatedIndex&&relatedIndex<companionIndex,
+  'all weeks must show the detailed textbook list before optional companion links');
+ assert.match(lesson,/weekTextbookEntry\.href='\.\/textbook\.html\?week='\+picker\.value/);
+ assert.match(lesson,/weekTextbookEntry\.setAttribute\('aria-label','第'\+picker\.value\+'週の参考テキストを読む'\)/);
+ assert.match(lesson,/if\(entry\.week===12&&entry\.title\.includes\('、'\)\)/);
+ assert.match(lesson,/\.lesson-index-title-part\{display:block/);
  assert.match(source['learning.html'],/\.\/textbook\.html\?week=/);
  assert.match(source['textbook.html'],/backLink\.href='\.\/learning\.html\?'\+params/);
  assert.ok(source['textbook.html'].includes("history.replaceState(null,'',(location.search||'')+'#'+id)"));

@@ -161,8 +161,9 @@
 .lesson-index-lead-line{display:block}
 .lesson-index-list{display:grid;grid-template-columns:minmax(0,1fr);gap:9px}
 .lesson-index-link{display:grid;grid-template-columns:54px minmax(0,1fr) auto;gap:10px;align-items:center;min-height:70px;padding:13px 12px;border:1px solid #dce7dc;border-radius:15px;background:#fffefa;color:var(--ink);text-decoration:none}
-.lesson-index-link span{display:grid;place-items:center;min-height:41px;background:#eff6ed;border-radius:10px;color:var(--green);font-size:12px;font-weight:800}
+.lesson-index-link>span{display:grid;place-items:center;min-height:41px;background:#eff6ed;border-radius:10px;color:var(--green);font-size:12px;font-weight:800}
 .lesson-index-link strong{display:block;min-width:0;font-size:14px;line-height:1.6;font-weight:750;word-break:normal;overflow-wrap:break-word}
+.lesson-index-title-part{display:block;white-space:normal}
 .lesson-index-link em{font-style:normal;color:var(--gold);font-size:16px}
 .lesson-index-note{margin:15px 0;color:var(--ink-light);font-size:12px;line-height:1.8}
 .lesson-week-picker{display:grid;gap:5px;margin:18px 0 3px;font-size:12px;color:var(--ink-light);font-weight:750}
@@ -248,12 +249,13 @@ body.week-reading .lesson-tabs{padding:1px 1px 5px}
    <select id="weekPicker" aria-label="学習する週"></select>
   </label>
   <header class="heading"><p class="eyebrow">SMART DIET · WEEKLY LESSON</p><h1 id="lessonTitle"></h1><p id="lessonIntro"></p></header>
+  <a class="lesson-step-link" id="weekTextbookEntry" href="./textbook.html">今週の参考テキストを読む</a>
   <p class="point-intro" id="lessonInstructions">左右にスワイプ、または下のボタンで4枚の教材を読み進められます。</p>
   <div class="point-track" id="lessonTrack" tabindex="0" role="region" aria-label="12週間プログラムの週別学習" aria-describedby="lessonInstructions"></div>
   <nav class="point-navigation" aria-label="学習カードを切り替える"><button id="lessonPrev" type="button" disabled>〈 前へ</button><span id="lessonCounter" class="point-counter" aria-live="polite">1 / 4</span><button id="lessonNext" type="button">次へ 〉</button></nav>
   <div class="lesson-tabs" id="lessonTabs" role="group" aria-label="教材カードを選ぶ"></div>
-  <a class="lesson-step-link" id="lessonCompanion" href="./food-groups.html" hidden>関連教材を開く</a>
   <section class="related-textbook" id="relatedTextbook" aria-labelledby="relatedTextbookTitle"><h2 id="relatedTextbookTitle">今週の参考テキスト</h2><nav id="relatedTextbookLinks" class="related-textbook-list" aria-label="今週に関連する参考テキスト"></nav></section>
+  <a class="lesson-step-link" id="lessonCompanion" href="./food-groups.html" hidden>関連教材を開く</a>
   <nav class="lesson-week-nav" aria-label="週を移動する"><a id="previousWeek" href="./learning.html?week=1">〈 前の週</a><a id="nextWeek" href="./learning.html?week=2">次の週 〉</a></nav>
   <a class="lesson-step-link" href="./textbook.html">参考テキストを探す・お気に入りを見る</a>
   <a class="lesson-step-link" href="./learning.html">12週間の学び一覧へ戻る</a>
@@ -279,6 +281,7 @@ const before=document.getElementById('previousWeek');
 const after=document.getElementById('nextWeek');
 const companion=document.getElementById('lessonCompanion');
 const relatedLinks=document.getElementById('relatedTextbookLinks');
+const weekTextbookEntry=document.getElementById('weekTextbookEntry');
 const relatedTextbookByWeek=[[["s2-c2","BMIで体格を確認しましょう"],["s2-c4","お腹まわりを測ってみましょう"],["s2-c7","普段の食べ方を振り返る"],["s4-c1","何を食べたか記録しましょう"]],[["s2-c5","どのくらいの減量を目指す？"],["s2-habit-check","食行動チェック表"],["s2-goal","3か月後の目標体重を計算しましょう"]],[["s3-c6","1点＝80kcalで考えます"],["s3-c1","スマートダイエット式食事を学ぶ"]],[["s4-c2","食べた量を確認しましょう"]],[["s4-c3","食品の点数を確認しましょう"]],[["s3-c7","3食にバランスよく振り分ける"],["s3-c10","主食・主菜・副菜・もう一品"]],[["s3-c2","卵・乳・乳製品"],["s3-c3","魚・肉・豆・豆製品"],["s3-c4","野菜・果物・いも・きのこ・海藻"],["s3-c5","穀類・油脂・砂糖・嗜好品"]],[["s5-c4","外食でも食品群を意識する"],["s5-c6","コンビニでも食事を整える"]],[["s5-c3","おやつも選び方を考える"],["s5-c8","体重が減らない時期もあります"],["s5-c7","お酒の量を見直しましょう"]],[["s6-c1","自分に合った運動を見つけましょう"],["s6-c8","筋肉を使う習慣をつくりましょう"],["s6-c12","日常生活の動きも運動の一部"]],[["s3-c10","主食・主菜・副菜・もう一品"],["s3-c7","3食にバランスよく振り分ける"]],[["s5-c9","目標達成後も食習慣を大切に"],["s5-c10","続けられる習慣を身につける"]]];
 if(!Array.isArray(data)||data.length!==12||data.some((week,i)=>week.week!==i+1)){
  index.hidden=false;content.hidden=true;
@@ -297,7 +300,13 @@ for(const entry of data){
  link.className='lesson-index-link';
  link.href='./learning.html?week='+entry.week;
  link.appendChild(node('span','',String(entry.week).padStart(2,'0')+'週'));
- link.appendChild(node('strong','',entry.title));
+ const label=node('strong','');
+ if(entry.week===12&&entry.title.includes('、')){
+  const end=entry.title.indexOf('、')+1;
+  label.appendChild(node('span','lesson-index-title-part',entry.title.slice(0,end)));
+  label.appendChild(node('span','lesson-index-title-part',entry.title.slice(end)));
+ }else label.textContent=entry.title;
+ link.appendChild(label);
  link.appendChild(node('em','','›'));
  list.appendChild(link);
  const option=document.createElement('option');option.value=String(entry.week);
@@ -328,6 +337,11 @@ function update(){
  next.disabled=slideIndex===slides.length-1;
  [...tabs.children].forEach((tab,i)=>tab.setAttribute('aria-pressed',String(i===slideIndex)));
  for(const a of relatedLinks.children){a.href='./textbook.html?week='+picker.value+'&card='+slideIndex+'#'+encodeURIComponent(a.dataset.cardId);}
+ const firstCardId=relatedTextbookByWeek[Number(picker.value)-1]?.[0]?.[0];
+ if(firstCardId){
+  weekTextbookEntry.href='./textbook.html?week='+picker.value+'&card='+slideIndex+'#'+encodeURIComponent(firstCardId);
+  weekTextbookEntry.setAttribute('aria-label','第'+picker.value+'週の参考テキストを読む');
+ }
 }
 function go(i,smooth=true){
  slideIndex=Math.max(0,Math.min(track.children.length-1,i));
