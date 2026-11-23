@@ -10,6 +10,7 @@
  const dateBox=document.getElementById('dateBox');
  const status=document.getElementById('recordStatus');
  const frame=document.getElementById('recordFrame');
+ const nextLesson=document.getElementById('nextLessonLink');
  const read=k=>{try{return localStorage.getItem(k);}catch(e){return null;}};
  const write=(k,v)=>{try{localStorage.setItem(k,v);}catch(e){status.textContent='記録の保存設定を確認してください。';status.dataset.error='true';}};
  const validDate=s=>{
@@ -66,6 +67,7 @@
   active=view;
   if(view!=='history')write(STAGE_KEY,view);
   dateBox.hidden=view==='history';dateField.value=selectedDate;
+  if(nextLesson)nextLesson.hidden=view!=='3';
   buttons.forEach(b=>b.setAttribute('aria-selected',String(b.dataset.view===view)));
   frame.title=LABELS[view];describe(LABELS[view]);updateUrl();
   const next=frameUrl(view,selectedDate,legacyDay);
