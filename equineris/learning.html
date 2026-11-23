@@ -220,6 +220,8 @@ body.week-reading .point-panel h2{font-size:clamp(17px,4.7vw,20px);line-height:1
 body.week-reading .point-label{margin-bottom:6px}
 body.week-reading .lesson-short{font-size:clamp(14px,3.8vw,16px)!important;line-height:1.65!important;margin:9px 0!important}
 body.week-reading .point-navigation{margin:6px 0}
+body.week-reading .week2-habit-direct{display:flex;align-items:center;justify-content:center;min-height:44px;padding:7px 10px;margin:3px 0 6px;border:1px solid #cee0cf;border-radius:11px;background:#f2f8f1;color:var(--green);font-weight:800;font-size:13px;text-align:center;text-decoration:none}
+.week2-habit-direct[hidden]{display:none!important}
 body.week-reading .lesson-tabs{padding:1px 1px 5px}
 @media(max-height:600px){
   body.week-reading .heading .eyebrow{display:none}
@@ -245,6 +247,7 @@ body.week-reading .lesson-tabs{padding:1px 1px 5px}
   </label>
   <header class="heading"><p class="eyebrow">SMART DIET · WEEKLY LESSON</p><h1 id="lessonTitle"></h1><p id="lessonIntro"></p></header>
   <p class="point-intro" id="lessonInstructions">左右にスワイプ、または下のボタンで4枚の教材を読み進められます。</p>
+  <a class="week2-habit-direct" id="week2HabitDirect" href="./textbook.html#s2-habit-check" hidden>食行動チェック表（17項目）を開く</a>
   <div class="point-track" id="lessonTrack" tabindex="0" role="region" aria-label="12週間プログラムの週別学習" aria-describedby="lessonInstructions"></div>
   <nav class="point-navigation" aria-label="学習カードを切り替える"><button id="lessonPrev" type="button" disabled>〈 前へ</button><span id="lessonCounter" class="point-counter" aria-live="polite">1 / 4</span><button id="lessonNext" type="button">次へ 〉</button></nav>
   <div class="lesson-tabs" id="lessonTabs" role="group" aria-label="教材カードを選ぶ"></div>
@@ -274,6 +277,7 @@ const tabs=document.getElementById('lessonTabs');
 const before=document.getElementById('previousWeek');
 const after=document.getElementById('nextWeek');
 const companion=document.getElementById('lessonCompanion');
+const week2HabitDirect=document.getElementById('week2HabitDirect');
 const visualNote=document.getElementById('lessonVisualNote');
 if(!Array.isArray(data)||data.length!==12||data.some((week,i)=>week.week!==i+1)){
  index.hidden=false;content.hidden=true;
@@ -351,8 +355,8 @@ function loadWeek(n){
  before.href='./learning.html?week='+(n-1);
  after.href='./learning.html?week='+(n+1);
  companion.hidden=true;
+ week2HabitDirect.hidden=n!==2;
  if(n===1){companion.href='./week-1-goal.html';companion.textContent='スマートダイエットの減量目標設定';companion.hidden=false;}
- if(n===2){companion.href='./textbook.html#s2-habit-check';companion.textContent='テキストの食行動チェック表を開く';companion.hidden=false;}
  if(n===3){companion.href='./food-groups.html?day=1';companion.textContent='4つの食品群と点数配分を詳しく見る';companion.hidden=false;}
  if(n===12){companion.href='./maintenance-energy.html';companion.textContent='12週間修了後のエネルギー構成と四群の点数配分を見る';companion.hidden=false;}
  visualNote.hidden=!entry.pendingVisualSections.length;
