@@ -649,10 +649,10 @@ test('STEP2 page 5 explains, page 6 calculates and page 7 reviews past weights',
  assert.equal(visual.className,'visual visual--interactive');
  assert.equal(visual.children.filter(c=>c.className==='visual-title').length,0);
 });
-test('every textbook card uses one fixed outer height and scrolls its own content',()=>{
+test('every textbook card uses natural height and avoids inner vertical scroll',()=>{
  const stylesheet=source['textbook.html'];
- assert.match(stylesheet,/\.lesson-card\{[^}]*height:540px;min-height:0;/);
- assert.match(stylesheet,/\.lesson-card\{[^}]*overflow-x:hidden;overflow-y:auto;/);
+ assert.match(stylesheet,/\.lesson-card\{[^}]*height:auto;min-height:0;/);
+ assert.match(stylesheet,/\.lesson-card\{flex:0 0 calc\(100% - 12px\);[^}]*overflow:visible/);
  assert.match(stylesheet,/\.track\{[^}]*scroll-snap-type:x mandatory;/);
  assert.doesNotMatch(stylesheet,/fitActiveCard|refitTracks/);
  const t=textbookScenario('#s2-habit-check');
