@@ -116,7 +116,9 @@ dialog h2{font-size:17px;margin:0 0 8px}.dialog-date{font-size:12px;color:var(--
 .group4-food-table td small{margin-top:2px;color:#60776a;font-size:11px}
 .group4-food-status{margin:8px 0 0}
 
-\n#previewDialog th:not(:first-child),#previewDialog td:not(:first-child),#previewDialog col.group{display:none!important}\n</style>
+
+#previewDialog th:not(:first-child),#previewDialog td:not(:first-child),#previewDialog col.group{display:none!important}
+</style>
 </head>
 <body><main class="viewport"><div class="page">
  <header class="toolbar"><a class="back" href="./textbook.html#s4-c4">〈 教材 STEP4</a><h1 class="toolbar-title" id="dayTitle">食事記録</h1><label class="date-row" for="diary-date"><span>日付</span><input type="date" id="diary-date" aria-label="記録する日付"></label></header>
@@ -497,7 +499,8 @@ const initialDay=Number(search.get('day'));
 const initialDate=search.get('date');
 const initial=validDate(initialDate)?dayForDate(initialDate)||initialDate:
  ([1,2,3].includes(initialDay)?initialDay:today());
-loadDay(initial);renderMeal(0);
+// Show the first editable meal immediately; the example remains available via its tab.
+loadDay(initial);goMeal(1,false);
 openPhotos().then(db=>{
  photoDB=db;photoDB.onversionchange=()=>{photoDB.close();photoDB=null;photoInputs.forEach(i=>i.disabled=true);showPhotoStatus('保存先が更新されました。再読み込みしてください。',true);};
  photoInputs.forEach(i=>i.disabled=false);
