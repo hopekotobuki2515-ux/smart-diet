@@ -8,7 +8,7 @@ const vm=require('node:vm');
 const root=path.resolve(__dirname,'..');
 const read=name=>fs.readFileSync(path.join(root,name),'utf8');
 const source=Object.fromEntries(
- ['index.html','smart-diet.html','setup.html','textbook.html','textbook-data.js','goal-calculator.js','week-1-goal.html',
+ ['index.html','smart-diet.html','setup.html','textbook.html','textbook-data.js','learning-data.js','goal-calculator.js','week-1-goal.html',
   'habit-intro.html','habit-check.html','habit-check-card.js','record.html','record-unified.js','record-weight.js','diary-step1.html','measurements.html','diary-step2.html',
   'diary-step3.html','diary-step2.js','diary-step3.js','trainer-link.js','weight-trend.js',
   'record-history.html','record-history.js']
@@ -26,6 +26,9 @@ test('all inline and external JavaScript parses',()=>{
   if(name.endsWith('.js'))new vm.Script(s,{filename:name});
   else scriptOf(s);
  }
+});
+test('weekly lesson source has no known malformed closing sentence',()=>{
+ assert.doesNotMatch(source['learning-data.js'],/振り返るします/);
 });
 test('registration has only previously approved three fields',()=>{
  const s=source['setup.html'];
