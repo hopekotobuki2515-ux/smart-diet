@@ -31,6 +31,7 @@ h1{font-size:23px;line-height:1.45;text-align:center;margin:0}
 .status[data-error="true"]{color:#a6382e}
 .frame-wrap{border:1px solid var(--edge);border-radius:14px;background:#fff;overflow:hidden;min-height:320px;flex:1;min-width:0}
 #recordFrame{display:block;border:0;width:100%;height:calc(100svh - 259px);min-height:390px;background:#fff}
+.quicklinks{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:8px;margin:0}.quicklinks a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:7px 11px;border:1px solid var(--edge);border-radius:10px;background:#f4f8f2;color:var(--green);text-decoration:none;font-size:12px;font-weight:750;text-align:center}
 .help{margin:0;color:var(--sub);font-size:11px;line-height:1.65;text-align:center}
 @media(max-width:360px){.shell{padding-inline:7px;gap:8px}.tab{font-size:12px}.wordmark{font-size:14px}#recordFrame{min-height:365px}}
 @media(min-width:600px){.shell{margin:12px auto;min-height:calc(100svh - 24px);border:1px solid var(--edge);border-radius:20px}#recordFrame{height:calc(100svh - 290px);min-height:480px}}
@@ -58,6 +59,10 @@ h1{font-size:23px;line-height:1.45;text-align:center;margin:0}
  <div class="frame-wrap">
   <iframe id="recordFrame" title="食事記録 STEP1" loading="eager" referrerpolicy="same-origin"></iframe>
  </div>
+ <nav class="quicklinks" aria-label="関連ページ">
+  <a href="./measurements.html">体重・腹囲を記録する</a>
+  <a id="nextLessonLink" href="./textbook.html#s5-c1" hidden>教材 STEP5へ進む</a>
+ </nav>
  <p class="help">記録と写真はこのブラウザに保存されます。別端末への自動同期はありません。</p>
 </main>
 <script src="./record-unified.js?v=20261123-single-page-v2"></script>
