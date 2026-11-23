@@ -45,7 +45,8 @@ test('mobile reader and empty history avoid blank-page regression',()=>{
  assert.match(step,/justify-content:flex-start;gap:clamp\(12px,2svh,20px\)/);
  assert.match(step,/overflow-y:auto;overscroll-behavior-y:contain/);
  assert.match(book,/state\.section\.scrollIntoView\(\{block:'start',behavior:'auto'\}\)/);
- assert.match(book,/href="#discoveryPanel"/);
+ assert.match(book,/id="backToIndex"/);
+ assert.match(book,/const showIndex=\(\)=>/);
  assert.match(book,/overflow:visible/);
  assert.match(hist,/max-width:510px;min-height:0;padding/);
 });
@@ -519,7 +520,8 @@ class MockEl {
 }
 function textbookScenario(hash='',seed={}){
  const names=['steps','stepIndex','searchInput','favoritesButton','resumeButton',
-  'resultPanel','resultTitle','resultList','storageStatus'];
+  'resultPanel','resultTitle','resultList','storageStatus','libraryIntro',
+  'discoveryPanel','backToIndex','textbookEnding','textbookRelated','textbookDisclaimer'];
  const elements=Object.fromEntries(names.map(name=>[name,new MockEl()]));
  const document={
   getElementById:id=>{assert.ok(elements[id],id);return elements[id];},
@@ -551,7 +553,13 @@ function textbookScenario(hash='',seed={}){
 test('only one STEP is visible, with STEP1 last card advancing to STEP2 and STEP3',()=>{
  const t=textbookScenario();
  const visible=()=>t.sections.map((node,i)=>!node.hidden?i+1:null).filter(Boolean);
+ assert.deepEqual(visible(),[],'table of contents is separate from reading');
+ assert.equal(t.elements.steps.hidden,true);
+ assert.equal(t.elements.discoveryPanel.hidden,false);
+ t.elements.stepIndex.children[0].click();
  assert.deepEqual(visible(),[1]);
+ assert.equal(t.elements.steps.hidden,false);
+ assert.equal(t.elements.discoveryPanel.hidden,true);
  assert.equal(t.sections[0].children.find(c=>c.className==='track').children.length,9);
  assert.equal(t.next[0].textContent,'次へ 〉');
  for(let i=0;i<8;i++)t.next[0].click();
@@ -582,7 +590,8 @@ test('search/index/deep links still show the matching STEP without revealing oth
  const first=textbookScenario();
  const idx=first.elements.stepIndex;
  assert.equal(idx.children.length,6);
- assert.equal(first.sections.filter(x=>!x.hidden).length,1);
+ assert.equal(first.sections.filter(x=>!x.hidden).length,0);
+ assert.equal(first.elements.discoveryPanel.hidden,false);
  idx.children[4].click();
  assert.equal(first.sections[4].hidden,false);
  assert.equal(first.sections.filter(x=>!x.hidden).length,1);
@@ -601,6 +610,32 @@ test('search/index/deep links still show the matching STEP without revealing oth
  assert.equal(stepLink.count[2].textContent,'1 / 12');
  assert.match(source['textbook.html'],/id="steps" aria-live="off"/);
  assert.ok(source['textbook.html'].indexOf('id="steps"')<source['textbook.html'].indexOf('class="toolbox"'));
+});
+test('contents never shares a screen with lesson text; return controls restore contents',()=>{
+ const t=textbookScenario();
+ const e=t.elements;
+ assert.equal(e.steps.hidden,true);
+ assert.equal(e.discoveryPanel.hidden,false);
+ assert.equal(e.backToIndex.hidden,true);
+ assert.equal(e.libraryIntro.hidden,false);
+ e.stepIndex.children[1].click();
+ assert.equal(e.steps.hidden,false);
+ assert.equal(e.discoveryPanel.hidden,true);
+ assert.equal(e.libraryIntro.hidden,true);
+ assert.equal(e.backToIndex.hidden,false);
+ const footer=t.sections[1].children.find(c=>c.className==='step-footer').children[0];
+ footer.click();
+ assert.equal(e.steps.hidden,true);
+ assert.equal(e.discoveryPanel.hidden,false);
+ assert.equal(t.sections.every(x=>x.hidden),true);
+ assert.equal(t.location.hash,'#index');
+ e.stepIndex.children[0].click();
+ e.backToIndex.click();
+ assert.equal(e.steps.hidden,true);
+ assert.equal(e.discoveryPanel.hidden,false);
+ const deep=textbookScenario('#s2-c3');
+ assert.equal(deep.elements.steps.hidden,false);
+ assert.equal(deep.elements.discoveryPanel.hidden,true);
 });
 test('standalone goal card appears immediately after STEP2 page five',()=>{
  const ids=textbookData[1].cards.map(card=>card.id);
