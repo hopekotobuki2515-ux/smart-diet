@@ -369,6 +369,23 @@ test('record-only mode survives same-page tab changes and hides mandatory progra
  tabs[1].fire('click');
  assert.equal(quick.hidden,false);
  assert.ok(historyUrls.every(u=>u.includes('mode=record-only')),'mode must remain in URL');
+ // New "record only" sessions use today rather than a stale last-selected date.
+ state.set('equineris:diary:selected-date:v1','2020-01-01');
+ const freshTabs=['1','2','3','history'].map(v=>new Control(v));
+ const freshDate=new Control(),freshBox=new Control(),freshStatus=new Control(),
+  freshFrame=new Control(),freshBack=new Control(),freshNext=new Control(),freshWeight=new Control();
+ const freshDocument={querySelectorAll:()=>freshTabs,getElementById:id=>({
+  recordDate:freshDate,dateBox:freshBox,recordStatus:freshStatus,recordFrame:freshFrame,
+  recordBackLink:freshBack,nextLessonLink:freshNext,quickWeightSection:freshWeight
+ })[id]};
+ vm.runInNewContext(source['record-unified.js'],{
+  window:{addEventListener(){}},document:freshDocument,localStorage:storage,history,
+  location:{...location,search:'?stage=1&mode=record-only'},
+  Date,URL,URLSearchParams,MutationObserver:class{}
+ });
+ const now=new Date(),today=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');
+ assert.equal(freshDate.value,today,'new record-only entry starts on today');
+ assert.ok(freshFrame.getAttribute('src').includes('date='+today));
 });
 test('meal-page quick weight input saves by day without overwriting waist or corrupt data',()=>{
  class El{
