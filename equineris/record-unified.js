@@ -53,7 +53,7 @@
   photoBusy=value;enable();
   describe(value?'写真の保存中です。入力方法と日付の変更は保存後にできます。':LABELS[active]);
  };
- const frameUrl=(view,date,day)=>'./'+CHILD[view]+(view==='history'?'?ui=20261123-unified':'?'+(day?'day='+day:'date='+encodeURIComponent(date))+'&ui=20261123-unified');
+ const frameUrl=(view,date,day)=>'./'+CHILD[view]+(view==='history'?'?ui=20261123-step1-entry-fix':'?'+(day?'day='+day:'date='+encodeURIComponent(date))+'&ui=20261123-step1-entry-fix');
  function updateUrl(){
   const q=new URLSearchParams();q.set('stage',active);
   if(legacyDay)q.set('day',legacyDay);
