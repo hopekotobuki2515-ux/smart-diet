@@ -130,6 +130,10 @@ a,button,input{font:inherit}button{cursor:pointer}
   <h1>SMART Diet 教材を読み返す</h1>
   <p>各ステップのカードは左右にスワイプして読めます。最後の「次へ」で次のステップに進みます。検索や目次から読み返すこともできます。</p>
  </header>
+ <section class="toolbox" aria-label="教材目次">
+  <h3 class="catalog-title">ステップから選ぶ</h3>
+  <nav id="stepIndex" class="index-links" aria-label="ステップ目次"></nav>
+ </section>
  <div id="steps" aria-live="off"></div>
  <section class="toolbox" aria-labelledby="findTitle">
   <h2 id="findTitle">知りたいことを探す</h2>
@@ -144,8 +148,6 @@ a,button,input{font:inherit}button{cursor:pointer}
    <p class="result-title" id="resultTitle" aria-live="polite"></p>
    <div id="resultList" class="result-list"></div>
   </div>
-  <h3 class="catalog-title">ステップから選ぶ</h3>
-  <nav id="stepIndex" class="index-links" aria-label="ステップ目次"></nav>
  </section>
  <section class="end-card" aria-labelledby="endTitle">
   <p class="eyebrow">12-WEEK PROGRAM</p>
