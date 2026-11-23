@@ -119,7 +119,7 @@ test('full history merges saved food, photo and body records by actual date and 
   getItem:key=>values.get(key)??null,setItem(){throw Error('History must never overwrite user data')}};
  const archived=[{day:1,date:'2026-11-20',meal:'飲み物',memo:'水',photo:new FakeBlob()}];
  const records=model.collect(storage,{1:['1:breakfast'],2:['2026-11-22:lunch'],3:[]},archived);
- assert.deepEqual(records.map(x=>x.key),['2026-11-25','2026-11-22','2026-11-20']);
+ assert.deepEqual(Array.from(records,x=>x.key),['2026-11-25','2026-11-22','2026-11-20']);
  const old=records[2],today=records[0];
  assert.equal(old.slot,1);
  assert.ok(old.sources.has(1)&&old.sources.has(2)&&old.sources.has(3)&&old.sources.has('archived'));
@@ -557,6 +557,12 @@ test('only one STEP is visible, with STEP1 last card advancing to STEP2 and STEP
  assert.deepEqual(visible(),[2]);
  assert.equal(t.count[1].textContent,'13 / 13');
 });
+test('textbook TOC scrolls the document after showing the target STEP',()=>{
+ const page=source['textbook.html'];
+ assert.match(page,/showStep\(found\.step\.id\);[\s\S]*?requestAnimationFrame\(\(\)=>\{/);
+ assert.match(page,/state\.section\.getBoundingClientRect\(\)\.top/);
+ assert.match(page,/window\.scrollTo\(\{top:Math\.max\(0,top\),behavior:'auto'\}\)/);
+});
 test('search/index/deep links still show the matching STEP without revealing others',()=>{
  const first=textbookScenario();
  const idx=first.elements.stepIndex;
@@ -621,7 +627,7 @@ test('STEP2 page 5 explains, page 6 calculates and page 7 reviews past weights',
  const t=textbookScenario('#s2-c5');
  const track=t.sections[1].children.find(c=>c.className==='track');
  assert.match(source['textbook.html'],/\.track\{display:flex;align-items:stretch/);
- assert.match(source['textbook.html'],/\.lesson-card\{[^}]*height:540px;min-height:0;/);
+ assert.match(source['textbook.html'],/\.lesson-card\{[^}]*height:auto;min-height:540px;/);
  assert.match(source['textbook.html'],/\.lesson-card\{[^}]*overflow-x:hidden;overflow-y:auto;/);
  assert.doesNotMatch(source['textbook.html'],/fitActiveCard/);
  assert.match(source['textbook.html'],/\.visual--interactive/);
@@ -638,9 +644,9 @@ test('STEP2 page 5 explains, page 6 calculates and page 7 reviews past weights',
  assert.equal(visual.className,'visual visual--interactive');
  assert.equal(visual.children.filter(c=>c.className==='visual-title').length,0);
 });
-test('every textbook card uses one fixed outer height and scrolls its own content',()=>{
+test('textbook cards use content-responsive height and scroll their own content',()=>{
  const stylesheet=source['textbook.html'];
- assert.match(stylesheet,/\.lesson-card\{[^}]*height:540px;min-height:0;/);
+ assert.match(stylesheet,/\.lesson-card\{[^}]*height:auto;min-height:540px;/);
  assert.match(stylesheet,/\.lesson-card\{[^}]*overflow-x:hidden;overflow-y:auto;/);
  assert.match(stylesheet,/\.track\{[^}]*scroll-snap-type:x mandatory;/);
  assert.doesNotMatch(stylesheet,/fitActiveCard|refitTracks/);
