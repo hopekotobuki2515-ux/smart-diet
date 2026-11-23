@@ -47,6 +47,14 @@ const ready=async(fn)=>{
   'habit-check.html','habit-intro.html','food-groups.html','week-1-goal.html',
   'week-1-3-record.html','maintenance-energy.html','point-allocation.html',
   'photo-record.html','daily-result.html','program-choice.html','smart-diet.html'];
+ const booksrc=fs.readFileSync(path.resolve(__dirname,'../textbook-data.js'),'utf8');
+ const bookdata=JSON.parse(booksrc.slice(booksrc.indexOf('['),booksrc.lastIndexOf(']')+1));
+ const extraRoutes=[
+  ...Array.from({length:12},(_,i)=>'learning.html?week='+(i+1)),
+  ...bookdata.flatMap(step=>step.cards.map(card=>'textbook.html#'+card.id)),
+  '../food-search.html','../nutrient-food-search.html'
+ ];
+ const routes=[...cases,...extraRoutes];
  const diagnostics=[];
  const probe=String.raw`JSON.stringify((()=>{
   const root=document.documentElement;
@@ -65,10 +73,12 @@ const ready=async(fn)=>{
  })())`;
  for(const width of [320,390]){
   await cdp('Emulation.setDeviceMetricsOverride',{width,height:740,deviceScaleFactor:2,mobile:true});
-  for(const name of cases){
-   const url=pathToFileURL(path.resolve(__dirname,'..',name)).href;
+  for(const name of routes){
+   const filename=name.split(/[?#]/)[0];
+   const suffix=name.slice(filename.length);
+   const url=pathToFileURL(path.resolve(__dirname,'..',filename)).href+suffix;
    await cdp('Page.navigate',{url});
-   await sleep(170);
+   await sleep(135);
    const result=JSON.parse(await evalJS(probe));
    if(result.outside>4||result.narrowTotal>0){
     const item={file:name,width,outside:result.outside,narrow:result.narrow,narrowTotal:result.narrowTotal};
@@ -77,6 +87,6 @@ const ready=async(fn)=>{
    }
   }
  }
- process.stdout.write('AUDIT_COMPLETE pages='+cases.length+' sizes=2 warnings='+diagnostics.length+'\n');
+ process.stdout.write('AUDIT_COMPLETE routes='+routes.length+' sizes=2 warnings='+diagnostics.length+'\n');
  ws.close();
 })().catch(e=>{console.error(e.stack||e);process.exitCode=1;}).finally(()=>{chrome.kill('SIGTERM');});
