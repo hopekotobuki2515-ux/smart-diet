@@ -43,10 +43,11 @@ a,button,input{font:inherit}button{cursor:pointer}
 .index-links{display:flex;flex-direction:column;gap:7px}
 .index-links a{display:flex;gap:11px;align-items:center;min-height:43px;padding:10px 12px;border-radius:11px;text-decoration:none;background:#f3f8f1;border:1px solid var(--edge);color:var(--ink);font-size:13px;font-weight:750}
 .index-links b{color:var(--gold);font-size:12px;min-width:56px;letter-spacing:.04em}
+.index-links a>span{flex:1 1 0;min-width:0;white-space:normal;word-break:normal;overflow-wrap:break-word}
 .course-step{scroll-margin-top:14px;margin:20px 0 25px}
 .step-heading{display:flex;align-items:flex-start;gap:10px;margin:0 3px 9px}
 .step-num{flex:0 0 auto;min-width:62px;text-align:center;border:1px solid #d7c8ad;color:#8e6d3d;background:#fffaf0;font-size:11px;font-weight:850;padding:6px;border-radius:9px;letter-spacing:.07em}
-.step-heading h2{font-size:clamp(18px,5vw,21px);line-height:1.4;margin:0;min-width:0;word-break:normal;overflow-wrap:break-word}
+.step-heading h2{flex:1 1 0;font-size:clamp(18px,5vw,21px);line-height:1.4;margin:0;min-width:0;writing-mode:horizontal-tb;word-break:normal;overflow-wrap:break-word}
 .step-instruction{margin:0 2px 10px;font-size:12px;color:var(--muted);line-height:1.7}
 .track{display:flex;align-items:stretch;gap:0;max-width:100%;width:100%;position:relative;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scroll-padding:0;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .track::-webkit-scrollbar{display:none}
@@ -56,12 +57,13 @@ a,button,input{font:inherit}button{cursor:pointer}
 .bookmark{flex:0 0 auto;min-height:37px;border:1px solid #d1ddcb;border-radius:9px;background:#f5f8f1;color:var(--green);padding:6px 9px;font-size:12px;font-weight:750}
 .bookmark[aria-pressed="true"]{background:#fdf0d7;color:#795c30;border-color:#dfc494}
 .lesson-card h3{font-size:clamp(18px,5.1vw,21px);line-height:1.5;margin:0;font-weight:850;writing-mode:horizontal-tb;text-orientation:mixed;white-space:normal;word-break:normal;overflow-wrap:break-word}
-.lesson-body{font-size:16px;line-height:1.85;color:var(--sub);margin:0;letter-spacing:0;writing-mode:horizontal-tb;text-orientation:mixed;white-space:normal;word-break:normal;overflow-wrap:break-word;text-wrap:pretty}
+.lesson-body{display:block;width:100%;min-width:0;max-width:100%;font-size:16px;line-height:1.85;color:var(--sub);margin:0;letter-spacing:0;writing-mode:horizontal-tb;text-orientation:mixed;white-space:normal;word-break:normal;overflow-wrap:break-word;text-wrap:pretty}
 .weight-history-line{display:block}
 .visual{flex:0 0 auto;min-height:0;border-radius:13px;background:#eef5ed;border:1px solid #e1ebdf;padding:14px;display:flex;flex-direction:column;justify-content:center;gap:9px}
 .visual-title{font-size:13px;font-weight:800;color:var(--green);line-height:1.55}
-.visual-row{border:1px solid #e3e9e0;background:#fffefd;border-radius:9px;min-height:40px;display:flex;gap:8px;align-items:center;padding:9px 12px;font-size:14px;line-height:1.6}
-.visual-row:before{content:"•";font-weight:900;color:var(--gold);font-size:17px}
+.visual-row{border:1px solid #e3e9e0;background:#fffefd;border-radius:9px;min-height:40px;display:grid;grid-template-columns:12px minmax(0,1fr);gap:8px;align-items:start;min-width:0;width:100%;padding:9px 12px;font-size:14px;line-height:1.6}
+.visual-row:before{content:"•";font-weight:900;color:var(--gold);font-size:17px;line-height:1.5}
+.visual-row-text{display:block;min-width:0;width:100%;max-width:100%;writing-mode:horizontal-tb;text-orientation:mixed;white-space:normal;word-break:normal;overflow-wrap:break-word}
 .habit-reference-list{margin:2px 0 0;padding:1px 0 2px 1.8em;display:flex;flex-direction:column;gap:10px;color:var(--ink);font-size:14px;line-height:1.7;word-break:normal;overflow-wrap:break-word}
 .habit-reference-list li{padding-left:3px}
 .message-card .signature{margin:4px 0 0;text-align:right;font-size:13px;line-height:1.5;font-weight:700;color:var(--sub)}
@@ -386,7 +388,11 @@ html.reader-mode .end-card,html.reader-mode .related-sites,html.reader-mode .bot
     const visual=create('section','visual');
     visual.setAttribute('aria-label',c.visualTitle||'図解・ポイント');
     visual.append(create('div','visual-title',c.visualTitle||''));
-    for(const point of c.points)visual.append(create('div','visual-row',point));
+    for(const point of c.points){
+     const row=create('div','visual-row');
+     row.append(create('span','visual-row-text',point));
+     visual.append(row);
+    }
     if(c.id==='s2-habit-check'){
      const items=c.referenceItems;
      if(!Array.isArray(items)||items.length!==17){
