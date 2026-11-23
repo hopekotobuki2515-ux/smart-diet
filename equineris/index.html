@@ -116,15 +116,7 @@
       .welcome { min-height: min(870px, calc(100svh - 56px)); border: 1px solid var(--outline); border-radius: 25px; }
     }
     @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
-    /* Two start choices must remain reachable on short phones without clipping. */
-    @media(max-height:900px){
-      html,body{overflow-y:auto!important;overscroll-behavior-y:auto!important}
-      .viewport{height:auto!important;min-height:100svh!important;overflow:visible!important}
-      .welcome{height:auto!important;min-height:100svh!important;grid-template-rows:auto auto auto auto!important;
-        row-gap:10px!important;padding-block:16px max(20px,env(safe-area-inset-bottom))!important}
-      .science-art{min-height:165px!important;margin:12px 0 30px!important}
-      .orbit{width:170px!important;height:170px!important}
-    }
+    /* The following fixed-screen layout also applies on ordinary phone heights. */
   
     /* オープニングを画面内に収め、縦スクロールをなくす。 */
     html,body{height:100%;overflow-y:hidden;overscroll-behavior-y:none}
