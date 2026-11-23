@@ -20,7 +20,11 @@ const fetchPages=()=>new Promise((resolve,reject)=>{
  }).on('error',reject);
 });
 const ready=async(fn)=>{
- for(let i=0;i<100;i++){try{const result=await fn();if(result)return result;}catch(e){}await sleep(100);}
+ for(let i=0;i<300;i++){
+  if(chrome.exitCode!==null)throw Error('Chrome process exited before browser was ready: '+stderr.slice(-500));
+  try{const result=await fn();if(result)return result;}catch(e){}
+  await sleep(100);
+ }
  throw Error('Browser not ready: '+stderr.slice(-500));
 };
 (async()=>{
