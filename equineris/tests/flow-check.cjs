@@ -322,6 +322,37 @@ test('review points match STEP3 food master; mismatched or missing amounts remai
  assert.match(source['record-history.js'],/この日の記録済み点数/);
  assert.match(source['record-history.js'],/fetch\('\.\.\/food-master\.json'/);
 });
+test('opening continuation resumes saved lesson instead of restarting the program',()=>{
+ const page=source['index.html'];
+ const script=[...page.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)]
+  .map(x=>x[1]).find(x=>x.includes('findResumeHref'));
+ assert.ok(script);
+ assert.match(page,/id="continueProgramLink"/);
+ assert.match(page,/id="startButton"/);
+ assert.match(page,/id="recordOnlyLink"/);
+ function clickContinuation(raw){
+  const state=new Map();
+  if(raw!==undefined)state.set('equineris:textbook:last:v1',raw);
+  const elements={};
+  for(const id of ['nextStepDialog','nextStepTitle','nextStepMessage','closeDialog',
+    'startButton','loginButton','continueProgramLink']){
+   elements[id]={href:id==='continueProgramLink'?'./textbook.html':undefined,
+    on:{},addEventListener(t,cb){this.on[t]=cb;},showModal(){},close(){}};
+  }
+  const document={getElementById:id=>elements[id]};
+  const storage={getItem:k=>state.get(k)??null,setItem(){throw Error('must not overwrite last-read position');}};
+  const window={location:{assign(){}}};
+  vm.runInNewContext(script,{window,document,localStorage:storage});
+  elements.continueProgramLink.on.click();
+  return {href:elements.continueProgramLink.href,unchanged:state.get('equineris:textbook:last:v1')};
+ }
+ const previous=clickContinuation(JSON.stringify('s4-c3'));
+ assert.equal(previous.href,'./textbook.html#s4-c3');
+ assert.equal(previous.unchanged,JSON.stringify('s4-c3'));
+ assert.equal(clickContinuation(undefined).href,'./textbook.html');
+ assert.equal(clickContinuation(JSON.stringify('invalid')).href,'./textbook.html');
+ assert.equal(clickContinuation('{bad-json').href,'./textbook.html');
+});
 test('record-only entry skips registration, while the 12-week program route remains',()=>{
  const opening=source['index.html'],unified=source['record.html'];
  assert.match(opening,/id="recordOnlyLink" href="\.\/record\.html\?stage=1&amp;mode=record-only"/);
