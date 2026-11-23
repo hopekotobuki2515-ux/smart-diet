@@ -3,7 +3,7 @@
 (()=>{
  const STAGE_KEY='equineris:diary:input-stage:v1';
  const DATE_KEY='equineris:diary:selected-date:v1';
- const LABELS={'1':'STEP1：写真とメモ','2':'STEP2：食品名・分量・食品群','3':'STEP3：食品検索・重量・点数計算',history:'これまでの記録'};
+ const LABELS={'1':'STEP1：写真・メモ・四群チェック','2':'STEP2：食品名・分量・食品群','3':'STEP3：食品検索・重量・点数計算',history:'これまでの記録'};
  const CHILD={'1':'diary-step1.html','2':'diary-step2.html','3':'diary-step3.html',history:'record-history.html'};
  const buttons=[...document.querySelectorAll('[data-view]')];
  const dateField=document.getElementById('recordDate');
@@ -61,7 +61,7 @@
   photoBusy=value;enable();
   describe(value?'写真の保存中です。入力方法と日付の変更は保存後にできます。':LABELS[active]);
  };
- const frameUrl=(view,date,day)=>'./'+CHILD[view]+(view==='history'?'?ui=20261123-step1-entry-fix':'?'+(day?'day='+day:'date='+encodeURIComponent(date))+'&ui=20261123-step1-entry-fix');
+ const frameUrl=(view,date,day)=>'./'+CHILD[view]+(view==='history'?'?ui=20261123-four-groups-restored':'?'+(day?'day='+day:'date='+encodeURIComponent(date))+'&ui=20261123-four-groups-restored');
  function updateUrl(){
   const q=new URLSearchParams();q.set('stage',active);
   if(legacyDay)q.set('day',legacyDay);
