@@ -121,6 +121,18 @@
   ].join('');
   doc.head.append(style);
   doc.addEventListener('click',linkClick,true);
+  // Date edits performed inside a STEP must carry over to the other STEP tabs.
+  // Run in the bubble phase, after the original stage's date-change handler.
+  doc.addEventListener('change',event=>{
+   if(!event.target||event.target.id!=='diary-date'||photoBusy)return;
+   const changed=event.target.value;
+   if(!validDate(changed))return;
+   selectedDate=changed;
+   legacyDay=null;
+   dateField.value=changed;
+   write(DATE_KEY,changed);
+   updateUrl();
+  },false);
   if(observer){observer.disconnect();observer=null;}
   const photoStatus=doc.getElementById('photoStatus');
   if(photoStatus&&typeof MutationObserver==='function'){
