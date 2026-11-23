@@ -23,3 +23,5 @@ jobs:
           node-version: '22'
       - name: Check page syntax, lesson navigation, goals, checklist and food diary
         run: node equineris/tests/flow-check.cjs
+      - name: Check mobile reader in headless Chrome
+        run: node equineris/tests/reader-browser.cjs
