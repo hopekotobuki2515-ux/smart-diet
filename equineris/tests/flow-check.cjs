@@ -924,7 +924,7 @@ test('STEP2 page nine opens the original 17-item checklist as page ten',()=>{
  assert.equal(list.children.length,17);
  assert.equal(list.children[0].children[0].dataset.habit,'h01');
  assert.equal(list.children[16].children[0].dataset.habit,'h17');
- assert.match(source['textbook.html'],/\.habit-mini-list\{[^}]*max-height:290px;overflow-y:auto/);
+ assert.match(source['textbook.html'],/\.habit-mini-list\{[^}]*overflow-y:visible/);
  t.next[1].click();
  assert.equal(t.count[1].textContent,'11 / 13');
  assert.equal(t.location.destination,null);
