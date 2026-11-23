@@ -11,6 +11,8 @@
  const status=document.getElementById('recordStatus');
  const frame=document.getElementById('recordFrame');
  const nextLesson=document.getElementById('nextLessonLink');
+ const backLink=document.getElementById('recordBackLink');
+ const quickWeightSection=document.getElementById('quickWeightSection');
  const read=k=>{try{return localStorage.getItem(k);}catch(e){return null;}};
  const write=(k,v)=>{try{localStorage.setItem(k,v);}catch(e){status.textContent='記録の保存設定を確認してください。';status.dataset.error='true';}};
  const validDate=s=>{
@@ -33,6 +35,11 @@
   return false;
  };
  const params=new URLSearchParams(location.search);
+ const recordOnly=params.get('mode')==='record-only';
+ if(recordOnly&&backLink){
+  backLink.href='./index.html';
+  backLink.textContent='〈 はじめの画面へ';
+ }
  const requestedStage=params.get('stage');
  const persistedStage=read(STAGE_KEY);
  let active=LABELS[requestedStage]?requestedStage:LABELS[persistedStage]?persistedStage:'1';
@@ -61,9 +68,10 @@
   photoBusy=value;enable();
   describe(value?'写真の保存中です。入力方法と日付の変更は保存後にできます。':LABELS[active]);
  };
- const frameUrl=(view,date,day)=>'./'+CHILD[view]+(view==='history'?'?ui=20261123-four-groups-restored':'?'+(day?'day='+day:'date='+encodeURIComponent(date))+'&ui=20261123-four-groups-restored');
+ const frameUrl=(view,date,day)=>'./'+CHILD[view]+(view==='history'?'?ui=20261123-record-only-weight':'?'+(day?'day='+day:'date='+encodeURIComponent(date))+'&ui=20261123-record-only-weight');
  function updateUrl(){
   const q=new URLSearchParams();q.set('stage',active);
+  if(recordOnly)q.set('mode','record-only');
   if(legacyDay)q.set('day',legacyDay);
   else if(validDate(selectedDate))q.set('date',selectedDate);
   history.replaceState(null,'',location.pathname+'?'+q.toString());
@@ -75,7 +83,9 @@
   active=view;
   if(view!=='history')write(STAGE_KEY,view);
   dateBox.hidden=view==='history';dateField.value=selectedDate;
-  if(nextLesson)nextLesson.hidden=view!=='3';
+  if(quickWeightSection)quickWeightSection.hidden=view==='history';
+  if(nextLesson)nextLesson.hidden=recordOnly||view!=='3';
+  if(window.EquinerisQuickWeight)window.EquinerisQuickWeight.refresh();
   buttons.forEach(b=>b.setAttribute('aria-selected',String(b.dataset.view===view)));
   frame.title=LABELS[view];describe(LABELS[view]);updateUrl();
   const next=frameUrl(view,selectedDate,legacyDay);
@@ -150,6 +160,7 @@
    legacyDay=null;
    dateField.value=changed;
    write(DATE_KEY,changed);
+   if(window.EquinerisQuickWeight)window.EquinerisQuickWeight.refresh();
    updateUrl();
   },false);
   if(observer){observer.disconnect();observer=null;}
