@@ -158,6 +158,7 @@
 /* Adapt the existing point-allocation lesson design. Does not alter its source page. */
 .lesson-index-title{margin:24px 0 8px;text-align:center;font-size:23px;color:var(--green)}
 .lesson-index-lead{font-size:13px;line-height:1.85;text-align:center;color:var(--ink-light);margin:0 0 22px}
+.lesson-index-lead-line{display:block}
 .lesson-index-list{display:grid;grid-template-columns:minmax(0,1fr);gap:9px}
 .lesson-index-link{display:grid;grid-template-columns:54px minmax(0,1fr) auto;gap:10px;align-items:center;min-height:70px;padding:13px 12px;border:1px solid #dce7dc;border-radius:15px;background:#fffefa;color:var(--ink);text-decoration:none}
 .lesson-index-link span{display:grid;place-items:center;min-height:41px;background:#eff6ed;border-radius:10px;color:var(--green);font-size:12px;font-weight:800}
@@ -177,6 +178,10 @@
 .lesson-tabs::-webkit-scrollbar{display:none}
 .lesson-tabs button{flex:0 0 auto;min-height:43px;padding:7px 12px;border:1px solid #d8e3d9;border-radius:10px;background:#fff;color:var(--green);font-size:12px;font-weight:750}
 .lesson-tabs button[aria-pressed=true]{background:var(--green);color:white;border-color:var(--green)}
+.related-textbook{border:1px solid #dce7dc;border-radius:12px;padding:12px;margin:12px 0;background:#fffdf9}
+.related-textbook h2{font-size:15px;line-height:1.5;color:var(--green);margin:0 0 8px}
+.related-textbook-list{display:grid;grid-template-columns:minmax(0,1fr);gap:7px}
+.related-textbook-list a{display:block;min-width:0;padding:12px;border:1px solid #cee0cf;border-radius:10px;background:#f2f8f1;color:var(--green);font-size:13px;font-weight:750;line-height:1.5;text-decoration:none;word-break:normal;overflow-wrap:break-word}
 .lesson-week-nav{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin:13px 0}
 .lesson-week-nav a{display:flex;justify-content:center;align-items:center;text-align:center;min-height:50px;border:1px solid #cde0d0;border-radius:11px;background:#fff;color:var(--green);text-decoration:none;font-size:13px;font-weight:750;padding:10px}
 .lesson-week-nav a[hidden]{display:none!important}
@@ -233,7 +238,7 @@ body.week-reading .lesson-tabs{padding:1px 1px 5px}
  <p class="wordmark" aria-label="EQUINERIS">EQUI<span>NERIS</span></p>
  <div id="lessonIndex">
   <h1 class="lesson-index-title">12週間の学び</h1>
-  <p class="lesson-index-lead" id="lessonIndexLead">読みたい週を選んでください。学習ページはいつでも見返せます。</p>
+  <p class="lesson-index-lead" id="lessonIndexLead">読みたい週を選んでください。<span class="lesson-index-lead-line">学習ページはいつでも見返せます。</span></p>
   <a class="lesson-step-link" href="./textbook.html">参考テキストを探す・読み返す</a>
   <nav class="lesson-index-list" id="lessonIndexList" aria-label="12週間の教材一覧"></nav>
   <p class="lesson-index-note">ここでは12週間の学びを読み進めます。食事の記録や計算は、記録・検索の各画面で行えます。</p>
@@ -248,6 +253,7 @@ body.week-reading .lesson-tabs{padding:1px 1px 5px}
   <nav class="point-navigation" aria-label="学習カードを切り替える"><button id="lessonPrev" type="button" disabled>〈 前へ</button><span id="lessonCounter" class="point-counter" aria-live="polite">1 / 4</span><button id="lessonNext" type="button">次へ 〉</button></nav>
   <div class="lesson-tabs" id="lessonTabs" role="group" aria-label="教材カードを選ぶ"></div>
   <a class="lesson-step-link" id="lessonCompanion" href="./food-groups.html" hidden>関連教材を開く</a>
+  <section class="related-textbook" id="relatedTextbook" aria-labelledby="relatedTextbookTitle"><h2 id="relatedTextbookTitle">今週の参考テキスト</h2><nav id="relatedTextbookLinks" class="related-textbook-list" aria-label="今週に関連する参考テキスト"></nav></section>
   <nav class="lesson-week-nav" aria-label="週を移動する"><a id="previousWeek" href="./learning.html?week=1">〈 前の週</a><a id="nextWeek" href="./learning.html?week=2">次の週 〉</a></nav>
   <a class="lesson-step-link" href="./textbook.html">参考テキストを探す・お気に入りを見る</a>
   <a class="lesson-step-link" href="./learning.html">12週間の学び一覧へ戻る</a>
@@ -272,6 +278,8 @@ const tabs=document.getElementById('lessonTabs');
 const before=document.getElementById('previousWeek');
 const after=document.getElementById('nextWeek');
 const companion=document.getElementById('lessonCompanion');
+const relatedLinks=document.getElementById('relatedTextbookLinks');
+const relatedTextbookByWeek=[[["s2-c2","BMIで体格を確認しましょう"],["s2-c4","お腹まわりを測ってみましょう"],["s2-c7","普段の食べ方を振り返る"],["s4-c1","何を食べたか記録しましょう"]],[["s2-c5","どのくらいの減量を目指す？"],["s2-habit-check","食行動チェック表"],["s2-goal","3か月後の目標体重を計算しましょう"]],[["s3-c6","1点＝80kcalで考えます"],["s3-c1","スマートダイエット式食事を学ぶ"]],[["s4-c2","食べた量を確認しましょう"]],[["s4-c3","食品の点数を確認しましょう"]],[["s3-c7","3食にバランスよく振り分ける"],["s3-c10","主食・主菜・副菜・もう一品"]],[["s3-c2","卵・乳・乳製品"],["s3-c3","魚・肉・豆・豆製品"],["s3-c4","野菜・果物・いも・きのこ・海藻"],["s3-c5","穀類・油脂・砂糖・嗜好品"]],[["s5-c4","外食でも食品群を意識する"],["s5-c6","コンビニでも食事を整える"]],[["s5-c3","おやつも選び方を考える"],["s5-c8","体重が減らない時期もあります"],["s5-c7","お酒の量を見直しましょう"]],[["s6-c1","自分に合った運動を見つけましょう"],["s6-c8","筋肉を使う習慣をつくりましょう"],["s6-c12","日常生活の動きも運動の一部"]],[["s3-c10","主食・主菜・副菜・もう一品"],["s3-c7","3食にバランスよく振り分ける"]],[["s5-c9","目標達成後も食習慣を大切に"],["s5-c10","続けられる習慣を身につける"]]];
 if(!Array.isArray(data)||data.length!==12||data.some((week,i)=>week.week!==i+1)){
  index.hidden=false;content.hidden=true;
  document.getElementById('lessonIndexLead').textContent='教材を読み込めませんでした。ページを再読み込みしてください。';
@@ -319,6 +327,7 @@ function update(){
  prev.disabled=slideIndex===0;
  next.disabled=slideIndex===slides.length-1;
  [...tabs.children].forEach((tab,i)=>tab.setAttribute('aria-pressed',String(i===slideIndex)));
+ for(const a of relatedLinks.children){a.href='./textbook.html?week='+picker.value+'&card='+slideIndex+'#'+encodeURIComponent(a.dataset.cardId);}
 }
 function go(i,smooth=true){
  slideIndex=Math.max(0,Math.min(track.children.length-1,i));
@@ -351,6 +360,10 @@ function loadWeek(n){
  if(n===1){companion.href='./week-1-goal.html';companion.textContent='スマートダイエットの減量目標設定';companion.hidden=false;}
  if(n===3){companion.href='./food-groups.html?day=1';companion.textContent='4つの食品群と点数配分を詳しく見る';companion.hidden=false;}
  if(n===12){companion.href='./maintenance-energy.html';companion.textContent='12週間修了後のエネルギー構成と四群の点数配分を見る';companion.hidden=false;}
+ relatedLinks.replaceChildren();
+ for(const [id,title] of relatedTextbookByWeek[n-1]){
+  const a=node('a','',title);a.dataset.cardId=id;relatedLinks.appendChild(a);
+ }
  slideIndex=0;track.scrollLeft=0;update();
 }
 prev.addEventListener('click',()=>go(slideIndex-1));
@@ -377,8 +390,13 @@ picker.addEventListener('change',()=>{
 });
 const query=new URLSearchParams(window.location.search);
 const requested=Number(query.get('week'));
-if(Number.isInteger(requested)&&requested>=1&&requested<=12)loadWeek(requested);
-else{document.body.classList.remove('week-reading');index.hidden=false;content.hidden=true;}
+if(Number.isInteger(requested)&&requested>=1&&requested<=12){
+ loadWeek(requested);
+ const requestedCard=Number(query.get('card'));
+ if(query.has('card')&&Number.isInteger(requestedCard)&&requestedCard>=0&&requestedCard<4){
+  requestAnimationFrame(()=>go(requestedCard,false));
+ }
+}else{document.body.classList.remove('week-reading');index.hidden=false;content.hidden=true;}
 })();
 </script>
 </body>
