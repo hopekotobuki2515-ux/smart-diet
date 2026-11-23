@@ -532,17 +532,17 @@ class MockEl {
  scrollTo(opts){this.scrollLeft=opts.left;}
  scrollIntoView(){this.scrolled=true;}
 }
-function textbookScenario(hash='',seed={}){
+function textbookScenario(hash='',seed={},search=''){
  const names=['steps','stepIndex','searchInput','favoritesButton','resumeButton',
   'resultPanel','resultTitle','resultList','storageStatus','libraryIntro',
-  'discoveryPanel','backToIndex','textbookEnding','textbookRelated','textbookDisclaimer'];
+  'discoveryPanel','backToIndex','backToLearning','textbookEnding','textbookRelated','textbookDisclaimer'];
  const elements=Object.fromEntries(names.map(name=>[name,new MockEl()]));
  const document={
   getElementById:id=>{assert.ok(elements[id],id);return elements[id];},
   createElement:tag=>new MockEl(tag)
  };
  const events={};
- const location={hash,destination:null,assign(to){this.destination=to;}};
+ const location={hash,search,destination:null,assign(to){this.destination=to;}};
  const window={SMART_DIET_TEXTBOOK:textbookData,location,
   scrollTo(opts){this.lastScroll=opts;},
   addEventListener:(type,fn)=>{(events[type]??=[]).push(fn);}};
@@ -557,7 +557,7 @@ function textbookScenario(hash='',seed={}){
  const inline=scriptOf(source['textbook.html']).find(s=>s.includes('const data=window.SMART_DIET_TEXTBOOK'));
  assert.ok(inline,'textbook script');
  vm.runInNewContext(inline,{
-  window,document,location,localStorage,history,requestAnimationFrame:fn=>fn()
+  window,document,location,URLSearchParams,localStorage,history,requestAnimationFrame:fn=>fn()
  });
  for(const fn of events.load??[])fn();
  const sections=elements.steps.children.filter(x=>x.className==='course-step');
@@ -565,6 +565,13 @@ function textbookScenario(hash='',seed={}){
  const next=navs.map(n=>n.children[2]),count=navs.map(n=>n.children[1]);
  return {sections,next,count,location,localData,elements,window};
 }
+test('reference text returns to the exact weekly lesson and slide',()=>{
+ const page=textbookScenario('#s2-c5',{},'?week=2&card=3');
+ assert.equal(page.elements.backToLearning.href,'./learning.html?week=2&card=3');
+ assert.equal(page.elements.backToLearning.textContent,'〈 第2週の学びに戻る');
+ assert.equal(page.sections[1].hidden,false);
+ assert.equal(page.sections.filter(step=>!step.hidden).length,1);
+});
 test('only one STEP is visible, with STEP1 last card advancing to STEP2 and STEP3',()=>{
  const t=textbookScenario();
  const visible=()=>t.sections.map((node,i)=>!node.hidden?i+1:null).filter(Boolean);
