@@ -214,7 +214,7 @@ body.week-reading .heading .eyebrow{margin-bottom:3px}
 body.week-reading .heading h1{font-size:clamp(17px,4.8vw,21px);line-height:1.35}
 body.week-reading .heading>p:last-child{margin:3px 0 0;font-size:11px;line-height:1.4}
 body.week-reading .point-intro{margin:2px 0 5px;font-size:11px;line-height:1.4}
-body.week-reading .point-track{height:clamp(215px,calc(100svh - 530px),250px);align-items:stretch;scroll-padding:0}
+body.week-reading .point-track{height:clamp(300px,calc(100svh - 430px),460px);align-items:stretch;scroll-padding:0}
 body.week-reading .point-slide{flex:0 0 100%;width:100%;height:100%;padding:1px 1px 3px}
 body.week-reading .point-panel{
   height:100%;min-height:0;display:flex;flex-direction:column;
@@ -231,6 +231,17 @@ body.week-reading .lesson-tabs{padding:1px 1px 5px}
   body.week-reading .heading>p:last-child{display:none}
   body.week-reading .point-track{height:clamp(195px,calc(100svh - 390px),220px)}
 }
+
+/* Full-length source lessons live only inside the already approved four-card weekly reader. */
+body.week-reading .point-panel.lesson-reading-card{justify-content:flex-start;scroll-padding-top:10px}
+.lesson-full-body{width:100%;min-width:0;max-width:100%;flex:0 0 auto}
+.lesson-section{margin:14px 0 20px;min-width:0;max-width:100%}
+.lesson-section:first-child{margin-top:3px}
+.lesson-section-heading{font-size:15px;line-height:1.55;color:var(--green);font-weight:800;margin:0 0 9px;word-break:normal;overflow-wrap:break-word}
+.lesson-section-body{font-size:14px;line-height:1.8;color:var(--ink-light);min-width:0;word-break:normal;overflow-wrap:break-word}
+.lesson-section-paragraph{margin:0 0 12px;line-height:inherit;white-space:normal}
+.lesson-section-item{margin:3px 0;padding-left:0;line-height:inherit;white-space:normal}
+.lesson-week-title-line{display:block;white-space:normal}
 </style>
 </head>
 <body>
@@ -250,7 +261,7 @@ body.week-reading .lesson-tabs{padding:1px 1px 5px}
   </label>
   <header class="heading"><p class="eyebrow">SMART DIET · WEEKLY LESSON</p><h1 id="lessonTitle"></h1><p id="lessonIntro"></p></header>
   <a class="lesson-step-link" id="weekTextbookEntry" href="./textbook.html">今週の参考テキストを読む</a>
-  <p class="point-intro" id="lessonInstructions">左右にスワイプ、または下のボタンで4枚の教材を読み進められます。</p>
+  <p class="point-intro" id="lessonInstructions">左右にスワイプして4枚を切り替えます。各カード内の文章は上下にスクロールして読めます。</p>
   <div class="point-track" id="lessonTrack" tabindex="0" role="region" aria-label="12週間プログラムの週別学習" aria-describedby="lessonInstructions"></div>
   <nav class="point-navigation" aria-label="学習カードを切り替える"><button id="lessonPrev" type="button" disabled>〈 前へ</button><span id="lessonCounter" class="point-counter" aria-live="polite">1 / 4</span><button id="lessonNext" type="button">次へ 〉</button></nav>
   <div class="lesson-tabs" id="lessonTabs" role="group" aria-label="教材カードを選ぶ"></div>
@@ -315,16 +326,45 @@ for(const entry of data){
 }
 
 /* 1画面に要点1つ。元の12週間教材は learning-data.js に保持し、ここでは短い要約だけ表示する。 */
-const briefByWeek=[["まずは、今の食事と体重を知るところから。最初から完璧な食事に変える必要はありません。","食事の量や時間、間食、飲み物にも目を向けましょう。今週は点数で評価しません。","普段の食事を3日間、写真や短いメモで記録します。体重も確認しておきましょう。","食事を記録して、初めて気づいたことはありましたか？"],["先週の記録を使い、3か月後の目標を考えます。体重だけでなく、暮らしの変化も大切です。","結果の目標と、毎日続けられる行動を一緒に考えましょう。目標は途中で見直せます。","今週できそうな行動を1〜2個選び、食事記録を続けます。","選んだ行動は続けやすかったですか？ 難しければ調整しましょう。"],["食事を整理するために、80kcalを1点として考えます。","食品は栄養の特徴によって第1〜4群に分けます。同じ食品でも量が変われば点数は変わります。","食事を1つ選んで、食品群や点数の見方を確認してみましょう。","どの食品群が分かりやすかったですか？ 分かりにくいものはあとから見返せます。"],["今週は食品の「量」に注目します。同じご飯でも、100gと200gでは点数が違います。","一度量ってみると、見た目から量をつかむ練習になります。すべての食事を量る必要はありません。","よく食べる食品を3つ選んで、実際に重さを量ってみましょう。","思っていた量と実際の量に、違いはありましたか？"],["食品の量を、点数に置き換えて1食全体を見ます。","食品ごとの点数を合計すると、1食の点数が分かります。油や調味料も点数に関係します。","1日1食を選び、3日間、分かる範囲で点数を確認しましょう。","点数にしてみて、量の印象が変わった食品はありましたか？"],["今週は朝・昼・夕・間食をまとめて、1日全体を見ていきます。","毎食同じ点数でなくても構いません。自分の生活に合わせた配分を考えます。","1日分の食事と点数を確認して、合計を見てみましょう。","朝・昼・夕・間食のうち、点数が多くなりやすいのはいつでしたか？"],["点数だけでなく、どの食品群から食べているかも見ていきましょう。","食品群の組み合わせや、油・砂糖・ドレッシングなどの量にも目を向けます。","よく使う調味料を1〜2種類選び、量を確認してみましょう。","不足しがちな食品群や、意外だった調味料はありましたか？"],["外食やコンビニを使う日も、食べ方を考える練習ができます。","自炊・外食・コンビニ・スーパー・ファストフードでも、量と組み合わせが手がかりです。","外で食べるときに1回、食品の量や栄養表示を確かめてみましょう。","実際の食事選びで、迷ったことはありましたか？"],["体重が動かない時や、間食が増える日があっても、そこで終わりではありません。","体重は1日だけで判断せず、数日から週単位の変化を見ます。間食や飲酒も量と頻度を確かめます。","自分がつまずきやすい場面を1つ選び、1週間記録してみましょう。","次に似た場面が来たら、どんな方法で戻せそうですか？"],["食事と運動には、それぞれ役割があります。食べた分を運動で帳消しにする考え方にはしません。","トレーニングと、歩く・階段を使うなどの日常活動にも目を向けます。痛みがあれば無理をしません。","今週できた運動や、日常で増やせそうな活動を1つ記録しましょう。","生活の中で続けられそうな動きはありましたか？"],["これまで学んだ量・点数・食品群を使い、自分で1日の食事を考えます。","予定どおり食べられることよりも、予定が変わったときに調整する力を大切にします。","1日の食事を考えてから、実際の食事と比べてみましょう。","予定と違ったとき、どのように調整できましたか？"],["12週間の最後に、体重だけでなく食べ方や行動の変化を振り返ります。","減量後の食事量は、そのままずっと続けるとは限りません。維持への移行はトレーナーと確認します。","開始時の目標と今の状態を見比べ、これから続けることを決めましょう。","これからも使えそうな習慣と、困った時の戻し方は何ですか？"]];
-function slide(title,subtitle,shortText){
+/* 各週の原稿は learning-data.js を唯一の正本とし、4枚に分けて省略せず表示する。 */
+const sectionGroupsByWeek=[[[0,1,2],[3],[4,5,6],[7,8]],[[0,1,2],[3,4,5],[6,7],[9,10]],[[0,1,2],[4,7],[5,6],[9,10]],[[0],[1],[2],[3,4]],[[0],[1,3],[2],[4,5]],[[0],[1,3],[2],[4,5]],[[0],[1,2],[3],[4,5]],[[0],[1,2],[3],[4,5]],[[0],[1,2,3],[4],[5]],[[0],[1,3],[2,4],[5]],[[0],[1],[2],[3,4]],[[0],[1,2,3],[4],[5,6]]];
+function appendLessonText(parent,sourceText){
+ const lines=String(sourceText||'').replace(/\r\n?/g,'\n').split('\n');
+ let buffer=[];
+ const flush=()=>{
+  if(!buffer.length)return;
+  parent.appendChild(node('p','lesson-section-paragraph',buffer.join('')));
+  buffer=[];
+ };
+ for(const raw of lines){
+  const line=raw.trim();
+  if(!line){flush();continue;}
+  if(/^(?:[・□■●•]|Q[0-9]+[．.:：]|[①-⑳]|【|↓|↑|🙂|😐|😣)/u.test(line)){
+   flush();
+   parent.appendChild(node('p','lesson-section-item',line));
+  }else buffer.push(line);
+ }
+ flush();
+}
+function slide(title,subtitle,weeklySections){
  const section=node('section','point-slide');
  section.setAttribute('role','group');
  section.setAttribute('aria-roledescription','スライド');
  section.setAttribute('aria-label',title);
- const panel=node('div','point-panel');
+ const panel=node('div','point-panel lesson-reading-card');
  panel.appendChild(node('p','point-label',subtitle));
  panel.appendChild(node('h2','',title));
- panel.appendChild(node('p','lesson-short',shortText));
+ const lessonBody=node('div','lesson-full-body');
+ for(const [index,original] of weeklySections){
+  const block=node('section','lesson-section');
+  block.dataset.sourceIndex=String(index);
+  block.appendChild(node('h3','lesson-section-heading',original.title));
+  const body=node('div','lesson-section-body');
+  appendLessonText(body,original.text);
+  block.appendChild(body);
+  lessonBody.appendChild(block);
+ }
+ panel.appendChild(lessonBody);
  section.appendChild(panel);
  return section;
 }
@@ -355,14 +395,20 @@ function loadWeek(n){
  document.body.classList.add('week-reading');
  index.hidden=true;content.hidden=false;
  picker.value=String(n);
- heading.textContent='第'+n+'週｜'+entry.title;
- intro.textContent='4枚のカードで、今週の大切なことを確認しましょう。';
+ heading.replaceChildren();
+ if(n===12&&entry.title.includes('、')){
+  const divider=entry.title.indexOf('、')+1;
+  heading.appendChild(node('span','lesson-week-title-line','第'+n+'週｜'+entry.title.slice(0,divider)));
+  heading.appendChild(node('span','lesson-week-title-line',entry.title.slice(divider)));
+ }else heading.textContent='第'+n+'週｜'+entry.title;
+ intro.textContent='各カードの本文は、カード内を上下にスクロールして読めます。';
  document.title='第'+n+'週｜'+entry.title+' | SMART Diet';
- const shortCards=briefByWeek[n-1];
  const titles=['今週のお話','学ぶポイント','今週の実践','振り返り'];
+ const groups=sectionGroupsByWeek[n-1];
  track.replaceChildren();tabs.replaceChildren();
- shortCards.forEach((shortText,i)=>{
-  track.appendChild(slide(titles[i],'WEEK '+n+' · '+String(i+1).padStart(2,'0'),shortText));
+ groups.forEach((indices,i)=>{
+  const sections=indices.map(index=>[index,entry.sections[index]]);
+  track.appendChild(slide(titles[i],'WEEK '+n+' · '+String(i+1).padStart(2,'0'),sections));
   const tab=node('button','',titles[i]);tab.type='button';tab.setAttribute('aria-pressed',String(i===0));
   tab.addEventListener('click',()=>go(i));
   tabs.appendChild(tab);

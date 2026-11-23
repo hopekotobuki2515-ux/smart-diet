@@ -1,11 +1,7 @@
 name: Deploy EQUINERIS to Sakura
+# Sakura deployment runs only on explicit manual action, never on a code push.
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - 'equineris/**'
-      - '.github/workflows/deploy-equineris-sakura.yml'
 permissions:
   contents: read
 concurrency:
