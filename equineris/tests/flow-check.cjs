@@ -627,7 +627,7 @@ test('STEP2 page 5 explains, page 6 calculates and page 7 reviews past weights',
  const t=textbookScenario('#s2-c5');
  const track=t.sections[1].children.find(c=>c.className==='track');
  assert.match(source['textbook.html'],/\.track\{display:flex;align-items:stretch/);
- assert.match(source['textbook.html'],/\.lesson-card\{[^}]*height:540px;min-height:0;/);
+ assert.match(source['textbook.html'],/\.lesson-card\{[^}]*height:auto;min-height:540px;/);
  assert.match(source['textbook.html'],/\.lesson-card\{[^}]*overflow-x:hidden;overflow-y:auto;/);
  assert.doesNotMatch(source['textbook.html'],/fitActiveCard/);
  assert.match(source['textbook.html'],/\.visual--interactive/);
@@ -644,9 +644,9 @@ test('STEP2 page 5 explains, page 6 calculates and page 7 reviews past weights',
  assert.equal(visual.className,'visual visual--interactive');
  assert.equal(visual.children.filter(c=>c.className==='visual-title').length,0);
 });
-test('every textbook card uses one fixed outer height and scrolls its own content',()=>{
+test('textbook cards use content-responsive height and scroll their own content',()=>{
  const stylesheet=source['textbook.html'];
- assert.match(stylesheet,/\.lesson-card\{[^}]*height:540px;min-height:0;/);
+ assert.match(stylesheet,/\.lesson-card\{[^}]*height:auto;min-height:540px;/);
  assert.match(stylesheet,/\.lesson-card\{[^}]*overflow-x:hidden;overflow-y:auto;/);
  assert.match(stylesheet,/\.track\{[^}]*scroll-snap-type:x mandatory;/);
  assert.doesNotMatch(stylesheet,/fitActiveCard|refitTracks/);
