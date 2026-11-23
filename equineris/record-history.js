@@ -166,14 +166,25 @@
   if(row.date)return './record.html?stage='+step+'&date='+encodeURIComponent(row.date);
   return row.slot?'./record.html?stage='+step+'&day='+row.slot:null;
  }
+ // Score only records that match the same food master entry and grams-per-point definition.
+ function pointsFor(item,foods){
+  if(!item||item.stage!==3||!Array.isArray(foods))return null;
+  if(!Number.isInteger(item.masterIndex)||item.masterIndex<0)return null;
+  const record=foods[item.masterIndex];
+  if(!record||record.name!==item.masterName||record.group!==item.masterGroup||
+     record.gramsPerPoint!==item.masterGramsPerPoint||!Number.isFinite(record.gramsPerPoint)||
+     record.gramsPerPoint<=0)return null;
+  if(typeof item.grams!=='number'||!Number.isFinite(item.grams)||item.grams<=0)return null;
+  return item.grams/record.gramsPerPoint;
+ }
  // Expose pure read-only model functions for regression tests.
- window.EquinerisRecordHistory=Object.freeze({collect,summary,editUrl,dateValid});
+ window.EquinerisRecordHistory=Object.freeze({collect,summary,editUrl,dateValid,pointsFor});
  const select=document.getElementById('reviewDate');
  if(!select)return;
  const $=id=>document.getElementById(id);
  const listStatus=$('listStatus'),detail=$('reviewDetail'),older=$('olderRecord'),newer=$('newerRecord');
  const dates=new Map(),dbs={},urls=[];
- let rows=[],index=0,version=0;
+ let rows=[],index=0,version=0,master=null;
  const message=(txt,error=false)=>{listStatus.textContent=txt;listStatus.dataset.error=String(error);};
  const clean=()=>{for(const url of urls)URL.revokeObjectURL(url);urls.length=0;};
  const node=(tag,cls,text)=>{
@@ -260,6 +271,7 @@
   if(!hasFood)return;
   const group=node('section','review-card');
   group.append(node('h3','','食事の記録'));
+  let dayPoints=0,scoredCount=0,unscoredCount=0;
   for(const meal of result.meals){
    const part=node('article','meal-result');
    part.append(node('h4','',meal.label+(meal.time?'　'+meal.time:'')));
@@ -267,6 +279,7 @@
    if(notes.length)for(const memo of notes)part.append(node('p','meal-note',memo));
    if(meal.foods.length){
     const ul=node('ul','food-items');
+    let mealPoints=0,mealScored=0,mealUnscored=0;
     for(const item of meal.foods){
      let amount='';
      if(item.stage===3){
@@ -278,9 +291,14 @@
       amount=item.amount+String(item.unit||'g');
      }
      const groupLabel=item.stage===2&&['1','2','3','4'].includes(String(item.group))?' ／ 第'+item.group+'群':'';
-     ul.append(node('li','',item.name+(amount?'　'+amount:'')+groupLabel));
+     const points=pointsFor(item,master);
+     if(points!==null){mealPoints+=points;dayPoints+=points;mealScored++;scoredCount++;}
+     else if(item.stage===3){mealUnscored++;unscoredCount++;}
+     const pointLabel=item.stage===3?' ／ '+(points===null?'点数未計算':points.toFixed(2)+'点'):'';
+     ul.append(node('li','',item.name+(amount?'　'+amount:'')+groupLabel+pointLabel));
     }
     part.append(ul);
+    if(mealScored)part.append(node('p','marks','記録済み点数 '+mealPoints.toFixed(2)+'点'+(mealUnscored?'（未計算の食品あり）':'')));
    }
    if(meal.counts.some(Boolean))part.append(node('p','marks',
     meal.counts.map((n,g)=>'第'+(g+1)+'群 '+n+'個').join(' ／ ')));
@@ -297,6 +315,7 @@
     }
    })();
   }
+  if(scoredCount)group.append(node('p','metric','この日の記録済み点数 '+dayPoints.toFixed(2)+'点'+(unscoredCount?'（一部未計算）':'')));
   detail.append(group);
  }
  async function boot(){
@@ -324,6 +343,14 @@
   older.disabled=!rows.length;newer.disabled=true;
   message(rows.length+'日分の保存記録を確認できます。データはこの端末のブラウザから読み取り、変更しません。');
   index=0;draw();
+  // The food master is the same file used by STEP3. History stays usable offline.
+  void fetch('../food-master.json',{cache:'no-store'}).then(response=>{
+   if(!response.ok)throw Error('Food master unavailable');
+   return response.json();
+  }).then(data=>{
+   if(!Array.isArray(data.foods)||data.foods.length<600)throw Error('Food master invalid');
+   master=data.foods;draw();
+  }).catch(()=>{ /* Do not fabricate points when the verified master is unavailable. */ });
  }
  select.addEventListener('change',()=>{
   const n=rows.findIndex(x=>x.key===select.value);if(n>=0){index=n;draw();}
