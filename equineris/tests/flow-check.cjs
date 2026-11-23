@@ -632,8 +632,8 @@ test('STEP2 page 5 explains, page 6 calculates and page 7 reviews past weights',
  const t=textbookScenario('#s2-c5');
  const track=t.sections[1].children.find(c=>c.className==='track');
  assert.match(source['textbook.html'],/\.track\{display:flex;align-items:stretch/);
- assert.match(source['textbook.html'],/\.lesson-card\{[^}]*height:540px;min-height:0;/);
- assert.match(source['textbook.html'],/\.lesson-card\{[^}]*overflow-x:hidden;overflow-y:auto;/);
+ assert.match(source['textbook.html'],/\.lesson-card\{[^}]*height:auto;min-height:0;/);
+ assert.match(source['textbook.html'],/\.lesson-card\{flex:0 0 calc\(100% - 12px\);[^}]*overflow:visible/);
  assert.doesNotMatch(source['textbook.html'],/fitActiveCard/);
  assert.match(source['textbook.html'],/\.visual--interactive/);
  track.children[4].offsetHeight=540;
