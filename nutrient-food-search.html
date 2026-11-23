@@ -58,16 +58,16 @@ footer{padding:14px 8px;border-top:1px solid #e1e8e0;color:#738275}
   </div>
   <div class="hero-art" aria-hidden="true"><div class="hero-ring ring1"></div><div class="hero-ring ring2"></div><div class="hero-art-card">Fe <small>鉄</small></div><div class="hero-art-dot"></div><div class="hero-art-card small">Ca <small>カルシウム</small></div></div>
 </header>
-<section class="counts" aria-label="登録データの規模"><div class="count"><b>27</b><span>栄養素</span></div><div class="count"><b>2,265</b><span>書籍の掲載行</span></div><div class="count"><b>686</b><span>現行マスター</span></div></section>
+<section class="counts" aria-label="登録データの規模"><div class="count"><b>27</b><span>栄養素</span></div><div class="count"><b>2,265</b><span>書籍のデータ</span></div><div class="count"><b>686</b><span>現行マスター</span></div></section>
 <div class="card"><div class="tabbar" role="tablist" aria-label="検索方向"><button id="nutrientTab" class="tab" role="tab" aria-selected="true" aria-controls="nutrientPane">栄養素 → 食品</button><button id="masterTab" class="tab" role="tab" aria-selected="false" aria-controls="masterPane">食品 → 栄養素</button></div>
-<div class="trust-note"><strong>データの確認状態</strong><span>書籍2,265行のうち、1,365行は686品目との<span class="emphasis">未承認候補</span>、900行は未連携。食品定義が確定していないため、この画面では候補として表示します。書籍への未掲載を「栄養素0」とは扱いません。</span></div>
+<div class="trust-note"><strong>データの確認状態</strong><span>書籍2,265行のうち、1,365行は686品目との<span class="emphasis">未承認候補</span>、900行は未連携。食品定義が確定していないため、この画面では候補として表示します。書籍に記載がない場合も、栄養素の量が0とは限りません。</span></div>
 </div>
 <section id="nutrientPane" role="tabpanel">
-<div class="card"><div class="section-header"><div><span class="step-label">SEARCH 01</span><h2>栄養素から食品を探す</h2><p>気になる栄養素を選んで、掲載食品とマスター候補を比較。</p></div><span class="section-icon">◎</span></div><div class="controls">
+<div class="card"><div class="section-header"><div><span class="step-label">SEARCH 01</span><h2>栄養素から食品を探す</h2><p>気になる栄養素を選んで、書籍の食品と食品マスターの候補を比較できます。</p></div><span class="section-icon">◎</span></div><div class="controls">
 <label for="nutrient">栄養素を選択<select id="nutrient"><option value="">すべての栄養素（27種類）</option></select></label>
 <label for="sourceQuery">食品名を入力<input id="sourceQuery" type="search" placeholder="例：牛乳、納豆、豆腐" autocomplete="off"></label>
 <label for="mappingFilter">食品マスターとの照合<select id="mappingFilter"><option value="all">照合候補あり・未連携の両方</option><option value="mapped">686品目に対応候補あり</option><option value="unmapped">対応候補未確定</option></select></label>
-<label for="sourceSort">表示順<select id="sourceSort"><option value="rank">原典の掲載ページ・順位</option><option value="per100">100gあたりの含有量が多い順</option><option value="perpoint">1点あたりの含有量が多い順</option><option value="name">食品名の五十音順</option></select></label>
+<label for="sourceSort">表示順<select id="sourceSort"><option value="rank">書籍のページ順</option><option value="per100">100gあたりの含有量が多い順</option><option value="perpoint">1点あたりの含有量が多い順</option><option value="name">食品名の五十音順</option></select></label>
 </div><div class="quickbar" aria-label="栄養素の検索例"><span class="quicklabel">よく探す栄養素</span><div class="quick-buttons">
   <button type="button" class="quick-chip" data-nutrient-quick="鉄">鉄</button>
   <button type="button" class="quick-chip" data-nutrient-quick="カルシウム">カルシウム</button>
@@ -79,12 +79,12 @@ footer{padding:14px 8px;border-top:1px solid #e1e8e0;color:#738275}
 <div id="sourceResults" class="items" aria-live="polite"></div><div id="sourcePages" class="pager" hidden><button id="sourcePrev" class="btn">前へ</button><span id="sourcePageLabel"></span><button id="sourceNext" class="btn">次へ</button></div>
 </section>
 <section id="masterPane" role="tabpanel" hidden>
-<div class="card"><div class="section-header"><div><span class="step-label">SEARCH 02</span><h2>食品から栄養素を探す</h2><p>686品目から食品を選んで、掲載栄養素と1点重量を確認。</p></div><span class="section-icon">⌕</span></div><div class="controls"><label for="masterQuery">食品名（686品目から検索）<input id="masterQuery" type="search" placeholder="例：普通牛乳、リーフレタス" autocomplete="off"></label><label for="masterGroup">食品群<select id="masterGroup"><option value="">すべての食品群</option><option>第1群</option><option>第2群</option><option>第3群</option><option>第4群</option></select></label></div><div class="quickbar" aria-label="食品の検索例"><span class="quicklabel">よく探す食品</span><div class="quick-buttons">
+<div class="card"><div class="section-header"><div><span class="step-label">SEARCH 02</span><h2>食品から栄養素を探す</h2><p>686品目から食品を選んで、書籍の栄養素データと1点分の重量を確認できます。</p></div><span class="section-icon">⌕</span></div><div class="controls"><label for="masterQuery">食品名（686品目から検索）<input id="masterQuery" type="search" placeholder="例：普通牛乳、リーフレタス" autocomplete="off"></label><label for="masterGroup">食品群<select id="masterGroup"><option value="">すべての食品群</option><option>第1群</option><option>第2群</option><option>第3群</option><option>第4群</option></select></label></div><div class="quickbar" aria-label="食品の検索例"><span class="quicklabel">よく探す食品</span><div class="quick-buttons">
   <button type="button" class="quick-chip" data-food-quick="普通牛乳">普通牛乳</button>
   <button type="button" class="quick-chip" data-food-quick="もめん豆腐">もめん豆腐</button>
   <button type="button" class="quick-chip" data-food-quick="バナナ">バナナ</button>
   <button type="button" class="quick-chip" data-food-quick="糸引き納豆">糸引き納豆</button>
-</div></div><p class="muted">候補0件は、その食品に栄養素が含まれていないという意味ではありません。書籍に未掲載、または食品の対応付けが未確定です。</p></div>
+</div></div><p class="muted">候補0件は、その食品に栄養素が含まれていないという意味ではありません。書籍に記載がないか、食品の対応付けがまだ確定していません。</p></div>
 <div id="masterSelected" class="card" hidden></div>
 <div class="card flex"><div><div class="summary"><span id="masterCount">—</span>品目が該当</div><div id="masterRange" class="muted"></div></div><button id="clearSelected" class="btn" hidden>選択を解除</button></div>
 <div id="masterResults" class="items" aria-live="polite"></div><div id="masterPages" class="pager" hidden><button id="masterPrev" class="btn">前へ</button><span id="masterPageLabel"></span><button id="masterNext" class="btn">次へ</button></div>
@@ -130,11 +130,11 @@ function openTab(which){view=which;const n=which==='nutrient';$('nutrientPane').
 function openMasterFood(mi){const r=master[mi];selected=mi;$('masterQuery').value=r.n;$('masterGroup').value=r.g;openTab('master');searchMaster();$('masterSelected').scrollIntoView({block:'nearest',behavior:'instant'});}
 function findFromSource(r){selected=null;$('masterGroup').value='';$('masterQuery').value=r.f.replace(/・(?:生|乾|ゆで|水煮)$/,'');openTab('master');searchMaster();}
 function openNutrientForFood(n,masterName){$('nutrient').value=n;$('sourceQuery').value='';$('mappingFilter').value='all';openTab('nutrient');searchSource();}
-function sourceCard(r){const a=makes('article','card item');const heading=makes('h3','',r.f);a.append(heading,makes('div','subtitle',`${r.n}｜原典${r.p}ページ・掲載順位${r.rk}位｜${r.id}`));
- const tags=makes('div','badges');tags.append(pill('書籍掲載値'));tags.append(r.mi===null?pill('マスター対応未確定','missing'):pill('マスターの対応候補あり・未承認','wait'));if(r.num)tags.append(pill('数値の確認必要','wait'));if(r.trace)tags.append(pill('微量','wait'));a.append(tags);
+function sourceCard(r){const a=makes('article','card item');const heading=makes('h3','',r.f);a.append(heading,makes('div','subtitle',`${r.n}｜書籍${r.p}ページ・${r.rk}番目｜${r.id}`));
+ const tags=makes('div','badges');tags.append(pill('書籍の数値'));tags.append(r.mi===null?pill('マスター対応未確定','missing'):pill('マスターの対応候補あり・未承認','wait'));if(r.num)tags.append(pill('数値の確認必要','wait'));if(r.trace)tags.append(pill('微量','wait'));a.append(tags);
  let facts=[['100gあたり・原典値',show(r.a,r.u)]];
  if(r.t==='1点')facts.push(['書籍の1点重量',show(r.w,'g')],['書籍の1点あたり',show(r.b,r.u)]);
- else facts.push(['調理方法',show(r.m)],['調理後重量（原料100gから）',show(r.cw,'g')],['調理後の掲載値',show(r.cv,r.u)]);
+ else facts.push(['調理方法',show(r.m)],['調理後重量（原料100gから）',show(r.cw,'g')],['調理後の数値（書籍）',show(r.cv,r.u)]);
  addFields(a,...facts);
  if(r.mi!==null){const m=master[r.mi];a.append(makes('p','subtitle',`食品マスターの候補：${masterDisplayName(m)}｜${m.g}｜${m.c}｜1点 ${m.w}g（未承認）`));}
  if(statusMsg(r))a.append(makes('div','notice',statusMsg(r)));
@@ -142,7 +142,7 @@ function sourceCard(r){const a=makes('article','card item');const heading=makes(
  return a;}
 function sortSource(rows){const s=$('sourceSort').value;const n=$('nutrient').value;
  if((s==='per100'||s==='perpoint')&&!n){$('sortNote').textContent='含有量順は、単位の異なる栄養素を混ぜないため、栄養素を1種類選んだ場合だけ有効です。';return rows.sort((a,b)=>a.p-b.p||a.rk-b.rk);}
- if(s==='perpoint'&&!rows.some(x=>typeof x.b==='number')){$('sortNote').textContent='選択した栄養素には1点あたりの数値がないため、掲載順を表示します。';return rows.sort((a,b)=>a.p-b.p||a.rk-b.rk);}
+ if(s==='perpoint'&&!rows.some(x=>typeof x.b==='number')){$('sortNote').textContent='選択した栄養素には1点あたりの数値がないため、書籍のページ順で表示します。';return rows.sort((a,b)=>a.p-b.p||a.rk-b.rk);}
  $('sortNote').textContent='';
  if(s==='per100')return rows.sort((a,b)=>Number(b.a)-Number(a.a)||a.rk-b.rk);
  if(s==='perpoint')return rows.sort((a,b)=>(typeof b.b==='number'?b.b:-Infinity)-(typeof a.b==='number'?a.b:-Infinity)||a.rk-b.rk);
@@ -155,7 +155,7 @@ function renderSource(){const total=srcFiltered.length,start=srcPage*pageSize,po
 function nutrientsForMaster(mi){return (perMaster.get(mi)||[]).slice().sort((a,b)=>a.n.localeCompare(b.n,'ja'));}
 function selectedDetail(){const holder=$('masterSelected');holder.replaceChildren();holder.hidden=selected===null;if(selected===null)return;
  const m=master[selected];const hits=nutrientsForMaster(selected);holder.append(makes('h2','',masterDisplayName(m)),makes('p','subtitle',`${m.g}｜${m.c}｜1点80kcal = ${m.w}g`));
- holder.append(makes('div','banner',`${hits.length}件の栄養素掲載データが対応候補として見つかりました。候補の食品定義は未承認です。書籍に掲載されていない栄養素を「0」と扱いません。`));
+ holder.append(makes('div','banner',`${hits.length}件の栄養素データが対応候補として見つかりました。候補の食品定義は未承認です。書籍に記載されていない栄養素の量を「0」とは扱いません。`));
   if(m.c==='肉類・鶏肉（若鶏）・鶏の副生物'&&['皮・むね','皮・もも'].includes(m.n))holder.append(makes('div','notice','これは鶏皮のみの登録です。鶏むね肉の点数とは異なります。'));
  // 80kcal calculation is based ONLY on the existing master gramsPerPoint, never the unapproved nutrient crosswalk.
  const calc=makes('section','point-calc');
