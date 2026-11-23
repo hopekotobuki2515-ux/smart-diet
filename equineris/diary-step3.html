@@ -143,7 +143,7 @@ dialog h2{font-size:17px;margin:0 0 8px}.dialog-date{font-size:12px;color:var(--
 .step3-food-list{display:flex;flex-direction:column;gap:8px}
 .step3-food-row{border:1px solid #d6e4d8;border-radius:11px;padding:9px;background:#fff}
 .step3-food-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.step3-food-head strong{font-size:14px;overflow-wrap:anywhere;min-width:0}
+.step3-food-head strong{flex:1 1 0;min-width:0;font-size:14px;writing-mode:horizontal-tb;word-break:normal;overflow-wrap:break-word}
 .food-points{white-space:nowrap;color:var(--green);font-size:15px;font-weight:850}
 .food-unresolved{white-space:nowrap;color:#ad5926;font-size:12px;font-weight:800}
 .food-meta{font-size:11px;color:var(--muted);margin:4px 0}
@@ -158,7 +158,8 @@ dialog h2{font-size:17px;margin:0 0 8px}.dialog-date{font-size:12px;color:var(--
 .step3-search input{height:43px;width:100%;min-width:0;padding:7px;border:1px solid #b7ccbb;border-radius:8px;font-size:16px;color:var(--ink);background:#fff}
 .step3-search-results{display:flex;flex-direction:column;gap:5px;max-height:300px;overflow-y:auto}
 .master-option{display:flex;justify-content:space-between;align-items:center;gap:9px;text-align:left;border:2px solid #7ba88d;border-radius:11px;padding:11px 12px;background:#f6fbf6;color:var(--ink);font-size:15px;font-weight:750;min-height:52px}
-.master-option span{min-width:0;overflow-wrap:anywhere}.master-option small{font-size:11px;color:var(--green);text-align:right;flex-shrink:0}
+.master-option span{display:block;flex:1 1 0;min-width:0;writing-mode:horizontal-tb;word-break:normal;overflow-wrap:break-word}.master-option small{display:block;flex:0 1 42%;min-width:0;font-size:11px;color:var(--green);text-align:right;word-break:normal;overflow-wrap:break-word}
+@media(max-width:440px){.master-option{flex-direction:column;align-items:stretch}.master-option span,.master-option small{flex:none;max-width:100%;width:100%;text-align:left}}
 .step3-search-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px}
 .step3-search-actions button{min-height:43px;padding:6px 10px;border:1px solid #bed1c2;border-radius:9px;color:var(--green);background:#fff;font-size:12px;font-weight:750}
 .step3-picker-open{display:block;width:100%;min-height:48px;margin:5px 0 12px;padding:9px;border:1px solid var(--green);border-radius:10px;background:var(--green);color:#fff;font-size:15px;font-weight:750}
@@ -180,7 +181,7 @@ dialog h2{font-size:17px;margin:0 0 8px}.dialog-date{font-size:12px;color:var(--
 .example-point-rows{border:1px solid #d2e0d4;border-radius:9px;overflow:hidden}
 .example-point-rows>div{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;align-items:center;gap:5px;padding:9px 5px;border-bottom:1px solid #e1e9e2;font-size:12px}
 .example-point-rows>div:last-child{border-bottom:0}
-.example-point-rows>div span:first-child{overflow-wrap:anywhere}
+.example-point-rows>div span:first-child{min-width:0;word-break:normal;overflow-wrap:break-word}
 .example-point-rows>div b{white-space:nowrap;font-size:13px}
 .example-point-rows small{color:var(--muted);font-size:10px}
 .daily-area{margin:18px 0;padding:16px 0 10px;border-top:1px solid var(--line)}
@@ -193,7 +194,7 @@ dialog h2{font-size:17px;margin:0 0 8px}.dialog-date{font-size:12px;color:var(--
 .daily-area .daily-group small{font-size:13px;line-height:1.5}
 .daily-area .daily-group strong{font-size:clamp(11px,3.5vw,16px);line-height:1.4;font-variant-numeric:tabular-nums;white-space:nowrap}
 .daily-area .subtotal-cell{padding:14px 2px;gap:7px}
-.daily-area .daily-total{font-size:23px;line-height:1.4;font-weight:850;margin:16px 0 20px;overflow-wrap:anywhere}
+.daily-area .daily-total{font-size:23px;line-height:1.4;font-weight:850;margin:16px 0 20px;word-break:normal;overflow-wrap:break-word}
 @media(max-width:350px){.daily-area .daily-group strong{font-size:13px}.daily-area .daily-total{font-size:21px}}
 .daily-area .daily-target{font-size:clamp(10px,2.7vw,12px);line-height:1.35;white-space:nowrap}
 .daily-food-summary{margin:18px 0 14px;padding:16px 12px;border:1px solid #d5e4d8;border-radius:12px;background:#fff;min-width:0}
@@ -203,8 +204,8 @@ dialog h2{font-size:17px;margin:0 0 8px}.dialog-date{font-size:12px;color:var(--
 .daily-food-list{list-style:none;margin:0;padding:0}
 .daily-food-item{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0;padding:10px 3px;border-top:1px solid #e3ede4}
 .daily-food-item .daily-food-name{min-width:0;flex:1}
-.daily-food-item strong{display:block;font-size:14px;overflow-wrap:anywhere}
-.daily-food-item small{display:block;margin-top:3px;font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+.daily-food-item strong{display:block;font-size:14px;word-break:normal;overflow-wrap:break-word}
+.daily-food-item small{display:block;margin-top:3px;font-size:12px;color:var(--muted);word-break:normal;overflow-wrap:break-word}
 .daily-food-item b{flex:0 0 auto;font-size:15px;white-space:nowrap;color:var(--green)}
 .daily-food-empty{font-size:13px;color:var(--muted);margin:8px 0}
 .daily-status{font-size:12px;line-height:1.65;color:var(--muted)}
