@@ -5,10 +5,16 @@ on:
     paths:
       - 'equineris/**'
       - '.github/workflows/equineris-flow.yml'
+      - 'food-search.html'
+      - 'nutrient-food-search.html'
+      - 'nutrient-panel.js'
   pull_request:
     paths:
       - 'equineris/**'
       - '.github/workflows/equineris-flow.yml'
+      - 'food-search.html'
+      - 'nutrient-food-search.html'
+      - 'nutrient-panel.js'
   workflow_dispatch:
 permissions:
   contents: read
