@@ -1149,6 +1149,11 @@ test('STEP5 can advance; STEP6 correctly finishes',()=>{
  t.next[4].click();
  assert.equal(t.sections[5].hidden,false); assert.equal(t.window.lastScroll?.top,0);
  const end=textbookScenario('#s6-c15');
- assert.equal(end.next[5].disabled,true);
+ assert.equal(end.next[5].disabled,false);
+ assert.match(end.next[5].textContent,/読み終える/);
+ end.next[5].click();
+ assert.equal(end.elements.steps.hidden,true);
+ assert.equal(end.elements.textbookEnding.hidden,false);
+ assert.equal(end.elements.textbookRelated.hidden,false);
 });
 process.stdout.write('EQUINERIS regression tests completed.\n');
