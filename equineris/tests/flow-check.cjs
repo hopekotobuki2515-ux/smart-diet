@@ -44,7 +44,7 @@ test('mobile reader and empty history avoid blank-page regression',()=>{
  assert.doesNotMatch(opening,/overflow-y:auto!important/);
  assert.match(step,/justify-content:flex-start;gap:clamp\(12px,2svh,20px\)/);
  assert.match(step,/overflow-y:auto;overscroll-behavior-y:contain/);
- assert.match(book,/state\.section\.scrollIntoView\(\{block:'start',behavior:'auto'\}\)/);
+ assert.match(book,/window\.scrollTo\(\{top:0,behavior:'auto'\}\)/);
  assert.match(book,/id="backToIndex"/);
  assert.match(book,/const showIndex=\(\)=>/);
  assert.match(book,/overflow:visible/);
@@ -507,7 +507,12 @@ class MockEl {
   this.className='';this.textContent='';this.value='';this.dataset={};this.style={};this.offsetHeight=540;this.clientWidth=360;
   this.scrollLeft=0;this.hidden=false;this.disabled=false;
  }
- append(...nodes){this.children.push(...nodes);}
+ append(...nodes){
+  for(const node of nodes){
+   if(this.className==='track')node.offsetLeft=this.children.length*(this.clientWidth+12);
+   this.children.push(node);
+  }
+ }
  replaceChildren(...nodes){this.children=[...nodes];}
  setAttribute(key,value){this.attributes[key]=value;}
  getAttribute(key){return this.attributes[key];}
@@ -530,6 +535,7 @@ function textbookScenario(hash='',seed={}){
  const events={};
  const location={hash,destination:null,assign(to){this.destination=to;}};
  const window={SMART_DIET_TEXTBOOK:textbookData,location,
+  scrollTo(opts){this.lastScroll=opts;},
   addEventListener:(type,fn)=>{(events[type]??=[]).push(fn);}};
  const localData=new Map(Object.entries(seed));
  const localStorage={
@@ -548,7 +554,7 @@ function textbookScenario(hash='',seed={}){
  const sections=elements.steps.children.filter(x=>x.className==='course-step');
  const navs=sections.map(s=>s.children.find(x=>x.className==='slide-nav'));
  const next=navs.map(n=>n.children[2]),count=navs.map(n=>n.children[1]);
- return {sections,next,count,location,localData,elements};
+ return {sections,next,count,location,localData,elements,window};
 }
 test('only one STEP is visible, with STEP1 last card advancing to STEP2 and STEP3',()=>{
  const t=textbookScenario();
@@ -562,13 +568,16 @@ test('only one STEP is visible, with STEP1 last card advancing to STEP2 and STEP
  assert.equal(t.elements.discoveryPanel.hidden,true);
  assert.equal(t.sections[0].children.find(c=>c.className==='track').children.length,9);
  assert.equal(t.next[0].textContent,'次へ 〉');
- for(let i=0;i<8;i++)t.next[0].click();
+ t.next[0].click();
+ const firstTrack=t.sections[0].children.find(c=>c.className==='track');
+ assert.equal(firstTrack.scrollLeft,372,'first card advances by one slide plus gap');
+ for(let i=0;i<7;i++)t.next[0].click();
  assert.equal(t.count[0].textContent,'9 / 9');
  assert.match(t.next[0].textContent,/STEP 2へ/);
  t.next[0].click();
  assert.deepEqual(visible(),[2]);
  assert.equal(t.count[1].textContent,'1 / 13');
- assert.equal(t.sections[1].scrolled,true);
+ assert.equal(t.window.lastScroll?.top,0);
  assert.equal(t.sections[0].hidden,true);
  assert.equal(t.next[1].textContent,'次へ 〉');
  assert.match(t.sections[1].children.find(c=>c.className==='step-heading').children[1].textContent,/自分を知り/);
@@ -678,7 +687,7 @@ test('STEP2 page 5 explains, page 6 calculates and page 7 reviews past weights',
  const track=t.sections[1].children.find(c=>c.className==='track');
  assert.match(source['textbook.html'],/\.track\{display:flex;align-items:stretch/);
  assert.match(source['textbook.html'],/\.lesson-card\{[^}]*height:auto;min-height:0;/);
- assert.match(source['textbook.html'],/\.lesson-card\{flex:0 0 calc\(100% - 12px\);[^}]*overflow:visible/);
+ assert.match(source['textbook.html'],/\.lesson-card\{flex:0 0 100%;width:100%;max-width:100%;overflow:visible/);
  assert.doesNotMatch(source['textbook.html'],/fitActiveCard/);
  assert.match(source['textbook.html'],/\.visual--interactive/);
  track.children[4].offsetHeight=540;
@@ -697,7 +706,7 @@ test('STEP2 page 5 explains, page 6 calculates and page 7 reviews past weights',
 test('every textbook card uses natural height and avoids inner vertical scroll',()=>{
  const stylesheet=source['textbook.html'];
  assert.match(stylesheet,/\.lesson-card\{[^}]*height:auto;min-height:0;/);
- assert.match(stylesheet,/\.lesson-card\{flex:0 0 calc\(100% - 12px\);[^}]*overflow:visible/);
+ assert.match(stylesheet,/\.lesson-card\{flex:0 0 100%;width:100%;max-width:100%;overflow:visible/);
  assert.match(stylesheet,/\.track\{[^}]*scroll-snap-type:x mandatory;/);
  assert.doesNotMatch(stylesheet,/fitActiveCard|refitTracks/);
  const t=textbookScenario('#s2-habit-check');
@@ -778,7 +787,7 @@ test('registration weight computes STEP2 goal on sixth standalone card and saves
  assert.equal(t.sections.length,6);
  for(let i=0;i<8;i++)t.next[0].click();
  assert.equal(t.count[0].textContent,'9 / 9');
- t.next[0].click();assert.ok(t.sections[1].scrolled);
+ t.next[0].click();assert.equal(t.window.lastScroll?.top,0);
  for(let i=0;i<5;i++)t.next[1].click();assert.equal(t.count[1].textContent,'6 / 13');
  const track=t.sections[1].children.find(c=>c.className==='track');
  const visual=track.children[5].children.find(c=>c.className.split(' ').includes('visual'));
