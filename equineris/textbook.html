@@ -25,7 +25,8 @@ a,button,input{font:inherit}button{cursor:pointer}
 .toolbox{background:#fff;border:1px solid var(--edge);border-radius:17px;padding:14px;margin:14px 0 20px}
 .textbook-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,280px);gap:14px;align-items:start}
 .textbook-layout>.toolbox{margin:0}
-@media(max-width:700px){.textbook-layout{grid-template-columns:minmax(0,1fr)}.textbook-layout>.toolbox{margin:14px 0 20px}}
+@media(max-width:700px){.textbook-layout{grid-template-columns:minmax(0,1fr) minmax(115px,.82fr);gap:8px}.textbook-layout>.toolbox{margin:0;padding:10px}.quick-actions{grid-template-columns:1fr}}
+@media(max-width:340px){.textbook-layout{grid-template-columns:minmax(0,1fr) minmax(106px,.75fr);gap:6px}}
 .toolbox h2{font-size:17px;margin:0 0 10px}
 .search-label{font-size:13px;font-weight:700;display:block;margin-bottom:7px}
 .search-input{width:100%;height:48px;border:1px solid #b7d0be;border-radius:11px;padding:9px 12px;background:#fcfffb;color:var(--ink);font-size:16px}
