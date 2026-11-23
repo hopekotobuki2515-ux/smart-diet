@@ -230,6 +230,58 @@ test('single recording URL switches STEP1, STEP2, STEP3 and history without navi
  assert.equal(frame2.getAttribute('src'),'./diary-step1.html?date=2026-11-29');
  assert.equal(legacy.get('equineris:paper-first3:v1:1:breakfast-meal'),'旧写真の記録');
 });
+test('embedded STEP forms route links within the same parent page and lock during photo saving',()=>{
+ class El{
+  constructor(view){this.dataset={view};this.attrs={};this.events={};this.disabled=false;this.hidden=false;this.textContent='';this.value='';this.files=[];}
+  addEventListener(k,fn){this.events[k]=fn;}
+  setAttribute(k,v){this.attrs[k]=String(v);}
+  getAttribute(k){return this.attrs[k]??null;}
+  fire(k,e){return this.events[k]?.(e);}
+ }
+ const buttons=['1','2','3','history'].map(v=>new El(v));
+ const date=new El(),dateBox=new El(),status=new El(),frame=new El();
+ const local=new Map();
+ const storage={getItem:k=>local.get(k)??null,setItem:(k,v)=>local.set(k,String(v)),get length(){return local.size},key:i=>[...local.keys()][i]};
+ const styles=[],childEvents={},photoStatus=new El();
+ const childDoc={body:{},head:{append(x){styles.push(x)}},
+  createElement:()=>new El(),addEventListener:(type,fn)=>{childEvents[type]=fn},
+  getElementById:id=>id==='photoStatus'?photoStatus:null};
+ const location={search:'?date=2026-11-21',pathname:'/smart-diet/equineris/record.html',origin:'https://example.test',assign(){}};
+ const doc={querySelectorAll:()=>buttons,getElementById:id=>
+  ({recordDate:date,dateBox,recordStatus:status,recordFrame:frame})[id]};
+ let observer;
+ class FakeObserver{
+  constructor(cb){this.callback=cb;observer=this;}
+  observe(){}
+  disconnect(){}
+ }
+ const window={addEventListener(){}};
+ const history={replaceState(){}};
+ vm.runInNewContext(source['record-unified.js'],{
+  window,document:doc,localStorage:storage,history,location,Date,URL,URLSearchParams,MutationObserver:FakeObserver
+ });
+ assert.equal(frame.getAttribute('src'),'./diary-step1.html?date=2026-11-21');
+ frame.contentDocument=childDoc;
+ frame.contentWindow={location:{href:'https://example.test/smart-diet/equineris/diary-step1.html?date=2026-11-21'}};
+ frame.fire('load');
+ assert.equal(styles.length,1,'reused stage engine should be styled as part of unified page');
+ assert.match(styles[0].textContent,/\.toolbar,.topbar/);
+ const fileInput={matches:q=>q==='input[type="file"][data-photo]',files:[{}]};
+ childEvents.change({target:fileInput});
+ assert.equal(buttons[1].disabled,true,'must not navigate away while uploading an image');
+ photoStatus.textContent='写真をブラウザ内に保存しました。';
+ observer.callback();
+ assert.equal(buttons[1].disabled,false);
+ const link={href:'https://example.test/smart-diet/equineris/record-history.html',
+  target:'',hasAttribute:()=>false};
+ const event={button:0,defaultPrevented:false,
+  target:{closest:()=>link},preventDefault(){this.defaultPrevented=true}};
+ childEvents.click(event);
+ assert.equal(event.defaultPrevented,true);
+ assert.equal(frame.getAttribute('src'),'./record-history.html');
+ assert.equal(dateBox.hidden,true);
+ assert.equal(location.pathname,'/smart-diet/equineris/record.html','URL pathname remains unchanged');
+});
 test('food diary stays connected across three recording stages',()=>{
  assert.match(source['diary-step1.html'],/id="diaryStep2Link"/);
  assert.match(source['record.html'],/data-view="1"/);
