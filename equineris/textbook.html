@@ -153,7 +153,7 @@ html.reader-mode .end-card,html.reader-mode .related-sites,html.reader-mode .bot
    <div id="resultList" class="result-list"></div>
   </div>
   <h3 class="catalog-title">内容から選ぶ</h3>
-  <nav id="stepIndex" class="index-links" aria-label="ステップ目次"></nav>
+  <nav id="stepIndex" class="index-links" aria-label="参考テキストの目次"></nav>
   </section>
  </div>
  <section class="end-card" id="textbookEnding" aria-labelledby="endTitle" hidden>
@@ -294,7 +294,7 @@ html.reader-mode .end-card,html.reader-mode .related-sites,html.reader-mode .bot
   if(!last||!CARDS.has(last)){resume.disabled=true;resume.textContent='前回の続きから';return;}
   const f=CARDS.get(last);
   resume.disabled=false;
-  resume.textContent='前回：STEP '+f.step.id+'・'+(f.index+1)+'枚目へ';
+  resume.textContent='前回の続き：'+f.step.title+'・'+(f.index+1)+'枚目へ';
  };
  const update=(stepId,idx)=>{
   const s=controls.get(stepId);if(!s)return;
@@ -302,10 +302,10 @@ html.reader-mode .end-card,html.reader-mode .related-sites,html.reader-mode .bot
   s.active=clamped;
   s.counter.textContent=(clamped+1)+' / '+s.cards.length;
   s.prev.disabled=clamped===0&&stepId===1;
-  s.prev.textContent=clamped===0&&stepId>1?'〈 STEP '+(stepId-1)+'へ':'〈 前へ';
+  s.prev.textContent=clamped===0&&stepId>1?'〈 前のテーマへ':'〈 前へ';
   const atEnd=clamped===s.cards.length-1;
   s.next.disabled=false;
-  s.next.textContent=atEnd && stepId===6?'読み終える 〉':stepId===2 && s.cards[clamped].id==='s2-c7'?'食行動チェックへ 〉':atEnd && stepId<6?'STEP '+(stepId+1)+'へ 〉':'次へ 〉';
+  s.next.textContent=atEnd && stepId===6?'読み終える 〉':stepId===2 && s.cards[clamped].id==='s2-c7'?'食行動チェックへ 〉':atEnd && stepId<6?'次のテーマへ 〉':'次へ 〉';
  };
  function remember(id){if(!CARDS.has(id))return;last=id;persistent(LAST_KEY,last);setResume();}
  function renderResults(){
@@ -332,7 +332,7 @@ html.reader-mode .end-card,html.reader-mode .related-sites,html.reader-mode .bot
   }
   for(const {id,entry} of found){
    const button=create('button','result-link');button.type='button';
-   button.append(create('span','', 'STEP '+entry.step.id+' / '+(entry.index+1)+'枚目'));
+   button.append(create('span','', '参考テキスト / '+(entry.index+1)+'枚目'));
    button.append(create('strong','',entry.card.title));
    button.addEventListener('click',()=>jump(id));
    resultList.append(button);
@@ -351,18 +351,18 @@ html.reader-mode .end-card,html.reader-mode .related-sites,html.reader-mode .bot
   const jumpLink=create('a','');
   jumpLink.href='#step-'+s.id;
   jumpLink.addEventListener('click',event=>{event.preventDefault();jump(s.cards[0].id);});
-  jumpLink.append(create('b','', 'STEP '+String(s.id).padStart(2,'0')));
+  jumpLink.append(create('b','', '参考'));
   jumpLink.append(create('span','',s.title));
   index.append(jumpLink);
   const section=create('section','course-step');section.id='step-'+s.id;
   section.hidden=s.id!==1;
-  const heading=create('div','step-heading');heading.append(create('span','step-num','STEP '+String(s.id).padStart(2,'0')));
+  const heading=create('div','step-heading');heading.append(create('span','step-num','参考'));
   const title=create('h2','',s.title);heading.append(title);
   section.append(heading);
   section.append(create('p','step-instruction','左右にスワイプしてカードを読む／全'+s.cards.length+'枚'));
-  const track=create('div','track');track.setAttribute('aria-label','ステップ'+s.id+'の説明カード');track.setAttribute('role','region');track.tabIndex=0;
+  const track=create('div','track');track.setAttribute('aria-label','「'+s.title+'」の参考テキスト');track.setAttribute('role','region');track.tabIndex=0;
   s.cards.forEach((c,i)=>{
-   const article=create('article','lesson-card'+(c.tag==='村田健作からのメッセージ'?' message-card':''));article.id=c.id;article.setAttribute('aria-label','STEP '+s.id+'：'+(i+1)+'枚目・'+c.title);
+   const article=create('article','lesson-card'+(c.tag==='村田健作からのメッセージ'?' message-card':''));article.id=c.id;article.setAttribute('aria-label',s.title+'：'+(i+1)+'枚目・'+c.title);
    const head=create('div','card-head');
    head.append(create('span','card-meta',String(i+1).padStart(2,'0')+' / '+String(s.cards.length).padStart(2,'0')+'　'+c.tag));
    const bookmark=create('button','bookmark');bookmark.type='button';
@@ -420,7 +420,7 @@ html.reader-mode .end-card,html.reader-mode .related-sites,html.reader-mode .bot
    CARDS.get(c.id).bookmark=bookmark;
   });
   section.append(track);
-  const nav=create('nav','slide-nav');nav.setAttribute('aria-label','ステップ'+s.id+'のカード移動');
+  const nav=create('nav','slide-nav');nav.setAttribute('aria-label','「'+s.title+'」のカード移動');
   const prev=create('button','prev','〈 前へ');prev.type='button';prev.disabled=true;
   const counter=create('span','counter','1 / '+s.cards.length);counter.setAttribute('aria-live','polite');
   const next=create('button','next','次へ 〉');next.type='button';
