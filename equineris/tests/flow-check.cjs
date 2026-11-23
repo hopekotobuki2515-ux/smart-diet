@@ -256,7 +256,7 @@ test('embedded STEP forms route links within the same parent page and lock durin
  const storage={getItem:k=>local.get(k)??null,setItem:(k,v)=>local.set(k,String(v)),get length(){return local.size},key:i=>[...local.keys()][i]};
  const styles=[],childEvents={},photoStatus=new El();
  const childDoc={body:{},head:{append(x){styles.push(x)}},
-  createElement:()=>new El(),addEventListener:(type,fn)=>{childEvents[type]=fn},
+  createElement:()=>new El(),addEventListener:(type,fn)=>{(childEvents[type]??=[]).push(fn)},
   getElementById:id=>id==='photoStatus'?photoStatus:null};
  const location={search:'?date=2026-11-21',pathname:'/smart-diet/equineris/record.html',origin:'https://example.test',assign(){}};
  const doc={querySelectorAll:()=>buttons,getElementById:id=>
@@ -279,16 +279,21 @@ test('embedded STEP forms route links within the same parent page and lock durin
  assert.equal(styles.length,1,'reused stage engine should be styled as part of unified page');
  assert.match(styles[0].textContent,/\.toolbar,.topbar/);
  const fileInput={matches:q=>q==='input[type="file"][data-photo]',files:[{}]};
- childEvents.change({target:fileInput});
+ for(const fn of childEvents.change)fn({target:fileInput});
  assert.equal(buttons[1].disabled,true,'must not navigate away while uploading an image');
  photoStatus.textContent='写真をブラウザ内に保存しました。';
  observer.callback();
  assert.equal(buttons[1].disabled,false);
+ // A date chosen inside the embedded STEP must be carried to the outer date and other STEPs.
+ const updatedChildDate={id:'diary-date',value:'2026-11-22',matches:()=>false};
+ for(const fn of childEvents.change)fn({target:updatedChildDate});
+ assert.equal(date.value,'2026-11-22','outer date stays synchronized with the inner form');
+ assert.equal(storage.getItem('equineris:diary:selected-date:v1'),'2026-11-22');
  const link={href:'https://example.test/smart-diet/equineris/record-history.html',
   target:'',hasAttribute:()=>false};
  const event={button:0,defaultPrevented:false,
   target:{closest:()=>link},preventDefault(){this.defaultPrevented=true}};
- childEvents.click(event);
+ for(const fn of childEvents.click)fn(event);
  assert.equal(event.defaultPrevented,true);
  assert.equal(frame.getAttribute('src'),'./record-history.html?ui=20261123-unified');
  assert.equal(dateBox.hidden,true);
