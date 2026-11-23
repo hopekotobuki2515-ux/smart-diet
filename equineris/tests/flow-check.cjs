@@ -9,7 +9,7 @@ const root=path.resolve(__dirname,'..');
 const read=name=>fs.readFileSync(path.join(root,name),'utf8');
 const source=Object.fromEntries(
  ['setup.html','textbook.html','textbook-data.js','goal-calculator.js','week-1-goal.html',
-  'habit-intro.html','habit-check.html','habit-check-card.js','record.html','measurements.html','diary-step2.html',
+  'habit-intro.html','habit-check.html','habit-check-card.js','record.html','record-unified.js','diary-step1.html','measurements.html','diary-step2.html',
   'diary-step3.html','diary-step2.js','diary-step3.js','trainer-link.js','weight-trend.js',
   'record-history.html','record-history.js']
   .map(name=>[name,read(name)])
@@ -62,7 +62,7 @@ test('initial measurement uses registration weight without overwriting saved row
  assert.match(s,/all\[day\]=\{\.\.\.\(all\[day\]\|\|\{\}\),weight:w,waist:a\}/);
 });
 test('STEP1 hides the old Other dropdown but keeps current food logging and saves',()=>{
- const page=source['record.html'];
+ const page=source['diary-step1.html'];
  assert.doesNotMatch(page,/<details class="sub-nav">/);
  assert.doesNotMatch(page,/<summary>その他<\/summary>/);
  assert.doesNotMatch(page,/id="dailyResultLink"/);
@@ -81,7 +81,7 @@ test('STEP1 hides the old Other dropdown but keeps current food logging and save
 test('all recording stages link to read-only full-history review without old 3-day tabs',()=>{
  const history=source['record-history.html'];
  const script=source['record-history.js'];
- for(const page of ['record.html','diary-step2.html','diary-step3.html','measurements.html'])
+ for(const page of ['diary-step1.html','diary-step2.html','diary-step3.html','measurements.html'])
   assert.match(source[page],/href="\.\/record-history\.html"/,page);
  assert.match(history,/id="reviewDate"/);
  assert.match(history,/id="olderRecord"/);
@@ -133,15 +133,107 @@ test('full history merges saved food, photo and body records by actual date and 
  const drinks=r.meals.find(x=>x.label==='飲み物');
  assert.ok(drinks);
  assert.equal(drinks.archived[0].memo,'水');
- assert.equal(model.editUrl(1,old),'./record.html?day=1');
- assert.equal(model.editUrl(2,old),'./diary-step2.html?day=1');
- assert.equal(model.editUrl(1,records[1]),null);
- assert.equal(model.editUrl(3,records[1]),'./diary-step3.html?date=2026-11-22');
+ assert.equal(model.editUrl(1,old),'./record.html?stage=1&date=2026-11-20');
+ assert.equal(model.editUrl(2,old),'./record.html?stage=2&date=2026-11-20');
+ assert.equal(model.editUrl(1,records[1]),'./record.html?stage=1&date=2026-11-22');
+ assert.equal(model.editUrl(3,records[1]),'./record.html?stage=3&date=2026-11-22');
  assert.equal(model.dateValid('2026-02-30'),false);
  assert.equal(values.size,11,'no storage key may be modified by read-only review');
 });
+test('new STEP1 records allow any valid day, keep old slots, and hide STEP2 group inputs',()=>{
+ const page=source['diary-step1.html'];
+ assert.match(page,/const DATE_PREFIX='equineris:diary-step1:v1:entry:'/);
+ assert.match(page,/function key\(d,k\)\{return typeof d==='string'&&validDate\(d\)\?DATE_PREFIX\+d\+':'\+k:PREFIX\+d\+':'\+k;\}/);
+ assert.match(page,/loadDay\(slot\|\|value\);goMeal\(0,false\)/);
+ assert.doesNotMatch(page,/この画面は最初の3日分|async function unusedDay/);
+ assert.match(page,/querySelector\('\[data-slide="reference"\]'\)\?\.remove\(\)/);
+ assert.match(page,/\.food-groups,\.four-group-reference/);
+ assert.match(page,/document\.querySelector\('\.actions'\)\.hidden=activeMeal===0;/);
+ assert.match(source['diary-step2.js'],/const DATED_STEP1/);
+ assert.match(source['diary-step3.js'],/DATED_STEP1/);
+ assert.match(source['diary-step2.js'],/dateValid\(key\)\?photoTransaction\(oldDB/);
+ assert.match(source['diary-step3.js'],/\(slot\|\|id\)\+':'\+meal/);
+});
+test('new STEP1 date-based photos and notes merge with STEP2 and STEP3 on the same date',()=>{
+ const win={};class FakeBlob{}
+ vm.runInNewContext(source['record-history.js'],{window:win,document:{getElementById:()=>null},Date,Blob:FakeBlob,URL:{}});
+ const model=win.EquinerisRecordHistory;
+ const map=new Map([
+  ['equineris:diary-step1:v1:entry:2026-11-21:breakfast-meal','たまごとごはん'],
+  ['equineris:diary-step2:v1:entry:2026-11-21:foods:breakfast',JSON.stringify([{name:'ごはん',amount:100,unit:'g',group:'4',markIndex:0}])],
+  ['equineris:diary-step3:v1:entry:2026-11-21:foods:breakfast',JSON.stringify([{name:'ごはん',grams:100,rawUnit:'g'}])],
+  ['equineris:body-measurements:v1',JSON.stringify({'2026-11-21':{weight:75,waist:83}})]
+ ]);
+ const storage={get length(){return map.size},key:i=>[...map.keys()][i],getItem:k=>map.has(k)?map.get(k):null};
+ const rows=model.collect(storage,{1:['2026-11-21:breakfast'],2:[],3:[]});
+ assert.equal(rows.length,1);
+ assert.equal(rows[0].date,'2026-11-21');
+ assert.ok(rows[0].sources.has(1)&&rows[0].sources.has(2)&&rows[0].sources.has(3));
+ assert.equal(rows[0].photos[1][0].id,'2026-11-21:breakfast');
+ assert.equal(rows[0].measurement.weight,75);
+ assert.equal(model.summary(storage,rows[0]).meals[0].memo,'たまごとごはん');
+ assert.equal(model.summary(storage,rows[0]).meals[0].foods[0].grams,100);
+ assert.equal(model.editUrl(2,rows[0]),'./record.html?stage=2&date=2026-11-21');
+ assert.equal(map.size,4,'no record migration or deletion');
+});
+test('single recording URL switches STEP1, STEP2, STEP3 and history without navigating',()=>{
+ class E{
+  constructor(view){this.dataset={view};this.value='';this.attrs={};this.events={};this.hidden=false;this.disabled=false;}
+  setAttribute(k,v){this.attrs[k]=String(v);}
+  getAttribute(k){return this.attrs[k]??null;}
+  addEventListener(k,fn){this.events[k]=fn;}
+  fire(k,event={}){return this.events[k]?.(event);}
+ }
+ const buttons=['1','2','3','history'].map(v=>new E(v));
+ const date=new E(),dateBox=new E(),status=new E(),frame=new E();
+ const document={
+  querySelectorAll:q=>q==='[data-view]'?buttons:[],
+  getElementById:id=>({recordDate:date,dateBox,recordStatus:status,recordFrame:frame})[id]
+ };
+ const values=new Map();
+ const localStorage={getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,String(v)),get length(){return values.size},key:i=>[...values.keys()][i]};
+ const urls=[];
+ const history={replaceState:(_s,_t,u)=>urls.push(u)};
+ const location={search:'?date=2026-11-21',pathname:'/smart-diet/equineris/record.html',origin:'https://example.test'};
+ const window={addEventListener(){}};
+ vm.runInNewContext(source['record-unified.js'],{
+  window,document,localStorage,history,location,Date,URL,URLSearchParams,MutationObserver:class{}
+ });
+ assert.equal(frame.getAttribute('src'),'./diary-step1.html?date=2026-11-21');
+ assert.equal(buttons[0].attrs['aria-selected'],'true');
+ buttons[1].fire('click');
+ assert.equal(frame.getAttribute('src'),'./diary-step2.html?date=2026-11-21');
+ buttons[2].fire('click');
+ assert.equal(frame.getAttribute('src'),'./diary-step3.html?date=2026-11-21');
+ assert.equal(values.get('equineris:diary:input-stage:v1'),'3');
+ buttons[3].fire('click');
+ assert.equal(frame.getAttribute('src'),'./record-history.html');
+ assert.equal(dateBox.hidden,true);
+ assert.equal(values.get('equineris:diary:input-stage:v1'),'3','history should not reset input stage');
+ buttons[0].fire('click');
+ assert.equal(frame.getAttribute('src'),'./diary-step1.html?date=2026-11-21');
+ assert.equal(dateBox.hidden,false);
+ date.value='2026-12-01';date.fire('change');
+ assert.equal(frame.getAttribute('src'),'./diary-step1.html?date=2026-12-01');
+ assert.equal(values.get('equineris:diary:selected-date:v1'),'2026-12-01');
+ assert.ok(urls.every(url=>url.startsWith('/smart-diet/equineris/record.html?')));
+ const legacy=new Map([['equineris:paper-first3:v1:1:breakfast-meal','旧写真の記録']]);
+ const store={getItem:k=>legacy.get(k)??null,setItem:(k,v)=>legacy.set(k,String(v)),get length(){return legacy.size},key:i=>[...legacy.keys()][i]};
+ const date2=new E(),frame2=new E(),box2=new E(),status2=new E();
+ const doc2={querySelectorAll:()=>['1','2','3','history'].map(v=>new E(v)),
+  getElementById:id=>({recordDate:date2,dateBox:box2,recordStatus:status2,recordFrame:frame2})[id]};
+ vm.runInNewContext(source['record-unified.js'],{window,document:doc2,localStorage:store,history,
+  location:{...location,search:'?day=1'},Date,URL,URLSearchParams,MutationObserver:class{}});
+ assert.equal(frame2.getAttribute('src'),'./diary-step1.html?day=1','old three-day records must remain readable');
+ assert.equal(date2.value,'','undated legacy slot must not be assigned a fabricated date');
+ date2.value='2026-11-29';date2.fire('change');
+ assert.equal(frame2.getAttribute('src'),'./diary-step1.html?date=2026-11-29');
+ assert.equal(legacy.get('equineris:paper-first3:v1:1:breakfast-meal'),'旧写真の記録');
+});
 test('food diary stays connected across three recording stages',()=>{
- assert.match(source['record.html'],/id="diaryStep2Link"/);
+ assert.match(source['diary-step1.html'],/id="diaryStep2Link"/);
+ assert.match(source['record.html'],/data-view="1"/);
+ assert.match(source['record.html'],/data-view="history"/);
  assert.match(source['diary-step2.html'],/id="diaryStep3Link"/);
  assert.match(source['diary-step3.html'],/textbook\.html#s5-c1/);
  assert.match(source['trainer-link.js'],/if\(!status\.configured\)return/);
