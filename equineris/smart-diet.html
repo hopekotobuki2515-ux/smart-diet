@@ -277,6 +277,16 @@
       white-space:normal;word-break:normal;overflow-wrap:break-word;
       text-wrap:pretty;
     }
+
+    /* STEP01: keep the screen fixed while allowing the actual text card to scroll vertically. */
+    .lesson-main,.lesson-viewport,.lesson-slide-row,.lesson-slide{min-height:0}
+    .lesson-slide .lesson-card{
+      min-height:0;height:100%;display:flex;flex-direction:column;
+      justify-content:flex-start;gap:clamp(12px,2svh,20px);
+      overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain;
+      -webkit-overflow-scrolling:touch;touch-action:pan-y;
+    }
+    .lesson-slide .lesson-card h2,.lesson-slide .lesson-card p{flex:0 0 auto;margin:0}
 </style>
 </head>
 <body>
@@ -294,7 +304,7 @@
       </header>
       <p class="lesson-counter" id="lessonCounter" aria-live="polite">1 / 2</p>
       <div class="lesson-viewport" id="lessonViewport" tabindex="0" role="region" aria-label="説明（全2枚）">
-       <div class="lesson-slide-row" id="lessonSlideRow"><section class="lesson-slide" aria-label="1枚目：まず、肥満について"><div class="lesson-card"><h2>まず、肥満について</h2><p>まずは、なぜ減量が必要になるのか、一緒に考えてみましょう。</p><p>肥満とは、単に体重が重いことではなく、体脂肪が過剰に蓄積した状態をいいます。</p><p>脂肪がつく場所によって、皮下脂肪型と内臓脂肪型があります。</p><p>体重の数字だけでなく、自分の身体を知ることが大切です。</p></div></section>
+       <div class="lesson-slide-row" id="lessonSlideRow"><section class="lesson-slide" aria-label="1枚目：まず、肥満について"><div class="lesson-card"><h2>まず、肥満について</h2><p>まずは、なぜ減量が必要になるのか、<span class="keep-phrase">一緒に考えてみましょう。</span></p><p>肥満とは、単に体重が重いことではなく、体脂肪が過剰に蓄積した状態をいいます。</p><p>脂肪がつく場所によって、皮下脂肪型と内臓脂肪型があります。</p><p>体重の数字だけでなく、自分の身体を知ることが大切です。</p></div></section>
 <section class="lesson-slide" aria-label="2枚目：内臓脂肪と健康の関係"><div class="lesson-card"><h2>内臓脂肪と健康の関係</h2><p>特に内臓脂肪が過剰に蓄積すると、高血圧・脂質異常・高血糖などと関連することがあります。</p><p>内臓脂肪の多さは、体重や外見だけでは判断できません。</p><p>BMIは身長と体重から計算する体格の目安ですが、脂肪のつき方までは分かりません。</p><p>だからこそ、まず自分の身体の状態を確認していきましょう。</p></div></section></div>
       </div>
       <div class="lesson-dots" role="group" aria-label="説明を選ぶ"><button type="button" data-slide="0" aria-current="step" aria-label="1枚目：まず、肥満について"></button>
@@ -335,7 +345,7 @@
   if(Math.abs(dx)<55||Math.abs(dx)<Math.abs(dy)*1.4)return;
   if(dx<0){if(current<slides.length-1)go(current+1);else window.location.assign('./setup.html')}
   else if(current>0)go(current-1);
-  else window.location.assign('./program-intro.html?v=20261122-layout');
+  // The first slide must not unexpectedly leave the STEP01 screen on a right swipe.
  },{passive:true});
  v.addEventListener('touchcancel',()=>{x=null;y=null},{passive:true});
  v.addEventListener('keydown',e=>{
