@@ -72,9 +72,11 @@ dialog{width:min(98vw,550px);max-height:88dvh;overflow:auto;border:1px solid #cb
 dialog::backdrop{background:#0e2a204d}
 dialog h2{font-size:17px;margin:0 0 8px}.dialog-date{font-size:12px;color:var(--muted)}
 .preview-layout{width:100%;border-collapse:collapse;table-layout:fixed;font-size:11px}
+.preview-layout col:first-child{width:40%}
+.preview-layout col.group{width:15%}
 .preview-layout th,.preview-layout td{border:1px solid var(--line);text-align:center;vertical-align:top;padding:5px 2px;overflow-wrap:break-word}
 .preview-layout th{background:var(--mint)}
-.preview-layout td:first-child{text-align:left;white-space:pre-wrap;overflow-wrap:anywhere}
+.preview-layout td:first-child{text-align:left;white-space:pre-wrap;word-break:normal;overflow-wrap:break-word;writing-mode:horizontal-tb}
 .preview-layout td.circle{font-size:18px;white-space:pre-line;line-height:1.4}
 .preview-layout img{display:block;width:100%;height:auto;max-height:140px;object-fit:contain}
 .preview-memo{white-space:pre-wrap;overflow-wrap:break-word}
