@@ -64,7 +64,7 @@ const ready=async(fn)=>{
   "navBottom:step.querySelector('.slide-nav').getBoundingClientRect().bottom,"+
   "tocVisible:!document.getElementById('backToIndex').hidden,"+
   "footer:step.querySelector('.step-footer a').getBoundingClientRect().bottom,"+
-  "unequal,unscrollable,duplicateIds,contentLost,habitRows:track.querySelectorAll('.habit-mini-row').length};"+
+  "unequal,unscrollable,duplicateIds,contentLost,habitRows:track.querySelectorAll('.habit-reference-list li').length};"+
   "})())";
  for(const [width,height,hash] of cases){
   await cdp('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:2,mobile:true});
