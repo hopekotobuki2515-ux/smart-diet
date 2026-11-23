@@ -190,6 +190,31 @@ body:has(#steps:not([hidden])) .habit-mini{gap:5px}
  body:has(#steps:not([hidden])) .visual-row{padding:5px 7px}
 }
 
+
+/* Lesson viewport is fixed; long lessons continue horizontally rather than below. */
+html.reader-mode,html.reader-mode body{height:100%;overflow:hidden;overscroll-behavior:none}
+html.reader-mode .wrap{height:100dvh;min-height:0;overflow:hidden;display:flex;flex-direction:column;padding-bottom:max(6px,env(safe-area-inset-bottom))}
+html.reader-mode .topbar{flex:0 0 auto}
+html.reader-mode .textbook-layout{display:flex;flex-direction:column;flex:1 1 auto;min-height:0}
+html.reader-mode #steps{display:flex;flex-direction:column;flex:1 1 auto;min-height:0}
+html.reader-mode .course-step{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;min-width:0;margin:0;padding:clamp(3px,1svh,10px) 0}
+html.reader-mode .step-heading{flex:0 0 auto;margin-bottom:4px;align-items:center}
+html.reader-mode .step-heading h2{font-size:clamp(15px,4.1vw,19px);line-height:1.3}
+html.reader-mode .step-instruction{flex:0 0 auto;margin:0 2px 5px;font-size:11px;line-height:1.35}
+html.reader-mode .track{flex:1 1 auto;height:100%;min-height:0;max-height:100%;align-items:center;overflow-x:auto;overflow-y:hidden}
+html.reader-mode .lesson-card{height:auto;max-height:100%;overflow:hidden;padding:clamp(10px,1.8svh,16px) 13px;gap:clamp(6px,1.1svh,11px)}
+html.reader-mode .card-head{flex:0 0 auto}
+html.reader-mode .lesson-card h3{flex:0 0 auto;font-size:clamp(16px,4.4vw,20px);line-height:1.38}
+html.reader-mode .lesson-body{flex:0 0 auto;font-size:clamp(14px,3.8vw,16px);line-height:1.58}
+html.reader-mode .visual{padding:9px;gap:5px}
+html.reader-mode .visual-row{min-height:32px;padding:6px 9px;font-size:13px;line-height:1.4}
+html.reader-mode .slide-nav{flex:0 0 auto;margin:5px 0 2px}
+html.reader-mode .step-footer{flex:0 0 auto;margin:0 4px}
+html.reader-mode .step-footer a{min-height:28px}
+html.reader-mode .to-top{bottom:max(8px,env(safe-area-inset-bottom));min-height:38px}
+html.reader-mode .continuation-label{font-size:12px;font-weight:800;color:var(--muted)}
+html.reader-mode .end-card,html.reader-mode .related-sites,html.reader-mode .bottom-note{display:none!important}
+@media(max-height:600px){html.reader-mode .step-instruction{display:none}html.reader-mode .step-heading{margin-bottom:3px}html.reader-mode .step-footer{display:none}}
 </style>
 </head>
 <body>
@@ -312,8 +337,74 @@ body:has(#steps:not([hidden])) .habit-mini{gap:5px}
   }
   return nearest;
  };
+
+ const ensureReaderMode=enabled=>{document.documentElement?.classList?.toggle?.('reader-mode',enabled);};
+ // A card that is taller than the visible track is divided into horizontal
+ // continuation cards. Existing form controls and their event handlers are moved.
+ const paginateStep=state=>{
+  if(state.paginated||!state.track.clientHeight||!state.track.clientWidth)return;
+  state.paginated=true;
+  const track=state.track,originals=[...track.children],pages=[],starts=[],claimedIds=new Set();
+  const breakable=new Set(['visual','bmi-demo','goal-calculator','habit-mini','habit-mini-list','message-notes']);
+  const piecesFrom=(node,ancestors=[])=>{
+   if(node.classList?.contains('lesson-body') && !node.querySelector('input')){
+    const chunks=node.textContent.match(/[\\s\\S]{1,65}/gu)||[];
+    if(chunks.length>1)return chunks.map(chunk=>{const p=node.cloneNode(false);p.textContent=chunk;return {leaf:p,ancestors};});
+   }
+   if([...breakable].some(cls=>node.classList?.contains(cls))&&node.children.length)
+    return [...node.children].flatMap(child=>piecesFrom(child,[...ancestors,node]));
+   return [{leaf:node,ancestors}];
+  };
+  for(let logical=0;logical<state.originalCards.length;logical++){
+   const original=originals[logical],meta=state.originalCards[logical];
+   starts.push(pages.length);
+   if(original.scrollHeight<=original.clientHeight+2){pages.push({id:meta.id});continue;}
+   const children=[...original.children],parts=children.slice(1).flatMap(node=>piecesFrom(node));
+   original.replaceChildren(children[0]);
+   let slide=original,wrappers=new Map(),used=0,continuation=0;
+   pages.push({id:meta.id});
+   const newSlide=()=>{
+    continuation++;
+    const more=document.createElement('article');
+    more.className=original.className+' lesson-card--continued';
+    more.setAttribute('aria-label',original.getAttribute('aria-label')+'・続き'+continuation);
+    more.append(create('div','continuation-label','STEP '+String(state.stepId).padStart(2,'0')+' · 続き'));
+    track.insertBefore(more,slide.nextSibling);
+    slide=more;wrappers=new Map();used=0;pages.push({id:meta.id});
+   };
+   const insert=part=>{
+    let parent=slide,key='',created=[];
+    for(let i=0;i<part.ancestors.length;i++){
+     const proto=part.ancestors[i];key+='/'+i+':'+proto.className;
+     let wrapper=wrappers.get(key);
+     if(!wrapper){
+      wrapper=proto.cloneNode(false);
+      if(wrapper.id){if(claimedIds.has(wrapper.id))wrapper.removeAttribute('id');else claimedIds.add(wrapper.id);}
+      parent.append(wrapper);wrappers.set(key,wrapper);created.push([key,wrapper]);
+     }
+     parent=wrapper;
+    }
+    parent.append(part.leaf);
+    return ()=>{
+     part.leaf.remove();
+     for(const [k,wrapper] of created.reverse())if(!wrapper.children.length){wrapper.remove();wrappers.delete(k);}
+    };
+   };
+   for(const part of parts){
+    const undo=insert(part);
+    if(slide.scrollHeight>slide.clientHeight+2&&used>0){
+     undo();newSlide();insert(part);
+    }
+    if(slide.scrollHeight>slide.clientHeight+2)slide.dataset.contentOverflow='true';
+    used++;
+   }
+  }
+  state.cards=pages;state.starts=starts;
+  update(state.stepId,0);
+ };
  const showIndex=()=>{
   // A printed-book-style contents screen: lesson text is not displayed underneath.
+  ensureReaderMode(false);
   root.hidden=true;
   discovery.hidden=false;
   intro.hidden=false;
@@ -322,12 +413,20 @@ body:has(#steps:not([hidden])) .habit-mini{gap:5px}
   for(const state of controls.values())state.section.hidden=true;
  };
  const showStep=stepId=>{
+  ensureReaderMode(true);
   root.hidden=false;
   discovery.hidden=true;
   intro.hidden=true;
   returnIndex.hidden=false;
   ending.hidden=stepId!==6;related.hidden=stepId!==6;disclaimer.hidden=stepId!==6;
   for(const [id,state] of controls)state.section.hidden=id!==stepId;
+  const state=controls.get(stepId);if(state)paginateStep(state);
+ };
+ const showFinished=()=>{
+  ensureReaderMode(false);
+  root.hidden=true;discovery.hidden=true;intro.hidden=true;
+  ending.hidden=false;related.hidden=false;disclaimer.hidden=false;returnIndex.hidden=false;
+  window.scrollTo({top:0,behavior:'auto'});
  };
  const backToContents=()=>{
   showIndex();
@@ -339,8 +438,9 @@ body:has(#steps:not([hidden])) .habit-mini{gap:5px}
   const found=CARDS.get(id);if(!found)return;
   const state=controls.get(found.step.id);if(!state)return;
   showStep(found.step.id);
-  state.track.scrollTo({left:cardPosition(state.track,found.index),behavior:'auto'});
-  update(found.step.id,found.index);
+  const page=state.starts?.[found.index]??found.index;
+  state.track.scrollTo({left:cardPosition(state.track,page),behavior:'auto'});
+  update(found.step.id,page);
   window.scrollTo({top:0,behavior:'auto'});
   last=id;persistent(LAST_KEY,last);
   setResume();
@@ -360,8 +460,8 @@ body:has(#steps:not([hidden])) .habit-mini{gap:5px}
   s.prev.disabled=clamped===0&&stepId===1;
   s.prev.textContent=clamped===0&&stepId>1?'〈 STEP '+(stepId-1)+'へ':'〈 前へ';
   const atEnd=clamped===s.cards.length-1;
-  s.next.disabled=atEnd && stepId===6;
-  s.next.textContent=atEnd && stepId===4?'記録へ 〉':stepId===2 && s.cards[clamped].id==='s2-c7'?'食行動チェックへ 〉':atEnd && stepId<6?'STEP '+(stepId+1)+'へ 〉':'次へ 〉';
+  s.next.disabled=false;
+  s.next.textContent=atEnd && stepId===6?'読み終える 〉':atEnd && stepId===4?'記録へ 〉':stepId===2 && s.cards[clamped].id==='s2-c7'?'食行動チェックへ 〉':atEnd && stepId<6?'STEP '+(stepId+1)+'へ 〉':'次へ 〉';
  };
  function remember(id){if(!CARDS.has(id))return;last=id;persistent(LAST_KEY,last);setResume();}
  function renderResults(){
@@ -515,13 +615,13 @@ body:has(#steps:not([hidden])) .habit-mini{gap:5px}
   nav.append(prev,counter,next);section.append(nav);
   const foot=create('div','step-footer');const a=create('a','','目次に戻る ↑');a.href='#index';a.addEventListener('click',event=>{event.preventDefault();backToContents();});foot.append(a);section.append(foot);
   root.append(section);
-  const state={track,section,prev,next,counter,cards:s.cards,active:0};
+  const state={track,section,prev,next,counter,cards:s.cards,originalCards:s.cards,starts:null,paginated:false,stepId:s.id,active:0};
   controls.set(s.id,state);
   update(s.id,0);
   const go=(i)=>{
-   const idx=Math.max(0,Math.min(i,s.cards.length-1));
+   const idx=Math.max(0,Math.min(i,state.cards.length-1));
    track.scrollTo({left:cardPosition(track,idx),behavior:'smooth'});
-   update(s.id,idx);remember(s.cards[idx].id);
+   update(s.id,idx);remember(state.cards[idx].id);
    window.scrollTo({top:0,behavior:'auto'});
   };
   prev.addEventListener('click',()=>{
@@ -533,8 +633,9 @@ body:has(#steps:not([hidden])) .habit-mini{gap:5px}
    go(state.active-1);
   });
   const advance=()=>{
-   if(state.active===s.cards.length-1){
+   if(state.active===state.cards.length-1){
     if(s.id===4){window.location.assign('./record.html?day=1');return;}
+    if(s.id===6){showFinished();return;}
     if(s.id<6){jump('s'+(s.id+1)+'-c1');return;}
     return;
    }
