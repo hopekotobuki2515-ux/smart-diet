@@ -132,65 +132,6 @@ a,button,input{font:inherit}button{cursor:pointer}
 .lesson-card{flex:0 0 100%;width:100%;max-width:100%;overflow:visible}
 
 /* Mobile book-reader viewport: one centered page, horizontal movement only. */
-html:has(#steps:not([hidden])),
-body:has(#steps:not([hidden])){height:100%;overflow:hidden;overscroll-behavior:none}
-body:has(#steps:not([hidden])) .wrap{
-  height:100svh;min-height:0;display:flex;flex-direction:column;
-  padding-bottom:max(8px,env(safe-area-inset-bottom));overflow:hidden
-}
-body:has(#steps:not([hidden])) .topbar{flex:0 0 auto}
-body:has(#steps:not([hidden])) .textbook-layout{
-  flex:1 1 auto;min-height:0;display:flex;align-items:center
-}
-body:has(#steps:not([hidden])) #steps{width:100%;height:100%;min-height:0}
-body:has(#steps:not([hidden])) .course-step:not([hidden]){
-  height:100%;min-height:0;margin:0;padding:8px 0 4px;display:flex;flex-direction:column;gap:5px
-}
-body:has(#steps:not([hidden])) .step-heading,
-body:has(#steps:not([hidden])) .step-instruction{flex:0 0 auto;margin:0 3px}
-body:has(#steps:not([hidden])) .step-heading h2{font-size:17px;line-height:1.35}
-body:has(#steps:not([hidden])) .step-instruction{font-size:11px;line-height:1.35}
-body:has(#steps:not([hidden])) .track{
-  flex:1 1 auto;min-height:0;align-items:center;overflow-x:auto;overflow-y:hidden;
-  touch-action:pan-x
-}
-body:has(#steps:not([hidden])) .lesson-card{
-  flex:0 0 100%;height:auto;max-height:100%;min-height:0;
-  overflow-x:hidden;overflow-y:hidden;align-self:center;gap:8px;padding:12px 13px
-}
-body:has(#steps:not([hidden])) .lesson-card h3{font-size:18px;line-height:1.38}
-body:has(#steps:not([hidden])) .lesson-body{font-size:15px;line-height:1.56;text-wrap:wrap}
-body:has(#steps:not([hidden])) .card-meta{padding-top:5px;font-size:10px}
-body:has(#steps:not([hidden])) .bookmark{min-height:32px;padding:4px 8px}
-body:has(#steps:not([hidden])) .visual{padding:9px;gap:5px}
-body:has(#steps:not([hidden])) .visual-row{min-height:0;padding:7px 9px;font-size:13px;line-height:1.4}
-body:has(#steps:not([hidden])) .slide-nav{flex:0 0 auto;margin:1px 0}
-body:has(#steps:not([hidden])) .step-footer{flex:0 0 auto}
-body:has(#steps:not([hidden])) .step-footer a{min-height:28px}
-body:has(#steps:not([hidden])) .end-card,
-body:has(#steps:not([hidden])) .related-sites,
-body:has(#steps:not([hidden])) #textbookDisclaimer{display:none}
-/* The 17-question sheet is divided across horizontally moving columns, not a long vertical page. */
-body:has(#steps:not([hidden])) .habit-mini-list{
-  display:grid;grid-auto-flow:column;grid-auto-columns:100%;
-  grid-template-rows:repeat(9,minmax(0,auto));min-height:0;max-height:100%;
-  overflow-x:auto;overflow-y:hidden;touch-action:pan-x;
-  scroll-snap-type:x mandatory
-}
-body:has(#steps:not([hidden])) .habit-mini-row{
-  min-height:33px;padding:4px 7px;font-size:12px;line-height:1.33;scroll-snap-align:start
-}
-body:has(#steps:not([hidden])) .habit-mini-mark{flex-basis:20px;min-height:22px;font-size:19px}
-body:has(#steps:not([hidden])) .habit-mini-checkbox{top:0;left:0;width:35px;height:35px}
-body:has(#steps:not([hidden])) .habit-mini{gap:5px}
-@media(max-height:700px){
- body:has(#steps:not([hidden])) .course-step:not([hidden]){padding:4px 0;gap:3px}
- body:has(#steps:not([hidden])) .lesson-card{padding:9px 10px;gap:6px}
- body:has(#steps:not([hidden])) .lesson-body{font-size:14px;line-height:1.45}
- body:has(#steps:not([hidden])) .visual-row{padding:5px 7px}
-}
-
-
 /* Lesson viewport is fixed; long lessons continue horizontally rather than below. */
 html.reader-mode,html.reader-mode body{height:100%;overflow:hidden;overscroll-behavior:none}
 html.reader-mode .wrap{height:100dvh;min-height:0;overflow:hidden;display:flex;flex-direction:column;padding-bottom:max(6px,env(safe-area-inset-bottom))}
@@ -203,6 +144,10 @@ html.reader-mode .step-heading h2{font-size:clamp(15px,4.1vw,19px);line-height:1
 html.reader-mode .step-instruction{flex:0 0 auto;margin:0 2px 5px;font-size:11px;line-height:1.35}
 html.reader-mode .track{flex:1 1 auto;height:100%;min-height:0;max-height:100%;align-items:center;overflow-x:auto;overflow-y:hidden}
 html.reader-mode .lesson-card{height:auto;max-height:100%;overflow:hidden;padding:clamp(10px,1.8svh,16px) 13px;gap:clamp(6px,1.1svh,11px)}
+html.reader-mode .habit-mini-list{display:flex;flex-direction:column;overflow:visible;touch-action:pan-x}
+html.reader-mode .habit-mini-row{min-height:36px;padding:5px 8px;font-size:13px;line-height:1.4}
+html.reader-mode .habit-mini-checkbox{top:0;left:0}
+html.reader-mode .track{touch-action:pan-x}
 html.reader-mode .card-head{flex:0 0 auto}
 html.reader-mode .lesson-card h3{flex:0 0 auto;font-size:clamp(16px,4.4vw,20px);line-height:1.38}
 html.reader-mode .lesson-body{flex:0 0 auto;font-size:clamp(14px,3.8vw,16px);line-height:1.58}
@@ -348,7 +293,7 @@ html.reader-mode .end-card,html.reader-mode .related-sites,html.reader-mode .bot
   const breakable=new Set(['visual','bmi-demo','goal-calculator','habit-mini','habit-mini-list','message-notes']);
   const piecesFrom=(node,ancestors=[])=>{
    if(node.classList?.contains('lesson-body') && !node.querySelector('input')){
-    const chunks=node.textContent.match(/[^]{1,65}/gu)||[];
+    const chunks=node.textContent.match(/[^。！？]+[。！？]?/gu)||[];
     if(chunks.length>1)return chunks.map(chunk=>{const p=node.cloneNode(false);p.textContent=chunk;return {leaf:p,ancestors};});
    }
    if([...breakable].some(cls=>node.classList?.contains(cls))&&node.children.length)
@@ -387,7 +332,7 @@ html.reader-mode .end-card,html.reader-mode .related-sites,html.reader-mode .bot
     parent.append(part.leaf);
     return ()=>{
      part.leaf.remove();
-     for(const [k,wrapper] of created.reverse())if(!wrapper.children.length){wrapper.remove();wrappers.delete(k);}
+     for(const [k,wrapper] of created.reverse())if(!wrapper.children.length){if(wrapper.id)claimedIds.delete(wrapper.id);wrapper.remove();wrappers.delete(k);}
     };
    };
    for(const part of parts){
