@@ -140,14 +140,19 @@ test('full history merges saved food, photo and body records by actual date and 
  assert.equal(model.dateValid('2026-02-30'),false);
  assert.equal(values.size,11,'no storage key may be modified by read-only review');
 });
-test('new STEP1 records allow any valid day, keep old slots, and hide STEP2 group inputs',()=>{
+test('STEP1 preserves four-group checks, unlimited dates, legacy data, and save/preview buttons',()=>{
  const page=source['diary-step1.html'];
  assert.match(page,/const DATE_PREFIX='equineris:diary-step1:v1:entry:'/);
  assert.match(page,/function key\(d,k\)\{return typeof d==='string'&&validDate\(d\)\?DATE_PREFIX\+d\+':'\+k:PREFIX\+d\+':'\+k;\}/);
  assert.match(page,/loadDay\(slot\|\|value\);goMeal\(0,false\)/);
  assert.doesNotMatch(page,/この画面は最初の3日分|async function unusedDay/);
  assert.match(page,/querySelector\('\[data-slide="reference"\]'\)\?\.remove\(\)/);
- assert.match(page,/\.food-groups,\.four-group-reference/);
+ assert.doesNotMatch(page,/\.food-groups,\.four-group-reference[^\n]*display:none/);
+ assert.doesNotMatch(page,/#previewDialog th:not\(:first-child\)[^\n]*display:none/);
+ assert.equal((page.match(/class="diary-table food-groups"/g)||[]).length,5);
+ assert.equal((page.match(/data-diary-key="(?:breakfast|lunch|dinner|snack)(?:-extra|-mark-[345])?-group-[1-4]"/g)||[]).length,80);
+ assert.match(page,/const value=field\.type==='checkbox'\?\(field\.checked\?'checked':''\):field\.value/);
+ assert.match(page,/localStorage\.setItem\(key\(activeDay,field\.dataset\.diaryKey\),value\)/);
  assert.match(page,/document\.querySelector\('\.actions'\)\.hidden=activeMeal===0;/);
  assert.match(page,/loadDay\(initial\);goMeal\(1,false\);/);
  assert.match(page,/data-meal-tab="1"[^>]*>朝食<\/button>/);
