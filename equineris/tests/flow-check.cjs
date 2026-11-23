@@ -229,6 +229,18 @@ test('single recording URL switches STEP1, STEP2, STEP3 and history without navi
  date2.value='2026-11-29';date2.fire('change');
  assert.equal(frame2.getAttribute('src'),'./diary-step1.html?date=2026-11-29');
  assert.equal(legacy.get('equineris:paper-first3:v1:1:breakfast-meal'),'旧写真の記録');
+ const onlyPhotos=new Map();
+ const photoStore={getItem:k=>onlyPhotos.get(k)??null,setItem:(k,v)=>onlyPhotos.set(k,String(v)),
+  get length(){return onlyPhotos.size},key:i=>[...onlyPhotos.keys()][i]};
+ const frame3=new E(),date3=new E(),status3=new E(),box3=new E();
+ const doc3={querySelectorAll:()=>['1','2','3','history'].map(v=>new E(v)),getElementById:id=>
+  ({recordDate:date3,dateBox:box3,recordStatus:status3,recordFrame:frame3})[id]};
+ vm.runInNewContext(source['record-unified.js'],{
+  window,document:doc3,localStorage:photoStore,history,
+  location:{...location,search:'?stage=1&day=1'},Date,URL,URLSearchParams,MutationObserver:class{}
+ });
+ assert.equal(frame3.getAttribute('src'),'./diary-step1.html?day=1',
+  'photo-only old slot must be accessible from history, even without a localStorage text key');
 });
 test('embedded STEP forms route links within the same parent page and lock during photo saving',()=>{
  class El{
