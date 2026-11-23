@@ -130,7 +130,7 @@ test('full history merges saved food, photo and body records by actual date and 
   getItem:key=>values.get(key)??null,setItem(){throw Error('History must never overwrite user data')}};
  const archived=[{day:1,date:'2026-11-20',meal:'飲み物',memo:'水',photo:new FakeBlob()}];
  const records=model.collect(storage,{1:['1:breakfast'],2:['2026-11-22:lunch'],3:[]},archived);
- assert.deepEqual(records.map(x=>x.key),['2026-11-25','2026-11-22','2026-11-20']);
+ assert.deepEqual(Array.from(records,x=>x.key),['2026-11-25','2026-11-22','2026-11-20']);
  const old=records[2],today=records[0];
  assert.equal(old.slot,1);
  assert.ok(old.sources.has(1)&&old.sources.has(2)&&old.sources.has(3)&&old.sources.has('archived'));
