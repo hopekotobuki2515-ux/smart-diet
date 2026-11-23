@@ -68,8 +68,38 @@ const ready=async(fn)=>{
    const font=parseFloat(st.fontSize)||14;
    if(rect.width<font*2.55&&txt.length>7)narrow.push({tag:e.tagName,cls:String(e.className).slice(0,50),w:Math.round(rect.width),font:Math.round(font),text:txt.slice(0,45)});
   }
+  const stacked=[];
+  let textNodeCount=0;
+  for(const e of targets){
+   if(textNodeCount>=350)break;
+   const er=e.getBoundingClientRect();
+   if(er.width<1||er.height<1)continue;
+   for(const node of e.childNodes){
+    if(node.nodeType!==3)continue;
+    const content=node.textContent||'';
+    if(content.length<9||content.includes('\n')||!/[\u3040-\u30ff\u4e00-\u9fff]/.test(content))continue;
+    textNodeCount++;
+    const letters=[],range=document.createRange();
+    for(let i=0;i<content.length&&letters.length<12;i++){
+     if(/\s/.test(content[i]))continue;
+     range.setStart(node,i);range.setEnd(node,i+1);
+     const br=range.getBoundingClientRect();
+     if(br.width>0&&br.height>0)letters.push({top:br.top,left:br.left});
+    }
+    if(letters.length<7)continue;
+    const size=parseFloat(getComputedStyle(e).fontSize)||14;
+    let sequential=1,longest=1;
+    for(let i=1;i<letters.length;i++){
+     const prev=letters[i-1],curr=letters[i];
+     if(curr.top-prev.top>size*.75&&Math.abs(curr.left-prev.left)<size*.8)sequential++;
+     else sequential=1;
+     longest=Math.max(longest,sequential);
+    }
+    if(longest>=7)stacked.push({tag:e.tagName,cls:String(e.className).slice(0,48),text:content.slice(0,45),lines:longest});
+   }
+  }
   const outside=Math.max(root.scrollWidth,document.body.scrollWidth)-innerWidth;
-  return {width:innerWidth,docWidth:root.scrollWidth,outside:Math.round(outside),narrow:narrow.slice(0,15),narrowTotal:narrow.length,title:document.title,bodyText:document.body.innerText.trim().length,weekCards:document.querySelectorAll('#lessonTrack .point-slide').length,weekVisible:!document.querySelector('#lessonView')?.hidden,reader:document.documentElement.classList.contains('reader-mode'),targetVisible:!!(location.hash&&document.getElementById(location.hash.slice(1))?.getBoundingClientRect().height)};
+  return {width:innerWidth,docWidth:root.scrollWidth,outside:Math.round(outside),narrow:narrow.slice(0,15),narrowTotal:narrow.length,stacked:stacked.slice(0,10),stackedTotal:stacked.length,title:document.title,bodyText:document.body.innerText.trim().length,weekCards:document.querySelectorAll('#lessonTrack .point-slide').length,weekVisible:!document.querySelector('#lessonView')?.hidden,reader:document.documentElement.classList.contains('reader-mode'),targetVisible:!!(location.hash&&document.getElementById(location.hash.slice(1))?.getBoundingClientRect().height)};
  })())`;
  for(const width of [320,390]){
   await cdp('Emulation.setDeviceMetricsOverride',{width,height:740,deviceScaleFactor:2,mobile:true});
@@ -83,8 +113,8 @@ const ready=async(fn)=>{
    if(!result.title||result.bodyText<15)throw Error('Page content missing '+name+' at '+width+': '+JSON.stringify(result));
    if(name.startsWith('learning.html?week=')&&(result.weekCards!==4||!result.weekVisible))throw Error('Weekly cards did not render '+name+': '+JSON.stringify(result));
    if(name.startsWith('textbook.html#')&&(!result.reader||!result.targetVisible))throw Error('Textbook card did not render '+name+': '+JSON.stringify(result));
-   if(result.outside>4||result.narrowTotal>0){
-    const item={file:name,width,outside:result.outside,narrow:result.narrow,narrowTotal:result.narrowTotal};
+   if(result.outside>4||result.narrowTotal>0||result.stackedTotal>0){
+    const item={file:name,width,outside:result.outside,narrow:result.narrow,narrowTotal:result.narrowTotal,stacked:result.stacked,stackedTotal:result.stackedTotal};
     diagnostics.push(item);
     process.stdout.write('LAYOUT_DIAGNOSTIC '+JSON.stringify(item)+'\n');
    }
