@@ -69,7 +69,7 @@ const ready=async(fn)=>{
    if(rect.width<font*2.55&&txt.length>7)narrow.push({tag:e.tagName,cls:String(e.className).slice(0,50),w:Math.round(rect.width),font:Math.round(font),text:txt.slice(0,45)});
   }
   const outside=Math.max(root.scrollWidth,document.body.scrollWidth)-innerWidth;
-  return {width:innerWidth,docWidth:root.scrollWidth,outside:Math.round(outside),narrow:narrow.slice(0,15),narrowTotal:narrow.length,title:document.title};
+  return {width:innerWidth,docWidth:root.scrollWidth,outside:Math.round(outside),narrow:narrow.slice(0,15),narrowTotal:narrow.length,title:document.title,bodyText:document.body.innerText.trim().length,weekCards:document.querySelectorAll('#lessonTrack .point-slide').length,weekVisible:!document.querySelector('#lessonView')?.hidden,reader:document.documentElement.classList.contains('reader-mode'),targetVisible:!!(location.hash&&document.getElementById(location.hash.slice(1))?.getBoundingClientRect().height)};
  })())`;
  for(const width of [320,390]){
   await cdp('Emulation.setDeviceMetricsOverride',{width,height:740,deviceScaleFactor:2,mobile:true});
@@ -80,6 +80,9 @@ const ready=async(fn)=>{
    await cdp('Page.navigate',{url});
    await sleep(135);
    const result=JSON.parse(await evalJS(probe));
+   if(!result.title||result.bodyText<15)throw Error('Page content missing '+name+' at '+width+': '+JSON.stringify(result));
+   if(name.startsWith('learning.html?week=')&&(result.weekCards!==4||!result.weekVisible))throw Error('Weekly cards did not render '+name+': '+JSON.stringify(result));
+   if(name.startsWith('textbook.html#')&&(!result.reader||!result.targetVisible))throw Error('Textbook card did not render '+name+': '+JSON.stringify(result));
    if(result.outside>4||result.narrowTotal>0){
     const item={file:name,width,outside:result.outside,narrow:result.narrow,narrowTotal:result.narrowTotal};
     diagnostics.push(item);
@@ -88,5 +91,6 @@ const ready=async(fn)=>{
   }
  }
  process.stdout.write('AUDIT_COMPLETE routes='+routes.length+' sizes=2 warnings='+diagnostics.length+'\n');
+ if(diagnostics.length)throw Error('Mobile text/layout warnings: '+diagnostics.length);
  ws.close();
 })().catch(e=>{console.error(e.stack||e);process.exitCode=1;}).finally(()=>{chrome.kill('SIGTERM');});
