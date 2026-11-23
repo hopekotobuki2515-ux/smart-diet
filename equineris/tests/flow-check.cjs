@@ -575,6 +575,19 @@ test('all 12 original weekly curricula are fully mapped into four vertical-scrol
  assert.match(view,/overflow-x:hidden;overflow-y:auto/,'scrollable card content must stay readable');
  assert.match(view,/\.lesson-week-title-line\{display:block/,'week 12 title must wrap naturally');
 });
+test('reference textbook shows topic titles instead of abandoned STEP 1-6 labels',()=>{
+ const html=source['textbook.html'],contents=source['textbook-data.js'];
+ assert.doesNotMatch(html,/STEP\s*(?:[1-6]|'\+)/,'reference navigation must not display STEP numbers');
+ assert.doesNotMatch(html,/ステップ目次|ステップ'\+s\.id/,'reference TOC and aria labels must use topics');
+ assert.doesNotMatch(contents,/\bSTEP\s*[1-6]\b|ステップ[1-6]|次のステップへ/,'source reference text must not show discarded STEP terminology');
+ assert.match(html,/aria-label="参考テキストの目次"/);
+ assert.match(html,/次のテーマへ 〉/);
+ assert.match(html,/前のテーマへ/);
+ assert.match(html,/参考テキスト \/ /);
+ assert.match(source['record.html'],/食べ方の参考テキストを読む/);
+ const cardCount=textbookData.reduce((sum,section)=>sum+section.cards.length,0);
+ assert.equal(cardCount,63,'do not remove any original reference cards');
+});
 class MockEl {
  constructor(tag='div'){
   this.tagName=tag;this.children=[];this.handlers={};this.attributes={};
@@ -654,7 +667,7 @@ test('only one STEP is visible, with STEP1 last card advancing to STEP2 and STEP
  assert.equal(firstTrack.scrollLeft,372,'first card advances by one slide plus gap');
  for(let i=0;i<6;i++)t.next[0].click();
  assert.equal(t.count[0].textContent,'8 / 8');
- assert.match(t.next[0].textContent,/STEP 2へ/);
+ assert.match(t.next[0].textContent,/次のテーマへ/);
  t.next[0].click();
  assert.deepEqual(visible(),[2]);
  assert.equal(t.count[1].textContent,'1 / 12');
@@ -664,7 +677,7 @@ test('only one STEP is visible, with STEP1 last card advancing to STEP2 and STEP
  assert.match(t.sections[1].children.find(c=>c.className==='step-heading').children[1].textContent,/自分を知り/);
  for(let i=0;i<11;i++)t.next[1].click();
  assert.equal(t.count[1].textContent,'12 / 12');
- assert.match(t.next[1].textContent,/STEP 3へ/);
+ assert.match(t.next[1].textContent,/次のテーマへ/);
  t.next[1].click();
  assert.deepEqual(visible(),[3]);
  assert.equal(t.count[2].textContent,'1 / 11');
@@ -833,7 +846,7 @@ test('reference textbook does not overwrite saved goals or habit checks',()=>{
 test('step 4 now continues to reference step 5 without redirecting to the diary',()=>{
  const t=textbookScenario('#s4-c3');
  assert.equal(t.count[3].textContent,'3 / 3');
- assert.match(t.next[3].textContent,/STEP 5へ/);
+ assert.match(t.next[3].textContent,/次のテーマへ/);
  t.next[3].click();
  assert.equal(t.location.destination,null);
  assert.equal(t.sections[4].hidden,false);
