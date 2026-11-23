@@ -142,12 +142,15 @@ html.reader-mode .step-heading{flex:0 0 auto;margin-bottom:4px;align-items:cente
 html.reader-mode .step-heading h2{font-size:clamp(15px,4.1vw,19px);line-height:1.3}
 html.reader-mode .step-instruction{flex:0 0 auto;margin:0 2px 5px;font-size:11px;line-height:1.35}
 html.reader-mode .track{flex:1 1 0;min-height:0;height:auto;max-height:none;align-items:stretch;overflow-x:auto;overflow-y:hidden}
-html.reader-mode .lesson-card{height:auto;min-height:0;max-height:none;align-self:stretch;margin-block:6px;overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch;scrollbar-width:thin;padding:clamp(10px,1.8svh,16px) 13px;gap:clamp(6px,1.1svh,11px)}
+html.reader-mode .lesson-card{height:min(60svh,480px);min-height:0;max-height:calc(100% - 16px);align-self:center;margin-block:0;overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch;scrollbar-width:thin;padding:15px 15px 18px;gap:10px}
 html.reader-mode .habit-mini-list{display:flex;flex-direction:column;overflow:visible;touch-action:auto}
 html.reader-mode .habit-mini-row{min-height:36px;padding:5px 8px;font-size:13px;line-height:1.4}
 html.reader-mode .habit-mini-checkbox{top:0;left:0}
 html.reader-mode .track{touch-action:auto}
-html.reader-mode .lesson-card{touch-action:auto}
+html.reader-mode .lesson-card{touch-action:auto;scroll-padding-bottom:16px}
+html.reader-mode .lesson-card:focus-within{outline-offset:-3px}
+html.reader-mode .step-footer a{border-radius:9px;background:#eff7ee;padding:4px 13px;text-decoration:none;font-weight:750}
+html.reader-mode .slide-nav{gap:10px}
 html.reader-mode .card-head{flex:0 0 auto}
 html.reader-mode .lesson-card h3{flex:0 0 auto;font-size:clamp(16px,4.4vw,20px);line-height:1.38}
 html.reader-mode .lesson-body{flex:0 0 auto;font-size:clamp(14px,3.8vw,16px);line-height:1.58}
@@ -159,7 +162,7 @@ html.reader-mode .step-footer a{min-height:28px}
 html.reader-mode .to-top{bottom:max(8px,env(safe-area-inset-bottom));min-height:38px}
 html.reader-mode .continuation-label{font-size:12px;font-weight:800;color:var(--muted)}
 html.reader-mode .end-card,html.reader-mode .related-sites,html.reader-mode .bottom-note{display:none!important}
-@media(max-height:600px){html.reader-mode .step-instruction{display:none}html.reader-mode .step-heading{margin-bottom:3px}html.reader-mode .step-footer{display:none}}
+@media(max-height:600px){html.reader-mode .step-instruction{display:none}html.reader-mode .step-heading{margin-bottom:3px}}
 </style>
 </head>
 <body>
@@ -362,7 +365,7 @@ html.reader-mode .end-card,html.reader-mode .related-sites,html.reader-mode .bot
   root.hidden=false;
   discovery.hidden=true;
   intro.hidden=true;
-  returnIndex.hidden=false;
+  returnIndex.hidden=true; // Avoid covering the card navigation; use the in-flow contents link.
   ending.hidden=stepId!==6;related.hidden=stepId!==6;disclaimer.hidden=stepId!==6;
   for(const [id,state] of controls)state.section.hidden=id!==stepId;
   /* Keep original cards intact; long content scrolls vertically within each card. */

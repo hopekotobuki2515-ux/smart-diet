@@ -52,7 +52,8 @@ test('mobile reader and empty history avoid blank-page regression',()=>{
 });
 test('textbook reader uses equal height cards, vertical scroll inside each card, and horizontal movement outside',()=>{
  const book=source['textbook.html'];
- assert.ok(book.includes('html.reader-mode .lesson-card{height:calc(100% - 12px);'));
+ assert.ok(book.includes('html.reader-mode .lesson-card{height:min(60svh,480px);'));
+ assert.ok(book.includes('returnIndex.hidden=true; // Avoid covering the card navigation'));
  assert.ok(book.includes('overflow-y:auto;overscroll-behavior-y:contain'));
  assert.ok(book.includes('html.reader-mode .track{touch-action:auto}'));
  assert.equal(book.includes('if(state)paginateStep(state)'),false);

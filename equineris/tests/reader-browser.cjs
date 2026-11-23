@@ -62,6 +62,8 @@ const ready=async(fn)=>{
   "return {reader:document.documentElement.classList.contains('reader-mode'),"+
   "height:innerHeight,docHeight:document.documentElement.scrollHeight,cardCount:cards.length,"+
   "navBottom:step.querySelector('.slide-nav').getBoundingClientRect().bottom,"+
+  "tocVisible:!document.getElementById('backToIndex').hidden,"+
+  "footer:step.querySelector('.step-footer a').getBoundingClientRect().bottom,"+
   "unequal,unscrollable,duplicateIds,contentLost,habitRows:track.querySelectorAll('.habit-mini-row').length};"+
   "})())";
  for(const [width,height,hash] of cases){
@@ -76,6 +78,8 @@ const ready=async(fn)=>{
   assert.deepEqual(snap.duplicateIds,[],'duplicate ids '+hash);
   assert.equal(snap.contentLost,false,'text lost '+hash);
   assert.ok(snap.cardCount>=1 && snap.navBottom<=snap.height+3,'navigation off screen '+hash);
+  assert.equal(snap.tocVisible,false,'floating contents button overlaps navigation '+hash);
+  assert.ok(snap.footer<=snap.height+3,'in-flow contents link offscreen '+hash);
   if(hash==='s2-habit-check')assert.equal(snap.habitRows,17);
   process.stdout.write('PASS '+width+'x'+height+' '+hash+' slides='+snap.cardCount+'\n');
  }
