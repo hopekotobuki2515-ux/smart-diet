@@ -61,8 +61,12 @@
   let childDoc;
   try{childDoc=frame.contentDocument;}catch(e){return;}
   if(!childDoc||!childDoc.body||!frame.style)return;
-  const height=Math.max(childDoc.body.scrollHeight,childDoc.documentElement?.scrollHeight||0,400);
-  if(Number.isFinite(height))frame.style.height=Math.ceil(height+8)+'px';
+  // Measuring documentElement.scrollHeight uses the iframe viewport itself.
+  // That creates an 8px growth loop every time the frame is resized.
+  // All four recording pages render their content inside .page.
+  const content=childDoc.querySelector('.page')||childDoc.body;
+  const height=Math.max(320,Math.ceil(content.getBoundingClientRect().height+8));
+  if(Number.isFinite(height)&&frame.style.height!==height+'px')frame.style.height=height+'px';
  };
  const describe=(text,error=false)=>{status.textContent=text;status.dataset.error=String(error);};
  const enable=()=>{buttons.forEach(b=>b.disabled=photoBusy);dateField.disabled=photoBusy;};
