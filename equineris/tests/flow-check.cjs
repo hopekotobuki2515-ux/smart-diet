@@ -585,6 +585,8 @@ test('reference textbook shows topic titles instead of abandoned STEP 1-6 labels
  assert.match(html,/前のテーマへ/);
  assert.match(html,/参考テキスト \/ /);
  assert.match(source['record.html'],/食べ方の参考テキストを読む/);
+ assert.match(source['diary-step1.html'],/〈 参考テキストへ/);
+ assert.match(source['diary-step3.html'],/参考テキスト「楽しく続けるコツ」を読む/);
  const cardCount=textbookData.reduce((sum,section)=>sum+section.cards.length,0);
  assert.equal(cardCount,63,'do not remove any original reference cards');
 });
