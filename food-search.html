@@ -16,8 +16,8 @@
 .food-search-summary.error{color:#ac3e25}
 #results{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x proximity;scroll-padding-inline:2px;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;padding:2px 2px 14px}
 .food-result{flex:0 0 min(85%,360px);min-width:0;margin-bottom:0;padding:17px;scroll-snap-align:start}
-.food-result h2{font-size:17px;margin:0 0 6px;overflow-wrap:anywhere}
-.food-result-meta{color:#64728a;font-size:13px;margin:0 0 10px;overflow-wrap:anywhere}
+.food-result h2{font-size:17px;margin:0 0 6px;word-break:normal;overflow-wrap:break-word}
+.food-result-meta{color:#64728a;font-size:13px;margin:0 0 10px;word-break:normal;overflow-wrap:break-word}
 .food-result-amount{color:#286d4f;font-size:17px;margin:5px 0 8px;font-weight:800}
 .food-result label{margin:6px 0;font-size:13px}
 .food-result input{margin-top:5px}
@@ -40,12 +40,12 @@
 #nutrientResults{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
 .nutrient-result{margin:0;padding:15px}
 .nutrient-card-heading{display:flex;flex-wrap:wrap;align-items:flex-start;gap:8px}
-.nutrient-card-heading h2{font-size:17px;flex:1 1 160px;min-width:0;overflow-wrap:anywhere;margin:0}
+.nutrient-card-heading h2{font-size:17px;flex:1 1 160px;min-width:0;word-break:normal;overflow-wrap:break-word;margin:0}
 .nutrient-pill{font-size:12px;font-weight:bold;background:#e6f3e9;color:#286d4f;border-radius:999px;padding:5px 10px}
 .nutrient-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0}
 .nutrient-fact{min-width:0;border:1px solid #e8ede8;border-radius:10px;padding:9px;background:#f9fbf8}
 .nutrient-fact span{display:block;color:#64728a;font-size:12px}
-.nutrient-fact strong{display:block;margin-top:5px;font-size:15px;overflow-wrap:anywhere}
+.nutrient-fact strong{display:block;margin-top:5px;font-size:15px;word-break:normal;overflow-wrap:break-word}
 .nutrient-warning{background:#fff5e9;border-left:3px solid #de9953;padding:10px;border-radius:6px;font-size:13px;line-height:1.6}
 .nutrient-unapproved{background:#f2f7f3;border-radius:10px;padding:10px;color:#335f44;line-height:1.6;font-size:13px}
 .nutrient-action,.nutrient-entry{display:block;width:100%;margin-top:12px;border:1px solid #76b18a;background:#f0f9f2;color:#245d3a;min-height:44px;border-radius:10px;font:inherit;font-size:14px;font-weight:700;cursor:pointer}
