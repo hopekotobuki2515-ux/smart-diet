@@ -49,7 +49,11 @@ const ready=async(fn)=>{
   "const track=step?.querySelector('.track');const cards=[...(track?.children||[])];"+
   "const ids=[...document.querySelectorAll('[id]')].map(x=>x.id);"+
   "const duplicateIds=ids.filter((x,i)=>ids.indexOf(x)!==i);"+
-  "const clipped=cards.map((x,i)=>({i,extra:x.scrollHeight-x.clientHeight})).filter(x=>x.extra>3);"+
+  "const heights=cards.map(x=>Math.round(x.getBoundingClientRect().height));"+
+  "const unequal=heights.some(h=>Math.abs(h-heights[0])>2);"+
+  "const unscrollable=cards.filter(x=>{if(x.scrollHeight<=x.clientHeight+3)return false;"+
+  "if(getComputedStyle(x).overflowY!=='auto')return true;const before=x.scrollTop;"+
+  "x.scrollTop=30;const works=x.scrollTop>before;x.scrollTop=before;return !works;}).length;"+
   "const lesson=window.SMART_DIET_TEXTBOOK[Number(step.id.slice(-1))-1];"+
   "const contentLost=lesson.cards.some(c=>{let node=track.querySelector('#'+c.id),found='';"+
   "if(!node)return true;const first=node;while(node&&(node===first||!node.id)){"+
@@ -58,7 +62,7 @@ const ready=async(fn)=>{
   "return {reader:document.documentElement.classList.contains('reader-mode'),"+
   "height:innerHeight,docHeight:document.documentElement.scrollHeight,cardCount:cards.length,"+
   "navBottom:step.querySelector('.slide-nav').getBoundingClientRect().bottom,"+
-  "clipped,duplicateIds,contentLost,habitRows:track.querySelectorAll('.habit-mini-row').length};"+
+  "unequal,unscrollable,duplicateIds,contentLost,habitRows:track.querySelectorAll('.habit-mini-row').length};"+
   "})())";
  for(const [width,height,hash] of cases){
   await cdp('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:2,mobile:true});
@@ -67,7 +71,8 @@ const ready=async(fn)=>{
   const snap=JSON.parse(await evalJS(probe));
   assert.equal(snap.reader,true);
   assert.ok(snap.docHeight<=snap.height+3,'vertical scroll '+JSON.stringify({width,height,hash,snap}));
-  assert.deepEqual(snap.clipped,[],'card clipping '+JSON.stringify({width,height,hash,snap}));
+  assert.equal(snap.unequal,false,'card heights differ '+JSON.stringify({width,height,hash,snap}));
+  assert.equal(snap.unscrollable,0,'overflowing card cannot scroll '+JSON.stringify({width,height,hash,snap}));
   assert.deepEqual(snap.duplicateIds,[],'duplicate ids '+hash);
   assert.equal(snap.contentLost,false,'text lost '+hash);
   assert.ok(snap.cardCount>=1 && snap.navBottom<=snap.height+3,'navigation off screen '+hash);

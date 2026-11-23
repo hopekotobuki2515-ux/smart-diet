@@ -50,12 +50,13 @@ test('mobile reader and empty history avoid blank-page regression',()=>{
  assert.match(book,/overflow:visible/);
  assert.match(hist,/max-width:510px;min-height:0;padding/);
 });
-test('textbook reader remains horizontal-only and continues long cards',()=>{
+test('textbook reader uses equal height cards, vertical scroll inside each card, and horizontal movement outside',()=>{
  const book=source['textbook.html'];
- assert.ok(book.includes('html.reader-mode .lesson-card{height:auto;max-height:100%;overflow:hidden'));
- assert.ok(book.includes('const state=controls.get(stepId);if(state)paginateStep(state);'));
- assert.equal(book.includes('html.reader-mode .lesson-card{height:100%'),false);
- assert.equal(book.includes('overflow-y:auto;overscroll-behavior-y:contain'),false);
+ assert.ok(book.includes('html.reader-mode .lesson-card{height:calc(100% - 12px);'));
+ assert.ok(book.includes('overflow-y:auto;overscroll-behavior-y:contain'));
+ assert.ok(book.includes('html.reader-mode .track{touch-action:auto}'));
+ assert.equal(book.includes('if(state)paginateStep(state)'),false);
+ assert.ok(book.includes('html.reader-mode .wrap{height:100dvh;min-height:0;overflow:hidden'));
 });
 test('weight goal and BMI remain inside separate lesson flow',()=>{
  const s=source['week-1-goal.html'];
