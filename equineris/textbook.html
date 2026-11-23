@@ -129,7 +129,7 @@ a,button,input{font:inherit}button{cursor:pointer}
 @media(max-width:700px){.textbook-layout{grid-template-columns:minmax(0,1fr)}.textbook-layout>.toolbox{order:-1;padding:14px}}
 /* Keep adjacent cards separate without changing the slide stride. Do not trap vertical scroll in a card. */
 .track{gap:12px;overflow-y:clip}
-.lesson-card{flex:0 0 calc(100% - 12px);width:calc(100% - 12px);max-width:calc(100% - 12px);overflow:visible}
+.lesson-card{flex:0 0 100%;width:100%;max-width:100%;overflow:visible}
 </style>
 </head>
 <body>
@@ -239,6 +239,19 @@ a,button,input{font:inherit}button{cursor:pointer}
    return {heightCm:h,weightKg:w};
   }catch(e){return null;}
  };
+ // Position slides using actual offsets, including the visible 12px gaps.
+ const cardPosition=(track,index)=>{
+  const first=track.children[0],item=track.children[index];
+  return first&&item?item.offsetLeft-first.offsetLeft:0;
+ };
+ const nearestCard=(track)=>{
+  let nearest=0,smallest=Infinity;
+  for(let i=0;i<track.children.length;i++){
+   const delta=Math.abs(track.scrollLeft-cardPosition(track,i));
+   if(delta<smallest){smallest=delta;nearest=i;}
+  }
+  return nearest;
+ };
  const showIndex=()=>{
   // A printed-book-style contents screen: lesson text is not displayed underneath.
   root.hidden=true;
@@ -259,16 +272,16 @@ a,button,input{font:inherit}button{cursor:pointer}
  const backToContents=()=>{
   showIndex();
   if(history.replaceState)history.replaceState(null,'','#index');
-  discovery.scrollIntoView({block:'start',behavior:'auto'});
+  window.scrollTo({top:0,behavior:'auto'});
  };
  returnIndex.addEventListener('click',backToContents);
  const jump=(id)=>{
   const found=CARDS.get(id);if(!found)return;
   const state=controls.get(found.step.id);if(!state)return;
   showStep(found.step.id);
-  state.track.scrollTo({left:found.index*state.track.clientWidth,behavior:'auto'});
+  state.track.scrollTo({left:cardPosition(state.track,found.index),behavior:'auto'});
   update(found.step.id,found.index);
-  state.section.scrollIntoView({block:'start',behavior:'auto'});
+  window.scrollTo({top:0,behavior:'auto'});
   last=id;persistent(LAST_KEY,last);
   setResume();
   if(history.replaceState)history.replaceState(null,'','#'+id);
@@ -447,9 +460,9 @@ a,button,input{font:inherit}button{cursor:pointer}
   update(s.id,0);
   const go=(i)=>{
    const idx=Math.max(0,Math.min(i,s.cards.length-1));
-   track.scrollTo({left:idx*track.clientWidth,behavior:'smooth'});
+   track.scrollTo({left:cardPosition(track,idx),behavior:'smooth'});
    update(s.id,idx);remember(s.cards[idx].id);
-   state.section.scrollIntoView({block:'start',behavior:'auto'});
+   window.scrollTo({top:0,behavior:'auto'});
   };
   prev.addEventListener('click',()=>{
    if(state.active===0&&s.id>1){
@@ -477,9 +490,8 @@ a,button,input{font:inherit}button{cursor:pointer}
    if(frame)return;
    frame=requestAnimationFrame(()=>{
     frame=0;
-    const width=track.clientWidth;
-    if(!width)return;
-    const idx=Math.max(0,Math.min(Math.round(track.scrollLeft/width),s.cards.length-1));
+    if(!track.children.length)return;
+    const idx=nearestCard(track);
     if(idx!==state.active){update(s.id,idx);remember(s.cards[idx].id);}
    });
   },{passive:true});
