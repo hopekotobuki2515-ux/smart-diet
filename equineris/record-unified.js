@@ -46,7 +46,15 @@
   if(validDate(oldDate))selectedDate=oldDate;
   else if(hasLegacy(rawDay)||(['1','2','3'].includes(requestedStage))){selectedDate='';legacyDay=rawDay;}
  }
- let photoBusy=false,observer=null;
+ let photoBusy=false,observer=null,frameSizer=null;
+ const fitFrame=()=>{
+  // The content frame must not trap the phone's scroll area: expand to full content.
+  let childDoc;
+  try{childDoc=frame.contentDocument;}catch(e){return;}
+  if(!childDoc||!childDoc.body||!frame.style)return;
+  const height=Math.max(childDoc.body.scrollHeight,childDoc.documentElement?.scrollHeight||0,400);
+  if(Number.isFinite(height))frame.style.height=Math.ceil(height+8)+'px';
+ };
  const describe=(text,error=false)=>{status.textContent=text;status.dataset.error=String(error);};
  const enable=()=>{buttons.forEach(b=>b.disabled=photoBusy);dateField.disabled=photoBusy;};
  const busy=value=>{
@@ -73,6 +81,7 @@
   const next=frameUrl(view,selectedDate,legacyDay);
   if(frame.getAttribute('src')!==next){
    if(observer){observer.disconnect();observer=null;}
+   if(frameSizer){frameSizer.disconnect();frameSizer=null;}
    frame.setAttribute('src',next);
   }
   return true;
@@ -114,6 +123,7 @@
   style.textContent=[
    'html{overflow-x:hidden!important}',
    'body{min-width:0!important;margin:0!important;background:#fff!important}',
+   '.viewport,.page{min-height:0!important}',
    '.page{margin:0 auto!important;min-height:0!important;max-width:100%!important;',
    'border:0!important;border-radius:0!important;box-shadow:none!important;',
    'padding:8px 8px 25px!important}',
@@ -122,6 +132,13 @@
    '@media(max-width:350px){.page{padding-inline:5px!important}}'
   ].join('');
   doc.head.append(style);
+  // Avoid a second, nested vertical scroll area around the actual recording form.
+  // The content height is measured, not estimated from device dimensions.
+  fitFrame();
+  if(typeof ResizeObserver==='function'){
+   frameSizer=new ResizeObserver(fitFrame);
+   frameSizer.observe(doc.body);
+  }
   doc.addEventListener('click',linkClick,true);
   // Date edits performed inside a STEP must carry over to the other STEP tabs.
   // Run in the bubble phase, after the original stage's date-change handler.
@@ -156,6 +173,10 @@
   if(!validDate(dateField.value)){dateField.value=selectedDate;describe('正しい日付を入力してください。',true);return;}
   select(active,{date:dateField.value});
  });
- window.addEventListener('pagehide',()=>{if(observer)observer.disconnect();});
+ window.addEventListener('resize',fitFrame);
+ window.addEventListener('pagehide',()=>{
+  if(observer)observer.disconnect();
+  if(frameSizer)frameSizer.disconnect();
+ });
  select(active);
 })();
