@@ -575,6 +575,24 @@ test('all 12 original weekly curricula are fully mapped into four vertical-scrol
  assert.match(view,/overflow-x:hidden;overflow-y:auto/,'scrollable card content must stay readable');
  assert.match(view,/\.lesson-week-title-line\{display:block/,'week 12 title must wrap naturally');
 });
+test('reference textbook contents and reader headings display titles only, never redundant labels',()=>{
+ const html=source['textbook.html'];
+ assert.match(html,/jumpLink\.append\(create\('span','',s\.title\)\)/);
+ assert.doesNotMatch(html,/jumpLink\.append\(create\('b'/);
+ assert.match(html,/const title=create\('h2','',s\.title\);heading\.append\(title\)/);
+ assert.doesNotMatch(html,/step-num/);
+ const view=textbookScenario();
+ assert.equal(view.elements.stepIndex.children.length,6);
+ const titles=textbookData.map(x=>x.title);
+ view.elements.stepIndex.children.forEach((link,i)=>{
+  assert.equal(link.children.length,1,'table of contents item has only its title');
+  assert.equal(link.children[0].textContent,titles[i]);
+ });
+ view.elements.stepIndex.children[0].click();
+ const heading=view.sections[0].children.find(c=>c.className==='step-heading');
+ assert.equal(heading.children.length,1,'opened title has no redundant label');
+ assert.equal(heading.children[0].textContent,titles[0]);
+});
 test('reference textbook shows topic titles instead of abandoned STEP 1-6 labels',()=>{
  const html=source['textbook.html'],contents=source['textbook-data.js'];
  assert.doesNotMatch(html,/STEP\s*(?:[1-6]|'\+)/,'reference navigation must not display STEP numbers');
