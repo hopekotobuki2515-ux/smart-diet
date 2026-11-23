@@ -130,6 +130,18 @@ const ready=async(fn)=>{
     if(!works)return false;
    }
    return true;
+  })(),weekRecordReady:(()=>{
+   const isIndex=!document.querySelector('#lessonIndex')?.hidden;
+   const entry=document.querySelector(isIndex?'#indexRecordLink':'#weekRecordLink');
+   if(!entry)return false;
+   const rect=entry.getBoundingClientRect();
+   if(rect.width<80||rect.height<35)return false;
+   let url;try{url=new URL(entry.href,location.href)}catch(e){return false}
+   if(!url.pathname.endsWith('/record.html')||url.searchParams.get('from')!=='learning')return false;
+   if(isIndex)return !url.searchParams.has('week');
+   const week=Number(new URLSearchParams(location.search).get('week'));
+   const track=document.querySelector('#lessonTrack');
+   return url.searchParams.get('week')===String(week)&&url.searchParams.get('card')==='0'&&rect.bottom<=track.getBoundingClientRect().top;
   })(),weekTextbookReady:(()=>{const entry=document.querySelector('#weekTextbookEntry'),items=[...document.querySelectorAll('#relatedTextbookLinks a')],panel=document.querySelector('#lessonTrack'),heading=document.querySelector('#lessonTitle');return !!(entry&&heading&&panel&&entry.getBoundingClientRect().top>=heading.getBoundingClientRect().top&&entry.getBoundingClientRect().bottom<=panel.getBoundingClientRect().top&&items.length>0&&items.every(x=>x.href.includes('textbook.html?week=')&&x.hash.length>2)&&entry.href===items[0].href);})(),reader:document.documentElement.classList.contains('reader-mode'),targetVisible:!!(location.hash&&document.getElementById(location.hash.slice(1))?.getBoundingClientRect().height)};
  })())`;
  for(const width of [320,390]){
@@ -143,6 +155,7 @@ const ready=async(fn)=>{
    const result=JSON.parse(await evalJS(probe));
    if(!result.title||result.bodyText<15)throw Error('Page content missing '+name+' at '+width+': '+JSON.stringify(result));
    if(name.startsWith('learning.html?week=')&&(result.weekCards!==4||!result.weekVisible))throw Error('Weekly cards did not render '+name+': '+JSON.stringify(result));
+   if((name==='learning.html'||name.startsWith('learning.html?week='))&&!result.weekRecordReady)throw Error('Missing or misplaced food record link on learning screen '+name+': '+JSON.stringify(result));
    if(name.startsWith('learning.html?week=')&&!result.weekTextbookReady)throw Error('Missing or misplaced weekly reference textbook '+name+': '+JSON.stringify(result));
    if(name.startsWith('learning.html?week=')&&!result.weekSourceComplete)throw Error('Source curriculum missing, truncated or not scrollable '+name+': '+JSON.stringify(result));
    if(name.startsWith('textbook.html#')&&(!result.reader||!result.targetVisible))throw Error('Textbook card did not render '+name+': '+JSON.stringify(result));

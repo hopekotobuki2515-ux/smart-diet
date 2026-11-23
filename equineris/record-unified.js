@@ -36,6 +36,20 @@
  };
  const params=new URLSearchParams(location.search);
  const recordOnly=params.get('mode')==='record-only';
+ const fromLearning=!recordOnly&&params.get('from')==='learning';
+ const validWeek=Number(params.get('week'));
+ const validCard=Number(params.get('card'));
+ const learningOrigin=new URLSearchParams();
+ if(fromLearning){
+  if(params.has('week')&&Number.isInteger(validWeek)&&validWeek>=1&&validWeek<=12)
+   learningOrigin.set('week',String(validWeek));
+  if(learningOrigin.has('week')&&params.has('card')&&Number.isInteger(validCard)&&validCard>=0&&validCard<4)
+   learningOrigin.set('card',String(validCard));
+  if(backLink){
+   backLink.href='./learning.html'+(learningOrigin.toString()?'?'+learningOrigin.toString():'');
+   backLink.textContent=learningOrigin.has('week')?'〈 第'+validWeek+'週の学びに戻る':'〈 12週間の学びに戻る';
+  }
+ }
  if(recordOnly&&backLink){
   backLink.href='./index.html';
   backLink.textContent='〈 はじめの画面へ';
@@ -78,6 +92,7 @@
  function updateUrl(){
   const q=new URLSearchParams();q.set('stage',active);
   if(recordOnly)q.set('mode','record-only');
+  if(fromLearning){q.set('from','learning');for(const [key,value] of learningOrigin)q.set(key,value);}
   if(legacyDay)q.set('day',legacyDay);
   else if(validDate(selectedDate))q.set('date',selectedDate);
   history.replaceState(null,'',location.pathname+'?'+q.toString());

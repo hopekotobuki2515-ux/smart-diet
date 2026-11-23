@@ -251,6 +251,7 @@ body.week-reading .point-panel.lesson-reading-card{justify-content:flex-start;sc
  <div id="lessonIndex">
   <h1 class="lesson-index-title">12週間の学び</h1>
   <p class="lesson-index-lead" id="lessonIndexLead">読みたい週を選んでください。<span class="lesson-index-lead-line">学習ページはいつでも見返せます。</span></p>
+  <a class="lesson-step-link" id="indexRecordLink" href="./record.html?from=learning">食事を記録する</a>
   <a class="lesson-step-link" href="./textbook.html">参考テキストを探す・読み返す</a>
   <nav class="lesson-index-list" id="lessonIndexList" aria-label="12週間の教材一覧"></nav>
   <p class="lesson-index-note">ここでは12週間の学びを読み進めます。食事の記録や計算は、記録・検索の各画面で行えます。</p>
@@ -260,6 +261,7 @@ body.week-reading .point-panel.lesson-reading-card{justify-content:flex-start;sc
    <select id="weekPicker" aria-label="学習する週"></select>
   </label>
   <header class="heading"><p class="eyebrow">SMART DIET · WEEKLY LESSON</p><h1 id="lessonTitle"></h1><p id="lessonIntro"></p></header>
+  <a class="lesson-step-link" id="weekRecordLink" href="./record.html?from=learning&amp;week=1">食事を記録する</a>
   <a class="lesson-step-link" id="weekTextbookEntry" href="./textbook.html">今週の参考テキストを読む</a>
   <p class="point-intro" id="lessonInstructions">左右にスワイプして4枚を切り替えます。各カード内の文章は上下にスクロールして読めます。</p>
   <div class="point-track" id="lessonTrack" tabindex="0" role="region" aria-label="12週間プログラムの週別学習" aria-describedby="lessonInstructions"></div>
@@ -293,6 +295,7 @@ const after=document.getElementById('nextWeek');
 const companion=document.getElementById('lessonCompanion');
 const relatedLinks=document.getElementById('relatedTextbookLinks');
 const weekTextbookEntry=document.getElementById('weekTextbookEntry');
+const weekRecordLink=document.getElementById('weekRecordLink');
 const relatedTextbookByWeek=[[["s2-c2","BMIで体格を確認しましょう"],["s2-c4","お腹まわりを測ってみましょう"],["s2-c7","普段の食べ方を振り返る"],["s4-c1","何を食べたか記録しましょう"]],[["s2-c5","どのくらいの減量を目指す？"],["s2-habit-check","食行動チェック表"],["s2-goal","3か月後の目標体重を計算しましょう"]],[["s3-c6","1点＝80kcalで考えます"],["s3-c1","スマートダイエット式食事を学ぶ"]],[["s4-c2","食べた量を確認しましょう"]],[["s4-c3","食品の点数を確認しましょう"]],[["s3-c7","3食にバランスよく振り分ける"],["s3-c10","主食・主菜・副菜・もう一品"]],[["s3-c2","卵・乳・乳製品"],["s3-c3","魚・肉・豆・豆製品"],["s3-c4","野菜・果物・いも・きのこ・海藻"],["s3-c5","穀類・油脂・砂糖・嗜好品"]],[["s5-c4","外食でも食品群を意識する"],["s5-c6","コンビニでも食事を整える"]],[["s5-c3","おやつも選び方を考える"],["s5-c8","体重が減らない時期もあります"],["s5-c7","お酒の量を見直しましょう"]],[["s6-c1","自分に合った運動を見つけましょう"],["s6-c8","筋肉を使う習慣をつくりましょう"],["s6-c12","日常生活の動きも運動の一部"]],[["s3-c10","主食・主菜・副菜・もう一品"],["s3-c7","3食にバランスよく振り分ける"]],[["s5-c9","目標達成後も食習慣を大切に"],["s5-c10","続けられる習慣を身につける"]]];
 if(!Array.isArray(data)||data.length!==12||data.some((week,i)=>week.week!==i+1)){
  index.hidden=false;content.hidden=true;
@@ -376,6 +379,7 @@ function update(){
  prev.disabled=slideIndex===0;
  next.disabled=slideIndex===slides.length-1;
  [...tabs.children].forEach((tab,i)=>tab.setAttribute('aria-pressed',String(i===slideIndex)));
+ weekRecordLink.href='./record.html?from=learning&week='+picker.value+'&card='+slideIndex;
  for(const a of relatedLinks.children){a.href='./textbook.html?week='+picker.value+'&card='+slideIndex+'#'+encodeURIComponent(a.dataset.cardId);}
  const firstCardId=relatedTextbookByWeek[Number(picker.value)-1]?.[0]?.[0];
  if(firstCardId){

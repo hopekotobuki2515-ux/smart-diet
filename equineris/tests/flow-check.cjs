@@ -548,6 +548,48 @@ test('all twelve weeks reference existing textbook cards and preserve return lin
  assert.match(source['diary-step1.html'],/href="\.\/textbook\.html#s4-c1"/);
  assert.doesNotMatch(source['learning-data.js'],/振り返るします/);
 });
+test('12-week learning and every week have direct links to diary with a reliable return route',()=>{
+ const lesson=source['learning.html'],record=source['record-unified.js'];
+ assert.match(lesson,/id="indexRecordLink" href="\.\/record\.html\?from=learning"/);
+ assert.match(lesson,/id="weekRecordLink" href="\.\/record\.html\?from=learning&amp;week=1"/);
+ assert.match(lesson,/weekRecordLink\.href='\.\/record\.html\?from=learning&week='\+picker\.value\+'&card='\+slideIndex/);
+ const title=lesson.indexOf('id="lessonTitle"'),recordEntry=lesson.indexOf('id="weekRecordLink"');
+ const reference=lesson.indexOf('id="weekTextbookEntry"'),track=lesson.indexOf('id="lessonTrack"');
+ assert.ok(title<recordEntry&&recordEntry<reference&&reference<track,'record link is above the reader in each week');
+ assert.match(record,/const fromLearning=!recordOnly&&params\.get\('from'\)==='learning'/);
+ assert.match(record,/backLink\.href='\.\/learning\.html'\+/);
+ assert.match(record,/if\(fromLearning\)\{q\.set\('from','learning'\);for\(const \[key,value\] of learningOrigin\)q\.set\(key,value\);\}/);
+ const mock=()=>{
+  const events={};const links={};
+  class El{
+   constructor(id){this.id=id;this.dataset={view:id};this.value='';this.hidden=false;this.disabled=false;this.events={};this.attrs={};this.href='';this.textContent='';}
+   addEventListener(k,fn){this.events[k]=fn}
+   setAttribute(k,v){this.attrs[k]=v}
+   getAttribute(k){return this.attrs[k]||null}
+   fire(k){return this.events[k]?.({})}
+  }
+  const views=['1','2','3','history'].map(id=>new El(id));
+  const back=new El('back'),frame=new El('frame'),date=new El('date');
+  const elements={recordBackLink:back,recordFrame:frame,recordDate:date,dateBox:new El('box'),recordStatus:new El('status')};
+  const urlLog=[];
+  const history={replaceState:(_a,_b,u)=>urlLog.push(u)};
+  const map=new Map;
+  const store={getItem:k=>map.get(k)||null,setItem:(k,v)=>map.set(k,v),get length(){return map.size},key:i=>[...map.keys()][i]};
+  const location={pathname:'/smart-diet/equineris/record.html',origin:'https://example.test',search:'?from=learning&week=7&card=2&stage=1&date=2026-11-20'};
+  const window={addEventListener(){}};
+  vm.runInNewContext(record,{document:{getElementById:id=>elements[id]||null,querySelectorAll:()=>views},window,location,history,localStorage:store,Date,URL,URLSearchParams,MutationObserver:class{}});
+  assert.equal(back.href,'./learning.html?week=7&card=2');
+  assert.equal(back.textContent,'〈 第7週の学びに戻る');
+  assert.match(urlLog.at(-1),/from=learning&week=7&card=2/);
+  views[1].fire('click');
+  assert.match(urlLog.at(-1),/from=learning&week=7&card=2/);
+  views[3].fire('click');
+  assert.match(urlLog.at(-1),/from=learning&week=7&card=2/);
+  date.value='2026-11-22';date.fire('change');
+  assert.match(urlLog.at(-1),/from=learning&week=7&card=2/);
+ };
+ mock();
+});
 test('all 12 original weekly curricula are fully mapped into four vertical-scroll lesson cards',()=>{
  const match=source['learning.html'].match(/^const sectionGroupsByWeek=(.+);$/m);
  assert.ok(match,'weekly card mapping missing');
