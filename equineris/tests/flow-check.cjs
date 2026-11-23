@@ -694,7 +694,7 @@ test('only one STEP is visible, with STEP1 last card advancing to STEP2 and STEP
  assert.equal(t.window.lastScroll?.top,0);
  assert.equal(t.sections[0].hidden,true);
  assert.equal(t.next[1].textContent,'次へ 〉');
- assert.match(t.sections[1].children.find(c=>c.className==='step-heading').children[1].textContent,/自分を知り/);
+ assert.match(t.sections[1].children.find(c=>c.className==='step-heading').children[0].textContent,/自分を知り/);
  for(let i=0;i<11;i++)t.next[1].click();
  assert.equal(t.count[1].textContent,'12 / 12');
  assert.match(t.next[1].textContent,/次のテーマへ/);
@@ -703,7 +703,7 @@ test('only one STEP is visible, with STEP1 last card advancing to STEP2 and STEP
  assert.equal(t.count[2].textContent,'1 / 11');
  assert.equal(t.sections[1].hidden,true);
  assert.equal(t.sections[2].hidden,false);
- assert.match(t.sections[2].children.find(c=>c.className==='step-heading').children[1].textContent,/スマートダイエット式食事/);
+ assert.match(t.sections[2].children.find(c=>c.className==='step-heading').children[0].textContent,/スマートダイエット式食事/);
  assert.equal(t.next[2].textContent,'次へ 〉');
  t.sections[2].children.find(c=>c.className==='slide-nav').children[0].click();
  assert.deepEqual(visible(),[2]);
