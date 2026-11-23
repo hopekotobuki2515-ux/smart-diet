@@ -557,6 +557,12 @@ test('only one STEP is visible, with STEP1 last card advancing to STEP2 and STEP
  assert.deepEqual(visible(),[2]);
  assert.equal(t.count[1].textContent,'13 / 13');
 });
+test('textbook TOC scrolls the document after showing the target STEP',()=>{
+ const page=source['textbook.html'];
+ assert.match(page,/showStep\(found\.step\.id\);[\s\S]*?requestAnimationFrame\(\(\)=>\{/);
+ assert.match(page,/state\.section\.getBoundingClientRect\(\)\.top/);
+ assert.match(page,/window\.scrollTo\(\{top:Math\.max\(0,top\),behavior:'auto'\}\)/);
+});
 test('search/index/deep links still show the matching STEP without revealing others',()=>{
  const first=textbookScenario();
  const idx=first.elements.stepIndex;
