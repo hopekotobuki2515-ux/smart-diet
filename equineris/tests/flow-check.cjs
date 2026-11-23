@@ -149,6 +149,9 @@ test('new STEP1 records allow any valid day, keep old slots, and hide STEP2 grou
  assert.match(page,/querySelector\('\[data-slide="reference"\]'\)\?\.remove\(\)/);
  assert.match(page,/\.food-groups,\.four-group-reference/);
  assert.match(page,/document\.querySelector\('\.actions'\)\.hidden=activeMeal===0;/);
+ assert.match(page,/loadDay\(initial\);goMeal\(1,false\);/);
+ assert.match(page,/data-meal-tab="1"[^>]*>朝食<\/button>/);
+ assert.doesNotMatch(page,/\\n#previewDialog/);
  assert.match(source['diary-step2.js'],/const DATED_STEP1/);
  assert.match(source['diary-step3.js'],/DATED_STEP1/);
  assert.match(source['diary-step2.js'],/dateValid\(key\)\?photoTransaction\(oldDB/);
