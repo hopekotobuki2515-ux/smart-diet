@@ -122,6 +122,12 @@ a,button,input{font:inherit}button{cursor:pointer}
 @media(min-width:701px){.wrap{max-width:860px}}
 @media(min-width:700px){.wrap{border-left:1px solid var(--edge);border-right:1px solid var(--edge)}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.track{scroll-behavior:auto}}
+
+/* Mobile reading stays single-column; the index is always reachable above the cards. */
+@media(max-width:700px){.textbook-layout{grid-template-columns:minmax(0,1fr)}.textbook-layout>.toolbox{order:-1;padding:14px}}
+/* Keep adjacent cards separate without changing the slide stride. Do not trap vertical scroll in a card. */
+.track{gap:12px;overflow-y:clip}
+.lesson-card{flex:0 0 calc(100% - 12px);width:calc(100% - 12px);max-width:calc(100% - 12px);overflow:visible}
 </style>
 </head>
 <body>
@@ -168,7 +174,7 @@ a,button,input{font:inherit}button{cursor:pointer}
  </section>
  <p class="bottom-note">疾患別の内容は一般的な食生活の学習資料です。個別の診断・治療ではありません。教材に掲載された古い運動指標は当時の資料として扱っています。</p>
 </main>
-<a class="to-top" href="#top" aria-label="教材の目次と検索へ戻る">↑ 目次</a>
+<a class="to-top" href="#discoveryPanel" aria-label="教材の目次と検索へ戻る">↑ 目次</a>
 <noscript>教材の表示・検索にはJavaScriptを有効にしてください。</noscript>
 <script src="./textbook-data.js?v=20261123-past-weight-copy"></script>
 <script src="./goal-calculator.js?v=20261123-card-flow-fix"></script>
@@ -235,7 +241,7 @@ a,button,input{font:inherit}button{cursor:pointer}
   showStep(found.step.id);
   state.track.scrollTo({left:found.index*state.track.clientWidth,behavior:'auto'});
   update(found.step.id,found.index);
-  window.scrollTo({top:Math.max(0,state.section.getBoundingClientRect().top+window.scrollY-14),behavior:'auto'});
+  state.section.scrollIntoView({block:'start',behavior:'auto'});
   last=id;persistent(LAST_KEY,last);
   setResume();
   if(history.replaceState)history.replaceState(null,'','#'+id);
@@ -407,7 +413,7 @@ a,button,input{font:inherit}button{cursor:pointer}
   const counter=create('span','counter','1 / '+s.cards.length);counter.setAttribute('aria-live','polite');
   const next=create('button','next','次へ 〉');next.type='button';
   nav.append(prev,counter,next);section.append(nav);
-  const foot=create('div','step-footer');const a=create('a','','目次に戻る ↑');a.href='#top';a.addEventListener('click',event=>{event.preventDefault();window.scrollTo({top:0,behavior:'auto'});});foot.append(a);section.append(foot);
+  const foot=create('div','step-footer');const a=create('a','','目次に戻る ↑');a.href='#discoveryPanel';foot.append(a);section.append(foot);
   root.append(section);
   const state={track,section,prev,next,counter,cards:s.cards,active:0};
   controls.set(s.id,state);
@@ -416,6 +422,7 @@ a,button,input{font:inherit}button{cursor:pointer}
    const idx=Math.max(0,Math.min(i,s.cards.length-1));
    track.scrollTo({left:idx*track.clientWidth,behavior:'smooth'});
    update(s.id,idx);remember(s.cards[idx].id);
+   state.section.scrollIntoView({block:'start',behavior:'auto'});
   };
   prev.addEventListener('click',()=>{
    if(state.active===0&&s.id>1){
