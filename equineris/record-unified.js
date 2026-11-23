@@ -43,7 +43,7 @@
    read('equineris:diary-step2:v1:slot-date:'+rawDay)||
    read('equineris:diary-step3:v1:slot-date:'+rawDay);
   if(validDate(oldDate))selectedDate=oldDate;
-  else if(hasLegacy(rawDay)){selectedDate='';legacyDay=rawDay;}
+  else if(hasLegacy(rawDay)||(['1','2','3'].includes(requestedStage))){selectedDate='';legacyDay=rawDay;}
  }
  let photoBusy=false,observer=null;
  const describe=(text,error=false)=>{status.textContent=text;status.dataset.error=String(error);};
