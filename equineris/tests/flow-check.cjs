@@ -645,6 +645,24 @@ function textbookScenario(hash='',seed={},search=''){
  const next=navs.map(n=>n.children[2]),count=navs.map(n=>n.children[1]);
  return {sections,next,count,location,localData,elements,window};
 }
+test('reference textbook contents and reader headings display titles only, never redundant labels',()=>{
+ const html=source['textbook.html'];
+ assert.match(html,/jumpLink\.append\(create\('span','',s\.title\)\)/);
+ assert.doesNotMatch(html,/jumpLink\.append\(create\('b'/);
+ assert.match(html,/const title=create\('h2','',s\.title\);heading\.append\(title\)/);
+ assert.doesNotMatch(html,/step-num/);
+ const view=textbookScenario();
+ assert.equal(view.elements.stepIndex.children.length,6);
+ const titles=textbookData.map(x=>x.title);
+ view.elements.stepIndex.children.forEach((link,i)=>{
+  assert.equal(link.children.length,1,'table of contents item has only its title');
+  assert.equal(link.children[0].textContent,titles[i]);
+ });
+ view.elements.stepIndex.children[0].click();
+ const heading=view.sections[0].children.find(c=>c.className==='step-heading');
+ assert.equal(heading.children.length,1,'opened title has no redundant label');
+ assert.equal(heading.children[0].textContent,titles[0]);
+});
 test('reference text returns to the exact weekly lesson and slide',()=>{
  const page=textbookScenario('#s2-c5',{},'?week=2&card=3');
  assert.equal(page.elements.backToLearning.href,'./learning.html?week=2&card=3');
@@ -676,7 +694,7 @@ test('only one STEP is visible, with STEP1 last card advancing to STEP2 and STEP
  assert.equal(t.window.lastScroll?.top,0);
  assert.equal(t.sections[0].hidden,true);
  assert.equal(t.next[1].textContent,'次へ 〉');
- assert.match(t.sections[1].children.find(c=>c.className==='step-heading').children[1].textContent,/自分を知り/);
+ assert.match(t.sections[1].children.find(c=>c.className==='step-heading').children[0].textContent,/自分を知り/);
  for(let i=0;i<11;i++)t.next[1].click();
  assert.equal(t.count[1].textContent,'12 / 12');
  assert.match(t.next[1].textContent,/次のテーマへ/);
@@ -685,7 +703,7 @@ test('only one STEP is visible, with STEP1 last card advancing to STEP2 and STEP
  assert.equal(t.count[2].textContent,'1 / 11');
  assert.equal(t.sections[1].hidden,true);
  assert.equal(t.sections[2].hidden,false);
- assert.match(t.sections[2].children.find(c=>c.className==='step-heading').children[1].textContent,/スマートダイエット式食事/);
+ assert.match(t.sections[2].children.find(c=>c.className==='step-heading').children[0].textContent,/スマートダイエット式食事/);
  assert.equal(t.next[2].textContent,'次へ 〉');
  t.sections[2].children.find(c=>c.className==='slide-nav').children[0].click();
  assert.deepEqual(visible(),[2]);
