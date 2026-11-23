@@ -23,10 +23,8 @@ a,button,input{font:inherit}button{cursor:pointer}
 .intro h1{font-size:clamp(23px,6vw,28px);line-height:1.45;margin:0 0 11px;word-break:normal;overflow-wrap:break-word}
 .intro>p:last-child{font-size:14px;line-height:1.8;color:var(--sub);margin:0}
 .toolbox{background:#fff;border:1px solid var(--edge);border-radius:17px;padding:14px;margin:14px 0 20px}
-.textbook-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,280px);gap:14px;align-items:start}
 .textbook-layout>.toolbox{margin:0}
-@media(max-width:700px){.textbook-layout{grid-template-columns:minmax(0,1fr) minmax(115px,.82fr);gap:8px}.textbook-layout>.toolbox{margin:0;padding:10px}.quick-actions{grid-template-columns:1fr}}
-@media(max-width:340px){.textbook-layout{grid-template-columns:minmax(0,1fr) minmax(106px,.75fr);gap:6px}}
+@media(max-width:700px){.quick-actions{grid-template-columns:1fr}}
 .toolbox h2{font-size:17px;margin:0 0 10px}
 .search-label{font-size:13px;font-weight:700;display:block;margin-bottom:7px}
 .search-input{width:100%;height:48px;border:1px solid #b7d0be;border-radius:11px;padding:9px 12px;background:#fcfffb;color:var(--ink);font-size:16px}
@@ -126,7 +124,7 @@ a,button,input{font:inherit}button{cursor:pointer}
 /* The contents and lesson are separate screens, never stacked on one page. */
 .textbook-layout{display:block}
 /* Mobile reading stays single-column. */
-@media(max-width:700px){.textbook-layout{grid-template-columns:minmax(0,1fr)}.textbook-layout>.toolbox{order:-1;padding:14px}}
+@media(max-width:700px){.textbook-layout>.toolbox{padding:14px}}
 /* Keep adjacent cards separate without changing the slide stride. */
 .track{gap:12px;min-width:0;max-width:100%;overflow-y:hidden}
 .lesson-card{flex:0 0 100%;width:100%;max-width:100%;min-width:0;overflow-x:hidden;overflow-y:auto}
@@ -160,7 +158,6 @@ html.reader-mode .slide-nav{flex:0 0 auto;margin:5px 0 2px}
 html.reader-mode .step-footer{flex:0 0 auto;margin:0 4px}
 html.reader-mode .step-footer a{min-height:28px}
 html.reader-mode .to-top{bottom:max(8px,env(safe-area-inset-bottom));min-height:38px}
-html.reader-mode .continuation-label{font-size:12px;font-weight:800;color:var(--muted)}
 html.reader-mode .end-card,html.reader-mode .related-sites,html.reader-mode .bottom-note{display:none!important}
 @media(max-height:600px){html.reader-mode .step-instruction{display:none}html.reader-mode .step-heading{margin-bottom:3px}}
 </style>
@@ -287,69 +284,6 @@ html.reader-mode .end-card,html.reader-mode .related-sites,html.reader-mode .bot
  };
 
  const ensureReaderMode=enabled=>{document.documentElement?.classList?.toggle?.('reader-mode',enabled);};
- // A card that is taller than the visible track is divided into horizontal
- // continuation cards. Existing form controls and their event handlers are moved.
- const paginateStep=state=>{
-  if(state.paginated||!state.track.clientHeight||!state.track.clientWidth)return;
-  state.paginated=true;
-  const track=state.track,originals=[...track.children],pages=[],starts=[],claimedIds=new Set();
-  const breakable=new Set(['visual','bmi-demo','goal-calculator','habit-mini','habit-mini-list','message-notes']);
-  const piecesFrom=(node,ancestors=[])=>{
-   if(node.classList?.contains('lesson-body') && !node.querySelector('input')){
-    const chunks=node.textContent.match(/[^。！？]+[。！？]?/gu)||[];
-    if(chunks.length>1)return chunks.map(chunk=>{const p=node.cloneNode(false);p.textContent=chunk;return {leaf:p,ancestors};});
-   }
-   if([...breakable].some(cls=>node.classList?.contains(cls))&&node.children.length)
-    return [...node.children].flatMap(child=>piecesFrom(child,[...ancestors,node]));
-   return [{leaf:node,ancestors}];
-  };
-  for(let logical=0;logical<state.originalCards.length;logical++){
-   const original=originals[logical],meta=state.originalCards[logical];
-   starts.push(pages.length);
-   if(original.scrollHeight<=original.clientHeight+2){pages.push({id:meta.id});continue;}
-   const children=[...original.children],parts=children.slice(1).flatMap(node=>piecesFrom(node));
-   original.replaceChildren(children[0]);
-   let slide=original,wrappers=new Map(),used=0,continuation=0;
-   pages.push({id:meta.id});
-   const newSlide=()=>{
-    continuation++;
-    const more=document.createElement('article');
-    more.className=original.className+' lesson-card--continued';
-    more.setAttribute('aria-label',original.getAttribute('aria-label')+'・続き'+continuation);
-    more.append(create('div','continuation-label','STEP '+String(state.stepId).padStart(2,'0')+' · 続き'));
-    track.insertBefore(more,slide.nextSibling);
-    slide=more;wrappers=new Map();used=0;pages.push({id:meta.id});
-   };
-   const insert=part=>{
-    let parent=slide,key='',created=[];
-    for(let i=0;i<part.ancestors.length;i++){
-     const proto=part.ancestors[i];key+='/'+i+':'+proto.className;
-     let wrapper=wrappers.get(key);
-     if(!wrapper){
-      wrapper=proto.cloneNode(false);
-      if(wrapper.id){if(claimedIds.has(wrapper.id))wrapper.removeAttribute('id');else claimedIds.add(wrapper.id);}
-      parent.append(wrapper);wrappers.set(key,wrapper);created.push([key,wrapper]);
-     }
-     parent=wrapper;
-    }
-    parent.append(part.leaf);
-    return ()=>{
-     part.leaf.remove();
-     for(const [k,wrapper] of created.reverse())if(!wrapper.children.length){if(wrapper.id)claimedIds.delete(wrapper.id);wrapper.remove();wrappers.delete(k);}
-    };
-   };
-   for(const part of parts){
-    const undo=insert(part);
-    if(slide.scrollHeight>slide.clientHeight+2&&used>0){
-     undo();newSlide();insert(part);
-    }
-    if(slide.scrollHeight>slide.clientHeight+2)slide.dataset.contentOverflow='true';
-    used++;
-   }
-  }
-  state.cards=pages;state.starts=starts;
-  update(state.stepId,0);
- };
  const showIndex=()=>{
   // A printed-book-style contents screen: lesson text is not displayed underneath.
   ensureReaderMode(false);
@@ -386,7 +320,7 @@ html.reader-mode .end-card,html.reader-mode .related-sites,html.reader-mode .bot
   const found=CARDS.get(id);if(!found)return;
   const state=controls.get(found.step.id);if(!state)return;
   showStep(found.step.id);
-  const page=state.starts?.[found.index]??found.index;
+  const page=found.index;
   state.track.scrollTo({left:cardPosition(state.track,page),behavior:'auto'});
   update(found.step.id,page);
   window.scrollTo({top:0,behavior:'auto'});
@@ -563,7 +497,7 @@ html.reader-mode .end-card,html.reader-mode .related-sites,html.reader-mode .bot
   nav.append(prev,counter,next);section.append(nav);
   const foot=create('div','step-footer');const a=create('a','','目次に戻る ↑');a.href='#index';a.addEventListener('click',event=>{event.preventDefault();backToContents();});foot.append(a);section.append(foot);
   root.append(section);
-  const state={track,section,prev,next,counter,cards:s.cards,originalCards:s.cards,starts:null,paginated:false,stepId:s.id,active:0};
+  const state={track,section,prev,next,counter,cards:s.cards,stepId:s.id,active:0};
   controls.set(s.id,state);
   update(s.id,0);
   const go=(i)=>{
