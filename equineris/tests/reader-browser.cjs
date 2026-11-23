@@ -75,8 +75,8 @@ const ready=async(fn)=>{
   process.stdout.write('PASS '+width+'x'+height+' '+hash+' slides='+snap.cardCount+'\n');
  }
  ws.close();
-})().catch(e=>{console.error(e.stack||e);process.exitCode=1;}).finally(async()=>{
+})().catch(e=>{console.error(e.stack||e);process.exitCode=1;}).finally(()=>{
+ // The CI runner removes its own temporary filesystem after the job.
+ // Do not race Chromium's child processes while deleting its live profile.
  chrome.kill('SIGTERM');
- await new Promise(resolve=>{if(chrome.exitCode!==null)resolve();else chrome.once('exit',resolve);});
- fs.rmSync(temp,{recursive:true,force:true,maxRetries:8,retryDelay:250});
 });
