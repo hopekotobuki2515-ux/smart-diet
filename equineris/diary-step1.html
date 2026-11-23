@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="ja"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<meta name="description" content="SMART Dietの食事記録。写真、メモ、4つの食品群への○チェックを、朝食・昼食・夕食・間食ごとに記録できます。">
+<title>食事記録 | SMART Diet</title>
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;color-scheme:light;--ink:#24443c;--green:#285d4a;--mint:#ecf5ed;--line:#cbd7cd;--muted:#60776a}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;overflow-x:hidden}
+body{margin:0;min-width:280px;overflow-x:hidden;background:#fff;color:var(--ink)}
+input,button,textarea{font:inherit}button{cursor:pointer}
+:focus-visible{outline:3px solid #e5a748;outline-offset:2px}
+[hidden]{display:none!important}
+.viewport{width:100%;min-height:100svh;margin:0;padding:0}
+.page{width:100%;max-width:100%;min-height:100svh;margin:0 auto;padding:8px 8px max(24px,env(safe-area-inset-bottom));background:#fff}
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:2px 0 8px;border-bottom:1px solid #dbe4dc}
+.back{min-height:36px;display:flex;align-items:center;color:var(--green);font-size:13px;text-decoration:none;font-weight:700;white-space:nowrap}
+.toolbar-title{font-size:16px;line-height:1.4;margin:0;font-weight:800}
+.date-row{display:flex;align-items:center;gap:5px;justify-content:flex-end;font-size:12px;font-weight:700;min-width:0}
+.date-row input{width:min(150px,40vw);height:40px;border:1px solid #c9d8cc;border-radius:9px;background:#fff;padding:5px;font-size:15px;color:var(--ink)}
+.card{padding:0;margin:0;border:0;background:#fff;box-shadow:none}
+#dayTitle,.explanation,#dateHelp{display:none!important}
+.photo-area{margin:8px 0 0;min-width:0}
+.photo-pane{min-width:0}
+.photo-choose{display:flex;align-items:center;justify-content:center;position:relative;width:100%;min-height:190px;aspect-ratio:4/3;background:#f0f6f0;border:1px dashed #a0baa5;border-radius:12px;color:var(--green);font-size:16px;font-weight:750;overflow:hidden}
+.photo-choose:before{content:"＋";font-size:31px;margin-right:8px;font-weight:400}
+.photo-choose input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.photo-choose:focus-within{outline:3px solid #d7b271;outline-offset:2px}
+.photo-choose input:disabled{cursor:wait}
+.photo-view{width:100%;text-align:center}
+.photo-view img{display:block;width:100%;height:auto;max-height:min(49svh,470px);object-fit:contain;border-radius:10px;background:#f2f7f1;margin:0 auto}
+.photo-remove{min-height:36px;margin:7px 0;padding:6px 11px;border:1px solid #e0cfcc;border-radius:9px;background:#fff;color:#8b3a38;font-size:12px}
+.photo-pane:has(.photo-view:not([hidden])) .photo-choose{aspect-ratio:auto;min-height:44px;font-size:13px;background:#fff;border-style:solid}
+.photo-pane:has(.photo-view:not([hidden])) .photo-choose:before{font-size:17px}
+.memo-area{margin:10px 0 8px}
+.memo-label{display:block;font-size:13px;font-weight:750;margin:0 0 5px}
+.meal-memo{display:block;width:100%;min-height:84px;resize:vertical;border:1px solid #a8beb0;border-radius:10px;background:#fff;padding:10px 12px;color:var(--ink);font-size:16px;line-height:1.55;writing-mode:horizontal-tb;word-break:normal;overflow-wrap:break-word}
+.switch-header{display:flex;align-items:center;justify-content:space-between;margin:10px 0 4px}
+.switch-header strong{font-size:14px}
+.switch-header span{font-size:12px;color:var(--muted)}
+.meal-tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;margin:0 0 9px}
+.meal-tab{min-width:0;min-height:46px;padding:6px 2px;border:1px solid #cbdacc;border-radius:10px;background:#f3f7f1;color:var(--ink);font-size:14px;font-weight:750}
+.meal-tab[aria-pressed="true"]{background:var(--green);color:#fff;border-color:var(--green)}
+.meal-track{display:flex;align-items:flex-start;width:100%;min-width:0;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;overscroll-behavior-inline:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.meal-track::-webkit-scrollbar{display:none}
+.meal-slide{flex:0 0 100%;width:100%;min-width:0;scroll-snap-align:start;scroll-snap-stop:always;padding:1px;writing-mode:horizontal-tb}
+.slide-heading{font-size:14px;line-height:1.4;margin:1px 0 6px}
+.diary-table{width:100%;table-layout:fixed;border-collapse:collapse;background:#fff}
+.diary-table th,.diary-table td{border:1px solid var(--line);text-align:center}
+.diary-table th{font-size:12px;background:var(--mint);min-height:35px;padding:7px 2px;white-space:normal;line-height:1.4;word-break:normal;overflow-wrap:break-word}.diary-table th small{display:block;font-size:10px;line-height:1.35;font-weight:500;margin-top:4px;color:#426454}
+.diary-table td{width:25%;vertical-align:top}
+.diary-table .mark{display:grid;place-items:center;min-height:36px;position:relative;cursor:pointer}
+.diary-table .mark+.mark{border-top:1px dotted #d8e1d8}
+.mark input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}
+.mark span{display:block;width:20px;height:20px;border:1px solid #829b8a;border-radius:50%;background:#fff}
+.mark input:checked+span{border:3px solid var(--green);background:#dcf2df;box-shadow:inset 0 0 0 5px white}
+.mark input:focus-visible+span{outline:3px solid #dfb65b;outline-offset:2px}
+.meal-controls{display:flex;align-items:center;justify-content:space-between;gap:6px;margin:10px 0 4px}
+.meal-controls button{min-height:40px;min-width:75px;border:1px solid #c6d7ca;border-radius:9px;color:var(--green);background:#f5faf4;font-size:13px;font-weight:750}
+.meal-controls span{font-variant-numeric:tabular-nums;font-size:13px;color:var(--muted)}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:9px 0 0}
+.action-button{min-height:48px;min-width:0;border-radius:11px;border:1px solid var(--green);background:var(--green);color:#fff;font-weight:800;font-size:15px}
+.action-button.outline{background:#fff;color:var(--green)}
+.status{margin:6px 0;min-height:0;font-size:12px;line-height:1.6;color:var(--green)}
+.status[data-error="true"]{color:#a32f2d}
+.status:not([data-error="true"]){font-size:11px}
+.measurement-link{display:block;padding:12px 8px;margin:5px 0;text-align:center;color:var(--green);font-size:13px;font-weight:750;text-decoration:underline;text-underline-offset:4px}
+.stage-route{display:flex;align-items:center;justify-content:center;min-height:50px;margin:13px 0 4px;padding:10px 12px;border:1px solid var(--green);border-radius:11px;background:var(--green);color:#fff;text-decoration:none;text-align:center;font-weight:800;font-size:15px;line-height:1.5}
+dialog{width:min(98vw,550px);max-height:88dvh;overflow:auto;border:1px solid #cbd9cc;border-radius:14px;padding:12px;background:white;color:var(--ink)}
+dialog::backdrop{background:#0e2a204d}
+dialog h2{font-size:17px;margin:0 0 8px}.dialog-date{font-size:12px;color:var(--muted)}
+.preview-layout{width:100%;border-collapse:collapse;table-layout:fixed;font-size:11px}
+.preview-layout th,.preview-layout td{border:1px solid var(--line);text-align:center;vertical-align:top;padding:5px 2px;overflow-wrap:break-word}
+.preview-layout th{background:var(--mint)}
+.preview-layout td:first-child{text-align:left;white-space:pre-wrap;overflow-wrap:anywhere}
+.preview-layout td.circle{font-size:18px;white-space:pre-line;line-height:1.4}
+.preview-layout img{display:block;width:100%;height:auto;max-height:140px;object-fit:contain}
+.preview-memo{white-space:pre-wrap;overflow-wrap:break-word}
+.close{width:100%;min-height:45px;margin-top:12px;border:0;border-radius:9px;background:var(--green);color:#fff}
+.sample-photo{display:flex;align-items:center;justify-content:center;width:100%;aspect-ratio:4/3;border:1px solid #dce6dd;border-radius:12px;overflow:hidden;background:#f0f6f0}
+.sample-photo svg{display:block;width:100%;height:auto;max-height:min(49svh,320px)}
+.sample-on span{border:3px solid var(--green);background:#dcf2df;box-shadow:inset 0 0 0 5px #fff}
+.sample-memo{display:flex;align-items:center;min-height:84px;line-height:1.55}
+.sample-caption{margin:8px 0;font-size:12px;color:var(--muted)}
+.meal-slide>.photo-pane{margin:8px 0 0}
+.meal-slide>.memo-pane{margin:10px 0 8px}
+@media(max-width:350px){.page{padding-inline:5px}.toolbar-title{font-size:14px}.date-row input{width:133px}.meal-tab{font-size:13px}}
+
+/* STEP1 only asks for photos and short notes; preserve old group values for review. */
+.food-groups,.four-group-reference,.group4-detail,.group4-food-index{display:none!important}
+/* Four-group reference: dedicated final slide after the snack record. */
+.group4-detail{margin-top:18px;padding-top:12px;border-top:2px solid #dce7db}.group4-detail-note{font-size:12px;line-height:1.7;color:#526b5d;margin:10px 0 0;overflow-wrap:break-word}
+
+.four-group-reference{margin:1px 0 8px;padding:12px;border:1px solid #dce7db;border-radius:12px;background:#fff;min-width:0}
+.four-group-reference h3{margin:0 0 9px;font-size:16px;line-height:1.4}
+.four-group-reference-row{display:grid;grid-template-columns:68px minmax(0,1fr);gap:9px;align-items:start;padding:10px 0;border-top:1px solid #e1eae1;min-width:0}
+.four-group-reference-row>strong{display:block;border-radius:8px;background:#ecf5ed;color:#285d4a;font-size:13px;line-height:1.5;text-align:center;padding:9px 1px}
+.four-group-reference-row>div{min-width:0;writing-mode:horizontal-tb;overflow-wrap:break-word;word-break:normal}
+.four-group-reference-row b{display:block;font-size:13px;line-height:1.6}
+.four-group-reference-row span{display:block;margin-top:2px;font-size:12px;line-height:1.75;color:#526b5d}
+/* Detailed Group 4 reference: display and filtering only. */
+.group4-food-index{margin-top:16px;padding-top:14px;border-top:1px solid #dce7db;min-width:0}
+.group4-food-index h4{margin:0 0 7px;font-size:15px;line-height:1.5}
+.group4-food-index-intro,.group4-food-status{margin:0 0 10px;font-size:12px;line-height:1.7;color:#526b5d}
+.group4-field-label{display:block;margin:10px 0 5px;font-size:12px;font-weight:700}
+.group4-control{display:block;width:100%;min-height:42px;padding:9px 10px;border:1px solid #cbd7cd;border-radius:9px;background:#fff;color:#24443c;font-size:14px}
+.group4-food-count{margin:11px 0 7px;font-size:12px;font-weight:700;color:#285d4a}
+.group4-food-table-wrap{max-height:300px;overflow:auto;border:1px solid #dce7db;border-radius:9px;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.group4-food-table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:12px;line-height:1.55}
+.group4-food-table th,.group4-food-table td{padding:9px 8px;border-bottom:1px solid #e4ebe4;text-align:left;vertical-align:top;overflow-wrap:anywhere}
+.group4-food-table th{position:sticky;top:0;z-index:1;background:#ecf5ed;color:#24443c}
+.group4-food-table th:last-child,.group4-food-table td:last-child{width:82px;text-align:right;white-space:nowrap}
+.group4-food-table td strong,.group4-food-table td small{display:block}
+.group4-food-table td small{margin-top:2px;color:#60776a;font-size:11px}
+.group4-food-status{margin:8px 0 0}
+
+</style>
+</head>
+<body><main class="viewport"><div class="page">
+ <header class="toolbar"><a class="back" href="./textbook.html#s4-c4">〈 教材 STEP4</a><h1 class="toolbar-title" id="dayTitle">食事記録</h1><label class="date-row" for="diary-date"><span>日付</span><input type="date" id="diary-date" aria-label="記録する日付"></label></header>
+  <a class="measurement-link" href="./record-history.html">これまでの記録を見る</a>
+ <section class="card" id="week-1-diary" aria-label="食事ダイアリー">
+  <div class="photo-area" aria-label="食事の写真">
+   <div class="photo-pane" data-photo-pane="0">
+<div class="photo-view" id="photo-view-breakfast" hidden><img id="photo-img-breakfast" alt="朝食の写真"><button class="photo-remove" data-photo-remove="breakfast" type="button">写真を削除</button></div>
+<label class="photo-choose"><span>＋ 写真を選ぶ</span><input type="file" accept="image/*" data-photo="breakfast" aria-label="朝食の食事写真を選ぶ" disabled></label>
+</div>
+<div class="photo-pane" data-photo-pane="1" hidden>
+<div class="photo-view" id="photo-view-lunch" hidden><img id="photo-img-lunch" alt="昼食の写真"><button class="photo-remove" data-photo-remove="lunch" type="button">写真を削除</button></div>
+<label class="photo-choose"><span>＋ 写真を選ぶ</span><input type="file" accept="image/*" data-photo="lunch" aria-label="昼食の食事写真を選ぶ" disabled></label>
+</div>
+<div class="photo-pane" data-photo-pane="2" hidden>
+<div class="photo-view" id="photo-view-dinner" hidden><img id="photo-img-dinner" alt="夕食の写真"><button class="photo-remove" data-photo-remove="dinner" type="button">写真を削除</button></div>
+<label class="photo-choose"><span>＋ 写真を選ぶ</span><input type="file" accept="image/*" data-photo="dinner" aria-label="夕食の食事写真を選ぶ" disabled></label>
+</div>
+<div class="photo-pane" data-photo-pane="3" hidden>
+<div class="photo-view" id="photo-view-snack" hidden><img id="photo-img-snack" alt="間食の写真"><button class="photo-remove" data-photo-remove="snack" type="button">写真を削除</button></div>
+<label class="photo-choose"><span>＋ 写真を選ぶ</span><input type="file" accept="image/*" data-photo="snack" aria-label="間食の食事写真を選ぶ" disabled></label>
+</div>
+  </div>
+  <div class="memo-area"><div class="memo-pane" data-memo-pane="0"><label class="memo-label" for="meal-breakfast">朝食のメモ（任意）</label><textarea class="meal-memo" id="meal-breakfast" data-diary-key="breakfast-meal" rows="3" placeholder="食べたものをメモ"></textarea></div>
+<div class="memo-pane" data-memo-pane="1" hidden><label class="memo-label" for="meal-lunch">昼食のメモ（任意）</label><textarea class="meal-memo" id="meal-lunch" data-diary-key="lunch-meal" rows="3" placeholder="食べたものをメモ"></textarea></div>
+<div class="memo-pane" data-memo-pane="2" hidden><label class="memo-label" for="meal-dinner">夕食のメモ（任意）</label><textarea class="meal-memo" id="meal-dinner" data-diary-key="dinner-meal" rows="3" placeholder="食べたものをメモ"></textarea></div>
+<div class="memo-pane" data-memo-pane="3" hidden><label class="memo-label" for="meal-snack">間食のメモ（任意）</label><textarea class="meal-memo" id="meal-snack" data-diary-key="snack-meal" rows="3" placeholder="食べたものをメモ"></textarea></div></div>
+  <div class="switch-header"><strong id="currentMealLabel">見本</strong><span>左右にスワイプ</span></div>
+  <div class="meal-tabs" role="group" aria-label="食事を選択">
+<button type="button" class="meal-tab" data-meal-tab="0" aria-pressed="true">見本</button>
+<button type="button" class="meal-tab" data-meal-tab="1" aria-pressed="false">朝食</button>
+<button type="button" class="meal-tab" data-meal-tab="2" aria-pressed="false">昼食</button>
+<button type="button" class="meal-tab" data-meal-tab="3" aria-pressed="false">夕食</button>
+<button type="button" class="meal-tab" data-meal-tab="4" aria-pressed="false">間食</button>
+</div>
+  <div class="meal-track" id="mealTrack" tabindex="0" role="region" aria-label="見本、朝食、昼食、夕食、間食、四群早見表を左右にスクロール"><section class="meal-slide" data-slide="example" aria-labelledby="heading-example">
+<div class="photo-pane"><div class="sample-photo"><svg viewBox="0 0 480 258" role="img" aria-label="食パン、ゆで卵、ヨーグルトを載せた朝食のイメージ" xmlns="http://www.w3.org/2000/svg">
+            <rect width="480" height="258" fill="#eef3ea"/>
+            <rect x="20" y="15" width="440" height="228" rx="20" fill="#f8f7ef"/>
+            <ellipse cx="238" cy="136" rx="157" ry="96" fill="#d9e2d7"/>
+            <ellipse cx="238" cy="130" rx="151" ry="91" fill="#fffefb" stroke="#c2d0c1" stroke-width="4"/>
+            <g transform="translate(110 61) rotate(-9 80 70)">
+              <rect x="0" y="3" width="154" height="136" rx="30" fill="#b8793d"/>
+              <rect x="12" y="14" width="131" height="115" rx="23" fill="#eabf80"/>
+              <rect x="26" y="30" width="103" height="87" rx="17" fill="#f6daa3"/>
+              <path d="M38 77Q80 53 116 84" fill="none" stroke="#e9bb75" stroke-width="6" opacity=".6"/>
+            </g>
+            <g transform="translate(266 79)">
+              <ellipse cx="64" cy="53" rx="72" ry="53" fill="#f4f3e9" stroke="#e5e6db" stroke-width="2"/>
+              <ellipse cx="64" cy="53" rx="44" ry="34" fill="#fff"/>
+              <circle cx="65" cy="52" r="27" fill="#edb54e" stroke="#dca23d" stroke-width="2"/>
+              <circle cx="59" cy="44" r="9" fill="#f9d078" opacity=".7"/>
+            </g>
+            <g transform="translate(328 30)">
+              <ellipse cx="56" cy="93" rx="49" ry="17" fill="#cdd8cb" opacity=".55"/>
+              <path d="M8 18H100L90 93Q55 111 20 93Z" fill="#c8dbec" stroke="#91aebe" stroke-width="3"/>
+              <ellipse cx="54" cy="19" rx="46" ry="17" fill="#fffefa" stroke="#91aebe" stroke-width="3"/>
+              <ellipse cx="54" cy="17" rx="34" ry="11" fill="#f9f8f3"/>
+              <path d="M17 55H91" stroke="#a7c4d7" stroke-width="5" opacity=".7"/>
+            </g>
+          </svg></div></div>
+<div class="memo-pane"><div class="memo-label">見本のメモ</div><div class="meal-memo sample-memo">食パン1枚、ゆで卵1個、ヨーグルト1個</div></div>
+<h3 class="slide-heading" id="heading-example">見本の群分けチェック</h3>
+<table class="diary-table food-groups" aria-label="朝食の群分け見本"><thead><tr><th>第1群<small>乳・乳製品／卵</small></th><th>第2群<small>魚・肉／豆製品</small></th><th>第3群<small>野菜・きのこ／いも・果物</small></th><th>第4群<small>米・パン・麺／油脂・調味料・酒</small></th></tr></thead><tbody><tr><td><div class="mark sample-on" aria-label="第1群1個目に○"><span aria-hidden="true"></span></div><div class="mark sample-on" aria-label="第1群2個目に○"><span aria-hidden="true"></span></div><div class="mark" aria-label="第1群3個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第1群4個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第1群5個目は空欄"><span aria-hidden="true"></span></div></td><td><div class="mark" aria-label="第2群1個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第2群2個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第2群3個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第2群4個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第2群5個目は空欄"><span aria-hidden="true"></span></div></td><td><div class="mark" aria-label="第3群1個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第3群2個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第3群3個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第3群4個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第3群5個目は空欄"><span aria-hidden="true"></span></div></td><td><div class="mark sample-on" aria-label="第4群1個目に○"><span aria-hidden="true"></span></div><div class="mark" aria-label="第4群2個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第4群3個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第4群4個目は空欄"><span aria-hidden="true"></span></div><div class="mark" aria-label="第4群5個目は空欄"><span aria-hidden="true"></span></div></td></tr></tbody></table>
+<p class="sample-caption">卵・ヨーグルトは第1群、食パンは第4群。</p></section>
+<section class="meal-slide" data-slide="0" aria-labelledby="heading-breakfast">
+<h3 id="heading-breakfast" class="slide-heading">朝食の群分けチェック</h3>
+<table class="diary-table food-groups"><thead><tr><th>第1群<small>乳・乳製品／卵</small></th><th>第2群<small>魚・肉／豆製品</small></th><th>第3群<small>野菜・きのこ／いも・果物</small></th><th>第4群<small>米・パン・麺／油脂・調味料・酒</small></th></tr></thead><tbody><tr><td><label class="mark" title="朝食の第1群 1個目"><input type="checkbox" data-diary-key="breakfast-group-1" aria-label="朝食・第1群・1個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="朝食の第1群 2個目"><input type="checkbox" data-diary-key="breakfast-extra-group-1" aria-label="朝食・第1群・2個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="朝食の第1群 3個目"><input type="checkbox" data-diary-key="breakfast-mark-3-group-1" aria-label="朝食・第1群・3個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="朝食の第1群 4個目"><input type="checkbox" data-diary-key="breakfast-mark-4-group-1" aria-label="朝食・第1群・4個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="朝食の第1群 5個目"><input type="checkbox" data-diary-key="breakfast-mark-5-group-1" aria-label="朝食・第1群・5個目"><span aria-hidden="true"></span></label></td><td><label class="mark" title="朝食の第2群 1個目"><input type="checkbox" data-diary-key="breakfast-group-2" aria-label="朝食・第2群・1個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="朝食の第2群 2個目"><input type="checkbox" data-diary-key="breakfast-extra-group-2" aria-label="朝食・第2群・2個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="朝食の第2群 3個目"><input type="checkbox" data-diary-key="breakfast-mark-3-group-2" aria-label="朝食・第2群・3個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="朝食の第2群 4個目"><input type="checkbox" data-diary-key="breakfast-mark-4-group-2" aria-label="朝食・第2群・4個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="朝食の第2群 5個目"><input type="checkbox" data-diary-key="breakfast-mark-5-group-2" aria-label="朝食・第2群・5個目"><span aria-hidden="true"></span></label></td><td><label class="mark" title="朝食の第3群 1個目"><input type="checkbox" data-diary-key="breakfast-group-3" aria-label="朝食・第3群・1個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="朝食の第3群 2個目"><input type="checkbox" data-diary-key="breakfast-extra-group-3" aria-label="朝食・第3群・2個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="朝食の第3群 3個目"><input type="checkbox" data-diary-key="breakfast-mark-3-group-3" aria-label="朝食・第3群・3個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="朝食の第3群 4個目"><input type="checkbox" data-diary-key="breakfast-mark-4-group-3" aria-label="朝食・第3群・4個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="朝食の第3群 5個目"><input type="checkbox" data-diary-key="breakfast-mark-5-group-3" aria-label="朝食・第3群・5個目"><span aria-hidden="true"></span></label></td><td><label class="mark" title="朝食の第4群 1個目"><input type="checkbox" data-diary-key="breakfast-group-4" aria-label="朝食・第4群・1個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="朝食の第4群 2個目"><input type="checkbox" data-diary-key="breakfast-extra-group-4" aria-label="朝食・第4群・2個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="朝食の第4群 3個目"><input type="checkbox" data-diary-key="breakfast-mark-3-group-4" aria-label="朝食・第4群・3個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="朝食の第4群 4個目"><input type="checkbox" data-diary-key="breakfast-mark-4-group-4" aria-label="朝食・第4群・4個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="朝食の第4群 5個目"><input type="checkbox" data-diary-key="breakfast-mark-5-group-4" aria-label="朝食・第4群・5個目"><span aria-hidden="true"></span></label></td></tr></tbody></table>
+</section>
+<section class="meal-slide" data-slide="1" aria-labelledby="heading-lunch">
+<h3 id="heading-lunch" class="slide-heading">昼食の群分けチェック</h3>
+<table class="diary-table food-groups"><thead><tr><th>第1群<small>乳・乳製品／卵</small></th><th>第2群<small>魚・肉／豆製品</small></th><th>第3群<small>野菜・きのこ／いも・果物</small></th><th>第4群<small>米・パン・麺／油脂・調味料・酒</small></th></tr></thead><tbody><tr><td><label class="mark" title="昼食の第1群 1個目"><input type="checkbox" data-diary-key="lunch-group-1" aria-label="昼食・第1群・1個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="昼食の第1群 2個目"><input type="checkbox" data-diary-key="lunch-extra-group-1" aria-label="昼食・第1群・2個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="昼食の第1群 3個目"><input type="checkbox" data-diary-key="lunch-mark-3-group-1" aria-label="昼食・第1群・3個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="昼食の第1群 4個目"><input type="checkbox" data-diary-key="lunch-mark-4-group-1" aria-label="昼食・第1群・4個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="昼食の第1群 5個目"><input type="checkbox" data-diary-key="lunch-mark-5-group-1" aria-label="昼食・第1群・5個目"><span aria-hidden="true"></span></label></td><td><label class="mark" title="昼食の第2群 1個目"><input type="checkbox" data-diary-key="lunch-group-2" aria-label="昼食・第2群・1個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="昼食の第2群 2個目"><input type="checkbox" data-diary-key="lunch-extra-group-2" aria-label="昼食・第2群・2個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="昼食の第2群 3個目"><input type="checkbox" data-diary-key="lunch-mark-3-group-2" aria-label="昼食・第2群・3個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="昼食の第2群 4個目"><input type="checkbox" data-diary-key="lunch-mark-4-group-2" aria-label="昼食・第2群・4個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="昼食の第2群 5個目"><input type="checkbox" data-diary-key="lunch-mark-5-group-2" aria-label="昼食・第2群・5個目"><span aria-hidden="true"></span></label></td><td><label class="mark" title="昼食の第3群 1個目"><input type="checkbox" data-diary-key="lunch-group-3" aria-label="昼食・第3群・1個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="昼食の第3群 2個目"><input type="checkbox" data-diary-key="lunch-extra-group-3" aria-label="昼食・第3群・2個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="昼食の第3群 3個目"><input type="checkbox" data-diary-key="lunch-mark-3-group-3" aria-label="昼食・第3群・3個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="昼食の第3群 4個目"><input type="checkbox" data-diary-key="lunch-mark-4-group-3" aria-label="昼食・第3群・4個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="昼食の第3群 5個目"><input type="checkbox" data-diary-key="lunch-mark-5-group-3" aria-label="昼食・第3群・5個目"><span aria-hidden="true"></span></label></td><td><label class="mark" title="昼食の第4群 1個目"><input type="checkbox" data-diary-key="lunch-group-4" aria-label="昼食・第4群・1個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="昼食の第4群 2個目"><input type="checkbox" data-diary-key="lunch-extra-group-4" aria-label="昼食・第4群・2個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="昼食の第4群 3個目"><input type="checkbox" data-diary-key="lunch-mark-3-group-4" aria-label="昼食・第4群・3個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="昼食の第4群 4個目"><input type="checkbox" data-diary-key="lunch-mark-4-group-4" aria-label="昼食・第4群・4個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="昼食の第4群 5個目"><input type="checkbox" data-diary-key="lunch-mark-5-group-4" aria-label="昼食・第4群・5個目"><span aria-hidden="true"></span></label></td></tr></tbody></table>
+</section>
+<section class="meal-slide" data-slide="2" aria-labelledby="heading-dinner">
+<h3 id="heading-dinner" class="slide-heading">夕食の群分けチェック</h3>
+<table class="diary-table food-groups"><thead><tr><th>第1群<small>乳・乳製品／卵</small></th><th>第2群<small>魚・肉／豆製品</small></th><th>第3群<small>野菜・きのこ／いも・果物</small></th><th>第4群<small>米・パン・麺／油脂・調味料・酒</small></th></tr></thead><tbody><tr><td><label class="mark" title="夕食の第1群 1個目"><input type="checkbox" data-diary-key="dinner-group-1" aria-label="夕食・第1群・1個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="夕食の第1群 2個目"><input type="checkbox" data-diary-key="dinner-extra-group-1" aria-label="夕食・第1群・2個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="夕食の第1群 3個目"><input type="checkbox" data-diary-key="dinner-mark-3-group-1" aria-label="夕食・第1群・3個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="夕食の第1群 4個目"><input type="checkbox" data-diary-key="dinner-mark-4-group-1" aria-label="夕食・第1群・4個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="夕食の第1群 5個目"><input type="checkbox" data-diary-key="dinner-mark-5-group-1" aria-label="夕食・第1群・5個目"><span aria-hidden="true"></span></label></td><td><label class="mark" title="夕食の第2群 1個目"><input type="checkbox" data-diary-key="dinner-group-2" aria-label="夕食・第2群・1個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="夕食の第2群 2個目"><input type="checkbox" data-diary-key="dinner-extra-group-2" aria-label="夕食・第2群・2個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="夕食の第2群 3個目"><input type="checkbox" data-diary-key="dinner-mark-3-group-2" aria-label="夕食・第2群・3個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="夕食の第2群 4個目"><input type="checkbox" data-diary-key="dinner-mark-4-group-2" aria-label="夕食・第2群・4個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="夕食の第2群 5個目"><input type="checkbox" data-diary-key="dinner-mark-5-group-2" aria-label="夕食・第2群・5個目"><span aria-hidden="true"></span></label></td><td><label class="mark" title="夕食の第3群 1個目"><input type="checkbox" data-diary-key="dinner-group-3" aria-label="夕食・第3群・1個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="夕食の第3群 2個目"><input type="checkbox" data-diary-key="dinner-extra-group-3" aria-label="夕食・第3群・2個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="夕食の第3群 3個目"><input type="checkbox" data-diary-key="dinner-mark-3-group-3" aria-label="夕食・第3群・3個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="夕食の第3群 4個目"><input type="checkbox" data-diary-key="dinner-mark-4-group-3" aria-label="夕食・第3群・4個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="夕食の第3群 5個目"><input type="checkbox" data-diary-key="dinner-mark-5-group-3" aria-label="夕食・第3群・5個目"><span aria-hidden="true"></span></label></td><td><label class="mark" title="夕食の第4群 1個目"><input type="checkbox" data-diary-key="dinner-group-4" aria-label="夕食・第4群・1個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="夕食の第4群 2個目"><input type="checkbox" data-diary-key="dinner-extra-group-4" aria-label="夕食・第4群・2個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="夕食の第4群 3個目"><input type="checkbox" data-diary-key="dinner-mark-3-group-4" aria-label="夕食・第4群・3個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="夕食の第4群 4個目"><input type="checkbox" data-diary-key="dinner-mark-4-group-4" aria-label="夕食・第4群・4個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="夕食の第4群 5個目"><input type="checkbox" data-diary-key="dinner-mark-5-group-4" aria-label="夕食・第4群・5個目"><span aria-hidden="true"></span></label></td></tr></tbody></table>
+</section>
+<section class="meal-slide" data-slide="3" aria-labelledby="heading-snack">
+<h3 id="heading-snack" class="slide-heading">間食の群分けチェック</h3>
+<table class="diary-table food-groups"><thead><tr><th>第1群<small>乳・乳製品／卵</small></th><th>第2群<small>魚・肉／豆製品</small></th><th>第3群<small>野菜・きのこ／いも・果物</small></th><th>第4群<small>米・パン・麺／油脂・調味料・酒</small></th></tr></thead><tbody><tr><td><label class="mark" title="間食の第1群 1個目"><input type="checkbox" data-diary-key="snack-group-1" aria-label="間食・第1群・1個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="間食の第1群 2個目"><input type="checkbox" data-diary-key="snack-extra-group-1" aria-label="間食・第1群・2個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="間食の第1群 3個目"><input type="checkbox" data-diary-key="snack-mark-3-group-1" aria-label="間食・第1群・3個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="間食の第1群 4個目"><input type="checkbox" data-diary-key="snack-mark-4-group-1" aria-label="間食・第1群・4個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="間食の第1群 5個目"><input type="checkbox" data-diary-key="snack-mark-5-group-1" aria-label="間食・第1群・5個目"><span aria-hidden="true"></span></label></td><td><label class="mark" title="間食の第2群 1個目"><input type="checkbox" data-diary-key="snack-group-2" aria-label="間食・第2群・1個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="間食の第2群 2個目"><input type="checkbox" data-diary-key="snack-extra-group-2" aria-label="間食・第2群・2個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="間食の第2群 3個目"><input type="checkbox" data-diary-key="snack-mark-3-group-2" aria-label="間食・第2群・3個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="間食の第2群 4個目"><input type="checkbox" data-diary-key="snack-mark-4-group-2" aria-label="間食・第2群・4個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="間食の第2群 5個目"><input type="checkbox" data-diary-key="snack-mark-5-group-2" aria-label="間食・第2群・5個目"><span aria-hidden="true"></span></label></td><td><label class="mark" title="間食の第3群 1個目"><input type="checkbox" data-diary-key="snack-group-3" aria-label="間食・第3群・1個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="間食の第3群 2個目"><input type="checkbox" data-diary-key="snack-extra-group-3" aria-label="間食・第3群・2個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="間食の第3群 3個目"><input type="checkbox" data-diary-key="snack-mark-3-group-3" aria-label="間食・第3群・3個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="間食の第3群 4個目"><input type="checkbox" data-diary-key="snack-mark-4-group-3" aria-label="間食・第3群・4個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="間食の第3群 5個目"><input type="checkbox" data-diary-key="snack-mark-5-group-3" aria-label="間食・第3群・5個目"><span aria-hidden="true"></span></label></td><td><label class="mark" title="間食の第4群 1個目"><input type="checkbox" data-diary-key="snack-group-4" aria-label="間食・第4群・1個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="間食の第4群 2個目"><input type="checkbox" data-diary-key="snack-extra-group-4" aria-label="間食・第4群・2個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="間食の第4群 3個目"><input type="checkbox" data-diary-key="snack-mark-3-group-4" aria-label="間食・第4群・3個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="間食の第4群 4個目"><input type="checkbox" data-diary-key="snack-mark-4-group-4" aria-label="間食・第4群・4個目"><span aria-hidden="true"></span></label><label class="mark mark-second" title="間食の第4群 5個目"><input type="checkbox" data-diary-key="snack-mark-5-group-4" aria-label="間食・第4群・5個目"><span aria-hidden="true"></span></label></td></tr></tbody></table>
+</section>
+<section class="meal-slide" data-slide="reference" aria-label="四群早見表">
+<section class="four-group-reference" aria-label="四群早見表">
+<h3>四群早見表</h3>
+<div class="four-group-reference-row"><strong>第1群</strong><div><b>乳・乳製品、卵</b><span>牛乳・ヨーグルト・チーズ・卵</span></div></div>
+<div class="four-group-reference-row"><strong>第2群</strong><div><b>魚介類、肉、豆・豆製品</b><span>魚・牛肉・豚肉・鶏肉・豆腐・納豆</span></div></div>
+<div class="four-group-reference-row"><strong>第3群</strong><div><b>野菜、果物、いも、きのこ・海藻</b><span>にんじん・りんご・じゃがいも・きのこ・海藻</span></div></div>
+<div class="four-group-reference-row"><strong>第4群</strong><div><b>穀類、油脂、砂糖・菓子など</b><span>ご飯・パン・麺・油脂・砂糖・調味料</span></div></div>
+<div class="group4-detail" aria-label="第4群の食品早見表">
+<h3>第4群の食品早見表</h3>
+<div class="four-group-reference-row"><strong>主食</strong><div><b>米・パン・めん類</b><span>ご飯・食パン・うどん・そば・パスタ・もち</span></div></div>
+<div class="four-group-reference-row"><strong>油脂</strong><div><b>食用油・油脂類</b><span>サラダ油・ごま油・バター・マーガリン</span></div></div>
+<div class="four-group-reference-row"><strong>糖類</strong><div><b>砂糖・甘味料など</b><span>砂糖・はちみつ・ジャム</span></div></div>
+<div class="four-group-reference-row"><strong>その他</strong><div><b>調味料・菓子・酒類など</b><span>味付けに使う調味料・お菓子・アルコール飲料</span></div></div>
+<p class="group4-detail-note">料理や加工食品は複数の食品群を含むことがあります。材料を確認して群分けしてください。</p>
+<section class="group4-food-index" data-group4-quickref aria-label="第4群の食品一覧">
+  <h4>第4群の食品一覧</h4>
+  <p class="group4-food-index-intro">食品名や分類から探せます。表示重量は1点（80kcal）に相当する量です。</p>
+  <label class="group4-field-label" for="group4FoodSearch">食品名で検索</label>
+  <input id="group4FoodSearch" class="group4-control" type="search" data-group4-search placeholder="例：ご飯、食パン、砂糖" autocomplete="off">
+  <label class="group4-field-label" for="group4FoodCategory">分類で絞り込む</label>
+  <select id="group4FoodCategory" class="group4-control" data-group4-category aria-label="第4群の食品分類">
+    <option value="">すべての分類</option>
+  </select>
+  <p class="group4-food-count" data-group4-count aria-live="polite">食品一覧を読み込んでいます。</p>
+  <div class="group4-food-table-wrap" role="region" aria-label="第4群食品の1点重量一覧" tabindex="0">
+    <table class="group4-food-table">
+      <thead><tr><th scope="col">食品名・分類</th><th scope="col">1点分の量</th></tr></thead>
+      <tbody data-group4-results><tr><td colspan="2">食品一覧を読み込んでいます。</td></tr></tbody>
+    </table>
+  </div>
+  <p class="group4-food-status" data-group4-status aria-live="polite">食品一覧を読み込んでいます。</p>
+</section>
+</div>
+</section></section></div>
+  <div class="meal-controls"><button type="button" id="mealPrev" hidden>〈 前へ</button><span id="mealCounter">1 / 6</span><button type="button" id="mealNext">次へ 〉</button></div>
+  <div class="actions"><button type="button" class="action-button" id="saveButton">記録を保存</button><button type="button" class="action-button outline" id="previewButton">記録を確認</button></div>
+  <p class="status" id="saveStatus" role="status" aria-live="polite"></p>
+  <p class="status" id="photoStatus" role="status" aria-live="polite"></p>
+  <a id="diaryStep2Link" class="stage-route" href="./diary-step2.html?day=1">食事記録 STEP2：食材名と分量へ進む 〉</a>
+  <a class="measurement-link" href="./measurements.html">体重・腹囲を記録する（任意）</a>
+ </section>
+
+</div></main>
+<dialog id="previewDialog" aria-labelledby="previewTitle">
+  <h2 id="previewTitle">食事ダイアリー</h2>
+  <p class="dialog-date" id="previewDate"></p>
+  <table class="preview-layout" aria-label="食事ダイアリーの確認">
+    <colgroup><col><col class="group"><col class="group"><col class="group"><col class="group"></colgroup>
+    <thead><tr><th scope="col">食べたもの</th><th scope="col">第1群</th><th scope="col">第2群</th><th scope="col">第3群</th><th scope="col">第4群</th></tr></thead>
+    <tbody id="previewRows"></tbody>
+  </table>
+  <button id="closePreview" class="close" type="button">入力画面に戻る</button>
+</dialog>
+<script>
+
+'use strict';
+const PREFIX='equineris:paper-first3:v1:';
+const DATE_PREFIX='equineris:diary-step1:v1:entry:';
+const MEALS=[['breakfast','朝食'],['lunch','昼食'],['dinner','夕食'],['snack','間食']];
+const fields=[...document.querySelectorAll('[data-diary-key]')];
+const mealTabs=[...document.querySelectorAll('[data-meal-tab]')];
+const slides=[...document.querySelectorAll('[data-slide]')];
+const track=document.getElementById('mealTrack');
+// 既存の写真・メモを食事別スライドへ移動。入力IDと保存キーは変更しない。
+const photoPanes=[...document.querySelectorAll('[data-photo-pane]')];
+const memoPanes=[...document.querySelectorAll('[data-memo-pane]')];
+const entrySlides=slides.slice(1,1+MEALS.length);
+if(photoPanes.length!==MEALS.length||memoPanes.length!==MEALS.length||entrySlides.length!==MEALS.length){
+ throw Error('食事記録の画面構成が一致しません');
+}
+entrySlides.forEach((slide,index)=>{
+ const photo=photoPanes[index],memo=memoPanes[index];
+ photo.hidden=false;memo.hidden=false;
+ slide.insertBefore(photo,slide.firstElementChild);
+ slide.insertBefore(memo,slide.querySelector('.slide-heading'));
+});
+document.querySelector('.photo-area').remove();
+document.querySelector('.memo-area').remove();
+const status=document.getElementById('saveStatus');
+const photoStatus=document.getElementById('photoStatus');
+const dateField=document.getElementById('diary-date');
+const previewDialog=document.getElementById('previewDialog');
+const previewRows=document.getElementById('previewRows');
+const photoInputs=[...document.querySelectorAll('[data-photo]')];
+let activeDay='',activeMeal=0,canStore=true,photoDB=null,photoEpoch=0,photoBusy=false;
+const photoUrls=[],dialogUrls=[];
+function validDate(value){
+ if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;
+ const time=Date.parse(value+'T00:00:00Z');
+ return Number.isFinite(time)&&new Date(time).toISOString().slice(0,10)===value;
+}
+function today(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function key(d,k){return typeof d==='string'&&validDate(d)?DATE_PREFIX+d+':'+k:PREFIX+d+':'+k;}
+function showStatus(msg,error=false){status.textContent=msg;status.dataset.error=String(error);}
+function showPhotoStatus(msg,error=false){photoStatus.textContent=msg;photoStatus.dataset.error=String(error);}
+function revoke(urls){urls.forEach(u=>URL.revokeObjectURL(u));urls.length=0;}
+function photoId(d,m){return d+':'+m;}
+function openPhotos(){
+ return new Promise((ok,fail)=>{
+  if(!('indexedDB' in window)){fail(Error('Storage unavailable'));return;}
+  const r=indexedDB.open('equineris-paper-first3-photos-v1',1);
+  r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('photos'))r.result.createObjectStore('photos',{keyPath:'id'});};
+  r.onsuccess=()=>ok(r.result);
+  r.onerror=()=>fail(r.error||Error('Database open failed'));
+  r.onblocked=()=>fail(Error('Database blocked'));
+ });
+}
+function storePhoto(mode,action){
+ return new Promise((ok,fail)=>{
+  if(!photoDB){fail(Error('Database unavailable'));return;}
+  let tx,request,value;
+  try{tx=photoDB.transaction('photos',mode);request=action(tx.objectStore('photos'));}
+  catch(e){fail(e);return;}
+  request.onsuccess=()=>{value=request.result;};
+  tx.oncomplete=()=>ok(value);
+  tx.onerror=()=>fail(tx.error||request.error||Error('Transaction error'));
+  tx.onabort=()=>fail(tx.error||Error('Transaction aborted'));
+ });
+}
+const getPhoto=id=>storePhoto('readonly',s=>s.get(id));
+const putPhoto=x=>storePhoto('readwrite',s=>s.put(x));
+const removePhoto=id=>storePhoto('readwrite',s=>s.delete(id));
+function fitActiveSlideHeight(){
+ const active=slides[activeMeal];
+ if(!active)return;
+ const height=Math.ceil(active.getBoundingClientRect().height);
+ if(height>0)track.style.height=height+'px';
+}
+function renderMeal(i){
+ activeMeal=Math.max(0,Math.min(slides.length-1,i));
+ fitActiveSlideHeight();
+ mealTabs.forEach((b,n)=>b.setAttribute('aria-pressed',String(n===activeMeal)));
+ document.getElementById('mealCounter').textContent=(activeMeal+1)+' / '+slides.length;
+ document.getElementById('mealPrev').hidden=activeMeal===0;
+ document.getElementById('mealNext').hidden=activeMeal===slides.length-1;
+ document.querySelector('.actions').hidden=activeMeal===0||activeMeal===slides.length-1;
+ status.hidden=activeMeal===0||activeMeal===slides.length-1;
+ photoStatus.hidden=activeMeal===0||activeMeal===slides.length-1;
+ const activeTab=mealTabs[activeMeal];
+ document.getElementById('currentMealLabel').textContent=activeTab?activeTab.textContent:'四群早見表';
+}
+function goMeal(i,animate=true){
+ const index=Math.max(0,Math.min(slides.length-1,i));
+ track.scrollTo({left:index*track.clientWidth,behavior:animate?'smooth':'auto'});
+ renderMeal(index);
+}
+mealTabs.forEach((button,i)=>button.addEventListener('click',()=>goMeal(i)));
+document.getElementById('mealPrev').addEventListener('click',()=>goMeal(activeMeal-1));
+document.getElementById('mealNext').addEventListener('click',()=>goMeal(activeMeal+1));
+let scheduled=false;
+track.addEventListener('scroll',()=>{
+ if(scheduled)return;scheduled=true;
+ requestAnimationFrame(()=>{
+  scheduled=false;const i=Math.round(track.scrollLeft/(track.clientWidth||1));
+  if(i!==activeMeal)renderMeal(i);
+ });
+},{passive:true});
+window.addEventListener('resize',()=>{track.scrollLeft=activeMeal*track.clientWidth;renderMeal(activeMeal);});
+if(typeof ResizeObserver==='function'){
+ const slideSizeObserver=new ResizeObserver(()=>fitActiveSlideHeight());
+ slides.forEach(slide=>slideSizeObserver.observe(slide));
+}
+function setPhotoBusy(busy){
+ photoBusy=busy;photoInputs.forEach(i=>i.disabled=busy||!photoDB);
+}
+function clearPhotos(){
+ photoEpoch++;revoke(photoUrls);
+ MEALS.forEach(([m])=>{
+  document.getElementById('photo-view-'+m).hidden=true;
+  document.getElementById('photo-img-'+m).removeAttribute('src');
+ });
+}
+async function refreshPhotos(day){
+ clearPhotos();
+ if(!photoDB)return;
+ const epoch=photoEpoch;
+ try{
+  const entries=await Promise.all(MEALS.map(async ([m])=>({m,item:await getPhoto(photoId(day,m))})));
+  if(day!==activeDay||epoch!==photoEpoch)return;
+  for(const {m,item} of entries){
+   if(!item||!(item.file instanceof Blob))continue;
+   const u=URL.createObjectURL(item.file);photoUrls.push(u);
+   const img=document.getElementById('photo-img-'+m);
+   img.src=u;img.onload=()=>renderMeal(activeMeal);
+   document.getElementById('photo-view-'+m).hidden=false;
+  }
+  renderMeal(activeMeal);
+ }catch(e){showPhotoStatus('写真を読み込めませんでした。',true);}
+}
+function loadDay(day){
+ activeDay=day;
+ document.getElementById('dayTitle').textContent='食事ダイアリー';
+ document.getElementById('diaryStep2Link').href='./diary-step2.html?'+(validDate(day)?'date='+encodeURIComponent(day):'day='+day);
+ for(const field of fields){
+  let saved=null;
+  if(canStore){try{saved=localStorage.getItem(key(day,field.dataset.diaryKey));}
+  catch(e){canStore=false;showStatus('自動保存を利用できません。',true);}}
+  if(field.type==='checkbox')field.checked=saved==='checked';else field.value=saved??'';
+ }
+ dateField.value=dateForDay(day);
+ if(canStore)showStatus('メモと○は自動保存されます。');
+ refreshPhotos(day);
+}
+function save(field){
+ if(!canStore){showStatus('自動保存できません。入力内容を控えてください。',true);return;}
+ const value=field.type==='checkbox'?(field.checked?'checked':''):field.value;
+ try{
+  if(value)localStorage.setItem(key(activeDay,field.dataset.diaryKey),value);
+  else localStorage.removeItem(key(activeDay,field.dataset.diaryKey));
+  showStatus('記録を保存しました。');
+ }catch(e){canStore=false;showStatus('保存できませんでした。ブラウザ設定をご確認ください。',true);}
+}
+fields.forEach(f=>f.addEventListener(f.type==='checkbox'?'change':'input',()=>save(f)));
+function dateForDay(day){
+ try{return localStorage.getItem(key(day,'date'))||'';}
+ catch(e){return '';}
+}
+function dayForDate(value){
+ for(let d=1;d<=3;d++)if(dateForDay(d)===value)return d;
+ return null;
+}
+async function chooseDate(value){
+ if(photoBusy){dateField.value=dateForDay(activeDay);showStatus('写真の保存が終わってから日付を変更してください。');return;}
+ if(!canStore){dateField.value=dateForDay(activeDay);showStatus('日付を保存できないため変更できません。',true);return;}
+ if(!validDate(value)){dateField.value=dateForDay(activeDay);return;}
+ // Keep all legacy slot records intact, and use unlimited date-based entries thereafter.
+ const slot=dayForDate(value);
+ loadDay(slot||value);goMeal(0,false);
+}
+dateField.addEventListener('change',()=>{void chooseDate(dateField.value)});
+photoInputs.forEach(input=>input.addEventListener('change',async()=>{
+ const file=input.files&&input.files[0];if(!file)return;
+ if(!file.type.startsWith('image/')){showPhotoStatus('画像ファイルを選んでください。',true);input.value='';return;}
+ const day=activeDay,m=input.dataset.photo;setPhotoBusy(true);showPhotoStatus('写真を保存しています。');
+ try{
+  await putPhoto({id:photoId(day,m),file});
+  if(day===activeDay)await refreshPhotos(day);
+  showPhotoStatus('写真をブラウザ内に保存しました。');
+ }catch(e){showPhotoStatus('写真を保存できません。空き容量・保存設定を確認してください。',true);}
+ finally{input.value='';setPhotoBusy(false);renderMeal(activeMeal);}
+}));
+document.querySelectorAll('[data-photo-remove]').forEach(b=>b.addEventListener('click',async()=>{
+ if(!window.confirm('写真を削除しますか？メモと○は残ります。'))return;
+ const day=activeDay;setPhotoBusy(true);
+ try{
+  await removePhoto(photoId(day,b.dataset.photoRemove));
+  if(day===activeDay)await refreshPhotos(day);
+  showPhotoStatus('写真を削除しました。');
+ }catch(e){showPhotoStatus('写真を削除できませんでした。',true);}
+ finally{setPhotoBusy(false);renderMeal(activeMeal);}
+}));
+function node(tag,text){const e=document.createElement(tag);if(text!==undefined)e.textContent=text;return e;}
+async function showPreview(){
+ const day=activeDay;
+ document.getElementById('previewTitle').textContent='食事ダイアリー';
+ document.getElementById('previewDate').textContent=dateField.value?'記録日：'+dateField.value:'記録日：未入力';
+ revoke(dialogUrls);previewRows.replaceChildren();
+ let photos=[];
+ if(photoDB){try{photos=await Promise.all(MEALS.map(async([m])=>getPhoto(photoId(day,m))));}
+ catch(e){showPhotoStatus('確認画面で写真を読み込めませんでした。',true);}}
+ if(activeDay!==day)return;
+ MEALS.forEach(([m,label],index)=>{
+  const row=node('tr'),cell=node('td');
+  cell.appendChild(node('strong',label));
+  if(photos[index]&&photos[index].file instanceof Blob){
+   const img=node('img');const u=URL.createObjectURL(photos[index].file);dialogUrls.push(u);
+   img.src=u;img.alt=label+'の写真';cell.appendChild(img);
+  }
+  const p=node('p',document.getElementById('meal-'+m).value.trim()||'（メモなし）');
+  p.className='preview-memo';cell.appendChild(p);row.appendChild(cell);
+  for(let group=1;group<=4;group++){
+   const names=[m+'-group-'+group,m+'-extra-group-'+group,m+'-mark-3-group-'+group,m+'-mark-4-group-'+group,m+'-mark-5-group-'+group];
+   const marks=names.map(k=>document.querySelector('[data-diary-key="'+k+'"]').checked);
+   const td=node('td',marks.map(x=>x?'○':'・').join('\n'));td.className='circle';row.appendChild(td);
+  }
+  previewRows.appendChild(row);
+ });
+ if(typeof previewDialog.showModal==='function')previewDialog.showModal();
+}
+document.getElementById('previewButton').addEventListener('click',showPreview);
+document.getElementById('saveButton').addEventListener('click',()=>{
+ if(!canStore){showStatus('保存できません。ブラウザの保存設定をご確認ください。',true);return;}
+ for(const field of fields)save(field);
+ if(canStore)showStatus('記録を保存しました。');
+});
+document.getElementById('closePreview').addEventListener('click',()=>previewDialog.close());
+previewDialog.addEventListener('click',e=>{if(e.target===previewDialog)previewDialog.close();});
+previewDialog.addEventListener('close',()=>revoke(dialogUrls));
+try{const t=DATE_PREFIX+'storage-probe';localStorage.setItem(t,'ok');localStorage.removeItem(t);}
+catch(e){canStore=false;showStatus('このブラウザでは自動保存できません。',true);}
+const search=new URLSearchParams(window.location.search);
+const initialDay=Number(search.get('day'));
+const initialDate=search.get('date');
+const initial=validDate(initialDate)?dayForDate(initialDate)||initialDate:
+ ([1,2,3].includes(initialDay)?initialDay:today());
+loadDay(initial);renderMeal(0);
+openPhotos().then(db=>{
+ photoDB=db;photoDB.onversionchange=()=>{photoDB.close();photoDB=null;photoInputs.forEach(i=>i.disabled=true);showPhotoStatus('保存先が更新されました。再読み込みしてください。',true);};
+ photoInputs.forEach(i=>i.disabled=false);
+ showPhotoStatus('写真は選択時にブラウザ内に保存されます。');
+ refreshPhotos(activeDay);
+}).catch(()=>{photoInputs.forEach(i=>i.disabled=true);showPhotoStatus('写真保存を利用できません。メモと○は使用できます。',true);});
+
+</script>
+<script src="./group4-reference.js?v=20261122a"></script>
+<script src="./trainer-link.js" defer></script>
+</body></html>
