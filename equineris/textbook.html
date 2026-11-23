@@ -23,6 +23,9 @@ a,button,input{font:inherit}button{cursor:pointer}
 .intro h1{font-size:clamp(23px,6vw,28px);line-height:1.45;margin:0 0 11px;word-break:normal;overflow-wrap:break-word}
 .intro>p:last-child{font-size:14px;line-height:1.8;color:var(--sub);margin:0}
 .toolbox{background:#fff;border:1px solid var(--edge);border-radius:17px;padding:14px;margin:14px 0 20px}
+.textbook-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,280px);gap:14px;align-items:start}
+.textbook-layout>.toolbox{margin:0}
+@media(max-width:700px){.textbook-layout{grid-template-columns:minmax(0,1fr)}.textbook-layout>.toolbox{margin:14px 0 20px}}
 .toolbox h2{font-size:17px;margin:0 0 10px}
 .search-label{font-size:13px;font-weight:700;display:block;margin-bottom:7px}
 .search-input{width:100%;height:48px;border:1px solid #b7d0be;border-radius:11px;padding:9px 12px;background:#fcfffb;color:var(--ink);font-size:16px}
@@ -130,12 +133,9 @@ a,button,input{font:inherit}button{cursor:pointer}
   <h1>SMART Diet 教材を読み返す</h1>
   <p>各ステップのカードは左右にスワイプして読めます。最後の「次へ」で次のステップに進みます。検索や目次から読み返すこともできます。</p>
  </header>
- <section class="toolbox" aria-label="教材目次">
-  <h3 class="catalog-title">ステップから選ぶ</h3>
-  <nav id="stepIndex" class="index-links" aria-label="ステップ目次"></nav>
- </section>
- <div id="steps" aria-live="off"></div>
- <section class="toolbox" aria-labelledby="findTitle">
+ <div class="textbook-layout">
+  <div id="steps" aria-live="off"></div>
+  <section class="toolbox" aria-labelledby="findTitle" id="discoveryPanel">
   <h2 id="findTitle">知りたいことを探す</h2>
   <label for="searchInput" class="search-label">キーワードで教材を検索</label>
   <input id="searchInput" class="search-input" type="search" autocomplete="off" placeholder="例：BMI、食品群、外食、ウォーキング">
@@ -148,7 +148,10 @@ a,button,input{font:inherit}button{cursor:pointer}
    <p class="result-title" id="resultTitle" aria-live="polite"></p>
    <div id="resultList" class="result-list"></div>
   </div>
- </section>
+  <h3 class="catalog-title">ステップから選ぶ</h3>
+  <nav id="stepIndex" class="index-links" aria-label="ステップ目次"></nav>
+  </section>
+ </div>
  <section class="end-card" aria-labelledby="endTitle">
   <p class="eyebrow">12-WEEK PROGRAM</p>
   <h2 id="endTitle">学びは何度でも振り返れます</h2>
