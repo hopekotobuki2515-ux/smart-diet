@@ -9,7 +9,7 @@
 <style>
 :root{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;color-scheme:light;--ink:#183e38;--sub:#345e53;--muted:#65796f;--green:#285d4a;--gold:#a6844e;--edge:#dce7dc;--paper:#fffdfa}
 *,*::before,*::after{box-sizing:border-box}
-html{scroll-behavior:smooth;scroll-padding-top:66px;-webkit-text-size-adjust:100%;overflow-x:hidden}
+html{scroll-behavior:auto;scroll-padding-top:66px;-webkit-text-size-adjust:100%;overflow-x:hidden}
 body{margin:0;min-width:280px;overflow-x:hidden;background:#e8eee8;color:var(--ink)}
 a,button,input{font:inherit}button{cursor:pointer}
 :focus-visible{outline:3px solid var(--gold);outline-offset:2px}
@@ -129,7 +129,7 @@ html.reader-mode .end-card,html.reader-mode .related-sites,html.reader-mode .bot
 <body>
 <main class="wrap" id="top">
  <nav class="topbar" aria-label="メインナビゲーション">
-  <a href="./learning.html" class="back">〈 12週間の学びに戻る</a>
+  <a href="./learning.html" class="back" id="backToLearning">〈 12週間の学びに戻る</a>
   <span class="brand" aria-label="EQUINERIS">EQUI<span>NERIS</span></span>
  </nav>
  <header class="intro" id="libraryIntro">
@@ -177,6 +177,16 @@ html.reader-mode .end-card,html.reader-mode .related-sites,html.reader-mode .bot
 'use strict';
 (()=>{
  const data=window.SMART_DIET_TEXTBOOK;
+ const origin=new URLSearchParams(location.search);
+ const fromWeek=Number(origin.get('week'));
+ const fromCard=Number(origin.get('card'));
+ if(Number.isInteger(fromWeek)&&fromWeek>=1&&fromWeek<=12){
+  const params=new URLSearchParams({week:String(fromWeek)});
+  if(origin.has('card')&&Number.isInteger(fromCard)&&fromCard>=0&&fromCard<=3)params.set('card',String(fromCard));
+  const backLink=document.getElementById('backToLearning');
+  backLink.href='./learning.html?'+params;
+  backLink.textContent='〈 第'+fromWeek+'週の学びに戻る';
+ }
  const root=document.getElementById('steps');
  const index=document.getElementById('stepIndex');
  const search=document.getElementById('searchInput');
