@@ -33,7 +33,7 @@ test('registration has only previously approved three fields',()=>{
  for(const id of ['age','waist','threeMonthGoal','bmiValue','rate5'])
   assert.doesNotMatch(s,new RegExp('id="'+id+'"'));
  assert.match(s,/equineris:registration:v1/);
- assert.match(s,/window\.location\.assign\('\.\/textbook\.html'\)/);
+ assert.match(s,/window\.location\.assign\('\.\/learning\.html'\)/);
 });
 test('mobile reader and empty history avoid blank-page regression',()=>{
  const step=source['smart-diet.html'];
@@ -47,12 +47,12 @@ test('mobile reader and empty history avoid blank-page regression',()=>{
  assert.match(book,/window\.scrollTo\(\{top:0,behavior:'auto'\}\)/);
  assert.match(book,/id="backToIndex"/);
  assert.match(book,/const showIndex=\(\)=>/);
- assert.match(book,/overflow:visible/);
+ assert.match(book,/overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain/);
  assert.match(hist,/max-width:510px;min-height:0;padding/);
 });
 test('textbook reader uses equal height cards, vertical scroll inside each card, and horizontal movement outside',()=>{
  const book=source['textbook.html'];
- assert.ok(book.includes('html.reader-mode .lesson-card{height:min(60svh,480px);'));
+ assert.ok(book.includes('html.reader-mode .lesson-card{flex:0 0 100%;width:100%;max-width:100%;min-width:0;height:100%;'));
  assert.ok(book.includes('returnIndex.hidden=true; // Avoid covering the card navigation'));
  assert.ok(book.includes('overflow-y:auto;overscroll-behavior-y:contain'));
  assert.ok(book.includes('html.reader-mode .track{touch-action:auto}'));
@@ -505,9 +505,9 @@ const textbookData=JSON.parse(
 test('six textbook steps and all unique lesson IDs are present',()=>{
  assert.equal(textbookData.length,6);
  const cards=textbookData.flatMap(step=>step.cards);
- assert.equal(cards.length,69);
+ assert.equal(cards.length,63);
  assert.equal(new Set(cards.map(c=>c.id)).size,cards.length);
- for(const id of ['s2-goal','s2-c6','s2-weight-history','s2-habit-check','s2-c8','s4-c4','s5-c1'])
+ for(const id of ['s2-goal','s2-c6','s2-weight-history','s2-habit-check','s2-c8','s4-c3','s5-c1'])
   assert.ok(cards.some(c=>c.id===id),id);
 });
 class MockEl {
@@ -575,34 +575,34 @@ test('only one STEP is visible, with STEP1 last card advancing to STEP2 and STEP
  assert.deepEqual(visible(),[1]);
  assert.equal(t.elements.steps.hidden,false);
  assert.equal(t.elements.discoveryPanel.hidden,true);
- assert.equal(t.sections[0].children.find(c=>c.className==='track').children.length,9);
+ assert.equal(t.sections[0].children.find(c=>c.className==='track').children.length,8);
  assert.equal(t.next[0].textContent,'次へ 〉');
  t.next[0].click();
  const firstTrack=t.sections[0].children.find(c=>c.className==='track');
  assert.equal(firstTrack.scrollLeft,372,'first card advances by one slide plus gap');
- for(let i=0;i<7;i++)t.next[0].click();
- assert.equal(t.count[0].textContent,'9 / 9');
+ for(let i=0;i<6;i++)t.next[0].click();
+ assert.equal(t.count[0].textContent,'8 / 8');
  assert.match(t.next[0].textContent,/STEP 2へ/);
  t.next[0].click();
  assert.deepEqual(visible(),[2]);
- assert.equal(t.count[1].textContent,'1 / 13');
+ assert.equal(t.count[1].textContent,'1 / 11');
  assert.equal(t.window.lastScroll?.top,0);
  assert.equal(t.sections[0].hidden,true);
  assert.equal(t.next[1].textContent,'次へ 〉');
  assert.match(t.sections[1].children.find(c=>c.className==='step-heading').children[1].textContent,/自分を知り/);
- for(let i=0;i<12;i++)t.next[1].click();
- assert.equal(t.count[1].textContent,'13 / 13');
+ for(let i=0;i<11;i++)t.next[1].click();
+ assert.equal(t.count[1].textContent,'12 / 12');
  assert.match(t.next[1].textContent,/STEP 3へ/);
  t.next[1].click();
  assert.deepEqual(visible(),[3]);
- assert.equal(t.count[2].textContent,'1 / 12');
+ assert.equal(t.count[2].textContent,'1 / 11');
  assert.equal(t.sections[1].hidden,true);
  assert.equal(t.sections[2].hidden,false);
  assert.match(t.sections[2].children.find(c=>c.className==='step-heading').children[1].textContent,/スマートダイエット式食事/);
  assert.equal(t.next[2].textContent,'次へ 〉');
  t.sections[2].children.find(c=>c.className==='slide-nav').children[0].click();
  assert.deepEqual(visible(),[2]);
- assert.equal(t.count[1].textContent,'13 / 13');
+ assert.equal(t.count[1].textContent,'12 / 12');
 });
 test('search/index/deep links still show the matching STEP without revealing others',()=>{
  const first=textbookScenario();
@@ -613,19 +613,19 @@ test('search/index/deep links still show the matching STEP without revealing oth
  idx.children[4].click();
  assert.equal(first.sections[4].hidden,false);
  assert.equal(first.sections.filter(x=>!x.hidden).length,1);
- assert.equal(first.count[4].textContent,'1 / 16');
+ assert.equal(first.count[4].textContent,'1 / 15');
  assert.equal(first.location.hash,'#s5-c1');
  first.sections[4].children.find(c=>c.className==='slide-nav').children[0].click();
  assert.equal(first.sections[3].hidden,false);
- assert.equal(first.count[3].textContent,'4 / 4');
+ assert.equal(first.count[3].textContent,'3 / 3');
  const deep=textbookScenario('#s2-weight-history');
  assert.equal(deep.sections[1].hidden,false);
  assert.equal(deep.sections.filter(x=>!x.hidden).length,1);
- assert.equal(deep.count[1].textContent,'8 / 13');
+ assert.equal(deep.count[1].textContent,'8 / 12');
  const stepLink=textbookScenario('#step-3');
  assert.equal(stepLink.sections[2].hidden,false);
  assert.equal(stepLink.sections.filter(x=>!x.hidden).length,1);
- assert.equal(stepLink.count[2].textContent,'1 / 12');
+ assert.equal(stepLink.count[2].textContent,'1 / 11');
  assert.match(source['textbook.html'],/id="steps" aria-live="off"/);
  assert.ok(source['textbook.html'].indexOf('id="steps"')<source['textbook.html'].indexOf('class="toolbox"'));
 });
@@ -655,104 +655,43 @@ test('contents never shares a screen with lesson text; return controls restore c
  assert.equal(deep.elements.steps.hidden,false);
  assert.equal(deep.elements.discoveryPanel.hidden,true);
 });
-test('standalone goal card appears immediately after STEP2 page five',()=>{
- const ids=textbookData[1].cards.map(card=>card.id);
- assert.equal(ids.length,13);
- assert.deepEqual(ids,['s2-c1','s2-c2','s2-c3','s2-c4','s2-c5','s2-goal','s2-c6','s2-weight-history','s2-c7','s2-habit-check','s2-c8','s2-c9','s2-c10']);
- const t=textbookScenario('#s2-goal');
- assert.equal(t.count[1].textContent,'6 / 13');
- const track=t.sections[1].children.find(c=>c.className==='track');
- assert.equal(track.children.length,13);
- assert.equal(track.children[4].id,'s2-c5');
- assert.equal(track.children[5].id,'s2-goal');
- assert.equal(track.children[6].id,'s2-c6');
- const prevCard=track.children[4].children.find(c=>c.className.split(' ').includes('visual'));
- const calculator=track.children[5].children.find(c=>c.className.split(' ').includes('visual'));
- const nextCard=track.children[6].children.find(c=>c.className.split(' ').includes('visual'));
- assert.equal(prevCard.children.some(c=>c.className==='goal-calculator'),false);
- assert.ok(calculator.children.some(c=>c.className==='goal-calculator'));
- assert.equal(nextCard.children.some(c=>c.className==='goal-calculator'),false);
-});
-test('STEP2 fifth page advances to new sixth goal card then original sixth page',()=>{
- const t=textbookScenario('#s2-c5');
- assert.equal(t.count[1].textContent,'5 / 13');
- t.next[1].click();
- assert.equal(t.count[1].textContent,'6 / 13');
- t.next[1].click();
- assert.equal(t.count[1].textContent,'7 / 13');
-});
-test('STEP2 page 5 explains, page 6 calculates and page 7 reviews past weights',()=>{
+test('STEP2 explanation cards have stable order, read-only text, and reference checklist',()=>{
  const cards=textbookData[1].cards;
- assert.equal(cards[4].id,'s2-c5');
- assert.equal(cards[5].id,'s2-goal');
- assert.equal(cards[6].id,'s2-c6');
- assert.equal(cards[7].id,'s2-weight-history');
- assert.match(cards[4].body,/5％・8％・10％・15％/);
- assert.match(cards[5].body,/前のページで紹介した減量率/);
- assert.match(cards[6].body,/3か月後の目標を決めたら/);
- assert.match(cards[6].body,/次のページで記録/);
- assert.equal(cards[7].body,'覚えている体重を入力しましょう。空欄でも大丈夫です。');
- const t=textbookScenario('#s2-c5');
- const track=t.sections[1].children.find(c=>c.className==='track');
- assert.match(source['textbook.html'],/\.track\{display:flex;align-items:stretch/);
- assert.match(source['textbook.html'],/\.lesson-card\{[^}]*height:auto;min-height:0;/);
- assert.match(source['textbook.html'],/\.lesson-card\{flex:0 0 100%;width:100%;max-width:100%;overflow:visible/);
- assert.doesNotMatch(source['textbook.html'],/fitActiveCard/);
- assert.match(source['textbook.html'],/\.visual--interactive/);
- track.children[4].offsetHeight=540;
- track.children[5].offsetHeight=700;
- track.children[6].offsetHeight=540;
- t.next[1].click();
- assert.equal(t.count[1].textContent,'6 / 13');
- assert.equal(track.style.height,undefined,'height must not change per slide');
- t.next[1].click();
- assert.equal(t.count[1].textContent,'7 / 13');
- assert.equal(track.style.height,undefined,'height must remain independent of card content');
- const visual=track.children[5].children.find(c=>c.className.split(' ').includes('visual'));
- assert.equal(visual.className,'visual visual--interactive');
- assert.equal(visual.children.filter(c=>c.className==='visual-title').length,0);
-});
-test('every textbook card uses natural height and avoids inner vertical scroll',()=>{
- const stylesheet=source['textbook.html'];
- assert.match(stylesheet,/\.lesson-card\{[^}]*height:auto;min-height:0;/);
- assert.match(stylesheet,/\.lesson-card\{flex:0 0 100%;width:100%;max-width:100%;overflow:visible/);
- assert.match(stylesheet,/\.track\{[^}]*scroll-snap-type:x mandatory;/);
- assert.doesNotMatch(stylesheet,/fitActiveCard|refitTracks/);
+ assert.deepEqual(cards.map(c=>c.id),[
+  's2-c1','s2-c2','s2-c3','s2-c4','s2-c5','s2-goal','s2-c6',
+  's2-weight-history','s2-c7','s2-habit-check','s2-c8','s2-c9'
+ ]);
  const t=textbookScenario('#s2-habit-check');
+ assert.equal(t.count[1].textContent,'10 / 12');
+ const track=t.sections[1].children.find(c=>c.className==='track');
+ const visual=track.children[9].children.find(c=>c.className==='visual');
+ const list=visual.children.find(c=>c.className==='habit-reference-list');
+ assert.ok(list,'read-only reference list exists');
+ assert.equal(list.children.length,17);
+ assert.equal(visual.children.some(c=>c.id==='textbookHabitCheck'),false);
+ assert.equal(visual.children.some(c=>c.className==='goal-calculator'),false);
+ assert.equal(source['textbook.html'].includes('goal-calculator.js'),false);
+ assert.equal(source['textbook.html'].includes('habit-check-card.js'),false);
+ const goal=track.children[5].children.find(c=>c.className==='visual');
+ assert.equal(goal.children.some(c=>c.className==='goal-calculator'),false);
+ const past=track.children[7].children.find(c=>c.className==='visual');
+ assert.equal(past.children.some(c=>c.id==='textbookWeightHistory'),false);
+});
+test('textbook fixed-height cards keep vertical scroll without per-card inline sizing',()=>{
+ const book=source['textbook.html'];
+ assert.match(book,/html\.reader-mode \.lesson-card\{[^}]*height:100%;min-height:0;max-height:100%/);
+ assert.match(book,/overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain/);
+ assert.match(book,/\.track\{[^}]*scroll-snap-type:x mandatory/);
+ assert.doesNotMatch(book,/fitActiveCard|refitTracks/);
+ const t=textbookScenario('#s2-goal');
  for(const section of t.sections){
   const track=section.children.find(c=>c.className==='track');
   assert.ok(track.children.length>0);
   assert.equal(track.style.height,undefined);
-  const cards=track.children;
-  for(const card of cards){
-   assert.ok(card.className.startsWith('lesson-card'));
-   assert.equal(card.style.height,undefined,'per-card inline height is forbidden');
-  }
+  for(const card of track.children)assert.equal(card.style.height,undefined);
  }
- const lessonTrack=t.sections[1].children.find(c=>c.className==='track');
- for(let i=0;i<lessonTrack.children.length;i++){
-  const item=lessonTrack.children[i];
-  item.offsetHeight=540+i*15;
- }
- t.next[1].click();
- t.next[1].click();
- assert.equal(lessonTrack.style.height,undefined,'outer track does not react to content length');
-});
-test('STEP2 BMI example fills the registration and recalculates without saving',()=>{
- const seed={'equineris:registration:v1':JSON.stringify({name:'Test',heightCm:'170',weightKg:'70'})};
- const t=textbookScenario('#s2-c3',seed);
- const track=t.sections[1].children.find(x=>x.className==='track');
- const card=track.children[2];
- const visual=card.children.find(x=>x.className==='visual');
- const demo=visual.children.find(x=>x.className==='bmi-demo');
- assert.ok(demo,'BMI example');
- const h=demo.children[0].children[0],w=demo.children[1].children[0],out=demo.children[2];
- assert.equal(h.value,'170');
- assert.equal(w.value,'70');
- assert.equal(out.textContent,'現在のBMI：24.2');
- h.value='165';h.fire('input');
- assert.equal(out.textContent,'現在のBMI：25.7');
- assert.equal(JSON.parse(seed['equineris:registration:v1']).heightCm,'170');
+ assert.match(textbookData[1].cards[2].body,/BMIは/);
+ assert.match(textbookData[1].cards[5].body,/目標体重/);
 });
 test('starting BMI stays recorded after later daily weight measurements',()=>{
  const REG='equineris:registration:v1',BASE='equineris:body-start-bmi:v1',DAILY='equineris:body-measurements:v1';
@@ -791,270 +730,42 @@ test('starting BMI stays recorded after later daily weight measurements',()=>{
  assert.equal(later.els.saveBaseline.disabled,true);
  assert.equal(JSON.parse(later.store.get(DAILY))['2026-11-22'].weight,65);
 });
-test('registration weight computes STEP2 goal on sixth standalone card and saves percentages',()=>{
- const t=textbookScenario('',{'equineris:registration:v1':JSON.stringify({heightCm:'170',weightKg:'80'})});
- assert.equal(t.sections.length,6);
- for(let i=0;i<8;i++)t.next[0].click();
- assert.equal(t.count[0].textContent,'9 / 9');
- t.next[0].click();assert.equal(t.window.lastScroll?.top,0);
- for(let i=0;i<5;i++)t.next[1].click();assert.equal(t.count[1].textContent,'6 / 13');
- const track=t.sections[1].children.find(c=>c.className==='track');
- const visual=track.children[5].children.find(c=>c.className.split(' ').includes('visual'));
- const calc=visual.children.find(c=>c.className==='goal-calculator');
- assert.ok(calc,'STEP2 sixth card calculator');
- const start=calc.children[0],rate=calc.children[1].children;
- const target=calc.children[2].children[0],out=calc.children[3],save=calc.children[4];
- assert.equal(start.textContent,'スタート時の体重：80.0 kg');
- for(const [i,expected] of [[0,'76.0'],[1,'73.6'],[2,'72.0'],[3,'68.0']]){
-  rate[i].click();assert.equal(target.value,expected);assert.equal(save.disabled,false);
- }
- rate[1].click();save.click();
- const saved=JSON.parse(t.localData.get('equineris:week1:goal:v1'));
- assert.equal(saved.startWeightKg,80);
- assert.equal(saved.goalWeightKg,73.6);
- assert.equal(saved.lossKg,6.4);
- assert.equal(saved.selectedRatePercent,8);
- assert.equal(t.localData.get('equineris:body-measurements:v1'),undefined);
- target.value='72.5';target.fire('input');
- assert.equal(rate[1].getAttribute('aria-pressed'),'false');
- save.click();
- const edited=JSON.parse(t.localData.get('equineris:week1:goal:v1'));
- assert.equal(edited.goalWeightKg,72.5);
- assert.equal(edited.selectedRatePercent,null);
- assert.match(out.textContent,/7.5 kg/);
-});
-test('goal calculator preserves existing optional goals and blocks missing registration',()=>{
- const absent=textbookScenario('#s2-goal');
- const absentCard=absent.sections[1].children.find(c=>c.className==='track').children[5];
- const absentCalc=absentCard.children.find(c=>c.className.split(' ').includes('visual')).children.find(c=>c.className==='goal-calculator');
- assert.equal(absentCalc.children[1].children[0].disabled,true);
- assert.equal(absentCalc.children[2].children[0].disabled,true);
- assert.equal(absentCalc.children[4].disabled,true);
- assert.equal(absent.localData.get('equineris:week1:goal:v1'),undefined);
- const seed={
-  'equineris:registration:v1':JSON.stringify({heightCm:'170',weightKg:'80'}),
-  'equineris:week1:goal:v1':JSON.stringify({startWeightKg:80,goalWeightKg:73.6,
-   selectedRatePercent:8,weightAt20Kg:62,longestWeightKg:72,futureGoalWeightKg:68,selectedFutureBmi:22})
- };
- const prior=textbookScenario('#s2-goal',seed);
- const card=prior.sections[1].children.find(c=>c.className==='track').children[5];
- const calc=card.children.find(c=>c.className.split(' ').includes('visual')).children.find(c=>c.className==='goal-calculator');
- assert.equal(calc.children[2].children[0].value,'73.6');
- assert.equal(calc.children[1].children[1].getAttribute('aria-pressed'),'true');
- calc.children[1].children[0].click();
- calc.children[4].click();
- const updated=JSON.parse(prior.localData.get('equineris:week1:goal:v1'));
- assert.equal(updated.goalWeightKg,76);
- assert.equal(updated.selectedRatePercent,5);
- assert.equal(updated.weightAt20Kg,62);
- assert.equal(updated.longestWeightKg,72);
- assert.equal(updated.futureGoalWeightKg,68);
- assert.equal(updated.selectedFutureBmi,22);
- const malformed='not-json';
- const blocked=textbookScenario('#s2-goal',{
-  'equineris:registration:v1':JSON.stringify({heightCm:'170',weightKg:'80'}),
-  'equineris:week1:goal:v1':malformed
- });
- const badCard=blocked.sections[1].children.find(c=>c.className==='track').children[5];
- const badCalc=badCard.children.find(c=>c.className.split(' ').includes('visual')).children.find(c=>c.className==='goal-calculator');
- badCalc.children[1].children[1].click();
- assert.equal(badCalc.children[4].disabled,true);
- assert.equal(blocked.localData.get('equineris:week1:goal:v1'),malformed);
-});
-test('weight history uses a separate STEP2 slide immediately after page seven',()=>{
- const t=textbookScenario('#s2-c6');
- assert.equal(t.count[1].textContent,'7 / 13');
- t.next[1].click();
- assert.equal(t.count[1].textContent,'8 / 13');
- const track=t.sections[1].children.find(c=>c.className==='track');
- assert.equal(track.children[6].id,'s2-c6');
- assert.equal(track.children[7].id,'s2-weight-history');
- assert.equal(track.children[8].id,'s2-c7');
- const oldCard=track.children[6].children.find(c=>c.className.split(' ').includes('visual'));
- const history=track.children[7].children.find(c=>c.className.split(' ').includes('visual'));
- const newForm=history.children.find(c=>c.id==='textbookWeightHistory');
- assert.ok(newForm,'Historical weights form in dedicated slide');
- assert.equal(oldCard.children.some(c=>c.id==='textbookWeightHistory'),false);
- const first=newForm.children[0].children[0];
- const second=newForm.children[1].children[0];
- assert.equal(first.id,'textbookWeightAt20');
- assert.equal(second.id,'textbookLongestWeight');
- t.next[1].click();
- assert.equal(t.count[1].textContent,'9 / 13');
- assert.match(t.next[1].textContent,/食行動チェック/);
-});
-test('historical-weight guidance is exactly two sentence lines without changing text',()=>{
- const data=textbookData[1].cards[7];
- assert.equal(data.id,'s2-weight-history');
- const t=textbookScenario('#s2-weight-history');
- const track=t.sections[1].children.find(c=>c.className==='track');
- const history=track.children[7];
- const para=history.children.find(c=>c.className==='lesson-body');
- assert.ok(para,'history description');
- assert.equal(para.children.length,2);
- assert.equal(para.children[0].className,'weight-history-line');
- assert.equal(para.children[1].className,'weight-history-line');
- assert.equal(para.children[0].textContent,'覚えている体重を入力しましょう。');
- assert.equal(para.children[1].textContent,'空欄でも大丈夫です。');
- assert.equal(para.children.map(c=>c.textContent).join(''),data.body);
- assert.match(source['textbook.html'],/\.weight-history-line\{display:block\}/);
- const prev=track.children[6].children.find(c=>c.className==='lesson-body');
- const next=track.children[8].children.find(c=>c.className==='lesson-body');
- assert.equal(prev.children.length,0);
- assert.equal(next.children.length,0);
-});
-test('historical kg fields save and restore through the existing goal record',()=>{
- const reg={'equineris:registration:v1':JSON.stringify({name:'Test',heightCm:'170',weightKg:'80'})};
- const starting={...reg,'equineris:week1:goal:v1':JSON.stringify({startWeightKg:80,goalWeightKg:73.6,selectedRatePercent:8})};
- const t=textbookScenario('#s2-weight-history',starting);
- const track=t.sections[1].children.find(c=>c.className==='track');
- const visual=track.children[7].children.find(c=>c.className.split(' ').includes('visual'));
- const form=visual.children.find(c=>c.id==='textbookWeightHistory');
- assert.ok(form);
- const weight20=form.children[0].children[0],longest=form.children[1].children[0];
- const save=form.children[2],notice=form.children[3];
- assert.equal(weight20.value,'');
- assert.equal(longest.value,'');
- weight20.value='58.5';weight20.fire('input');
- longest.value='67.0';longest.fire('input');
- assert.equal(save.disabled,false);
- save.click();
- assert.match(notice.textContent,/記録しました/);
- const stored=JSON.parse(t.localData.get('equineris:week1:goal:v1'));
- assert.equal(stored.weightAt20Kg,58.5);
- assert.equal(stored.longestWeightKg,67);
- assert.equal(stored.goalWeightKg,73.6);
- assert.equal(stored.selectedRatePercent,8);
- assert.equal(t.localData.get('equineris:body-measurements:v1'),undefined);
- const reloaded=textbookScenario('#s2-weight-history',Object.fromEntries(t.localData));
- const reloadedForm=reloaded.sections[1].children.find(c=>c.className==='track').children[7]
-  .children.find(c=>c.className.split(' ').includes('visual')).children.find(c=>c.id==='textbookWeightHistory');
- assert.equal(reloadedForm.children[0].children[0].value,'58.5');
- assert.equal(reloadedForm.children[1].children[0].value,'67');
-});
-test('saving historical weights before goal setup keeps fields and does not break measurements page',()=>{
- const REG='equineris:registration:v1',GOAL='equineris:week1:goal:v1';
- const first=textbookScenario('#s2-weight-history',{[REG]:JSON.stringify({heightCm:'170',weightKg:'80'})});
- const card=first.sections[1].children.find(c=>c.className==='track').children[7];
- const form=card.children.find(c=>c.className.split(' ').includes('visual')).children.find(c=>c.id==='textbookWeightHistory');
- const twenty=form.children[0].children[0],save=form.children[2];
- twenty.value='61.5';twenty.fire('input');
- save.click();
- const partial=JSON.parse(first.localData.get(GOAL));
- assert.equal(partial.startWeightKg,80);
- assert.equal(partial.weightAt20Kg,61.5);
- assert.equal(partial.longestWeightKg,null);
- assert.equal(partial.goalWeightKg,undefined);
- const ids=['recordDate','bodyWeight','bodyWaist','saveStatus','historyRows','metricForm',
-  'recordTitle','back','startHeight','startWeight','startBMI','saveBaseline','baselineStatus',
-  'goalStartWeight','goalTargetWeight','goalLossWeight','goalLossRate','goalHistoryStatus',
-  'weightTrendChart','weightChartStatus'];
- const elements=Object.fromEntries(ids.map(id=>[id,new MockEl('input')]));
- const session=new Map(first.localData);
- vm.runInNewContext(scriptOf(source['measurements.html'])[0],{
-  document:{referrer:'',getElementById:id=>elements[id],createElement:tag=>new MockEl(tag)},
-  localStorage:{getItem:key=>session.get(key)??null,setItem:(key,v)=>session.set(key,String(v))},
-  window:{confirm(){return false;}},location:{origin:'https://example.test'},URL,Date
- });
- assert.match(elements.goalHistoryStatus.textContent,/まだ設定されていません/);
- assert.equal(elements.goalHistoryStatus.dataset.error,'false');
- const next=textbookScenario('#s2-goal',Object.fromEntries(first.localData));
- const goalCard=next.sections[1].children.find(c=>c.className==='track').children[5];
- const calculator=goalCard.children.find(c=>c.className.split(' ').includes('visual')).children.find(c=>c.className==='goal-calculator');
- calculator.children[1].children[1].click();
- calculator.children[4].click();
- const combined=JSON.parse(next.localData.get(GOAL));
- assert.equal(combined.weightAt20Kg,61.5);
- assert.equal(combined.goalWeightKg,73.6);
-});
-test('STEP2 page nine opens the original 17-item checklist as page ten',()=>{
- const ids=textbookData[1].cards.map(c=>c.id);
- assert.equal(ids[8],'s2-c7');
- assert.equal(ids[9],'s2-habit-check');
- assert.equal(ids[10],'s2-c8');
- const t=textbookScenario('#s2-c7');
- assert.equal(t.count[1].textContent,'9 / 13');
- assert.match(t.next[1].textContent,/食行動チェック/);
- t.next[1].click();
- assert.equal(t.location.destination,null,'must not jump to a separate page');
- assert.equal(t.count[1].textContent,'10 / 13');
- const track=t.sections[1].children.find(c=>c.className==='track');
- const visual=track.children[9].children.find(c=>c.className.split(' ').includes('visual'));
- assert.equal(visual.className,'visual visual--interactive');
- const widget=visual.children.find(c=>c.id==='textbookHabitCheck');
- assert.ok(widget,'standalone checklist');
- const list=widget.children[1];
- assert.equal(list.children.length,17);
- assert.equal(list.children[0].children[0].dataset.habit,'h01');
- assert.equal(list.children[16].children[0].dataset.habit,'h17');
- assert.match(source['textbook.html'],/\.habit-mini-list\{[^}]*overflow-y:visible/);
- t.next[1].click();
- assert.equal(t.count[1].textContent,'11 / 13');
- assert.equal(t.location.destination,null);
- assert.match(source['habit-intro.html'],/textbook\.html#s2-c7/);
- assert.match(source['habit-check.html'],/textbook\.html#s2-c8/);
-});
-test('embedded checklist exactly matches the 17 original paper questions',()=>{
+test('read-only checklist matches the original 17 paper questions in order',()=>{
  const original=[...source['habit-check.html'].matchAll(/data-habit="(h\d{2})" aria-label="([^"]+)"/g)]
-  .map(m=>({id:m[1],text:m[2]}));
- const seeded=textbookScenario('#s2-habit-check');
- const track=seeded.sections[1].children.find(c=>c.className==='track');
- const widget=track.children[9].children.find(c=>c.className.split(' ').includes('visual'))
-  .children.find(c=>c.id==='textbookHabitCheck');
- const rows=widget.children[1].children.map(row=>({id:row.children[0].dataset.habit,
-  text:row.children[2].textContent}));
+  .map(m=>m[2]);
  assert.equal(original.length,17);
- assert.deepEqual(rows,original,'no rewording, omissions or altered order');
+ const reference=textbookData[1].cards.find(c=>c.id==='s2-habit-check').referenceItems;
+ assert.equal(reference.length,17);
+ assert.deepEqual(reference,original);
+ const t=textbookScenario('#s2-habit-check');
+ const track=t.sections[1].children.find(c=>c.className==='track');
+ const visual=track.children[9].children.find(c=>c.className==='visual');
+ const list=visual.children.find(c=>c.className==='habit-reference-list');
+ assert.deepEqual(list.children.map(x=>x.textContent),original);
 });
-test('checks auto-save, reload and preserve the existing localStorage key',()=>{
- const key='equineris:program:habit-check:v1';
- const original=['h02','h08'];
- const t=textbookScenario('#s2-habit-check',{[key]:JSON.stringify(original)});
- const widget=t.sections[1].children.find(c=>c.className==='track').children[9]
-  .children.find(c=>c.className.split(' ').includes('visual')).children.find(c=>c.id==='textbookHabitCheck');
- const rows=widget.children[1].children;
- assert.equal(rows.length,17);
- assert.equal(rows[1].children[0].checked,true);
- assert.equal(rows[7].children[0].checked,true);
- assert.equal(rows[0].children[0].checked,false);
- assert.equal(widget.children[2].textContent,'○を付けた項目：2 / 17');
- rows[0].children[0].checked=true;rows[0].children[0].fire('change');
- assert.deepEqual(JSON.parse(t.localData.get(key)),['h01','h02','h08']);
- assert.equal(widget.children[2].textContent,'○を付けた項目：3 / 17');
- rows[1].children[0].checked=false;rows[1].children[0].fire('change');
- assert.deepEqual(JSON.parse(t.localData.get(key)),['h01','h08']);
- widget.children[3].click();
- assert.deepEqual(JSON.parse(t.localData.get(key)),['h01','h08']);
- const reloaded=textbookScenario('#s2-habit-check',Object.fromEntries(t.localData));
- const restored=reloaded.sections[1].children.find(c=>c.className==='track').children[9]
-  .children.find(c=>c.className.split(' ').includes('visual')).children.find(c=>c.id==='textbookHabitCheck');
- assert.equal(restored.children[1].children[0].children[0].checked,true);
- assert.equal(restored.children[1].children[7].children[0].checked,true);
- assert.equal(restored.children[1].children[1].children[0].checked,false);
+test('reference textbook does not overwrite saved goals or habit checks',()=>{
+ const goalKey='equineris:week1:goal:v1',checkKey='equineris:program:habit-check:v1';
+ const malformed='not-json';
+ const t=textbookScenario('#s2-habit-check',{
+  [goalKey]:JSON.stringify({startWeightKg:80,goalWeightKg:73.6,weightAt20Kg:62}),
+  [checkKey]:malformed
+ });
+ const goalBefore=t.localData.get(goalKey);
+ t.next[1].click();
+ t.next[1].click();
+ assert.equal(t.localData.get(goalKey),goalBefore);
+ assert.equal(t.localData.get(checkKey),malformed);
+ assert.match(source['habit-check.html'],/equineris:program:habit-check:v1/);
+ assert.match(source['week-1-goal.html'],/equineris:week1:goal:v1/);
 });
-test('corrupt checklist storage is never silently overwritten',()=>{
- const key='equineris:program:habit-check:v1';
- const t=textbookScenario('#s2-habit-check',{[key]:'not-json'});
- const widget=t.sections[1].children.find(c=>c.className==='track').children[9]
-  .children.find(c=>c.className.split(' ').includes('visual')).children.find(c=>c.id==='textbookHabitCheck');
- assert.equal(widget.children[3].disabled,true);
- widget.children[1].children[0].children[0].checked=true;
- widget.children[1].children[0].children[0].fire('change');
- assert.equal(t.localData.get(key),'not-json');
-});
-test('after the checklist, STEP2 and STEP3 advance to STEP4 food diary',()=>{
- const t=textbookScenario('#s2-c8');
- assert.equal(t.count[1].textContent,'11 / 13');
- t.next[1].click();t.next[1].click();t.next[1].click();
- assert.equal(t.sections[2].hidden,false,'STEP3 is visible'); assert.equal(t.window.lastScroll?.top,0);
- for(let i=0;i<11;i++)t.next[2].click();
- assert.equal(t.next[2].disabled,false);
- t.next[2].click();
- assert.equal(t.sections[3].hidden,false,'STEP4 is visible'); assert.equal(t.window.lastScroll?.top,0);
- for(let i=0;i<3;i++)t.next[3].click();
- assert.match(t.next[3].textContent,/記録へ/);
+test('step 4 now continues to reference step 5 without redirecting to the diary',()=>{
+ const t=textbookScenario('#s4-c3');
+ assert.equal(t.count[3].textContent,'3 / 3');
+ assert.match(t.next[3].textContent,/STEP 5へ/);
  t.next[3].click();
- assert.equal(t.location.destination,'./record.html?day=1');
+ assert.equal(t.location.destination,null);
+ assert.equal(t.sections[4].hidden,false);
+ assert.equal(t.count[4].textContent,'1 / 15');
 });
 test('saved goal is shown on measurements page without modifying daily logs',()=>{
  const ids=['recordDate','bodyWeight','bodyWaist','saveStatus','historyRows','metricForm',
@@ -1153,11 +864,11 @@ test('weight trend updates after saving and deleting records on the measurements
  assert.equal(JSON.parse(storage.get(key))['2026-11-10'],undefined);
 });
 test('STEP5 can advance; STEP6 correctly finishes',()=>{
- const t=textbookScenario('#s5-c16');
+ const t=textbookScenario('#s5-c15');
  assert.equal(t.next[4].disabled,false);
  t.next[4].click();
  assert.equal(t.sections[5].hidden,false); assert.equal(t.window.lastScroll?.top,0);
- const end=textbookScenario('#s6-c15');
+ const end=textbookScenario('#s6-c14');
  assert.equal(end.next[5].disabled,false);
  assert.match(end.next[5].textContent,/読み終える/);
  end.next[5].click();
