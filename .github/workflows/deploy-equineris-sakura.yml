@@ -1,0 +1,42 @@
+name: Deploy EQUINERIS to Sakura
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'equineris/**'
+      - '.github/workflows/deploy-equineris-sakura.yml'
+permissions:
+  contents: read
+concurrency:
+  group: deploy-equineris-sakura
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify SSH configuration
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          test -n "$SSH_KEY" || { echo "SAKURA_SSH_KEY missing"; exit 1; }
+          test -n "$SAKURA_HOST" || { echo "SAKURA_HOST missing"; exit 1; }
+          test -n "$SAKURA_USER" || { echo "SAKURA_USER missing"; exit 1; }
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_sakura
+          chmod 600 ~/.ssh/id_sakura
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" >> ~/.ssh/known_hosts
+          test -s ~/.ssh/known_hosts
+      - name: Upload EQUINERIS files without deleting server files
+        env:
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes "$SAKURA_USER@$SAKURA_HOST" 'test -d /home/rakudadou/www/smart-diet/equineris'
+          scp -i ~/.ssh/id_sakura -o BatchMode=yes -r equineris/. "$SAKURA_USER@$SAKURA_HOST:/home/rakudadou/www/smart-diet/equineris/"
+          echo "Sakura upload finished"
