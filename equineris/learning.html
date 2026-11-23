@@ -177,7 +177,6 @@
 .lesson-tabs::-webkit-scrollbar{display:none}
 .lesson-tabs button{flex:0 0 auto;min-height:43px;padding:7px 12px;border:1px solid #d8e3d9;border-radius:10px;background:#fff;color:var(--green);font-size:12px;font-weight:750}
 .lesson-tabs button[aria-pressed=true]{background:var(--green);color:white;border-color:var(--green)}
-.lesson-note{margin:15px 0;background:#faf8f0;border-left:3px solid var(--gold);padding:10px 12px;border-radius:0 9px 9px 0;color:#675a47;font-size:12px;line-height:1.8}
 .lesson-week-nav{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin:13px 0}
 .lesson-week-nav a{display:flex;justify-content:center;align-items:center;text-align:center;min-height:50px;border:1px solid #cde0d0;border-radius:11px;background:#fff;color:var(--green);text-decoration:none;font-size:13px;font-weight:750;padding:10px}
 .lesson-week-nav a[hidden]{display:none!important}
@@ -248,7 +247,6 @@ body.week-reading .lesson-tabs{padding:1px 1px 5px}
   <div class="point-track" id="lessonTrack" tabindex="0" role="region" aria-label="12週間プログラムの週別学習" aria-describedby="lessonInstructions"></div>
   <nav class="point-navigation" aria-label="学習カードを切り替える"><button id="lessonPrev" type="button" disabled>〈 前へ</button><span id="lessonCounter" class="point-counter" aria-live="polite">1 / 4</span><button id="lessonNext" type="button">次へ 〉</button></nav>
   <div class="lesson-tabs" id="lessonTabs" role="group" aria-label="教材カードを選ぶ"></div>
-  <p id="lessonVisualNote" class="lesson-note" hidden></p>
   <a class="lesson-step-link" id="lessonCompanion" href="./food-groups.html" hidden>関連教材を開く</a>
   <nav class="lesson-week-nav" aria-label="週を移動する"><a id="previousWeek" href="./learning.html?week=1">〈 前の週</a><a id="nextWeek" href="./learning.html?week=2">次の週 〉</a></nav>
   <a class="lesson-step-link" href="./textbook.html">6ステップの教材・検索・お気に入り</a>
@@ -274,7 +272,6 @@ const tabs=document.getElementById('lessonTabs');
 const before=document.getElementById('previousWeek');
 const after=document.getElementById('nextWeek');
 const companion=document.getElementById('lessonCompanion');
-const visualNote=document.getElementById('lessonVisualNote');
 if(!Array.isArray(data)||data.length!==12||data.some((week,i)=>week.week!==i+1)){
  index.hidden=false;content.hidden=true;
  document.getElementById('lessonIndexLead').textContent='教材を読み込めませんでした。ページを再読み込みしてください。';
@@ -354,10 +351,6 @@ function loadWeek(n){
  if(n===1){companion.href='./week-1-goal.html';companion.textContent='スマートダイエットの減量目標設定';companion.hidden=false;}
  if(n===3){companion.href='./food-groups.html?day=1';companion.textContent='4つの食品群と点数配分を詳しく見る';companion.hidden=false;}
  if(n===12){companion.href='./maintenance-energy.html';companion.textContent='12週間修了後のエネルギー構成と四群の点数配分を見る';companion.hidden=false;}
- visualNote.hidden=!entry.pendingVisualSections.length;
- if(!visualNote.hidden){
-  visualNote.textContent='写真や具体的な食事例が必要な「'+entry.pendingVisualSections.join('」「')+'」は、元の教材に画像・確定した数値が含まれていないため、この学習画面には未掲載です。';
- }
  slideIndex=0;track.scrollLeft=0;update();
 }
 prev.addEventListener('click',()=>go(slideIndex-1));
