@@ -640,7 +640,7 @@ test('contents never shares a screen with lesson text; return controls restore c
  assert.equal(e.steps.hidden,false);
  assert.equal(e.discoveryPanel.hidden,true);
  assert.equal(e.libraryIntro.hidden,true);
- assert.equal(e.backToIndex.hidden,false);
+ assert.equal(e.backToIndex.hidden,true); // Return through the in-flow contents link.
  const footer=t.sections[1].children.find(c=>c.className==='step-footer').children[0];
  footer.click();
  assert.equal(e.steps.hidden,true);
