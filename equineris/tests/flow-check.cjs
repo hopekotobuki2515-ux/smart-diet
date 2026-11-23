@@ -39,6 +39,9 @@ test('mobile reader and empty history avoid blank-page regression',()=>{
  const step=source['smart-diet.html'];
  const book=source['textbook.html'];
  const hist=source['record-history.html'];
+ const opening=source['index.html'];
+ assert.match(opening,/html,body\{height:100%;overflow-y:hidden/);
+ assert.doesNotMatch(opening,/overflow-y:auto!important/);
  assert.match(step,/justify-content:flex-start;gap:clamp\(12px,2svh,20px\)/);
  assert.match(step,/overflow-y:auto;overscroll-behavior-y:contain/);
  assert.match(book,/state\.section\.scrollIntoView\(\{block:'start',behavior:'auto'\}\)/);
@@ -271,10 +274,12 @@ test('embedded STEP forms route links within the same parent page and lock durin
  }
  const buttons=['1','2','3','history'].map(v=>new El(v));
  const date=new El(),dateBox=new El(),status=new El(),frame=new El();
+ frame.style={};
  const local=new Map();
  const storage={getItem:k=>local.get(k)??null,setItem:(k,v)=>local.set(k,String(v)),get length(){return local.size},key:i=>[...local.keys()][i]};
  const styles=[],childEvents={},photoStatus=new El();
- const childDoc={body:{},head:{append(x){styles.push(x)}},
+ const contentBox={getBoundingClientRect:()=>({height:520})};
+ const childDoc={body:{},documentElement:{scrollHeight:1500},querySelector:sel=>sel==='.page'?contentBox:null,head:{append(x){styles.push(x)}},
   createElement:()=>new El(),addEventListener:(type,fn)=>{(childEvents[type]??=[]).push(fn)},
   getElementById:id=>id==='photoStatus'?photoStatus:null};
  const location={search:'?date=2026-11-21',pathname:'/smart-diet/equineris/record.html',origin:'https://example.test',assign(){}};
@@ -286,7 +291,8 @@ test('embedded STEP forms route links within the same parent page and lock durin
   observe(){}
   disconnect(){}
  }
- const window={addEventListener(){}};
+ const events={};
+ const window={addEventListener(type,fn){events[type]=fn;}};
  const history={replaceState(){}};
  vm.runInNewContext(source['record-unified.js'],{
   window,document:doc,localStorage:storage,history,location,Date,URL,URLSearchParams,MutationObserver:FakeObserver
@@ -295,6 +301,10 @@ test('embedded STEP forms route links within the same parent page and lock durin
  frame.contentDocument=childDoc;
  frame.contentWindow={location:{href:'https://example.test/smart-diet/equineris/diary-step1.html?date=2026-11-21'}};
  frame.fire('load');
+ assert.equal(frame.style.height,'528px','iframe height must follow content, not its viewport');
+ childDoc.documentElement.scrollHeight=6000;
+ events.resize();
+ assert.equal(frame.style.height,'528px','changing viewport scrollHeight must not grow the iframe');
  assert.equal(styles.length,1,'reused stage engine should be styled as part of unified page');
  assert.match(styles[0].textContent,/\.toolbar,.topbar/);
  const fileInput={matches:q=>q==='input[type="file"][data-photo]',files:[{}]};
