@@ -294,6 +294,21 @@ test('embedded STEP forms route links within the same parent page and lock durin
  assert.equal(dateBox.hidden,true);
  assert.equal(location.pathname,'/smart-diet/equineris/record.html','URL pathname remains unchanged');
 });
+test('review points match STEP3 food master; mismatched or missing amounts remain uncalculated',()=>{
+ const win={};class B{}
+ vm.runInNewContext(source['record-history.js'],{window:win,document:{getElementById:()=>null},Date,Blob:B,URL:{}});
+ const calculate=win.EquinerisRecordHistory.pointsFor;
+ const master=[{name:'ごはん',group:'第4群',gramsPerPoint:50}];
+ const saved={stage:3,name:'ごはん',masterIndex:0,masterName:'ごはん',
+  masterGroup:'第4群',masterGramsPerPoint:50,grams:120};
+ assert.equal(calculate(saved,master),2.4);
+ for(const changed of [{...saved,grams:null},{...saved,masterIndex:2},
+  {...saved,masterName:'別の食品'},{...saved,masterGroup:'第3群'},
+  {...saved,masterGramsPerPoint:45},{...saved,stage:2}])
+  assert.equal(calculate(changed,master),null,'must not fabricate historical points');
+ assert.match(source['record-history.js'],/この日の記録済み点数/);
+ assert.match(source['record-history.js'],/fetch\('\.\.\/food-master\.json'/);
+});
 test('food diary stays connected across three recording stages',()=>{
  assert.match(source['diary-step1.html'],/id="diaryStep2Link"/);
  assert.match(source['record.html'],/data-view="1"/);
