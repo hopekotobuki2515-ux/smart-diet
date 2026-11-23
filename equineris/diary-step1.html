@@ -3,7 +3,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<meta name="description" content="SMART Dietの食事記録。写真、メモ、4つの食品群への○チェックを、朝食・昼食・夕食・間食ごとに記録できます。">
+<meta name="description" content="EQUINERISの食事記録STEP1。写真、メモと四群チェックを、朝食・昼食・夕食・間食ごとに記録できます。">
 <title>食事記録 | SMART Diet</title>
 <style>
 :root{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;color-scheme:light;--ink:#24443c;--green:#285d4a;--mint:#ecf5ed;--line:#cbd7cd;--muted:#60776a}
@@ -88,8 +88,7 @@ dialog h2{font-size:17px;margin:0 0 8px}.dialog-date{font-size:12px;color:var(--
 .meal-slide>.memo-pane{margin:10px 0 8px}
 @media(max-width:350px){.page{padding-inline:5px}.toolbar-title{font-size:14px}.date-row input{width:133px}.meal-tab{font-size:13px}}
 
-/* STEP1 only asks for photos and short notes; preserve old group values for review. */
-.food-groups,.four-group-reference,.group4-detail,.group4-food-index{display:none!important}
+/* STEP1 retains its original four-food-group mark table on every meal card. */
 /* Four-group reference: dedicated final slide after the snack record. */
 .group4-detail{margin-top:18px;padding-top:12px;border-top:2px solid #dce7db}.group4-detail-note{font-size:12px;line-height:1.7;color:#526b5d;margin:10px 0 0;overflow-wrap:break-word}
 
@@ -117,7 +116,6 @@ dialog h2{font-size:17px;margin:0 0 8px}.dialog-date{font-size:12px;color:var(--
 .group4-food-status{margin:8px 0 0}
 
 
-#previewDialog th:not(:first-child),#previewDialog td:not(:first-child),#previewDialog col.group{display:none!important}
 </style>
 </head>
 <body><main class="viewport"><div class="page">
