@@ -8,7 +8,7 @@ const vm=require('node:vm');
 const root=path.resolve(__dirname,'..');
 const read=name=>fs.readFileSync(path.join(root,name),'utf8');
 const source=Object.fromEntries(
- ['index.html','smart-diet.html','setup.html','textbook.html','textbook-data.js','goal-calculator.js','week-1-goal.html',
+ ['index.html','smart-diet.html','setup.html','learning.html','learning-data.js','textbook.html','textbook-data.js','goal-calculator.js','week-1-goal.html',
   'habit-intro.html','habit-check.html','habit-check-card.js','record.html','record-unified.js','record-weight.js','diary-step1.html','measurements.html','diary-step2.html',
   'diary-step3.html','diary-step2.js','diary-step3.js','trainer-link.js','weight-trend.js',
   'record-history.html','record-history.js']
@@ -509,6 +509,31 @@ test('six textbook steps and all unique lesson IDs are present',()=>{
  assert.equal(new Set(cards.map(c=>c.id)).size,cards.length);
  for(const id of ['s2-goal','s2-c6','s2-weight-history','s2-habit-check','s2-c8','s4-c3','s5-c1'])
   assert.ok(cards.some(c=>c.id===id),id);
+});
+test('all twelve weeks link to existing textbook cards and returning retains context',()=>{
+ const cards=new Map(textbookData.flatMap(step=>step.cards.map(card=>[card.id,card])));
+ const match=source['learning.html'].match(/^const relatedTextbookByWeek=(.+);$/m);
+ assert.ok(match,'weekly textbook mapping must be present');
+ const mapped=JSON.parse(match[1]);
+ assert.equal(mapped.length,12);
+ for(const [week,entries] of mapped.entries()){
+  assert.ok(entries.length>0,'week '+(week+1)+' has no related reading');
+  const seen=new Set();
+  for(const [id,title] of entries){
+   assert.ok(cards.has(id),'missing textbook card: '+id);
+   assert.equal(title,cards.get(id).title,'title mismatch for '+id);
+   assert.ok(!seen.has(id),'duplicate card in week '+(week+1)+': '+id);
+   seen.add(id);
+  }
+ }
+ assert.match(source['learning.html'],/\.\/textbook\.html\?week=/);
+ assert.match(source['textbook.html'],/backLink\.href='\.\/learning\.html\?'\+params/);
+ assert.ok(source['textbook.html'].includes("history.replaceState(null,'',(location.search||'')+'#'+id)"),
+  'card navigation must keep the originating week query');
+ assert.ok(source['textbook.html'].includes("history.replaceState(null,'',(location.search||'')+'#index')"),
+  'table-of-contents navigation must keep the originating week query');
+ assert.match(source['diary-step1.html'],/href="\.\/textbook\.html#s4-c1"/);
+ assert.doesNotMatch(source['learning-data.js'],/振り返るします/);
 });
 class MockEl {
  constructor(tag='div'){
