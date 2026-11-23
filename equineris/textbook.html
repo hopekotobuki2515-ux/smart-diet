@@ -123,7 +123,9 @@ a,button,input{font:inherit}button{cursor:pointer}
 @media(min-width:700px){.wrap{border-left:1px solid var(--edge);border-right:1px solid var(--edge)}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.track{scroll-behavior:auto}}
 
-/* Mobile reading stays single-column; the index is always reachable above the cards. */
+/* The contents and lesson are separate screens, never stacked on one page. */
+.textbook-layout{display:block}
+/* Mobile reading stays single-column. */
 @media(max-width:700px){.textbook-layout{grid-template-columns:minmax(0,1fr)}.textbook-layout>.toolbox{order:-1;padding:14px}}
 /* Keep adjacent cards separate without changing the slide stride. Do not trap vertical scroll in a card. */
 .track{gap:12px;overflow-y:clip}
@@ -136,13 +138,13 @@ a,button,input{font:inherit}button{cursor:pointer}
   <a href="./learning.html" class="back">〈 12週間の学びに戻る</a>
   <span class="brand" aria-label="EQUINERIS">EQUI<span>NERIS</span></span>
  </nav>
- <header class="intro">
+ <header class="intro" id="libraryIntro">
   <p class="eyebrow">SMART DIET · TEXTBOOK LIBRARY</p>
   <h1>SMART Diet 教材を読み返す</h1>
   <p>各ステップのカードは左右にスワイプして読めます。最後の「次へ」で次のステップに進みます。検索や目次から読み返すこともできます。</p>
  </header>
  <div class="textbook-layout">
-  <div id="steps" aria-live="off"></div>
+  <div id="steps" aria-live="off" hidden></div>
   <section class="toolbox" aria-labelledby="findTitle" id="discoveryPanel">
   <h2 id="findTitle">知りたいことを探す</h2>
   <label for="searchInput" class="search-label">キーワードで教材を検索</label>
@@ -160,21 +162,21 @@ a,button,input{font:inherit}button{cursor:pointer}
   <nav id="stepIndex" class="index-links" aria-label="ステップ目次"></nav>
   </section>
  </div>
- <section class="end-card" aria-labelledby="endTitle">
+ <section class="end-card" id="textbookEnding" aria-labelledby="endTitle" hidden>
   <p class="eyebrow">12-WEEK PROGRAM</p>
   <h2 id="endTitle">学びは何度でも振り返れます</h2>
   <p>必要なときに、好きなカードへ戻ってください。12週間の学びや食事記録の機能は、これまでどおり別のページに残しています。</p>
   <a href="./learning.html">12週間の学びへ戻る</a>
  </section>
- <section class="related-sites" aria-labelledby="relatedSitesTitle">
+ <section class="related-sites" id="textbookRelated" aria-labelledby="relatedSitesTitle" hidden>
   <h2 id="relatedSitesTitle">関連サイト</h2>
   <a href="https://hopekotobuki2515-ux.github.io/hope-homepage/" target="_blank" rel="noopener noreferrer">HOPEホームページ</a>
   <a href="https://rakudadou719.web.fc2.com/" target="_blank" rel="noopener noreferrer">暮らしのいいもの案内所</a>
   <a href="https://hope-fitness.jp/" target="_blank" rel="noopener noreferrer">HOPE FITNESSブログ</a>
  </section>
- <p class="bottom-note">疾患別の内容は一般的な食生活の学習資料です。個別の診断・治療ではありません。教材に掲載された古い運動指標は当時の資料として扱っています。</p>
+ <p class="bottom-note" id="textbookDisclaimer" hidden>疾患別の内容は一般的な食生活の学習資料です。個別の診断・治療ではありません。教材に掲載された古い運動指標は当時の資料として扱っています。</p>
 </main>
-<a class="to-top" href="#discoveryPanel" aria-label="教材の目次と検索へ戻る">↑ 目次</a>
+<button class="to-top" type="button" id="backToIndex" aria-label="教材の目次と検索へ戻る" hidden>↑ 目次</button>
 <noscript>教材の表示・検索にはJavaScriptを有効にしてください。</noscript>
 <script src="./textbook-data.js?v=20261123-past-weight-copy"></script>
 <script src="./goal-calculator.js?v=20261123-card-flow-fix"></script>
@@ -192,6 +194,12 @@ a,button,input{font:inherit}button{cursor:pointer}
  const resultTitle=document.getElementById('resultTitle');
  const resultList=document.getElementById('resultList');
  const status=document.getElementById('storageStatus');
+ const intro=document.getElementById('libraryIntro');
+ const discovery=document.getElementById('discoveryPanel');
+ const returnIndex=document.getElementById('backToIndex');
+ const ending=document.getElementById('textbookEnding');
+ const related=document.getElementById('textbookRelated');
+ const disclaimer=document.getElementById('textbookDisclaimer');
  if(!Array.isArray(data)||data.length!==6||data.some((s,i)=>s.id!==i+1||!Array.isArray(s.cards)||!s.cards.length)){
   root.textContent='教材データを読み込めませんでした。再読み込みしてください。';return;
  }
@@ -231,10 +239,29 @@ a,button,input{font:inherit}button{cursor:pointer}
    return {heightCm:h,weightKg:w};
   }catch(e){return null;}
  };
+ const showIndex=()=>{
+  // A printed-book-style contents screen: lesson text is not displayed underneath.
+  root.hidden=true;
+  discovery.hidden=false;
+  intro.hidden=false;
+  returnIndex.hidden=true;
+  ending.hidden=true;related.hidden=true;disclaimer.hidden=true;
+  for(const state of controls.values())state.section.hidden=true;
+ };
  const showStep=stepId=>{
-  // Only the selected STEP is displayed; other STEPs remain available in the DOM.
+  root.hidden=false;
+  discovery.hidden=true;
+  intro.hidden=true;
+  returnIndex.hidden=false;
+  ending.hidden=stepId!==6;related.hidden=stepId!==6;disclaimer.hidden=stepId!==6;
   for(const [id,state] of controls)state.section.hidden=id!==stepId;
  };
+ const backToContents=()=>{
+  showIndex();
+  if(history.replaceState)history.replaceState(null,'','#index');
+  discovery.scrollIntoView({block:'start',behavior:'auto'});
+ };
+ returnIndex.addEventListener('click',backToContents);
  const jump=(id)=>{
   const found=CARDS.get(id);if(!found)return;
   const state=controls.get(found.step.id);if(!state)return;
@@ -413,7 +440,7 @@ a,button,input{font:inherit}button{cursor:pointer}
   const counter=create('span','counter','1 / '+s.cards.length);counter.setAttribute('aria-live','polite');
   const next=create('button','next','次へ 〉');next.type='button';
   nav.append(prev,counter,next);section.append(nav);
-  const foot=create('div','step-footer');const a=create('a','','目次に戻る ↑');a.href='#discoveryPanel';foot.append(a);section.append(foot);
+  const foot=create('div','step-footer');const a=create('a','','目次に戻る ↑');a.href='#index';a.addEventListener('click',event=>{event.preventDefault();backToContents();});foot.append(a);section.append(foot);
   root.append(section);
   const state={track,section,prev,next,counter,cards:s.cards,active:0};
   controls.set(s.id,state);
@@ -457,7 +484,7 @@ a,button,input{font:inherit}button{cursor:pointer}
    });
   },{passive:true});
  }
- updateFavoriteBtns();setResume();
+ updateFavoriteBtns();setResume();showIndex();
  search.addEventListener('input',()=>{resultsMode='search';favView.setAttribute('aria-pressed','false');renderResults()});
  favView.addEventListener('click',()=>{
   const toggle=resultsMode!=='favorites';resultsMode=toggle?'favorites':'none';
@@ -475,6 +502,15 @@ a,button,input{font:inherit}button{cursor:pointer}
    window.addEventListener('load',()=>jump(step.cards[0].id),{once:true});
   }
  }
+ window.addEventListener('popstate',()=>{
+  const hash=location.hash.slice(1);
+  if(CARDS.has(hash))jump(hash);
+  else {
+   const match=/^step-([1-6])$/.exec(hash);
+   if(match)jump(data[Number(match[1])-1].cards[0].id);
+   else showIndex();
+  }
+ });
 })();
 </script>
 </body>
