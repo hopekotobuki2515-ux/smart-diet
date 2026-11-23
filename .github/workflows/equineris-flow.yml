@@ -25,3 +25,5 @@ jobs:
         run: node equineris/tests/flow-check.cjs
       - name: Check mobile reader in headless Chrome
         run: node equineris/tests/reader-browser.cjs
+      - name: Audit mobile geometry across EQUINERIS screens
+        run: node equineris/tests/mobile-layout-audit.cjs
