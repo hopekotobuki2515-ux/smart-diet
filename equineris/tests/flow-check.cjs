@@ -33,7 +33,18 @@ test('registration has only previously approved three fields',()=>{
  for(const id of ['age','waist','threeMonthGoal','bmiValue','rate5'])
   assert.doesNotMatch(s,new RegExp('id="'+id+'"'));
  assert.match(s,/equineris:registration:v1/);
- assert.match(s,/\.\/textbook\.html#s1-c1/);
+ assert.match(s,/window\.location\.assign\('\.\/textbook\.html'\)/);
+});
+test('mobile reader and empty history avoid blank-page regression',()=>{
+ const step=source['smart-diet.html'];
+ const book=source['textbook.html'];
+ const hist=source['record-history.html'];
+ assert.match(step,/justify-content:flex-start;gap:clamp\(12px,2svh,20px\)/);
+ assert.match(step,/overflow-y:auto;overscroll-behavior-y:contain/);
+ assert.match(book,/state\.section\.scrollIntoView\(\{block:'start',behavior:'auto'\}\)/);
+ assert.match(book,/href="#discoveryPanel"/);
+ assert.match(book,/overflow:visible/);
+ assert.match(hist,/max-width:510px;min-height:0;padding/);
 });
 test('weight goal and BMI remain inside separate lesson flow',()=>{
  const s=source['week-1-goal.html'];
