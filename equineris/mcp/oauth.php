@@ -7,7 +7,7 @@ $action=(string)($_GET['action']??'');
 if($action==='authorize'){
  ini_set('session.use_strict_mode','1');ini_set('session.use_only_cookies','1');
  session_name('equineris_mcp_oauth');
- session_set_cookie_params(['lifetime'=>0,'path'=>'/smart-diet/equineris/mcp/','secure'=>getenv('EQUINERIS_LOCAL_TEST')!=='1','httponly'=>true,'samesite'=>'Lax']);
+ session_set_cookie_params(['lifetime'=>0,'path'=>getenv('EQUINERIS_LOCAL_TEST')==='1'?'/mcp/':'/smart-diet/equineris/mcp/','secure'=>getenv('EQUINERIS_LOCAL_TEST')!=='1','httponly'=>true,'samesite'=>'Lax']);
  session_start();
  if($_SERVER['REQUEST_METHOD']==='GET'){
   $client=(string)($_GET['client_id']??'');$redirect=(string)($_GET['redirect_uri']??'');
