@@ -6,7 +6,7 @@ if(item.ai_consent===true){
  const aiBox=el('div');aiBox.className='ai-review';const aiTitle=el('h3','AIによる一次チェック（トレーナー専用）');aiBox.append(aiTitle);
  if(item.ai_draft&&typeof item.ai_draft==='object'){
   const d=item.ai_draft;
-  aiBox.append(el('pre','【写真・記録の確認】\\n'+(d.food_observations||'')+'\\n\\n【四群点数法】\\n'+(d.four_group_review||'')+'\\n\\n【改善案】\\n'+(d.improvement_suggestion||'')+'\\n\\n【コメント案】\\n'+(d.trainer_comment_draft||'')));
+  aiBox.append(el('pre','【写真・記録の確認】\n'+(d.food_observations||'')+'\n\n【四群点数法】\n'+(d.four_group_review||'')+'\n\n【改善案】\n'+(d.improvement_suggestion||'')+'\n\n【コメント案】\n'+(d.trainer_comment_draft||'')));
   const use=el('button','コメント案を入力欄にコピー');use.type='button';use.className='secondary';use.addEventListener('click',()=>{reply.value=d.trainer_comment_draft||'';status('AIの案を入力欄にコピーしました。内容を確認してから「確認して返信」を押してください。')});aiBox.append(use);
  }
  const aiBtn=el('button',item.ai_draft?'AIで再チェック':'AIで一次チェック');aiBtn.type='button';aiBtn.className='secondary';aiBtn.disabled=r.ai_configured!==true;
