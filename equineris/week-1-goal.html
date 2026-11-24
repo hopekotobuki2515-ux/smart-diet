@@ -566,15 +566,31 @@
   const observer=new ResizeObserver(measure);
   slides.forEach(slide=>observer.observe(slide));
  }
- const fromTextbook=new URLSearchParams(location.search).get('from')==='textbook-step2';
+ const entry=new URLSearchParams(location.search);
+ const fromTextbook=entry.get('from')==='textbook-step2';
+ const returnCard=Number(entry.get('card'));
+ const fromWeekTwo=entry.get('from')==='learning'&&entry.get('week')==='2'&&entry.has('card')&&
+  Number.isInteger(returnCard)&&returnCard>=0&&returnCard<=3;
  if(fromTextbook){
   const back=document.querySelector('.topbar .back');
   if(back){back.href='./textbook.html#s2-c6';back.textContent='〈 参考テキストへ戻る';}
   const next=document.querySelector('.bmi-slide-action');
   if(next)next.href='./habit-intro.html?from=textbook-step2';
  }
- const requestedSlide=new URLSearchParams(location.search).get('slide');
- go(fromTextbook?(requestedSlide==='bmi'?2:1):0);
+ if(fromWeekTwo){
+  const back=document.querySelector('.topbar .back');
+  if(back){back.href='./learning.html?week=2&card='+returnCard;back.textContent='〈 第2週の学びへ戻る';}
+  const weekLabel=document.querySelector('.topbar .step');
+  const eyebrow=document.querySelector('.eyebrow');
+  if(weekLabel)weekLabel.textContent='WEEK 02';
+  if(eyebrow)eyebrow.textContent='SMART DIET · WEEK 02';
+  const slides=document.getElementById('goalSlideTrack');
+  if(slides)slides.setAttribute('aria-label','第2週の減量目標設定（全3枚）');
+  const next=document.querySelector('.bmi-slide-action');
+  if(next)next.href='./habit-check.html?from=learning&week=2&card='+returnCard;
+ }
+ const requestedSlide=entry.get('slide');
+ go(fromTextbook||fromWeekTwo?(requestedSlide==='bmi'?2:1):0);
  requestAnimationFrame(measure);
 })();</script>
 </body>
