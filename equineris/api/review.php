@@ -117,7 +117,7 @@ if($action==='submit'){
   if(!move_uploaded_file($p['tmp'],$dest)){foreach($moved as $old)@unlink($old);fail(500,'写真を保存できません');}
   @chmod($dest,0600);$moved[]=$dest;$photos[]=['name'=>$file,'mime'=>$p['mime']];
  }
- $record=['id'=>$id,'client'=>$client,'name'=>$name,'date'=>$day,'stage'=>(int)$stage,'note'=>$note,'summary'=>$summary,'photos'=>$photos,'created'=>gmdate('c'),'status'=>'waiting','comment'=>'','reviewed'=>null];
+ $record=['id'=>$id,'client'=>$client,'name'=>$name,'date'=>$day,'stage'=>(int)$stage,'note'=>$note,'summary'=>$summary,'photos'=>$photos,'created'=>gmdate('c'),'status'=>'waiting','comment'=>'','reviewed'=>null,'ai_consent'=>field('ai_consent',5)==='yes','ai_draft'=>null,'ai_generated_at'=>null];
  persist($base.'/requests/'.$id.'.json',$record);output(['ok'=>true,'id'=>$id,'status'=>'waiting']);
 }
 if($action==='mine'){
@@ -128,7 +128,13 @@ if($action==='mine'){
 if($action==='list'){
  require_admin();$items=[];
  foreach(glob($base.'/requests/*.json')?:[] as $path){$r=json_file($path);unset($r['client']);$items[]=$r;}
- usort($items,fn($a,$b)=>strcmp($b['created'],$a['created']));output(['items'=>array_slice($items,0,100)]);
+ usort($items,fn($a,$b)=>strcmp($b['created'],$a['created']));
+ $aiPath=__DIR__.'/ai-config.local.php';$aiReady=false;
+ if(is_file($aiPath)){$aiCfg=require $aiPath;$aiReady=is_array($aiCfg)&&is_string($aiCfg['api_key']??null)&&trim($aiCfg['api_key'])!=='';}
+ output(['items'=>array_slice($items,0,100),'ai_configured'=>$aiReady]);
+}
+if($action==='ai_generate'){
+ require_admin();require __DIR__.'/ai-review.php';
 }
 if($action==='comment'){
  require_admin();$id=file_id(field('id',32));$comment=field('comment',2000);
