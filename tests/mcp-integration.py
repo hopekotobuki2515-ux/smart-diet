@@ -76,7 +76,7 @@ try:
  check('MCP reads meal, question and photo count',body['summary']=='朝食：ご飯、豆腐' and body['photo_count']==1)
  image = invoke(session,token,'tools/call',{'name':'get_meal_photo','arguments':{'id':rid,'index':0}},7)
  content = image.json()['result']['content']
- check('MCP returns private real photo image content',content[1]['type']=='image' and base64.b64decode(content[1]['data']).startswith(b'\\x89PNG'))
+ check('MCP returns private real photo image content',content[1]['type']=='image' and base64.b64decode(content[1]['data']).startswith(b'\x89PNG'))
  rejected = invoke(session,token,'tools/call',{'name':'send_trainer_comment','arguments':{'id':rid,'comment':'野菜を少し加えてみましょう','confirmed':False}},8)
  check('unapproved comment rejected without write', '未送信' in rejected.json()['result']['content'][0]['text'])
  posted = invoke(session,token,'tools/call',{'name':'send_trainer_comment','arguments':{'id':rid,'comment':'野菜を少し加えてみましょう','confirmed':True}},9)
