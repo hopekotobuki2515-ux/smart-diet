@@ -20,7 +20,7 @@
 <label>写真を追加する（最大4枚・1枚5MB以内）<input id="manualPhotos" type="file" accept="image/jpeg,image/png,image/webp" multiple></label></section>
 <section class="card"><h2>送信の確認</h2>
 <label class="check"><input id="consent" type="checkbox" required><span>食事写真と記録をトレーナーに共有し、確認・コメントのために保存することに同意します。</span></label>
-<label class="check"><input id="aiConsent" type="checkbox"><span>希望する場合のみ、食事写真と記録を外部AIサービス（OpenAI API）に送信し、トレーナーが確認するコメント案の作成に利用することに同意します。AIの結果は自動送信されません。</span></label>
+<label class="check"><input id="aiConsent" type="checkbox"><span>希望する場合のみ、食事写真と記録をOpenAIのChatGPTまたはOpenAI APIに送信し、トレーナーが確認するコメント案の作成に利用することに同意します。ChatGPTはトレーナーの操作で写真を読み取ります。AIの結果は自動送信されません。</span></label>
 <p class="notice">AIチェックへの同意は任意です。チェックしなくても、トレーナーによる通常の確認を依頼できます。「お名前」欄の氏名はAIへ送信しません。</p>
 <p class="notice">記録はサーバーに保存され、担当トレーナーのみが確認します。確認を依頼しない方は送信する必要はありません。</p>
 <button class="primary" id="send" type="submit">トレーナーにチェックを依頼する</button>
