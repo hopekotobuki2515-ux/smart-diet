@@ -1,0 +1,56 @@
+name: Import verified EQUINERIS trainer review source
+on:
+  push:
+    branches: [feature/equineris-trainer-review-sakura-20261124]
+    paths: ['equineris/review-source/part4.b85']
+permissions:
+  contents: write
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reconstruct and verify the reviewed source
+        shell: bash
+        run: |
+          python - <<'PY'
+          import base64,hashlib,io,tarfile
+          from pathlib import Path
+          allowed={
+            'equineris/trainer-check.html','equineris/trainer-check.js',
+            'equineris/trainer-dashboard.html','equineris/trainer-dashboard.js',
+            'equineris/api/review.php','equineris/api/config.sample.php',
+            'equineris/api/.htaccess','tests/api-integration.py'
+          }
+          txt=''.join(Path(f'equineris/review-source/part{i}.b85').read_text() for i in range(1,5))
+          actual=hashlib.sha256(txt.encode('ascii')).hexdigest()
+          assert actual=='1fc44a4580f856e594c185d4342e385324de342b305b3c54f24f00238b3e7193',f'Unexpected archive checksum: {actual}'
+          data=base64.b85decode(txt)
+          with tarfile.open(fileobj=io.BytesIO(data),mode='r:xz') as archive:
+            members=archive.getmembers()
+            assert {x.name for x in members}==allowed,'File list differs'
+            for item in members:
+              assert item.isfile() and item.name in allowed
+              data=archive.extractfile(item).read()
+              target=Path(item.name);target.parent.mkdir(parents=True,exist_ok=True)
+              target.write_bytes(data)
+              print('IMPORTED',target,len(data))
+          PY
+      - name: Verify code and trainer API
+        run: |
+          php -l equineris/api/review.php
+          node --check equineris/trainer-check.js
+          node --check equineris/trainer-dashboard.js
+          node --check equineris/trainer-link.js
+          python -m pip install --disable-pip-version-check -q requests pillow
+          python tests/api-integration.py
+      - name: Save independently editable source files to GitHub
+        shell: bash
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add equineris/trainer-check.html equineris/trainer-check.js equineris/trainer-dashboard.html equineris/trainer-dashboard.js equineris/api/review.php equineris/api/config.sample.php equineris/api/.htaccess tests/api-integration.py
+          git rm -r -f equineris/review-source .github/workflows/import-trainer-review.yml
+          git commit -m "Import previously tested trainer review PHP API and user/trainer pages"
+          git push origin HEAD:feature/equineris-trainer-review-sakura-20261124
