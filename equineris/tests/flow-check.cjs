@@ -167,6 +167,19 @@ test('full history merges saved food, photo and body records by actual date and 
  assert.equal(model.dateValid('2026-02-30'),false);
  assert.equal(values.size,11,'no storage key may be modified by read-only review');
 });
+test('the record footer, four-food-group headings, and sample total keep original wording and use balanced Japanese line breaking',()=>{
+ const record=source['record.html'],step1=source['diary-step1.html'],step3=source['diary-step3.html'];
+ assert.match(record,/\.help\{[^}]*text-wrap:balance;word-break:normal;overflow-wrap:normal;line-break:strict\}/);
+ assert.match(step1,/\.diary-table th small\{[^}]*text-wrap:balance;word-break:keep-all;overflow-wrap:normal;line-break:strict\}/);
+ assert.match(step3,/\.sample-total\{text-wrap:balance;word-break:normal;overflow-wrap:normal;line-break:strict\}/);
+ assert.match(record,/記録と写真はこのブラウザに保存されます。別端末への自動同期はありません。/);
+ for(const heading of ['乳・乳製品／卵','魚・肉／豆製品','野菜・きのこ／いも・果物','米・パン・麺／油脂・調味料・酒']){
+  assert.equal(step1.split('<small>'+heading+'</small>').length-1,5);
+ }
+ assert.match(step3,/夕食の小計：3\.57点（うち調味料0\.06点は見本の転記値）/);
+ assert.match(step3,/小計は丸める前の数値を合算するため/);
+ assert.match(step3,/見本には保存できません。次の「朝食」から入力します。/);
+});
 test('STEP1 preserves four-group checks, unlimited dates, legacy data, and save/preview buttons',()=>{
  const page=source['diary-step1.html'];
  assert.match(page,/const DATE_PREFIX='equineris:diary-step1:v1:entry:'/);

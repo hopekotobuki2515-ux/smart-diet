@@ -232,6 +232,43 @@ const ready=async(fn)=>{
      dest.searchParams.get('stage')==='1'&&!document.querySelector('.choice-info')?.textContent.includes('3日間分まで');
    }
    return true;
+  })(),orphanCheck:(()=>{
+   const file=location.pathname.split('/').pop();
+   const selector=file==='record.html'?'.help':file==='diary-step1.html'?'.food-groups thead small':file==='diary-step3.html'?'.sample-total':null;
+   if(!selector)return {ok:true,checked:0};
+   const elements=[...document.querySelectorAll(selector)];
+   const broken=[];
+   for(const element of elements){
+    if(!element.getBoundingClientRect().width)continue;
+    const text=element.firstChild;
+    if(!text||text.nodeType!==3)continue;
+    const lineLengths=new Map();
+    const positions=[];
+    const range=document.createRange();
+    for(let i=0;i<text.textContent.length;i++){
+     if(/\s/.test(text.textContent[i]))continue;
+     range.setStart(text,i);range.setEnd(text,i+1);
+     const rect=range.getBoundingClientRect();
+     if(!rect.width||!rect.height)continue;
+     const top=Math.round(rect.top);
+     lineLengths.set(top,(lineLengths.get(top)||0)+1);
+     positions[i]=top;
+    }
+    const lengths=[...lineLengths.values()];
+    if(lengths.length>1&&lengths.some(n=>n===1))broken.push({type:'single-character-line',text:text.textContent,lengths});
+    if(file==='record.html'||file==='diary-step3.html'){
+     if(lengths.length>1&&lengths.at(-1)<3)broken.push({type:'orphan-last-line',text:text.textContent,lengths});
+    }
+    if(file==='diary-step1.html'){
+     for(const token of ['いも','油脂','乳製品','豆製品','調味料']){
+      const start=text.textContent.indexOf(token);
+      if(start<0)continue;
+      const tops=positions.slice(start,start+token.length);
+      if(tops.some(top=>top!==tops[0]))broken.push({type:'split-food-name',text:text.textContent,token});
+     }
+    }
+   }
+   return {ok:elements.length>0&&!broken.length,checked:elements.length,broken};
   })(),reader:document.documentElement.classList.contains('reader-mode'),targetVisible:!!(location.hash&&document.getElementById(location.hash.slice(1))?.getBoundingClientRect().height)};
  })())`;
  for(const width of [320,390]){
@@ -250,7 +287,8 @@ const ready=async(fn)=>{
    if(name.startsWith('learning.html?week=')&&!result.weekExpandedReady)throw Error('Original lesson does not expand, wrap or scroll cleanly '+name+': '+JSON.stringify(result));
    if(name.startsWith('learning.html?week=')&&!result.weekTextbookReady)throw Error('Missing or misplaced weekly reference textbook '+name+': '+JSON.stringify(result));
    if(name.startsWith('learning.html?week=')&&!result.weekSourceComplete)throw Error('Source curriculum missing, truncated or not scrollable '+name+': '+JSON.stringify(result));
-   if(!result.routeContinuity)throw Error('Learning/food-group/maintenance/record-only return route is broken '+name+': '+JSON.stringify(result));
+   if(!result.orphanCheck.ok)throw Error('Single-character Japanese line or split food name '+name+' at '+width+': '+JSON.stringify(result.orphanCheck));
+    if(!result.routeContinuity)throw Error('Learning/food-group/maintenance/record-only return route is broken '+name+': '+JSON.stringify(result));
     if(name.startsWith('textbook.html#')&&(!result.reader||!result.targetVisible))throw Error('Textbook card did not render '+name+': '+JSON.stringify(result));
    if(result.outside>4||result.narrowTotal>0||result.stackedTotal>0){
     const item={file:name,width,outside:result.outside,narrow:result.narrow,narrowTotal:result.narrowTotal,stacked:result.stacked,stackedTotal:result.stackedTotal};
