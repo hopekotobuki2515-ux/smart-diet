@@ -177,11 +177,11 @@
       </header>
       <div class="actions">
         <button class="start" id="startButton" type="button">12週間プログラムを始める<span class="arrow" aria-hidden="true">›</span></button>
-        <a class="continue-program" id="continueProgramLink" href="./textbook.html">プログラムの続きを再開する</a>
-        <p class="continue-note">前回の教材から再開。記録がない場合は教材一覧へ進みます。</p>
+        <a class="continue-program" id="continueProgramLink" href="./learning.html">プログラムの続きを再開する</a>
+        <p class="continue-note">前回の週と学習カードから再開します。記録がない場合は12週間の一覧を開きます。</p>
         <a class="record-only" id="recordOnlyLink" href="./record.html?stage=1&amp;mode=record-only">記録だけ始める</a>
         <p class="record-caption">プログラムや初回登録なしで、食事・体重の記録を始められます。</p>
-        <button class="login" id="loginButton" type="button">ログインはこちら</button>
+        <p class="continue-note">※ 記録は現在このブラウザ内に保存されます。別端末との同期・アカウントログインには対応していません。</p>
         <p class="footer-note">健康な毎日を、一緒につくりましょう。</p>
       </div>
     </section>
@@ -194,7 +194,7 @@
   <script>
     'use strict';
     // 未確定の遷移先を推測で指定しない。設定されるまでは404へ移動せず状態を案内する。
-    const NEXT_ROUTES = Object.freeze({ start:'./program-intro.html', login:'' });
+    const NEXT_ROUTES = Object.freeze({ start:'./program-intro.html' });
     const dialog=document.getElementById('nextStepDialog');
     const title=document.getElementById('nextStepTitle');
     const message=document.getElementById('nextStepMessage');
@@ -204,20 +204,18 @@
         window.location.assign(destination);
         return;
       }
-      title.textContent=kind==='start'?'EQUINERISの説明へ':'ログインへ';
-      message.textContent=kind==='start'
-        ?'オープニングページは作成済みです。EQUINERISの説明画面への接続は次の制作工程で行います。'
-        :'ログイン画面への接続は次の制作工程で行います。既存の別アプリには移動しません。';
+      title.textContent='EQUINERISの説明へ';
+      message.textContent='説明画面を開けませんでした。もう一度お試しください。';
       if(typeof dialog.showModal==='function')dialog.showModal();
     }
-    // Restore the existing lesson card position. Never replace or reset saved progress.
-    // The textbook page validates hash IDs against its own actual card collection.
+    // Resume the 12-week program. Existing textbook bookmarks remain untouched.
     function findResumeHref(){
-      const home='./textbook.html';
+      const home='./learning.html';
       try{
-        const value=JSON.parse(localStorage.getItem('equineris:textbook:last:v1')||'null');
-        return typeof value==='string'&&/^s[1-6]-c[0-9]+$/.test(value)
-          ?home+'#'+value:home;
+        const value=JSON.parse(localStorage.getItem('equineris:learning:position:v1')||'null');
+        const week=Number(value?.week),card=Number(value?.card);
+        return Number.isInteger(week)&&week>=1&&week<=12&&Number.isInteger(card)&&card>=0&&card<=3
+          ?home+'?week='+week+'&card='+card:home;
       }catch(error){return home;}
     }
     const continueLink=document.getElementById('continueProgramLink');
@@ -225,8 +223,7 @@
       continueLink.href=findResumeHref();
     });
     document.getElementById('startButton').addEventListener('click',()=>openNext('start'));
-    document.getElementById('loginButton').addEventListener('click',()=>openNext('login'));
-    document.getElementById('closeDialog').addEventListener('click',()=>dialog.close());
+        document.getElementById('closeDialog').addEventListener('click',()=>dialog.close());
     dialog.addEventListener('click',event=>{if(event.target===dialog)dialog.close()});
   </script>
 </body>
