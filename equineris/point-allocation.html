@@ -285,7 +285,7 @@ let active=0, pending=false;
 function update(index){
  active=Math.max(0,Math.min(slides.length-1,index));
  counter.textContent=(active+1)+' / '+slides.length;
- prev.disabled=active===0;next.disabled=active===slides.length-1;
+ prev.disabled=active===0;next.disabled=false;
  tabs.forEach((tab,i)=>tab.setAttribute('aria-pressed',String(i===active)));
 }
 function go(index,smooth=true){
@@ -294,7 +294,13 @@ function go(index,smooth=true){
  track.scrollTo({left:track.clientWidth*target,behavior:'auto'});
 }
 prev.addEventListener('click',()=>go(active-1));
-next.addEventListener('click',()=>go(active+1));
+next.addEventListener('click',()=>{
+ if(active===slides.length-1){
+  window.location.assign(document.getElementById('openWeeklyRecord').href);
+  return;
+ }
+ go(active+1);
+});
 tabs.forEach((tab,index)=>tab.addEventListener('click',()=>go(index)));
 track.addEventListener('scroll',()=>{
  if(pending)return;pending=true;
