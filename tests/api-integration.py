@@ -32,6 +32,10 @@ try:
   img=s.get(url+f'?action=photo&id={rid}&n=0');test('private photo requires admin login',img.status_code==403)
   login=s.post(url+'?action=login',data={'password':password},headers={'X-CSRF-Token':csrf});test('admin login succeeds',login.status_code==200)
   csrf=login.json()['csrf']
+  # The dashboard must POST to the API; a GET produces HTTP 405 even after login.
+  dashboard=(base/'trainer-dashboard.js').read_text()
+  test('trainer dashboard sends list via POST with CSRF', "await req('list',new FormData())" in dashboard and "'X-CSRF-Token':csrf" in dashboard)
+  test('trainer list rejects GET',s.get(url+'?action=list').status_code==405)
   listing=s.post(url+'?action=list',headers={'X-CSRF-Token':csrf});test('admin sees submitted food photos',listing.status_code==200 and listing.json()['items'][0]['photos'][0]['mime']=='image/png')
   photo=s.get(url+f'?action=photo&id={rid}&n=0');test('admin can view image',photo.status_code==200 and photo.headers['Content-Type'].startswith('image/png'))
   reply=s.post(url+'?action=comment',data={'id':rid,'comment':'野菜を加える工夫から始めましょう'},headers={'X-CSRF-Token':csrf});test('admin can reply',reply.status_code==200)
