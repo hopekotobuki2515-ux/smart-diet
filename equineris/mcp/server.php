@@ -4,7 +4,7 @@ define('EQUINERIS_MCP_ENTRY',true);
 require __DIR__.'/common.php';
 ehttps();
 header('MCP-Protocol-Version: 2025-06-18');
-function rpc($id,array $result):never{ejson(['jsonrpc'=>'2.0','id'=>$id,'result'=>$result]);}
+function rpc($id,array|object $result):never{ejson(['jsonrpc'=>'2.0','id'=>$id,'result'=>$result]);}
 function rpcerr($id,int $code,string $msg):never{ejson(['jsonrpc'=>'2.0','id'=>$id,'error'=>['code'=>$code,'message'=>$msg]]);}
 function txt(string $s):array{return ['content'=>[['type'=>'text','text'=>$s]]];}
 function schema(array $properties,array $required=[]):array{return ['type'=>'object','properties'=>$properties,'required'=>$required,'additionalProperties'=>false];}
@@ -19,7 +19,7 @@ function defs():array{
 }
 function read_request_id(array $args):string{
  $id=$args['id']??null;
- if(!is_string($id)||preg_match('/^[a-f0-9]{32}$/D',$id)!==1)rpcerr(null,-32602,'Invalid record id');
+ if(!is_string($id)||preg_match('/^[a-f0-9]{32}$/D',$id)!==1)throw new InvalidArgumentException('Invalid record id');
  return $id;
 }
 function run_tool(string $name,array $args):array{
@@ -64,7 +64,7 @@ function run_tool(string $name,array $args):array{
   eratelimit('mcp-write',40);$id=read_request_id($args);
   $comment=$args['comment']??null;$confirmed=$args['confirmed']??null;
   if($confirmed!==true)return txt('未送信：トレーナーの承認が必要です。');
-  if(!is_string($comment)||trim($comment)===''||strlen($comment)>8000||mb_strlen($comment,'UTF-8')>2000)return txt('Invalid comment length');
+  if(!is_string($comment)||trim($comment)===''||strlen($comment)>8000||preg_match('//u',$comment)!==1||preg_match_all('/./us',$comment)>2000)return txt('Invalid comment length');
   $lockPath=ehome().'/oauth/ratelimit/reply-'.$id.'.lock';
   $h=fopen($lockPath,'c');if(!$h||!flock($h,LOCK_EX))return txt('Could not acquire review lock');
   $path=ehome().'/requests/'.$id.'.json';$r=erecord($id);
@@ -103,6 +103,6 @@ if($method==='tools/call'){
  if(!is_string($name)||!is_array($args))rpcerr($id,-32602,'Invalid tool arguments');
  $allowed=array_column(defs(),'name');
  if(!in_array($name,$allowed,true))rpcerr($id,-32601,'Unknown tool');
- rpc($id,run_tool($name,$args));
+ try{$result=run_tool($name,$args);}catch(InvalidArgumentException $e){rpcerr($id,-32602,'Invalid tool arguments');}\n rpc($id,$result);
 }
 rpcerr($id,-32601,'Method not found');
