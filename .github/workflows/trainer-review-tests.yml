@@ -24,10 +24,12 @@ jobs:
       - name: PHP and JavaScript syntax
         run: |
           php -l equineris/api/review.php
+          php -l equineris/api/ai-review.php
           node --check equineris/trainer-check.js
           node --check equineris/trainer-dashboard.js
           node --check equineris/trainer-link.js
           test ! -e equineris/api/config.local.php
+          test ! -e equineris/api/ai-config.local.php
       - name: Server API integration including upload, trainer authentication and feedback
         run: |
           python -m pip install --disable-pip-version-check -q requests pillow

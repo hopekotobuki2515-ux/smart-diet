@@ -3,3 +3,4 @@ firebase-debug.log
 firestore-debug.log
 ui-debug.log
 equineris/api/config.local.php
+equineris/api/ai-config.local.php
