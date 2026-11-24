@@ -242,6 +242,24 @@ body.week-reading .point-panel.lesson-reading-card{justify-content:flex-start;sc
 .lesson-section-paragraph{margin:0 0 12px;line-height:inherit;white-space:normal}
 .lesson-section-item{margin:3px 0;padding-left:0;line-height:inherit;white-space:normal}
 .lesson-week-title-line{display:block;white-space:normal}
+
+/* Keep the confirmed four-card layout; show the concise guidance first. */
+body.week-reading .lesson-brief{flex:0 0 auto;min-width:0;width:100%;max-width:100%;font-size:clamp(15px,4vw,17px);line-height:1.8;margin:8px 0 12px;color:var(--ink-light);writing-mode:horizontal-tb;white-space:normal;word-break:normal;overflow-wrap:normal;line-break:strict}
+body.week-reading .lesson-quick-actions{display:flex;flex-direction:column;gap:8px;flex:0 0 auto;width:100%;min-width:0;margin:4px 0 13px}
+body.week-reading .lesson-quick-actions .lesson-step-link{margin:0;min-height:44px;padding:9px 11px;white-space:normal;word-break:normal;overflow-wrap:normal}
+body.week-reading .lesson-full-details{flex:0 0 auto;display:block;min-width:0;width:100%;border-top:1px solid #dce7dc;padding-top:10px}
+body.week-reading .lesson-full-details summary{cursor:pointer;min-height:44px;display:flex;align-items:center;padding:9px 11px;border-radius:10px;background:#f1f7ef;color:var(--green);font-size:13px;font-weight:750;line-height:1.5;white-space:normal}
+body.week-reading .lesson-full-details[open] summary{margin-bottom:14px}
+body.week-reading .lesson-full-details .lesson-full-body{min-width:0;width:100%}
+body.week-reading .point-track,body.week-reading .point-slide,body.week-reading .point-panel,
+body.week-reading .lesson-full-body,body.week-reading .lesson-section,
+body.week-reading .lesson-section-heading,body.week-reading .lesson-section-body,
+body.week-reading .lesson-section-paragraph,body.week-reading .lesson-section-item{min-width:0;max-width:100%;writing-mode:horizontal-tb;word-break:normal;overflow-wrap:normal}
+body.week-reading .point-panel{width:100%}
+@media(max-width:340px){
+ body.week-reading .lesson-brief{font-size:15px}
+ body.week-reading .lesson-full-details summary{font-size:12px}
+}
 </style>
 </head>
 <body>
@@ -261,7 +279,6 @@ body.week-reading .point-panel.lesson-reading-card{justify-content:flex-start;sc
    <select id="weekPicker" aria-label="学習する週"></select>
   </label>
   <header class="heading"><p class="eyebrow">SMART DIET · WEEKLY LESSON</p><h1 id="lessonTitle"></h1><p id="lessonIntro"></p></header>
-  <a class="lesson-step-link" id="weekRecordLink" href="./record.html?from=learning&amp;week=1">食事を記録する</a>
   <a class="lesson-step-link" id="weekTextbookEntry" href="./textbook.html">今週の参考テキストを読む</a>
   <p class="point-intro" id="lessonInstructions">左右にスワイプして4枚を切り替えます。各カード内の文章は上下にスクロールして読めます。</p>
   <div class="point-track" id="lessonTrack" tabindex="0" role="region" aria-label="12週間プログラムの週別学習" aria-describedby="lessonInstructions"></div>
@@ -295,7 +312,6 @@ const after=document.getElementById('nextWeek');
 const companion=document.getElementById('lessonCompanion');
 const relatedLinks=document.getElementById('relatedTextbookLinks');
 const weekTextbookEntry=document.getElementById('weekTextbookEntry');
-const weekRecordLink=document.getElementById('weekRecordLink');
 const relatedTextbookByWeek=[[["s2-c2","BMIで体格を確認しましょう"],["s2-c4","お腹まわりを測ってみましょう"],["s2-c7","普段の食べ方を振り返る"],["s4-c1","何を食べたか記録しましょう"]],[["s2-c5","どのくらいの減量を目指す？"],["s2-habit-check","食行動チェック表"],["s2-goal","3か月後の目標体重を計算しましょう"]],[["s3-c6","1点＝80kcalで考えます"],["s3-c1","スマートダイエット式食事を学ぶ"]],[["s4-c2","食べた量を確認しましょう"]],[["s4-c3","食品の点数を確認しましょう"]],[["s3-c7","3食にバランスよく振り分ける"],["s3-c10","主食・主菜・副菜・もう一品"]],[["s3-c2","卵・乳・乳製品"],["s3-c3","魚・肉・豆・豆製品"],["s3-c4","野菜・果物・いも・きのこ・海藻"],["s3-c5","穀類・油脂・砂糖・嗜好品"]],[["s5-c4","外食でも食品群を意識する"],["s5-c6","コンビニでも食事を整える"]],[["s5-c3","おやつも選び方を考える"],["s5-c8","体重が減らない時期もあります"],["s5-c7","お酒の量を見直しましょう"]],[["s6-c1","自分に合った運動を見つけましょう"],["s6-c8","筋肉を使う習慣をつくりましょう"],["s6-c12","日常生活の動きも運動の一部"]],[["s3-c10","主食・主菜・副菜・もう一品"],["s3-c7","3食にバランスよく振り分ける"]],[["s5-c9","目標達成後も食習慣を大切に"],["s5-c10","続けられる習慣を身につける"]]];
 if(!Array.isArray(data)||data.length!==12||data.some((week,i)=>week.week!==i+1)){
  index.hidden=false;content.hidden=true;
@@ -331,6 +347,10 @@ for(const entry of data){
 /* 1画面に要点1つ。元の12週間教材は learning-data.js に保持し、ここでは短い要約だけ表示する。 */
 /* 各週の原稿は learning-data.js を唯一の正本とし、4枚に分けて省略せず表示する。 */
 const sectionGroupsByWeek=[[[0,1,2],[3],[4,5,6],[7,8]],[[0,1,2],[3,4,5],[6,7],[9,10]],[[0,1,2],[4,7],[5,6],[9,10]],[[0],[1],[2],[3,4]],[[0],[1,3],[2],[4,5]],[[0],[1,3],[2],[4,5]],[[0],[1,2],[3],[4,5]],[[0],[1,2],[3],[4,5]],[[0],[1,2,3],[4],[5]],[[0],[1,3],[2,4],[5]],[[0],[1],[2],[3,4]],[[0],[1,2,3],[4],[5,6]]];
+
+/* Short reading layer. The complete, unchanged source remains available in each card. */
+const weekBriefs=[["今週は、食事をいきなり変える必要はありません。まず、体重やお腹まわり、食事の時間と量など、今の生活をそのまま知ることから始めます。","食生活を見直す前に、いつ・何を・どのくらい食べているかを確認しましょう。運動だけに頼らず、日頃の食べ方にも目を向けます。","普段どおりの食事を3日間記録しましょう。できれば平日2日と休日1日です。写真とひとことメモで構いません。体重も記録しておきます。","記録を見て、気づいたことを一つ探してみましょう。完璧にできたかではなく、来週も続けられることを一つ決めるのが目標です。"],["先週の食事や体重の記録を振り返り、3か月後にどうなっていたいかを考えます。体重の数値だけでなく、日々の行動も目標にしましょう。","目標は、今週・1か月後・3か月後に分けて考えられます。無理な減量目標を一人で決めず、今の生活に合う行動を1〜2個選びましょう。","今週も食事と体重の記録を続けます。「夕食の量を確認する」など、一つ決めた行動を意識しながら記録してみましょう。","目標にした行動は、どのくらいできましたか。続けられそうか、少し変えるほうがよいかを考え、次の週につなげます。"],["今週は、食品を4つの群に分けて考える方法と「80kcal＝1点」を学びます。食品名だけでなく、食べる量に目を向けるための考え方です。","第1群から第4群には、それぞれ異なる役割があります。食品群の教材と点数配分の教材を使い、食べたものがどこに入るか確認しましょう。","まずは1日1食だけ、食品名と量から点数を見てみましょう。食品群も一つ確認できれば十分です。全部を正しく計算することはまだ目標にしません。","「1点＝80kcal」の意味は分かってきましたか。食品群や量の見方で迷ったところを一つ振り返り、次の週につなげます。"],["今週は、よく食べる食品の「量」を確かめます。同じ食品でも量が変わると点数も変わります。目で見ただけでは分からない量を知る練習です。","量る目的は、ずっと秤を使うことではありません。実際の重量を知って、少しずつ目で量を判断できるようになることです。","ご飯やパン、肉、魚など、普段食べるものを3つ選んで量ってみましょう。食品名・重量・写真を記録し、点数も確認します。","思っていた量と実際の重量はどう違いましたか。意外だった食品を一つ思い出し、次に確かめたいものを考えましょう。"],["今週は、1食分の食事を点数で見てみます。計算の速さではなく、食品名と量を確かめて、食事全体の量を理解することが目的です。","食品の量から一つずつ点数を確認し、1食の合計を見ます。油や砂糖、ドレッシングなども点数に関係することを覚えておきましょう。","記録しやすい1食を選び、3日間、食品と量と点数を確認してみましょう。分からない食品は食品マスターで検索できます。","点数にしてみて、思ったより多い・少ないと感じた食品はありましたか。次の週は1日全体の配分を見ていきます。"],["今週は朝食・昼食・夕食・間食を合わせ、1日全体の食事を見ます。1食で判断せず、1日の中でどう配分するかを考えましょう。","目標点数が設定されている場合、その目安と1日の合計を比べます。毎食を同じ量にする必要はなく、生活に合わせた配分を考えます。","まずは1日分の食事を記録し、朝・昼・夕・間食の点数を確認しましょう。どの時間帯に食事が多くなるかを見つけます。","1日の中で点数が多かった食事はどれでしたか。来週少し変えるなら、どこを一つ変えたいか考えてみましょう。"],["点数だけが合っていても、食品が偏っていることがあります。今週は、何をどの食品群から食べているかにも注目します。","四群の食品を振り返り、足りない群や偏りを確認しましょう。油・砂糖・調味料など、見えにくい食材にも少し目を向けます。","よく使う調味料を一つ量ってみましょう。食事記録を見返し、少ない食品群を一つ意識するところから始めます。","食品群の偏りに気づけましたか。増やしてみたい食品や、量を確かめたい調味料を一つ決めましょう。"],["忙しい日には、外食やコンビニ、お弁当を使うこともあります。今週は我慢するのではなく、その場での選び方と量を考えます。","主食・主菜・野菜、飲み物や調味料の量に目を向けます。市販品は、確認できる栄養表示も選ぶときの参考にしましょう。","外食や買ってきた食事を一度選び、食べる前に量や表示を確認してみましょう。写真と食品名を記録に残します。","選びやすかった食事は何でしたか。迷った場面や、次に試したい組み合わせを一つ振り返りましょう。"],["間食が増える日や体重が減りにくい時期もあります。一日だけの数字で決めつけず、記録を振り返って調整する方法を考えましょう。","間食・お酒・夜食などは、やめる前に「いつ、何を、どのくらい」を知ることが大切です。体重も数日から週単位で確認します。","自分がつまずきやすい場面を一つ選び、1週間記録しましょう。禁止するのではなく、量や回数を見える形にします。","記録から気づいたことはありますか。思うようにいかなかった日でも、次の食事から再開できる方法を考えましょう。"],["今週は、食事と運動の役割を一緒に考えます。食べた分を運動で帳消しにするのではなく、身体を動かす習慣を生活に取り入れます。","HOPEでのトレーニングに加え、習った運動や日常の歩行なども大切です。自分の体力や体調に合う活動を選びましょう。","食事の記録を続けながら、できた運動や日常の活動も確認します。無理をせず、生活の中で増やせそうな動きを一つ試します。","どんな活動が続けやすかったですか。身体の違和感や無理がなかったかも含め、次週につなげる方法を考えましょう。"],["ここまで学んだ量・点数・食品群を使い、今週は自分で1日の食事を組み立てる練習です。自炊でも外食でも構いません。","朝・昼・夕・間食について、何をどのくらい食べるかを考えます。予定どおりでなくても、その後どう調整したかが大切です。","1日の食事を簡単に計画し、実際に食べたものを記録しましょう。予定と違った点を確認し、次に活かします。","自分で組み立てられた日はありましたか。難しかった場面と、これからも使えそうな工夫を一つ振り返りましょう。"],["12週間お疲れさまでした。体重の変化だけでなく、食事の量や組み合わせを自分で判断できるようになったかを振り返ります。","始めた頃の記録と今の体重・食生活を比べましょう。減量後の食事量は一律に変えず、必要に応じてトレーナーと相談します。","これまでの食事・体重の記録を見返し、今後続けたい習慣を決めましょう。必要なときに記録を再開できる方法も考えます。","できるようになったことを一つずつ確認しましょう。体重が変わったかだけでなく、自分で食事を整える力を次に活かすことが目標です。"]];
+const LEARNING_POSITION_KEY='equineris:learning:position:v1';
 function appendLessonText(parent,sourceText){
  const lines=String(sourceText||'').replace(/\r\n?/g,'\n').split('\n');
  let buffer=[];
@@ -349,7 +369,7 @@ function appendLessonText(parent,sourceText){
  }
  flush();
 }
-function slide(title,subtitle,weeklySections){
+function slide(title,subtitle,weeklySections,weekNumber,cardIndex){
  const section=node('section','point-slide');
  section.setAttribute('role','group');
  section.setAttribute('aria-roledescription','スライド');
@@ -357,6 +377,33 @@ function slide(title,subtitle,weeklySections){
  const panel=node('div','point-panel lesson-reading-card');
  panel.appendChild(node('p','point-label',subtitle));
  panel.appendChild(node('h2','',title));
+ const brief=node('p','lesson-brief',weekBriefs[weekNumber-1][cardIndex]);
+ panel.appendChild(brief);
+ const actions=node('nav','lesson-quick-actions');
+ actions.setAttribute('aria-label','この学習から利用できる機能');
+ const action=(label,href,id)=>{
+  const a=node('a','lesson-step-link',label);a.href=href;
+  if(id)a.id=id;
+  actions.appendChild(a);
+ };
+ const back='?from=learning&week='+weekNumber+'&card='+cardIndex;
+ if(cardIndex===1){
+  if(weekNumber===3||weekNumber===7)
+   action('4つの食品群を学ぶ','./food-groups.html'+back);
+  if(weekNumber>=3&&weekNumber<=7)
+   action('1点＝80kcal・点数配分を学ぶ','./point-allocation.html'+back);
+ }
+ if(cardIndex===2){
+  action('食事を記録する','./record.html'+back,'weekRecordLink');
+  action('体重・腹囲を記録する','./measurements.html'+back);
+ }
+ if(cardIndex===3){
+  action('食事の記録を振り返る','./record.html'+back+'&stage=history');
+  action('体重の推移を見る','./measurements.html'+back);
+ }
+ if(actions.children.length)panel.appendChild(actions);
+ const details=node('details','lesson-full-details');
+ details.appendChild(node('summary','','今週の詳しい説明を読む'));
  const lessonBody=node('div','lesson-full-body');
  for(const [index,original] of weeklySections){
   const block=node('section','lesson-section');
@@ -367,7 +414,8 @@ function slide(title,subtitle,weeklySections){
   block.appendChild(body);
   lessonBody.appendChild(block);
  }
- panel.appendChild(lessonBody);
+ details.appendChild(lessonBody);
+ panel.appendChild(details);
  section.appendChild(panel);
  return section;
 }
@@ -379,7 +427,11 @@ function update(){
  prev.disabled=slideIndex===0;
  next.disabled=slideIndex===slides.length-1;
  [...tabs.children].forEach((tab,i)=>tab.setAttribute('aria-pressed',String(i===slideIndex)));
- weekRecordLink.href='./record.html?from=learning&week='+picker.value+'&card='+slideIndex;
+ const currentWeek=Number(picker.value);
+ if(Number.isInteger(currentWeek)&&currentWeek>=1&&currentWeek<=12){
+  try{localStorage.setItem(LEARNING_POSITION_KEY,JSON.stringify({week:currentWeek,card:slideIndex}));}
+  catch(error){/* Reading must remain available when storage is blocked. */}
+ }
  for(const a of relatedLinks.children){a.href='./textbook.html?week='+picker.value+'&card='+slideIndex+'#'+encodeURIComponent(a.dataset.cardId);}
  const firstCardId=relatedTextbookByWeek[Number(picker.value)-1]?.[0]?.[0];
  if(firstCardId){
@@ -412,7 +464,7 @@ function loadWeek(n){
  track.replaceChildren();tabs.replaceChildren();
  groups.forEach((indices,i)=>{
   const sections=indices.map(index=>[index,entry.sections[index]]);
-  track.appendChild(slide(titles[i],'WEEK '+n+' · '+String(i+1).padStart(2,'0'),sections));
+  track.appendChild(slide(titles[i],'WEEK '+n+' · '+String(i+1).padStart(2,'0'),sections,n,i));
   const tab=node('button','',titles[i]);tab.type='button';tab.setAttribute('aria-pressed',String(i===0));
   tab.addEventListener('click',()=>go(i));
   tabs.appendChild(tab);
