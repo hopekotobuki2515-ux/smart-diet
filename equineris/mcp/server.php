@@ -47,7 +47,7 @@ function run_tool(string $name,array $args):array{
   eratelimit('mcp-image',160);$r=erecord(read_request_id($args));$index=$args['index']??null;
   if(!is_int($index)||$index<0||$index>3||!isset($r['photos'][$index]))return txt('Photo not found');
   $photo=$r['photos'][$index];$name=$photo['name']??'';$mime=$photo['mime']??'';
-  if(!is_string($name)||preg_match('/^[a-f0-9]{32}-[0-3]\\.(jpg|png|webp)$/D',$name)!==1
+  if(!is_string($name)||preg_match('/^[a-f0-9]{32}-[0-3]\.(jpg|png|webp)$/D',$name)!==1
     ||!in_array($mime,['image/jpeg','image/png','image/webp'],true))return txt('Stored photo is invalid');
   $file=ehome().'/photos/'.$name;
   if(!is_file($file)||is_link($file))return txt('Photo unavailable');
