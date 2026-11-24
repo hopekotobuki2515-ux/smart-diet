@@ -103,6 +103,7 @@ if($method==='tools/call'){
  if(!is_string($name)||!is_array($args))rpcerr($id,-32602,'Invalid tool arguments');
  $allowed=array_column(defs(),'name');
  if(!in_array($name,$allowed,true))rpcerr($id,-32601,'Unknown tool');
- try{$result=run_tool($name,$args);}catch(InvalidArgumentException $e){rpcerr($id,-32602,'Invalid tool arguments');}\n rpc($id,$result);
+ try{$result=run_tool($name,$args);}catch(InvalidArgumentException $e){rpcerr($id,-32602,'Invalid tool arguments');}
+ rpc($id,$result);
 }
 rpcerr($id,-32601,'Method not found');
