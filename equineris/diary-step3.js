@@ -337,7 +337,7 @@ function filterFoodRecords(records,rawQuery,group) {
    }
    drawAllTotals();
    put(OWN+'last-record',id);
-   message('ステップ3の記録は独立して自動保存されます。');
+   message('入力内容は自動保存されます。');
    void refreshPhotos();
  }
  let pendingSlideHeightFrame=0;
