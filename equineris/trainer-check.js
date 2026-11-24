@@ -10,7 +10,7 @@ const day=Number(params.get('day'));const stage=['1','2','3'].includes(params.ge
 $('stage').value=stage;
 const dayDate=day>=1&&day<=3?safelyRead('equineris:paper-first3:v1:'+day+':date'):'';
 $('recordDate').value=params.get('date')||dayDate||now();
-const ref=stage==='2'?'diary-step2.html':stage==='3'?'diary-step3.html':'record.html';
+const ref=stage==='2'?'diary-step2.html':stage==='3'?'diary-step3.html':'diary-step1.html';
 $('backLink').href='./'+ref+(day>=1&&day<=3?'?day='+day:'');
 try{const saved=JSON.parse(safelyRead('equineris:registration:v1'));if(saved&&typeof saved.name==='string')$('clientName').value=saved.name}catch(e){}
 function clientKey(){let key=safelyRead('equineris:trainer-review-token:v1');if(/^[a-f0-9]{64}$/.test(key))return key;
