@@ -105,6 +105,24 @@ const ready=async(fn)=>{
  if(traceReply.exceptionDetails)throw Error(traceReply.exceptionDetails.text);
  const trace=JSON.parse(traceReply.result.value);
  process.stdout.write('BUTTON_JITTER_DIAGNOSTIC '+JSON.stringify(trace)+'\n');
+
+ // Check whether the identical counter-flash occurs in the original diary and textbook controls.
+ for(const [filename,hash,trackSelector,nextSelector,counterSelector] of [
+  ['diary-step1.html','','#mealTrack','#mealNext','#mealCounter'],
+  ['diary-step2.html','','#mealTrack','#mealNext','#mealCounter'],
+  ['textbook.html','#s2-c5','.course-step:not([hidden]) .track','.course-step:not([hidden]) .slide-nav .next','.course-step:not([hidden]) .counter']
+ ]){
+  await cdp('Page.navigate',{url:pathToFileURL(path.resolve(__dirname,'../'+filename)).href+hash});
+  await ready(async()=>await evalJS("!!(document.querySelector("+JSON.stringify(trackSelector)+")&&document.querySelector("+JSON.stringify(nextSelector)+"))"));
+  const expression="(async()=>{const track=document.querySelector("+JSON.stringify(trackSelector)+"),"+
+   "btn=document.querySelector("+JSON.stringify(nextSelector)+"),counter=document.querySelector("+JSON.stringify(counterSelector)+");"+
+   "const samples=[];const add=(tag)=>samples.push({tag,x:Math.round(track.scrollLeft),counter:counter?.textContent.trim()});"+
+   "add('before');btn.click();add('after');for(let i=0;i<23;i++){await new Promise(r=>setTimeout(r,16));add('t'+i);}"+
+   "return JSON.stringify({file:"+JSON.stringify(filename)+",samples})})()";
+  const response=await cdp('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});
+  if(response.exceptionDetails)throw Error(response.exceptionDetails.text);
+  process.stdout.write('BUTTON_JITTER_DIAGNOSTIC2 '+response.result.value+'\n');
+ }
  ws.close();
 })().catch(e=>{console.error(e.stack||e);process.exitCode=1;}).finally(()=>{
  // The CI runner removes its own temporary filesystem after the job.
