@@ -45,7 +45,8 @@ h1{font-size:23px;line-height:1.45;text-align:center;margin:0}
 .frame-wrap{border:1px solid var(--edge);border-radius:14px;background:#fff;overflow:hidden;min-height:0;flex:0 0 auto;min-width:0}
 #recordFrame{display:block;border:0;width:100%;height:420px;min-height:0;background:#fff}
 .quicklinks{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:8px;margin:0}.quicklinks a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:7px 11px;border:1px solid var(--edge);border-radius:10px;background:#f4f8f2;color:var(--green);text-decoration:none;font-size:12px;font-weight:750;text-align:center}
-.help{margin:0;color:var(--sub);font-size:11px;line-height:1.65;text-align:center}
+.help{margin:0;color:var(--sub);font-size:11px;line-height:1.65;text-align:center;word-break:normal;overflow-wrap:normal}
+.help span{display:block;max-width:100%;white-space:normal;word-break:keep-all;line-break:strict}
 @media(max-width:360px){.shell{padding-inline:7px;gap:8px}.tab{font-size:12px}.wordmark{font-size:14px}#recordFrame{min-height:0}}
 @media(min-width:600px){.shell{margin:12px auto;min-height:calc(100svh - 24px);border:1px solid var(--edge);border-radius:20px}#recordFrame{height:420px;min-height:0}}
 </style>
@@ -88,7 +89,7 @@ h1{font-size:23px;line-height:1.45;text-align:center;margin:0}
   <a href="./measurements.html">体重・腹囲を記録する</a>
   <a id="nextLessonLink" href="./textbook.html#s5-c1" hidden>食べ方の参考テキストを読む</a>
  </nav>
- <p class="help">記録と写真はこのブラウザに保存されます。別端末への自動同期はありません。</p>
+ <p class="help"><span>記録と写真はこのブラウザに保存されます。</span><span>別端末への自動同期はありません。</span></p>
 </main>
 <script src="./record-unified.js?v=20261123-record-only-today"></script>
 <script src="./record-weight.js?v=20261123-record-standalone"></script>
