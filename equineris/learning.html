@@ -434,6 +434,10 @@ function update(){
  }
  for(const a of relatedLinks.children){a.href='./textbook.html?week='+picker.value+'&card='+slideIndex+'#'+encodeURIComponent(a.dataset.cardId);}
  const firstCardId=relatedTextbookByWeek[Number(picker.value)-1]?.[0]?.[0];
+ if((currentWeek===3||currentWeek===12)&&!companion.hidden){
+  const filename=currentWeek===3?'food-groups.html':'maintenance-energy.html';
+  companion.href='./'+filename+'?from=learning&week='+currentWeek+'&card='+slideIndex;
+ }
  if(firstCardId){
   weekTextbookEntry.href='./textbook.html?week='+picker.value+'&card='+slideIndex+'#'+encodeURIComponent(firstCardId);
   weekTextbookEntry.setAttribute('aria-label','第'+picker.value+'週の参考テキストを読む');
@@ -457,7 +461,7 @@ function loadWeek(n){
   heading.appendChild(node('span','lesson-week-title-line','第'+n+'週｜'+entry.title.slice(0,divider)));
   heading.appendChild(node('span','lesson-week-title-line',entry.title.slice(divider)));
  }else heading.textContent='第'+n+'週｜'+entry.title;
- intro.textContent='各カードの本文は、カード内を上下にスクロールして読めます。';
+ intro.textContent='4枚のカードで今週の要点を確認できます。詳しい説明は各カードから開けます。';
  document.title='第'+n+'週｜'+entry.title+' | SMART Diet';
  const titles=['今週のお話','学ぶポイント','今週の実践','振り返り'];
  const groups=sectionGroupsByWeek[n-1];
