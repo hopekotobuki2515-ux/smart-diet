@@ -559,6 +559,14 @@ test('week 2 goal and 17-item behavior sheet are real linked tools, not just ref
  const mapped=JSON.parse(week.match(/^const relatedTextbookByWeek=(.+);$/m)[1]);
  const byWeek=(n)=>mapped[n-1].map(x=>x[0]);
  assert.equal(mapped.length,12);
+ const minimumRelevant={
+  1:['s2-c2','s4-c1'],2:['s2-c5','s2-c6','s2-c7','s2-habit-check','s2-goal'],
+  3:['s3-c6'],4:['s4-c2'],5:['s4-c3'],6:['s3-c7'],7:['s3-c2','s3-c5'],
+  8:['s5-c4','s5-c6'],9:['s5-c3','s5-c8'],10:['s6-c1','s6-c8'],
+  11:['s3-c10'],12:['s5-c9','s5-c10']
+ };
+ for(const [number,required] of Object.entries(minimumRelevant))
+  for(const id of required)assert.ok(byWeek(Number(number)).includes(id),'week '+number+' missing its subject: '+id);
  assert.ok(!byWeek(1).includes('s2-goal'),'goal belongs to week 2, not the week 1 companion');
  assert.deepEqual(byWeek(2),['s2-c5','s2-goal','s2-c6','s2-c7','s2-habit-check','s2-c8']);
  assert.match(week,/if\(n===2\)\{companion\.href='\.\/week-1-goal\.html\?from=learning&week=2&card=0'/);
