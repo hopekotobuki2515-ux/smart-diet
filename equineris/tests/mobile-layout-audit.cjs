@@ -140,8 +140,14 @@ const ready=async(fn)=>{
    if(!url.pathname.endsWith('/record.html')||url.searchParams.get('from')!=='learning')return false;
    if(isIndex)return !url.searchParams.has('week');
    const week=Number(new URLSearchParams(location.search).get('week'));
+   const slides=[...document.querySelectorAll('#lessonTrack .point-slide')];
+   const practice=slides[2],panel=practice?.querySelector('.lesson-reading-card');
+   const reference=document.querySelector('#weekTextbookEntry');
    const track=document.querySelector('#lessonTrack');
-   return url.searchParams.get('week')===String(week)&&url.searchParams.get('card')==='0'&&rect.bottom<=track.getBoundingClientRect().top;
+   if(!panel||!practice.contains(entry)||entry.closest('.lesson-reading-card')!==panel)return false;
+   if(!reference||reference.getBoundingClientRect().bottom>track.getBoundingClientRect().top)return false;
+   if(document.querySelectorAll('#lessonTrack #weekRecordLink').length!==1)return false;
+   return url.searchParams.get('week')===String(week)&&url.searchParams.get('card')==='2';
   })(),weekTextbookReady:(()=>{const entry=document.querySelector('#weekTextbookEntry'),items=[...document.querySelectorAll('#relatedTextbookLinks a')],panel=document.querySelector('#lessonTrack'),heading=document.querySelector('#lessonTitle');return !!(entry&&heading&&panel&&entry.getBoundingClientRect().top>=heading.getBoundingClientRect().top&&entry.getBoundingClientRect().bottom<=panel.getBoundingClientRect().top&&items.length>0&&items.every(x=>x.href.includes('textbook.html?week=')&&x.hash.length>2)&&entry.href===items[0].href);})(),reader:document.documentElement.classList.contains('reader-mode'),targetVisible:!!(location.hash&&document.getElementById(location.hash.slice(1))?.getBoundingClientRect().height)};
  })())`;
  for(const width of [320,390]){
