@@ -988,7 +988,7 @@ test('weight trend updates after saving and deleting records on the measurements
  const window={confirm(){return true}};
  vm.runInNewContext(source['weight-trend.js'],{document,window,Date});
  vm.runInNewContext(scriptOf(source['measurements.html'])[0],
-  {document,window,localStorage,Date,URL,location:{origin:'https://example.test'}});
+  {document,window,localStorage,Date,URL,URLSearchParams,location:{origin:'https://example.test',search:''}});
  const dots=()=>els.weightTrendChart.children.filter(n=>n.tagName==='circle');
  const paths=()=>els.weightTrendChart.children.filter(n=>n.tagName==='path');
  assert.equal(dots().length,0);
