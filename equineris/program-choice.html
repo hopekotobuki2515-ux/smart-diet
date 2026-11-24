@@ -159,10 +159,10 @@
      <li>「1日の食事結果」で、記録した内容を振り返れます。</li>
      <li><strong>あとからいつでも12週間プログラムを<span class="keep-phrase">始められます。</span></strong></li>
     </ul>
-    <a class="choice-action" id="continueDiary" href="./record.html?day=1" data-select="diary">食事記録を続ける</a>
+    <a class="choice-action" id="continueDiary" href="./record.html?stage=1&amp;mode=record-only" data-select="diary">食事記録を続ける</a>
    </section>
   </div>
-  <p class="choice-info">選択はあとから変更できます。食事記録はこのブラウザに保存されます。現在の食事ダイアリーは3日間分まで対応しています。</p>
+  <p class="choice-info">選択はあとから変更できます。食事記録はこのブラウザに保存されます。現在の食事記録は、日付を選んで継続できます。</p>
   <p class="choice-status" id="choiceStatus" role="status" aria-live="polite">自分に合った進め方を選んでください。</p>
   <a id="resultLink" class="choice-secondary" href="./daily-result.html">1日の食事結果に戻る</a>
  </article>
@@ -175,7 +175,7 @@ const day=[1,2,3].includes(value)?value:1;
 const options=[...document.querySelectorAll('[data-select]')];
 const status=document.getElementById('choiceStatus');
 document.getElementById('startProgram').href='./habit-intro.html?day='+day;
-document.getElementById('continueDiary').href='./record.html?day='+day;
+document.getElementById('continueDiary').href='./record.html?stage=1&mode=record-only';
 document.getElementById('backLink').href='./daily-result.html?day='+day;
 document.getElementById('resultLink').href='./daily-result.html?day='+day;
 try{

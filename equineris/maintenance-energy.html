@@ -54,11 +54,13 @@ tbody th{text-align:left;font-weight:750}
 .source{font-size:12px;color:var(--muted);line-height:1.8}
 .sep{height:1px;background:var(--line);margin:20px 0}
 footer{font-size:12px;color:var(--muted);line-height:1.8}
+.back-to-week{display:flex;align-items:center;min-height:44px;margin:0 0 14px;padding:9px 12px;border:1px solid var(--line);border-radius:11px;background:var(--pale);text-decoration:none;color:var(--green);font-size:14px;font-weight:750}
 @media(max-width:340px){.page{padding-inline:10px}.card{padding-inline:9px}.metric{padding-inline:3px}}
 </style>
 </head>
 <body>
 <main class="page">
+<nav aria-label="12週間の学びへ戻る"><a id="backToLearning" class="back-to-week" href="./learning.html?week=12&amp;card=3">〈 第12週の学びに戻る</a></nav>
 <p class="eyebrow">SMART Diet | 12週間修了後</p>
 <h1>通常の食生活・体重維持のためのエネルギー構成</h1>
 <p class="lead">12週間の学習を終えた方が、年齢・性別・身体活動レベルに応じた<strong>1日の推定エネルギー必要量</strong>と、四群点数法での<strong>点数配分例</strong>を確認するページです。</p>
@@ -121,6 +123,11 @@ const ENERGY={"18-29":{"m":[2250,2600,3000],"f":[1700,1950,2250]},"30-49":{"m":[
 const AGE_LABEL={"18-29":"18～29歳","30-49":"30～49歳","50-64":"50～64歳","65-74":"65～74歳","75-plus":"75歳以上"};
 const LEVEL_LABEL=["低い","ふつう","高い"];
 const $=id=>document.getElementById(id);
+const sourceWeek=new URLSearchParams(location.search);
+const sourceCard=Number(sourceWeek.get('card'));
+if(sourceWeek.get('from')==='learning'&&sourceWeek.get('week')==='12'&&sourceWeek.has('card')&&Number.isInteger(sourceCard)&&sourceCard>=0&&sourceCard<=3){
+ $('backToLearning').href='./learning.html?week=12&card='+sourceCard;
+}
 const fmt=v=>v.toLocaleString("ja-JP");
 const fixed=v=>v.toFixed(2);
 const selectors=[$("sex"),$("age"),$("level")];
