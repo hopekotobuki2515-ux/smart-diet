@@ -33,3 +33,5 @@ jobs:
         run: node equineris/tests/reader-browser.cjs
       - name: Audit mobile geometry across EQUINERIS screens
         run: node equineris/tests/mobile-layout-audit.cjs
+      - name: Census every button and link in isolated Chrome
+        run: node equineris/tests/all-controls-audit.cjs
