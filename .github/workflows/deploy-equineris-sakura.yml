@@ -181,7 +181,7 @@ jobs:
               if test -f "$W/.htaccess"; then
                 cp "$W/.htaccess" "/home/rakudadou/equineris-deploy-backups/well-known-htaccess-$(date +%Y%m%d-%H%M%S).bak"
               fi
-              printf "\\n# BEGIN EQUINERIS MCP JSON METADATA\\n<FilesMatch \\"^(oauth-authorization-server|oauth-protected-resource)$\\">\\nForceType application/json\\n</FilesMatch>\\n# END EQUINERIS MCP JSON METADATA\\n" >> "$W/.htaccess"
+              printf "\\n# BEGIN EQUINERIS MCP JSON METADATA\\n<Files oauth-authorization-server>\\nForceType application/json\\n</Files>\\n<Files oauth-protected-resource>\\nForceType application/json\\n</Files>\\n# END EQUINERIS MCP JSON METADATA\\n" >> "$W/.htaccess"
             fi
           '
           scp -i ~/.ssh/id_sakura -o BatchMode=yes \
