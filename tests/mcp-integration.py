@@ -99,6 +99,61 @@ try:
  check('OAuth refresh token rotation works',refreshed.status_code==200 and 'access_token' in refreshed.json())
  replay = session.post(oauth+'?action=token',data={'grant_type':'refresh_token','client_id':client,'refresh_token':exchanged.json()['refresh_token'],'resource':resource})
  check('OAuth refresh token cannot be replayed',replay.status_code==400)
+ # Native desktop callback is tied to the complete configured MCP resource URL.
+ native_id=base64.urlsafe_b64encode(hashlib.sha256(resource.encode()).digest()[:9]).rstrip(b'=').decode()
+ check('native callback ID matches observed desktop format',native_id=='UjArzgqnVGcX')
+ native_client='https://chatgpt.com/oauth/codex/'+native_id+'/client.json'
+ native_callback='http://127.0.0.1:51459/callback/'+native_id
+ native_request={'action':'authorize','client_id':native_client,'redirect_uri':native_callback,'response_type':'code','code_challenge':challenge,'code_challenge_method':'S256','state':'native-test-state','scope':'equineris:review','resource':resource}
+ for label,overrides in [
+  ('external host',{'redirect_uri':'https://evil.example/callback/'+native_id}),
+  ('loopback lookalike',{'redirect_uri':'http://127.0.0.1.evil.example:51459/callback/'+native_id}),
+  ('userinfo',{'redirect_uri':'http://127.0.0.1:51459@evil.example/callback/'+native_id}),
+  ('wrong callback ID',{'redirect_uri':'http://127.0.0.1:51459/callback/AAAAAAAAAAAA'}),
+  ('wrong client ID',{'client_id':'https://chatgpt.com/oauth/codex/AAAAAAAAAAAA/client.json'}),
+  ('wrong client host',{'client_id':'https://evil.example/oauth/codex/'+native_id+'/client.json'}),
+  ('web client on native callback',{'client_id':client}),
+  ('native client on web callback',{'redirect_uri':callback}),
+  ('missing port',{'redirect_uri':'http://127.0.0.1/callback/'+native_id}),
+  ('zero port',{'redirect_uri':'http://127.0.0.1:0/callback/'+native_id}),
+  ('out of range port',{'redirect_uri':'http://127.0.0.1:65536/callback/'+native_id}),
+  ('query injection',{'redirect_uri':native_callback+'?next=https://evil.example'}),
+  ('fragment',{'redirect_uri':native_callback+'#x'}),
+  ('path suffix',{'redirect_uri':native_callback+'/extra'}),
+  ('weak PKCE',{'code_challenge_method':'plain'}),
+  ('wrong resource',{'resource':'https://evil.example/mcp'}),
+  ('wrong scope',{'scope':'admin'}),
+ ]:
+  denied_native=session.get(oauth,params={**native_request,**overrides},timeout=10)
+  check('native OAuth rejects '+label,denied_native.status_code==400)
+ def native_authorize():
+  page=session.get(oauth,params=native_request,timeout=10)
+  check('native OAuth password approval screen accessible',page.status_code==200 and 'name="password"' in page.text)
+  csrf_match=re.search(r'name="csrf" value="([a-f0-9]+)"',page.text)
+  check('native approval retains CSRF',csrf_match is not None)
+  result=session.post(oauth+'?action=authorize',data={'csrf':csrf_match.group(1),'password':password,'approve':'yes'},allow_redirects=False,timeout=10)
+  check('native callback is exact approved loopback URI',result.status_code==302 and result.headers['Location'].startswith(native_callback+'?'))
+  parsed=parse_qs(urlparse(result.headers['Location']).query)
+  check('native callback state and issuer preserved',parsed['state']==['native-test-state'] and parsed['iss']==['https://rakudadou.sakura.ne.jp'])
+  return parsed['code'][0]
+ native_payload={'grant_type':'authorization_code','code':native_authorize(),'client_id':native_client,'redirect_uri':native_callback,'code_verifier':verifier,'resource':resource}
+ mismatch=session.post(oauth+'?action=token',data={**native_payload,'redirect_uri':native_callback.replace(':51459',':51460')},timeout=10)
+ check('native authorization code bound to exact port',mismatch.status_code==400)
+ native_payload['code']=native_authorize()
+ bad_pkce=session.post(oauth+'?action=token',data={**native_payload,'code_verifier':'B'*43},timeout=10)
+ check('native authorization code bound to PKCE verifier',bad_pkce.status_code==400)
+ native_payload['code']=native_authorize()
+ native_token=session.post(oauth+'?action=token',data=native_payload,timeout=10)
+ check('native OAuth exchanges code for bearer',native_token.status_code==200 and 'access_token' in native_token.json())
+ check('native authorization code cannot be replayed',session.post(oauth+'?action=token',data=native_payload,timeout=10).status_code==400)
+ native_list=invoke(session,native_token.json()['access_token'],'tools/list',{},30)
+ check('native bearer can invoke scoped MCP tools',native_list.status_code==200 and len(native_list.json()['result']['tools'])==4)
+ native_refresh={'grant_type':'refresh_token','client_id':native_client,'refresh_token':native_token.json()['refresh_token'],'resource':resource}
+ rotated=session.post(oauth+'?action=token',data=native_refresh,timeout=10)
+ check('native refresh token rotates',rotated.status_code==200 and 'access_token' in rotated.json())
+ check('native refresh token replay denied',session.post(oauth+'?action=token',data=native_refresh,timeout=10).status_code==400)
+ wrong_client=session.post(oauth+'?action=token',data={**native_refresh,'client_id':client,'refresh_token':rotated.json()['refresh_token']},timeout=10)
+ check('native refresh token cannot be used by web client',wrong_client.status_code==400)
  print('MCP INTEGRATION PASSED: '+str(len(checks))+' checks')
 except Exception as exc:
  print('MCP TEST FAILED: '+str(exc))
