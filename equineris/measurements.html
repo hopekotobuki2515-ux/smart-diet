@@ -78,7 +78,7 @@ h1{font-size:26px;text-align:center;line-height:1.4;margin:20px 0 10px}
    <div class="baseline-metric"><span>減量率</span><strong id="goalLossRate">—</strong></div>
   </div>
   <p class="status" id="goalHistoryStatus" role="status" aria-live="polite"></p>
-  <a class="back" href="./textbook.html#s2-c2">教材STEP2の目標設定を確認する</a>
+  <a class="back" href="./textbook.html#s2-c2">参考テキストでBMI・目標設定を確認する</a>
  </section>
  <section class="card" aria-labelledby="recordTitle">
   <h2 id="recordTitle">今日の身体の記録</h2>
@@ -296,10 +296,19 @@ h1{font-size:26px;text-align:center;line-height:1.4;margin:20px 0 10px}
  }
  byId('metricForm').addEventListener('submit',e=>{e.preventDefault();saveDate()});
  date.addEventListener('change',()=>{showDay();message(saveStatus,'')});
- try{
-  const ref=new URL(document.referrer),file=ref.pathname.split('/').pop();
-  if(ref.origin===location.origin&&['record.html','diary-step2.html','diary-step3.html'].includes(file)){byId('back').href='./'+file+ref.search;}
- }catch(e){/* referrer may be absent */}
+ const origin=new URLSearchParams(location.search);
+ const week=Number(origin.get('week')),card=Number(origin.get('card'));
+ if(origin.get('from')==='learning'&&Number.isInteger(week)&&week>=1&&week<=12&&
+   origin.has('card')&&Number.isInteger(card)&&card>=0&&card<4){
+  byId('back').href='./learning.html?week='+week+'&card='+card;
+  byId('back').textContent='〈 第'+week+'週の学びに戻る';
+ }else{
+  try{
+   const ref=new URL(document.referrer),file=ref.pathname.split('/').pop();
+   if(ref.origin===location.origin&&['record.html','diary-step2.html','diary-step3.html'].includes(file))
+    byId('back').href='./'+file+ref.search;
+  }catch(e){/* referrer may be absent */}
+ }
  date.value=today();showDay();prefillRegistrationWeight();renderBaseline();renderGoal();renderHistory();
 })();
 </script>
