@@ -1,4 +1,4 @@
 Options -Indexes
-<FilesMatch "^(config\.(local|sample)\.php)$">
+<FilesMatch "^(config\.(local|sample)\.php|ai-config\.local\.php)$">
 Require all denied
 </FilesMatch>
