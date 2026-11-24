@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+if(!defined('EQUINERIS_TRAINER_AI_CONTEXT')){http_response_code(403);exit;}
 /* Included ONLY from review.php after HTTPS, session, CSRF, POST and admin validation.
  * Private OpenAI key is stored in ai-config.local.php on Sakura; never in JS/Git.
  */
