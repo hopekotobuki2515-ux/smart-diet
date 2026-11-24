@@ -111,7 +111,7 @@
 /* 4群のみを1列の横スワイプ表示。ほかの画面には影響しない。 */
 .groups-intro{margin:0 0 15px;color:var(--ink-light);font-size:13px;line-height:1.85;text-align:center}
 .group-view{min-width:0;width:100%;overflow:hidden}
-.group-track{display:flex;gap:0;width:100%;min-width:0;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+.group-track{display:flex;gap:0;width:100%;min-width:0;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
 .group-track::-webkit-scrollbar{display:none}
 .group-slide{flex:0 0 100%;min-width:0;width:100%;scroll-snap-align:start;scroll-snap-stop:always;padding:3px 1px 8px}
 .group-card{min-height:355px;height:100%;min-width:0;border:1px solid #dce6d9;border-radius:20px;background:#fffdfa;padding:17px 16px 20px;box-shadow:0 6px 24px rgba(25,54,41,.05);word-break:normal;overflow-wrap:break-word}
@@ -290,7 +290,7 @@ function updateUI(index){
 function navigate(index,smooth=true){
  const target=Math.max(0,Math.min(slides.length-1,index));
  updateUI(target);
- track.scrollTo({left:target*track.clientWidth,behavior:smooth&&!reduceMotion?'smooth':'auto'});
+ track.scrollTo({left:target*track.clientWidth,behavior:'auto'});
 }
 previous.addEventListener('click',()=>navigate(active-1));
 next.addEventListener('click',()=>navigate(active+1));

@@ -110,7 +110,7 @@
   
 /* この点数配分ページに限る、スマホ優先の4枚横スワイプ */
 .point-intro{text-align:center;font-size:13px;line-height:1.8;color:var(--ink-light);margin:0 0 15px}
-.point-track{display:flex;width:100%;max-width:100%;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;overscroll-behavior-x:contain}
+.point-track{display:flex;width:100%;max-width:100%;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;scroll-behavior:auto;overscroll-behavior-x:contain}
 .point-track::-webkit-scrollbar{display:none}
 .point-slide{min-width:0;flex:0 0 100%;width:100%;scroll-snap-align:start;scroll-snap-stop:always;padding:2px 1px 8px}
 .point-panel{background:#fffefb;border:1px solid #dee7db;border-radius:20px;padding:20px 16px 21px;min-height:100%;color:var(--ink);word-break:normal;overflow-wrap:break-word;box-shadow:0 7px 20px rgba(28,67,40,.04)}
@@ -291,7 +291,7 @@ function update(index){
 function go(index,smooth=true){
  const target=Math.max(0,Math.min(slides.length-1,index));
  update(target);
- track.scrollTo({left:track.clientWidth*target,behavior:smooth&&!reduceMotion?'smooth':'auto'});
+ track.scrollTo({left:track.clientWidth*target,behavior:'auto'});
 }
 prev.addEventListener('click',()=>go(active-1));
 next.addEventListener('click',()=>go(active+1));

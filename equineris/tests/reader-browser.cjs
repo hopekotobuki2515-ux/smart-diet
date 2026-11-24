@@ -132,6 +132,31 @@ const ready=async(fn)=>{
   assert.ok(samples.slice(1).every(x=>x.counter===current),'card selection flickered in '+filename+': '+JSON.stringify(samples));
   process.stdout.write('PASS stable card navigation: '+filename+'\n');
  }
+
+ // Prevent the same 1/4 -> 2/4 -> 1/4 flash in both four-group reference readers.
+ for(const [file,trackId,nextId,counterId] of [
+  ['food-groups.html','groupTrack','groupNext','groupCounter'],
+  ['point-allocation.html','pointTrack','pointNext','pointCounter']
+ ]){
+  await cdp('Page.navigate',{url:pathToFileURL(path.resolve(__dirname,'../'+file)).href});
+  await ready(async()=>await evalJS("!!(document.getElementById("+JSON.stringify(nextId)+")&&document.getElementById("+JSON.stringify(trackId)+"))"));
+  const expression="(async()=>{"+
+   "const track=document.getElementById("+JSON.stringify(trackId)+"),btn=document.getElementById("+JSON.stringify(nextId)+"),"+
+   "counter=document.getElementById("+JSON.stringify(counterId)+");"+
+   "const tabs=[...document.querySelectorAll('[data-tab]')];"+
+   "const reads=[];function snap(){reads.push({x:Math.round(track.scrollLeft),text:counter.textContent.trim(),selected:tabs.findIndex(t=>t.getAttribute('aria-pressed')==='true')});}"+
+   "snap();btn.click();snap();for(let i=0;i<23;i++){await new Promise(r=>setTimeout(r,16));snap();}"+
+   "return JSON.stringify({reads,css:getComputedStyle(track).scrollBehavior});})()";
+  const response=await cdp('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});
+  if(response.exceptionDetails)throw Error(response.exceptionDetails.text);
+  const result=JSON.parse(response.result.value),reads=result.reads;
+  assert.equal(reads[0].text,'1 / 4');
+  assert.equal(reads[1].text,'2 / 4');
+  assert.ok(reads.slice(1).every(x=>x.text==='2 / 4'&&x.selected===1),
+   'the food-group reader button flashed back after selection: '+file+' '+JSON.stringify(result));
+  process.stdout.write('PASS stable food-group navigation: '+file+'\\n');
+ }
+
  ws.close();
 })().catch(e=>{console.error(e.stack||e);process.exitCode=1;}).finally(()=>{
  // The CI runner removes its own temporary filesystem after the job.
