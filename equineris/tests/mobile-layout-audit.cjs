@@ -168,6 +168,42 @@ const ready=async(fn)=>{
     if(week===3&&i===1&&!panel.querySelector('a[href*="point-allocation.html"]'))return false;
     return true;
    });
+  })(),weekExpandedReady:(()=>{
+   const week=Number(new URLSearchParams(location.search).get('week'));
+   if(!Number.isInteger(week)||week<1||week>12)return true;
+   const detail=document.querySelector('#lessonTrack .point-slide:first-child details.lesson-full-details');
+   const panel=detail?.closest('.point-panel');
+   if(!detail||!panel||detail.open)return false;
+   detail.open=true;
+   const blocks=[...detail.querySelectorAll('.lesson-section-body')];
+   const font=parseFloat(getComputedStyle(panel).fontSize)||14;
+   const narrow=blocks.some(b=>{
+    const rect=b.getBoundingClientRect();
+    return rect.width<font*6||rect.height<2;
+   });
+   const was=panel.scrollTop;let scrollOk=true;
+   if(panel.scrollHeight>panel.clientHeight+20){
+    panel.scrollTop=35;
+    scrollOk=panel.scrollTop>0;
+   }
+   panel.scrollTop=was;
+   const first=[...detail.querySelectorAll('.lesson-section-paragraph')].find(x=>x.textContent.trim().length>=15);
+   let singleCharColumns=false;
+   if(first){
+    const node=[...first.childNodes].find(x=>x.nodeType===3&&x.textContent.trim().length>=9);
+    if(node){
+     const letters=[],range=document.createRange();
+     for(let i=0;i<node.textContent.length&&letters.length<9;i++){
+      if(/\s/u.test(node.textContent[i]))continue;
+      range.setStart(node,i);range.setEnd(node,i+1);
+      const rect=range.getBoundingClientRect();
+      if(rect.width>0)letters.push(Math.round(rect.top));
+     }
+     singleCharColumns=letters.length>=7&&letters.every((top,i)=>i===0||top!==letters[i-1]);
+    }
+   }
+   detail.open=false;
+   return !narrow&&scrollOk&&!singleCharColumns;
   })(),weekTextbookReady:(()=>{const entry=document.querySelector('#weekTextbookEntry'),items=[...document.querySelectorAll('#relatedTextbookLinks a')],panel=document.querySelector('#lessonTrack'),heading=document.querySelector('#lessonTitle');return !!(entry&&heading&&panel&&entry.getBoundingClientRect().top>=heading.getBoundingClientRect().top&&entry.getBoundingClientRect().bottom<=panel.getBoundingClientRect().top&&items.length>0&&items.every(x=>x.href.includes('textbook.html?week=')&&x.hash.length>2)&&entry.href===items[0].href);})(),reader:document.documentElement.classList.contains('reader-mode'),targetVisible:!!(location.hash&&document.getElementById(location.hash.slice(1))?.getBoundingClientRect().height)};
  })())`;
  for(const width of [320,390]){
@@ -183,6 +219,7 @@ const ready=async(fn)=>{
    if(name.startsWith('learning.html?week=')&&(result.weekCards!==4||!result.weekVisible))throw Error('Weekly cards did not render '+name+': '+JSON.stringify(result));
    if((name==='learning.html'||name.startsWith('learning.html?week='))&&!result.weekRecordReady)throw Error('Missing or misplaced food record link on learning screen '+name+': '+JSON.stringify(result));
    if(name.startsWith('learning.html?week=')&&!result.weekBriefReady)throw Error('Concise lessons, original detail or contextual actions missing '+name+': '+JSON.stringify(result));
+   if(name.startsWith('learning.html?week=')&&!result.weekExpandedReady)throw Error('Original lesson does not expand, wrap or scroll cleanly '+name+': '+JSON.stringify(result));
    if(name.startsWith('learning.html?week=')&&!result.weekTextbookReady)throw Error('Missing or misplaced weekly reference textbook '+name+': '+JSON.stringify(result));
    if(name.startsWith('learning.html?week=')&&!result.weekSourceComplete)throw Error('Source curriculum missing, truncated or not scrollable '+name+': '+JSON.stringify(result));
    if(name.startsWith('textbook.html#')&&(!result.reader||!result.targetVisible))throw Error('Textbook card did not render '+name+': '+JSON.stringify(result));
