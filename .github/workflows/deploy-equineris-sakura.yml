@@ -42,6 +42,7 @@ jobs:
       - name: Test trainer-review API, authentication and private photos
         run: |
           php -l equineris/api/review.php
+          php -l equineris/api/ai-review.php
           node --check equineris/trainer-check.js
           node --check equineris/trainer-dashboard.js
           node --check equineris/trainer-link.js
@@ -127,6 +128,30 @@ jobs:
             "$SAKURA_USER@$SAKURA_HOST:/home/rakudadou/www/smart-diet/equineris/api/config.local.php"
           ssh -i ~/.ssh/id_sakura -o BatchMode=yes "$SAKURA_USER@$SAKURA_HOST" \
             'chmod 600 /home/rakudadou/www/smart-diet/equineris/api/config.local.php'
+      - name: Provision optional AI API key from GitHub Actions secret only
+        env:
+          AI_KEY: ${{ secrets.EQUINERIS_OPENAI_API_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          if test -z "$AI_KEY"; then
+            echo "AI draft review remains disabled until EQUINERIS_OPENAI_API_KEY is configured"
+            exit 0
+          fi
+          case "$AI_KEY" in sk-*) ;; *) echo "::error::AI key format is invalid"; exit 1;; esac
+          umask 077
+          CONFIG_FILE=$(mktemp)
+          trap 'rm -f "$CONFIG_FILE"' EXIT
+          printf '%s' "$AI_KEY" | php -r '
+            $key = trim(stream_get_contents(STDIN));
+            if (!str_starts_with($key, "sk-")) exit(1);
+            echo "<?php return [".var_export("api_key",true)." => ".var_export($key,true)."];\n";
+          ' > "$CONFIG_FILE"
+          php -l "$CONFIG_FILE"
+          scp -i ~/.ssh/id_sakura -o BatchMode=yes "$CONFIG_FILE" \
+            "$SAKURA_USER@$SAKURA_HOST:/home/rakudadou/www/smart-diet/equineris/api/ai-config.local.php"
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes "$SAKURA_USER@$SAKURA_HOST" \
+            'chmod 600 /home/rakudadou/www/smart-diet/equineris/api/ai-config.local.php'
       - name: Verify uploaded files on Sakura
         env:
           SAKURA_HOST: ${{ vars.SAKURA_HOST }}
