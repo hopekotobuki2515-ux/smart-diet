@@ -85,17 +85,18 @@ jobs:
           SAKURA_HOST: ${{ vars.SAKURA_HOST }}
           SAKURA_USER: ${{ vars.SAKURA_USER }}
         run: |
-          ssh -i ~/.ssh/id_sakura -o BatchMode=yes "$SAKURA_USER@$SAKURA_HOST" \
-            'set -eu
-             cd /home/rakudadou/www/smart-diet
-             test -d equineris
-             mkdir -p /home/rakudadou/equineris-deploy-backups
-             set -- equineris
-             for file in food-search.html food-master.json nutrient-food-search.html nutrient-master.json nutrient-panel.js program.css; do
-               if test -f "$file"; then set -- "$@" "$file"; fi
-             done
-             tar -czf "/home/rakudadou/equineris-deploy-backups/predeploy-$(date +%Y%m%d-%H%M%S).tar.gz" "$@"
-             echo "Sakura backup finished"'
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'SAKURA_BACKUP'
+          set -eu
+          cd /home/rakudadou/www/smart-diet
+          test -d equineris
+          mkdir -p /home/rakudadou/equineris-deploy-backups
+          set -- equineris
+          for file in food-search.html food-master.json nutrient-food-search.html nutrient-master.json nutrient-panel.js program.css; do
+            if test -f "$file"; then set -- "$@" "$file"; fi
+          done
+          tar -czf "/home/rakudadou/equineris-deploy-backups/predeploy-$(date +%Y%m%d-%H%M%S).tar.gz" "$@"
+          echo "Sakura backup finished"
+          SAKURA_BACKUP
       - name: Upload only EQUINERIS and its verified shared files
         env:
           SAKURA_HOST: ${{ vars.SAKURA_HOST }}
@@ -163,45 +164,51 @@ jobs:
           SAKURA_HOST: ${{ vars.SAKURA_HOST }}
           SAKURA_USER: ${{ vars.SAKURA_USER }}
         run: |
-          ssh -i ~/.ssh/id_sakura -o BatchMode=yes "$SAKURA_USER@$SAKURA_HOST" '
-            set -eu
-            W=/home/rakudadou/www/.well-known
-            mkdir -p "$W"
-            for NAME in oauth-authorization-server oauth-protected-resource; do
-              if test -e "$W/$NAME" && ! grep -Fq "rakudadou.sakura.ne.jp" "$W/$NAME"; then
-                echo "Refusing to overwrite an existing OAuth metadata file"
-                exit 1
-              fi
-            done
-            if test -e "$W/.htaccess" && test -L "$W/.htaccess"; then
-              echo "Refusing to change a symlinked metadata config"
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'SAKURA_DISCOVERY'
+          set -eu
+          W=/home/rakudadou/www/.well-known
+          mkdir -p "$W"
+          for NAME in oauth-authorization-server oauth-protected-resource; do
+            if test -e "$W/$NAME" && ! grep -Fq "rakudadou.sakura.ne.jp" "$W/$NAME"; then
+              echo "Refusing to overwrite an unrelated OAuth metadata file"
               exit 1
             fi
-            if ! grep -Fq "# BEGIN EQUINERIS MCP JSON METADATA" "$W/.htaccess" 2>/dev/null; then
-              if test -f "$W/.htaccess"; then
-                cp "$W/.htaccess" "/home/rakudadou/equineris-deploy-backups/well-known-htaccess-$(date +%Y%m%d-%H%M%S).bak"
-              fi
-              printf "\\n# BEGIN EQUINERIS MCP JSON METADATA\\n<Files oauth-authorization-server>\\nForceType application/json\\n</Files>\\n<Files oauth-protected-resource>\\nForceType application/json\\n</Files>\\n# END EQUINERIS MCP JSON METADATA\\n" >> "$W/.htaccess"
+          done
+          if test -L "$W/.htaccess"; then
+            echo "Refusing to modify symlinked .htaccess"
+            exit 1
+          fi
+          if ! grep -Fq "# BEGIN EQUINERIS MCP JSON METADATA" "$W/.htaccess" 2>/dev/null; then
+            if test -f "$W/.htaccess"; then
+              cp "$W/.htaccess" "/home/rakudadou/equineris-deploy-backups/well-known-htaccess-$(date +%Y%m%d-%H%M%S).bak"
             fi
-          '
+            printf '%s\n' '' '# BEGIN EQUINERIS MCP JSON METADATA' '<Files oauth-authorization-server>' \
+              'ForceType application/json' '</Files>' '<Files oauth-protected-resource>' \
+              'ForceType application/json' '</Files>' '# END EQUINERIS MCP JSON METADATA' >> "$W/.htaccess"
+          fi
+          SAKURA_DISCOVERY
           scp -i ~/.ssh/id_sakura -o BatchMode=yes \
             equineris/mcp/discovery/oauth-authorization-server equineris/mcp/discovery/oauth-protected-resource \
             "$SAKURA_USER@$SAKURA_HOST:/home/rakudadou/www/.well-known/"
           echo "ChatGPT OAuth discovery deployed"
-
       - name: Verify uploaded files on Sakura
         env:
           SAKURA_HOST: ${{ vars.SAKURA_HOST }}
           SAKURA_USER: ${{ vars.SAKURA_USER }}
         run: |
-          ssh -i ~/.ssh/id_sakura -o BatchMode=yes "$SAKURA_USER@$SAKURA_HOST" \
-            'set -eu
-             cd /home/rakudadou/www/smart-diet
-             test -s equineris/index.html
-             test -s equineris/learning.html
-             test -s equineris/food-groups.html
-             for file in food-search.html food-master.json nutrient-food-search.html nutrient-master.json nutrient-panel.js program.css; do test -s "$file"; done
-             echo "Sakura files verified"'
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'SAKURA_VERIFY'
+          set -eu
+          cd /home/rakudadou/www/smart-diet
+          test -s equineris/index.html
+          test -s equineris/learning.html
+          test -s equineris/food-groups.html
+          test -s equineris/mcp/server.php
+          test -s equineris/mcp/oauth.php
+          for file in food-search.html food-master.json nutrient-food-search.html nutrient-master.json nutrient-panel.js program.css; do
+            test -s "$file"
+          done
+          echo "Sakura files verified"
+          SAKURA_VERIFY
       - name: Verify trainer PHP endpoint status without exposing credentials
         run: |
           OUTPUT=$(curl --fail --silent --show-error --location --max-time 20 \
