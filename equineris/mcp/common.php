@@ -61,9 +61,27 @@ function econfig():string{
  if(password_get_info($hash)['algo']===null)eerror(503,'Trainer authentication not configured');
  return $hash;
 }
+/* Native Codex uses a server-specific callback ID: first 9 SHA-256 bytes,
+ * base64url without padding, of the complete MCP URL (no fragment).
+ * Pin the known client/redirect pair rather than accepting arbitrary CIMD URLs. */
+function enativecallbackid():string{
+ return rtrim(strtr(base64_encode(substr(hash('sha256',EQUINERIS_MCP_URL,true),0,9)),'+/','-_'),'=');
+}
+function enativeclient(string $id):bool{
+ return hash_equals('https://chatgpt.com/oauth/codex/'.enativecallbackid().'/client.json',$id);
+}
+function ewebclient(string $id):bool{
+ return preg_match('#^https://chatgpt\\.com/oauth/(?:client\\.json|[a-zA-Z0-9_-]{8,128}/client\\.json)$#D',$id)===1;
+}
+function eclientid(string $id):bool{
+ return ewebclient($id)||enativeclient($id);
+}
 function eclient(string $id,string $redirect):bool{
- return preg_match('#^https://chatgpt\\.com/oauth/(?:client\\.json|[a-zA-Z0-9_-]{8,128}/client\\.json)$#D',$id)===1
-  &&hash_equals(EQUINERIS_OAUTH_CALLBACK,$redirect);
+ if(ewebclient($id))return hash_equals(EQUINERIS_OAUTH_CALLBACK,$redirect);
+ if(!enativeclient($id))return false;
+ // Exact IPv4 loopback authority and server-specific path; only the ephemeral port varies.
+ $pattern='#^http://127\.0\.0\.1:([1-9][0-9]{0,4})/callback/'.preg_quote(enativecallbackid(),'#').'$#D';
+ return preg_match($pattern,$redirect,$matches)===1&&(int)$matches[1]<=65535;
 }
 function eratelimit(string $scope,int $limit=12):void{
  $ip=(string)($_SERVER['REMOTE_ADDR']??'unknown');

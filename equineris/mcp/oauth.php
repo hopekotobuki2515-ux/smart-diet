@@ -73,7 +73,7 @@ if($action==='token'){
  }
  if($grant==='refresh_token'){
   $refresh=(string)($_POST['refresh_token']??'');
-  if(strlen($refresh)!==64||!ctype_xdigit($refresh)||!eclient($client,EQUINERIS_OAUTH_CALLBACK))eerror(400,'invalid_grant');
+  if(strlen($refresh)!==64||!ctype_xdigit($refresh)||!eclientid($client))eerror(400,'invalid_grant');
   $path=etokenfile('refresh',$refresh);$used=$path.'.consumed.'.bin2hex(random_bytes(6));
   if(!is_file($path)||!@rename($path,$used))eerror(400,'invalid_grant');
   $payload=json_decode((string)file_get_contents($used),true);@unlink($used);
