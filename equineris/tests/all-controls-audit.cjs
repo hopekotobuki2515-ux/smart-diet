@@ -51,8 +51,17 @@ function inspect(){
   const label=(e.getAttribute('aria-label')||e.textContent||e.value||e.title||'').replace(/\s+/g,' ').trim().slice(0,100);
   const form=e.closest('form');
   let obstacle='';
-  if(visible(e)&&rect.y>=0&&rect.y<innerHeight){
-   const hit=document.elementFromPoint(Math.max(0,Math.min(innerWidth-1,rect.left+rect.width/2)),Math.max(0,Math.min(innerHeight-1,rect.top+rect.height/2)));
+  const cx=rect.left+rect.width/2,cy=rect.top+rect.height/2;
+  let insideClip=cx>=0&&cx<innerWidth&&cy>=0&&cy<innerHeight;
+  if(insideClip){for(let p=e.parentElement;p;p=p.parentElement){
+   const st=getComputedStyle(p);
+   if(/auto|hidden|scroll|clip/.test(st.overflowX+' '+st.overflowY)){
+    const b=p.getBoundingClientRect();
+    if(cx<b.left||cx>b.right||cy<b.top||cy>b.bottom){insideClip=false;break}
+   }
+  }}
+  if(visible(e)&&insideClip){
+   const hit=document.elementFromPoint(cx,cy);
    if(hit&&!e.contains(hit)&&hit!==e)obstacle=hit.tagName+'#'+hit.id;
   }
   return {tag:e.tagName,id:e.id||'',label,href:e.getAttribute('href'),isButton,disabled:!!e.disabled,
