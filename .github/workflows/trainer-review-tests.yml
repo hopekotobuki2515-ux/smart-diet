@@ -1,0 +1,47 @@
+name: EQUINERIS trainer review API and UI tests
+on:
+  pull_request:
+    paths:
+      - 'equineris/api/**'
+      - 'equineris/trainer-*'
+      - 'tests/api-integration.py'
+      - '.github/workflows/trainer-review-tests.yml'
+      - '.github/workflows/deploy-equineris-sakura.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'equineris/api/**'
+      - 'equineris/trainer-*'
+      - 'tests/api-integration.py'
+permissions:
+  contents: read
+jobs:
+  trainer-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - name: PHP and JavaScript syntax
+        run: |
+          php -l equineris/api/review.php
+          node --check equineris/trainer-check.js
+          node --check equineris/trainer-dashboard.js
+          node --check equineris/trainer-link.js
+          test ! -e equineris/api/config.local.php
+      - name: Server API integration including upload, trainer authentication and feedback
+        run: |
+          python -m pip install --disable-pip-version-check -q requests pillow
+          python tests/api-integration.py
+      - name: Confirm STEP1-3 entry points are present
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          script=Path('equineris/trainer-link.js').read_text()
+          for page in ('diary-step1.html','diary-step2.html','diary-step3.html'):
+            html=Path('equineris',page).read_text()
+            assert './trainer-link.js' in html,page
+            assert "'"+page+"'" in script,page
+          for page in ('trainer-check.html','trainer-dashboard.html'):
+            assert Path('equineris',page).exists()
+          print('PASS trainer entry points')
+          PY

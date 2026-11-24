@@ -1,7 +1,7 @@
 'use strict';
 (() => {
   const path = location.pathname.split('/').pop();
-  const stage = {'record.html':'1','diary-step2.html':'2','diary-step3.html':'3'}[path];
+  const stage = {'record.html':'1','diary-step1.html':'1','diary-step2.html':'2','diary-step3.html':'3'}[path];
   if (!stage) return;
   const metricLink=document.querySelector('a[href="./measurements.html"]');
   if (!metricLink || document.getElementById('trainerReviewEntry')) return;

@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="referrer" content="no-referrer"><title>食事記録のトレーナーチェック | EQUINERIS</title>
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN",Meiryo,sans-serif;color:#183e38}*{box-sizing:border-box}body{margin:0;background:#edf3eb}.page{max-width:530px;min-height:100svh;margin:auto;padding:20px 16px 45px;background:#fefdf8}.top{display:flex;justify-content:space-between;align-items:center}.top a{color:#285d4a;min-height:44px;display:flex;align-items:center;font-size:13px}.brand{font-weight:900;letter-spacing:.12em}.brand span{color:#ad8c54}h1{font-size:23px;text-align:center;line-height:1.5}p{line-height:1.7;font-size:14px}.sub{color:#526c61}.card{background:#fff;border:1px solid #d8e5d8;border-radius:18px;padding:16px;margin:14px 0}.card h2{margin:0 0 12px;font-size:18px}label{display:block;font-weight:700;font-size:14px;margin:12px 0}input,textarea,select{display:block;width:100%;font:inherit;font-size:16px;border:1px solid #bdd0c1;border-radius:10px;padding:11px;margin:6px 0;min-height:46px}textarea{min-height:112px;resize:vertical}button{font:inherit;border:0;border-radius:11px;min-height:48px;padding:10px 13px;cursor:pointer}button:disabled{opacity:.45;cursor:not-allowed}.primary{display:block;width:100%;color:#fff;background:#285d4a;font-weight:800;font-size:16px}.light{background:#edf6eb;color:#285d4a;font-weight:700}.status{white-space:pre-wrap;color:#285d4a;font-size:13px;font-weight:700}.photo-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.photo{min-width:0;border:1px solid #dae6da;border-radius:11px;padding:7px}.photo img{display:block;aspect-ratio:4/3;object-fit:contain;width:100%;background:#f2f5f2}.photo small{display:block;text-align:center;margin:6px 0}.check{display:flex;align-items:flex-start;gap:10px;line-height:1.7}.check input{height:22px;width:22px;min-height:22px;flex-shrink:0}.notice{font-size:12px;color:#526c61}.list-entry{border-top:1px solid #dde7dc;padding:12px 0;white-space:pre-wrap;font-size:13px;line-height:1.65}.list-entry strong{display:block}a{color:#285d4a}[hidden]{display:none!important}@media(min-width:650px){.page{border:1px solid #d8e5d8;margin-top:24px;min-height:calc(100svh - 24px)}}
+</style></head><body><main class="page">
+<div class="top"><a id="backLink" href="./record.html">〈 食事記録へ戻る</a><div class="brand">EQUI<span>NERIS</span></div></div>
+<h1>食事記録のトレーナーチェック</h1><p class="sub">希望する方だけ、食事写真と記録をトレーナーへ送信できます。確認後のコメントはこの画面に表示されます。</p>
+<div class="card" id="serviceCard"><h2>接続状態</h2><p class="status" id="serviceStatus">サーバー接続を確認しています。</p></div>
+<form id="requestForm" hidden>
+<section class="card"><h2>確認してもらう食事</h2>
+<label>お名前<input id="clientName" maxlength="80" autocomplete="name" required></label>
+<label>記録日<input id="recordDate" type="date" required></label>
+<label>食事記録のステップ<select id="stage"><option value="1">STEP1：食事の写真・メモ</option><option value="2">STEP2：食材名・分量</option><option value="3">STEP3：点数・栄養</option></select></label>
+<button class="light" type="button" id="loadRecord">この日の保存済み記録を読み込む</button>
+<p class="status" id="loadStatus"></p>
+<div class="photo-grid" id="photoGrid"></div>
+<label>食事の記録（確認して修正できます）<textarea id="summary" maxlength="4000" placeholder="食事内容を確認してください"></textarea></label>
+<label>トレーナーへ伝えたいこと（任意）<textarea id="comment" maxlength="1500" placeholder="気になることや聞きたいこと"></textarea></label>
+<p class="notice">この端末・このサイトに保存されている記録だけを読み込みます。GitHub Pagesからさくらへ移行した場合、ブラウザの保存データは自動で移動しません。未表示の写真は自分で選んで追加してください。</p>
+<label>写真を追加する（最大4枚・1枚5MB以内）<input id="manualPhotos" type="file" accept="image/jpeg,image/png,image/webp" multiple></label></section>
+<section class="card"><h2>送信の確認</h2>
+<label class="check"><input id="consent" type="checkbox" required><span>食事写真と記録をトレーナーに共有し、確認・コメントのために保存することに同意します。</span></label>
+<p class="notice">記録はサーバーに保存され、担当トレーナーのみが確認します。確認を依頼しない方は送信する必要はありません。</p>
+<button class="primary" id="send" type="submit">トレーナーにチェックを依頼する</button>
+<p class="status" id="sendStatus" role="status"></p></section>
+</form>
+<section class="card" id="responseCard" hidden><h2>トレーナーからの返信</h2><button class="light" type="button" id="refresh">返信を確認する</button><div id="replies"></div></section>
+</main><script src="./trainer-check.js"></script></body></html>

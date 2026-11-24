@@ -39,6 +39,14 @@ jobs:
         run: node equineris/tests/reader-browser.cjs
       - name: Test responsive layouts and buttons
         run: node equineris/tests/mobile-layout-audit.cjs
+      - name: Test trainer-review API, authentication and private photos
+        run: |
+          php -l equineris/api/review.php
+          node --check equineris/trainer-check.js
+          node --check equineris/trainer-dashboard.js
+          node --check equineris/trainer-link.js
+          python -m pip install --disable-pip-version-check -q requests pillow
+          python tests/api-integration.py
 
   deploy:
     needs: verify
@@ -91,6 +99,34 @@ jobs:
           scp -i ~/.ssh/id_sakura -o BatchMode=yes food-search.html food-master.json nutrient-food-search.html nutrient-master.json nutrient-panel.js program.css \
             "$SAKURA_USER@$SAKURA_HOST:/home/rakudadou/www/smart-diet/"
           echo "Sakura upload finished"
+      - name: Provision trainer password only from the GitHub Actions secret
+        env:
+          TRAINER_PASSWORD: ${{ secrets.EQUINERIS_TRAINER_PASSWORD }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          if test -z "$TRAINER_PASSWORD"; then
+            echo "Trainer review remains disabled until the password secret is configured"
+            exit 0
+          fi
+          test "${#TRAINER_PASSWORD}" -ge 16 || {
+            echo "::error::Trainer password must be at least 16 characters"
+            exit 1
+          }
+          umask 077
+          CONFIG_FILE=$(mktemp)
+          trap 'rm -f "$CONFIG_FILE"' EXIT
+          printf '%s' "$TRAINER_PASSWORD" | php -r '
+            $password = stream_get_contents(STDIN);
+            if (strlen($password) < 16) exit(1);
+            $hash = password_hash($password, PASSWORD_DEFAULT);
+            echo "<?php return [".var_export("trainer_password_hash",true)." => ".var_export($hash,true)."];\n";
+          ' > "$CONFIG_FILE"
+          php -l "$CONFIG_FILE"
+          scp -i ~/.ssh/id_sakura -o BatchMode=yes "$CONFIG_FILE" \
+            "$SAKURA_USER@$SAKURA_HOST:/home/rakudadou/www/smart-diet/equineris/api/config.local.php"
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes "$SAKURA_USER@$SAKURA_HOST" \
+            'chmod 600 /home/rakudadou/www/smart-diet/equineris/api/config.local.php'
       - name: Verify uploaded files on Sakura
         env:
           SAKURA_HOST: ${{ vars.SAKURA_HOST }}
@@ -104,6 +140,15 @@ jobs:
              test -s equineris/food-groups.html
              for file in food-search.html food-master.json nutrient-food-search.html nutrient-master.json nutrient-panel.js program.css; do test -s "$file"; done
              echo "Sakura files verified"'
+      - name: Verify trainer PHP endpoint status without exposing credentials
+        run: |
+          OUTPUT=$(curl --fail --silent --show-error --location --max-time 20 \
+            "https://rakudadou.sakura.ne.jp/smart-diet/equineris/api/review.php?action=status")
+          printf '%s' "$OUTPUT" | php -r '
+            $payload=json_decode(stream_get_contents(STDIN),true);
+            if (!is_array($payload)||!isset($payload["configured"])||!is_bool($payload["configured"])) exit(1);
+            echo "Trainer-review API reachable; configured=" . ($payload["configured"]?"true":"false") . "\n";
+          '
       - name: Verify public URLs over HTTPS
         run: |
           for path in \
