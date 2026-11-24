@@ -11,7 +11,7 @@ const source=Object.fromEntries(
  ['index.html','smart-diet.html','setup.html','learning.html','textbook.html','textbook-data.js','learning-data.js','goal-calculator.js','week-1-goal.html',
   'habit-intro.html','habit-check.html','habit-check-card.js','record.html','record-unified.js','record-weight.js','diary-step1.html','measurements.html','diary-step2.html',
   'diary-step3.html','diary-step2.js','diary-step3.js','trainer-link.js','weight-trend.js',
-  'record-history.html','record-history.js']
+  'record-history.html','record-history.js','food-groups.html','point-allocation.html']
   .map(name=>[name,read(name)])
 );
 const test=(label,fn)=>{fn();process.stdout.write('PASS '+label+'\n');};
@@ -36,7 +36,7 @@ test('registration has only previously approved three fields',()=>{
  for(const id of ['age','waist','threeMonthGoal','bmiValue','rate5'])
   assert.doesNotMatch(s,new RegExp('id="'+id+'"'));
  assert.match(s,/equineris:registration:v1/);
- assert.match(s,/window\.location\.assign\('\.\/learning\.html'\)/);
+ assert.match(s,/window\.location\.assign\('\.\/learning\.html\?week=1'\)/);
 });
 test('mobile reader and empty history avoid blank-page regression',()=>{
  const step=source['smart-diet.html'];
@@ -356,36 +356,29 @@ test('review points match STEP3 food master; mismatched or missing amounts remai
  assert.match(source['record-history.js'],/この日の記録済み点数/);
  assert.match(source['record-history.js'],/fetch\('\.\.\/food-master\.json'/);
 });
-test('opening continuation resumes saved lesson instead of restarting the program',()=>{
+test('opening continuation resumes the saved 12-week lesson, not the unrelated textbook',()=>{
  const page=source['index.html'];
- const script=[...page.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)]
-  .map(x=>x[1]).find(x=>x.includes('findResumeHref'));
+ const script=scriptOf(page).find(x=>x.includes('findResumeHref'));
  assert.ok(script);
- assert.match(page,/id="continueProgramLink"/);
- assert.match(page,/id="startButton"/);
- assert.match(page,/id="recordOnlyLink"/);
- function clickContinuation(raw){
-  const state=new Map();
-  if(raw!==undefined)state.set('equineris:textbook:last:v1',raw);
-  const elements={};
-  for(const id of ['nextStepDialog','nextStepTitle','nextStepMessage','closeDialog',
-    'startButton','loginButton','continueProgramLink']){
-   elements[id]={href:id==='continueProgramLink'?'./textbook.html':undefined,
-    on:{},addEventListener(t,cb){this.on[t]=cb;},showModal(){},close(){}};
+ for(const id of ['continueProgramLink','startButton','recordOnlyLink'])assert.match(page,new RegExp('id="'+id+'"'));
+ assert.doesNotMatch(page,/id="loginButton"/,'do not offer an unavailable account login');
+ assert.match(source['setup.html'],/window\.location\.assign\('\.\/learning\.html\?week=1'\)/,'first setup should open week one');
+ const resume=raw=>{
+  const state=new Map([['equineris:textbook:last:v1',JSON.stringify('s4-c3')]]);
+  if(raw!==undefined)state.set('equineris:learning:position:v1',raw);
+  const els={};
+  for(const id of ['nextStepDialog','nextStepTitle','nextStepMessage','closeDialog','startButton','continueProgramLink']){
+   els[id]={href:id==='continueProgramLink'?'./learning.html':undefined,on:{},addEventListener(t,fn){this.on[t]=fn},showModal(){},close(){}};
   }
-  const document={getElementById:id=>elements[id]};
-  const storage={getItem:k=>state.get(k)??null,setItem(){throw Error('must not overwrite last-read position');}};
-  const window={location:{assign(){}}};
-  vm.runInNewContext(script,{window,document,localStorage:storage});
-  elements.continueProgramLink.on.click();
-  return {href:elements.continueProgramLink.href,unchanged:state.get('equineris:textbook:last:v1')};
- }
- const previous=clickContinuation(JSON.stringify('s4-c3'));
- assert.equal(previous.href,'./textbook.html#s4-c3');
- assert.equal(previous.unchanged,JSON.stringify('s4-c3'));
- assert.equal(clickContinuation(undefined).href,'./textbook.html');
- assert.equal(clickContinuation(JSON.stringify('invalid')).href,'./textbook.html');
- assert.equal(clickContinuation('{bad-json').href,'./textbook.html');
+  vm.runInNewContext(script,{document:{getElementById:id=>els[id]},window:{location:{assign(){}}},localStorage:{getItem:k=>state.get(k)||null,setItem(){throw Error('resume must not overwrite progress')}}});
+  els.continueProgramLink.on.click();
+  assert.equal(state.get('equineris:textbook:last:v1'),JSON.stringify('s4-c3'));
+  return els.continueProgramLink.href;
+ };
+ assert.equal(resume(JSON.stringify({week:8,card:2})),'./learning.html?week=8&card=2');
+ assert.equal(resume(JSON.stringify({week:12,card:3})),'./learning.html?week=12&card=3');
+ for(const raw of [undefined,JSON.stringify({week:13,card:2}),JSON.stringify({week:2,card:4}),'{bad json',JSON.stringify('s4-c3')])
+  assert.equal(resume(raw),'./learning.html');
 });
 test('record-only entry skips registration, while the 12-week program route remains',()=>{
  const opening=source['index.html'],unified=source['record.html'];
@@ -548,47 +541,56 @@ test('all twelve weeks reference existing textbook cards and preserve return lin
  assert.match(source['diary-step1.html'],/href="\.\/textbook\.html#s4-c1"/);
  assert.doesNotMatch(source['learning-data.js'],/振り返るします/);
 });
-test('12-week learning and every week have direct links to diary with a reliable return route',()=>{
+test('short four-card weekly guidance retains the full source, with contextual actions and a round-trip to the diary',()=>{
  const lesson=source['learning.html'],record=source['record-unified.js'];
+ const m=lesson.match(/^const weekBriefs=(.+);$/m);
+ assert.ok(m,'short per-week guidance must be data-driven and explicit');
+ const briefs=JSON.parse(m[1]);
+ assert.equal(briefs.length,12);
+ assert.ok(briefs.every(w=>w.length===4&&w.every(s=>typeof s==='string'&&[...s].length>=40&&[...s].length<=160)));
  assert.match(lesson,/id="indexRecordLink" href="\.\/record\.html\?from=learning"/);
- assert.match(lesson,/id="weekRecordLink" href="\.\/record\.html\?from=learning&amp;week=1"/);
- assert.match(lesson,/weekRecordLink\.href='\.\/record\.html\?from=learning&week='\+picker\.value\+'&card='\+slideIndex/);
- const title=lesson.indexOf('id="lessonTitle"'),recordEntry=lesson.indexOf('id="weekRecordLink"');
- const reference=lesson.indexOf('id="weekTextbookEntry"'),track=lesson.indexOf('id="lessonTrack"');
- assert.ok(title<recordEntry&&recordEntry<reference&&reference<track,'record link is above the reader in each week');
+ assert.doesNotMatch(lesson,/class="lesson-step-link" id="weekRecordLink"/,'do not put the diary button above the four-card reader');
+ assert.match(lesson,/if\(cardIndex===2\)\{/);
+ assert.match(lesson,/action\('食事を記録する','\.\/record\.html'\+back,'weekRecordLink'\)/);
+ assert.match(lesson,/action\('体重・腹囲を記録する','\.\/measurements\.html'\+back\)/);
+ assert.match(lesson,/action\('食事の記録を振り返る','\.\/record\.html'\+back\+'&stage=history'\)/);
+ assert.match(lesson,/action\('体重の推移を見る','\.\/measurements\.html'\+back\)/);
+ assert.match(lesson,/if\(weekNumber===3\|\|weekNumber===7\)/);
+ assert.match(lesson,/if\(weekNumber>=3&&weekNumber<=7\)/);
+ assert.match(lesson,/const details=node\('details','lesson-full-details'\)/);
+ assert.match(lesson,/details\.appendChild\(lessonBody\)/);
+ assert.match(lesson,/const brief=node\('p','lesson-brief',weekBriefs\[weekNumber-1\]\[cardIndex\]\)/);
+ assert.match(lesson,/track\.appendChild\(slide\(titles\[i\],[^\n]+sections,n,i\)\)/);
+ assert.match(lesson,/localStorage\.setItem\(LEARNING_POSITION_KEY,JSON\.stringify\(\{week:currentWeek,card:slideIndex\}\)\)/);
+ assert.match(lesson,/const LEARNING_POSITION_KEY='equineris:learning:position:v1'/);
  assert.match(record,/const fromLearning=!recordOnly&&params\.get\('from'\)==='learning'/);
  assert.match(record,/backLink\.href='\.\/learning\.html'\+/);
  assert.match(record,/if\(fromLearning\)\{q\.set\('from','learning'\);for\(const \[key,value\] of learningOrigin\)q\.set\(key,value\);\}/);
- const mock=()=>{
-  const events={};const links={};
+ const backTest=()=>{
   class El{
-   constructor(id){this.id=id;this.dataset={view:id};this.value='';this.hidden=false;this.disabled=false;this.events={};this.attrs={};this.href='';this.textContent='';}
+   constructor(id){this.id=id;this.dataset={view:id};this.value='';this.hidden=false;this.events={};this.attrs={};this.href='';this.textContent='';}
    addEventListener(k,fn){this.events[k]=fn}
    setAttribute(k,v){this.attrs[k]=v}
    getAttribute(k){return this.attrs[k]||null}
    fire(k){return this.events[k]?.({})}
   }
-  const views=['1','2','3','history'].map(id=>new El(id));
-  const back=new El('back'),frame=new El('frame'),date=new El('date');
-  const elements={recordBackLink:back,recordFrame:frame,recordDate:date,dateBox:new El('box'),recordStatus:new El('status')};
-  const urlLog=[];
-  const history={replaceState:(_a,_b,u)=>urlLog.push(u)};
-  const map=new Map;
-  const store={getItem:k=>map.get(k)||null,setItem:(k,v)=>map.set(k,v),get length(){return map.size},key:i=>[...map.keys()][i]};
+  const views=['1','2','3','history'].map(id=>new El(id)),back=new El('back'),date=new El('date');
+  const els={recordBackLink:back,recordFrame:new El('frame'),recordDate:date,dateBox:new El('box'),recordStatus:new El('status')};
+  const urls=[],storage=new Map;
   const location={pathname:'/smart-diet/equineris/record.html',origin:'https://example.test',search:'?from=learning&week=7&card=2&stage=1&date=2026-11-20'};
-  const window={addEventListener(){}};
-  vm.runInNewContext(record,{document:{getElementById:id=>elements[id]||null,querySelectorAll:()=>views},window,location,history,localStorage:store,Date,URL,URLSearchParams,MutationObserver:class{}});
+  vm.runInNewContext(record,{document:{getElementById:id=>els[id]||null,querySelectorAll:()=>views},window:{addEventListener(){}},location,
+   history:{replaceState:(_a,_b,url)=>urls.push(url)},
+   localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v),get length(){return storage.size},key:i=>[...storage.keys()][i]},Date,URL,URLSearchParams,MutationObserver:class{}});
   assert.equal(back.href,'./learning.html?week=7&card=2');
   assert.equal(back.textContent,'〈 第7週の学びに戻る');
-  assert.match(urlLog.at(-1),/from=learning&week=7&card=2/);
-  views[1].fire('click');
-  assert.match(urlLog.at(-1),/from=learning&week=7&card=2/);
-  views[3].fire('click');
-  assert.match(urlLog.at(-1),/from=learning&week=7&card=2/);
+  views[1].fire('click');views[3].fire('click');
   date.value='2026-11-22';date.fire('change');
-  assert.match(urlLog.at(-1),/from=learning&week=7&card=2/);
+  assert.ok(urls.length>=3&&urls.every(u=>u.includes('from=learning&week=7&card=2')));
  };
- mock();
+ backTest();
+ assert.match(source['food-groups.html'],/document\.getElementById\('pointAllocationLink'\)\.href='\.\/point-allocation\.html'\+context/);
+ assert.match(source['point-allocation.html'],/document\.getElementById\('openWeeklyRecord'\)\.href='\.\/record\.html'\+context/);
+ assert.match(source['measurements.html'],/byId\('back'\)\.href='\.\/learning\.html\?week='\+week/);
 });
 test('all 12 original weekly curricula are fully mapped into four vertical-scroll lesson cards',()=>{
  const match=source['learning.html'].match(/^const sectionGroupsByWeek=(.+);$/m);
@@ -853,7 +855,7 @@ test('starting BMI stays recorded after later daily weight measurements',()=>{
   const localStorage={getItem:key=>store.get(key)??null,setItem:(key,val)=>store.set(key,String(val))};
   const script=scriptOf(source['measurements.html'])[0];
   vm.runInNewContext(script,{document,localStorage,window:{confirm(){return false;}},
-   location:{origin:'https://example.test'},URL,Date});
+   location:{origin:'https://example.test',search:''},URL,URLSearchParams,Date});
   return {els,store};
  }
  const initial={name:'Test',heightCm:'170',weightKg:'70'};
@@ -929,7 +931,7 @@ test('saved goal is shown on measurements page without modifying daily logs',()=
  vm.runInNewContext(scriptOf(source['measurements.html'])[0],{
   document:{referrer:'',getElementById:id=>nodes[id],createElement:tag=>new MockEl(tag)},
   localStorage:{getItem:key=>storage.get(key)??null,setItem:(key,v)=>storage.set(key,String(v))},
-  window:{confirm(){return false;}},location:{origin:'https://example.test'},URL,Date
+  window:{confirm(){return false;}},location:{origin:'https://example.test',search:''},URL,URLSearchParams,Date
  });
  assert.equal(nodes.goalStartWeight.textContent,'80.0 kg');
  assert.equal(nodes.goalTargetWeight.textContent,'73.6 kg');
@@ -987,7 +989,7 @@ test('weight trend updates after saving and deleting records on the measurements
  const window={confirm(){return true}};
  vm.runInNewContext(source['weight-trend.js'],{document,window,Date});
  vm.runInNewContext(scriptOf(source['measurements.html'])[0],
-  {document,window,localStorage,Date,URL,location:{origin:'https://example.test'}});
+  {document,window,localStorage,Date,URL,URLSearchParams,location:{origin:'https://example.test',search:''}});
  const dots=()=>els.weightTrendChart.children.filter(n=>n.tagName==='circle');
  const paths=()=>els.weightTrendChart.children.filter(n=>n.tagName==='path');
  assert.equal(dots().length,0);

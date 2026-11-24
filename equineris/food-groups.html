@@ -263,6 +263,20 @@ document.getElementById('backToCheck').href='./habit-check.html?day='+day;
 document.getElementById('checkLink').href='./habit-check.html?day='+day;
 document.getElementById('diaryLink').href='./record.html?day='+day;
 document.getElementById('pointAllocationLink').href='./point-allocation.html?day='+day+'&v=ff77003b';
+const origin=new URLSearchParams(window.location.search);
+const returnWeek=Number(origin.get('week')),returnCard=Number(origin.get('card'));
+if(origin.get('from')==='learning'&&Number.isInteger(returnWeek)&&returnWeek>=1&&returnWeek<=12&&
+ origin.has('card')&&Number.isInteger(returnCard)&&returnCard>=0&&returnCard<4){
+ const context='?from=learning&week='+returnWeek+'&card='+returnCard;
+ const back=document.getElementById('backToCheck');
+ back.href='./learning.html?week='+returnWeek+'&card='+returnCard;
+ back.textContent='〈 第'+returnWeek+'週の学びに戻る';
+ document.getElementById('pointAllocationLink').href='./point-allocation.html'+context;
+ const diary=document.getElementById('diaryLink');
+ diary.href='./record.html'+context;
+ diary.textContent='食事を記録する';
+ document.getElementById('checkLink').hidden=true;
+}
 let active=0;
 let framePending=false;
 const reduceMotion=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
