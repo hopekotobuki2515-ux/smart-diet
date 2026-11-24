@@ -103,7 +103,7 @@ const ready=async(fn)=>{
    "return JSON.stringify({trace,scrollBehavior:getComputedStyle(track).scrollBehavior,snapType:getComputedStyle(track).scrollSnapType});"+
    "})()",returnByValue:true,awaitPromise:true});
  if(traceReply.exceptionDetails)throw Error(traceReply.exceptionDetails.text);
- const trace=JSON.parse(traceReply.result.result.value);
+ const trace=JSON.parse(traceReply.result.value);
  process.stdout.write('BUTTON_JITTER_DIAGNOSTIC '+JSON.stringify(trace)+'\n');
  ws.close();
 })().catch(e=>{console.error(e.stack||e);process.exitCode=1;}).finally(()=>{
