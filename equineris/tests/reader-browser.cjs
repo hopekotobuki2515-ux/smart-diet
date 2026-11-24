@@ -87,6 +87,51 @@ const ready=async(fn)=>{
   if(hash==='s2-habit-check')assert.equal(snap.habitRows,17);
   process.stdout.write('PASS '+width+'x'+height+' '+hash+' slides='+snap.cardCount+'\n');
  }
+
+ // Click stability regression: selected cards must not flash back while buttons navigate.
+ const lessons=pathToFileURL(path.resolve(__dirname,'../learning.html')).href+'?week=2';
+ await cdp('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:2,mobile:true});
+ await cdp('Page.navigate',{url:lessons});
+ await ready(async()=>await evalJS("document.querySelector('#lessonNext')&&document.querySelectorAll('#lessonTabs button').length===4"));
+ const traceReply=await cdp('Runtime.evaluate',{expression:"(async()=>{"+
+   "const track=document.getElementById('lessonTrack');const next=document.getElementById('lessonNext');"+
+   "const tabs=[...document.querySelectorAll('#lessonTabs button')];const trace=[];"+
+   "const snap=(label)=>{trace.push({label,x:Math.round(track.scrollLeft),selected:tabs.findIndex(b=>b.getAttribute('aria-pressed')==='true'),"+
+   "counter:document.getElementById('lessonCounter').textContent,buttonX:Math.round(next.getBoundingClientRect().left)});};"+
+   "snap('before');next.click();snap('after-click');"+
+   "for(let i=0;i<25;i++){await new Promise(r=>setTimeout(r,16));snap('t'+(i+1)*16);}"+
+   "return JSON.stringify({trace,scrollBehavior:getComputedStyle(track).scrollBehavior,snapType:getComputedStyle(track).scrollSnapType});"+
+   "})()",returnByValue:true,awaitPromise:true});
+ if(traceReply.exceptionDetails)throw Error(traceReply.exceptionDetails.text);
+ const trace=JSON.parse(traceReply.result.value);
+ assert.equal(trace.scrollBehavior,'auto','lesson buttons should not use smooth scroll');
+ assert.equal(trace.trace[0].selected,0);
+ assert.equal(trace.trace[1].selected,1);
+ assert.ok(trace.trace.slice(1).every(x=>x.selected===1&&x.counter==='2 / 4'),'lesson highlight flashed back during click: '+JSON.stringify(trace.trace));
+ assert.equal(new Set(trace.trace.map(x=>x.buttonX)).size,1,'lesson next button shifted horizontally');
+ process.stdout.write('PASS stable weekly lesson buttons (no selection flash)\n');
+
+ // The same regression appeared in the original STEP1 and reference lesson controls.
+ for(const [filename,hash,trackSelector,nextSelector,counterSelector] of [
+  ['diary-step1.html','','#mealTrack','#mealNext','#mealCounter'],
+  ['diary-step2.html','','#mealTrack','#mealNext','#mealCounter'],
+  ['textbook.html','#s2-c5','.course-step:not([hidden]) .track','.course-step:not([hidden]) .slide-nav .next','.course-step:not([hidden]) .counter']
+ ]){
+  await cdp('Page.navigate',{url:pathToFileURL(path.resolve(__dirname,'../'+filename)).href+hash});
+  await ready(async()=>await evalJS("!!(document.querySelector("+JSON.stringify(trackSelector)+")&&document.querySelector("+JSON.stringify(nextSelector)+"))"));
+  const expression="(async()=>{const track=document.querySelector("+JSON.stringify(trackSelector)+"),"+
+   "btn=document.querySelector("+JSON.stringify(nextSelector)+"),counter=document.querySelector("+JSON.stringify(counterSelector)+");"+
+   "const samples=[];const add=(tag)=>samples.push({tag,x:Math.round(track.scrollLeft),counter:counter?.textContent.trim()});"+
+   "add('before');btn.click();add('after');for(let i=0;i<23;i++){await new Promise(r=>setTimeout(r,16));add('t'+i);}"+
+   "return JSON.stringify({file:"+JSON.stringify(filename)+",samples})})()";
+  const response=await cdp('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});
+  if(response.exceptionDetails)throw Error(response.exceptionDetails.text);
+  const output=JSON.parse(response.result.value),samples=output.samples;
+  const current=samples[1]?.counter,previous=samples[0]?.counter;
+  assert.ok(previous&&current&&previous!==current,'click must advance card: '+filename+' '+JSON.stringify(samples));
+  assert.ok(samples.slice(1).every(x=>x.counter===current),'card selection flickered in '+filename+': '+JSON.stringify(samples));
+  process.stdout.write('PASS stable card navigation: '+filename+'\n');
+ }
  ws.close();
 })().catch(e=>{console.error(e.stack||e);process.exitCode=1;}).finally(()=>{
  // The CI runner removes its own temporary filesystem after the job.
