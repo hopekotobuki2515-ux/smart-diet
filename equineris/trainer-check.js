@@ -16,8 +16,33 @@ try{const saved=JSON.parse(safelyRead('equineris:registration:v1'));if(saved&&ty
 function clientKey(){let key=safelyRead('equineris:trainer-review-token:v1');if(/^[a-f0-9]{64}$/.test(key))return key;
 if(!crypto?.getRandomValues)throw Error('安全な通信環境が必要です');const arr=new Uint8Array(32);crypto.getRandomValues(arr);key=Array.from(arr,v=>v.toString(16).padStart(2,'0')).join('');localStorage.setItem('equineris:trainer-review-token:v1',key);return key}
 async function server(action,data=null){const opt=data?{method:'POST',headers:{'X-CSRF-Token':csrf},body:data}:{credentials:'same-origin'};const res=await fetch(api+'?action='+encodeURIComponent(action),{credentials:'same-origin',cache:'no-store',...opt});const answer=await res.json().catch(()=>({error:'応答形式が正しくありません'}));if(!res.ok)throw Error(answer.error||'通信エラー '+res.status);return answer}
-function fields(stage,slot){const prefix=stage==='1'?(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(slot)?'equineris:diary-step1:v1:entry:'+slot+':':'equineris:paper-first3:v1:'+slot+':'):stage==='2'?'equineris:diary-step2:v1:entry:'+slot+':':'equineris:diary-step3:v1:entry:'+slot+':';
-return meals.map(([id,label])=>{const memo=safelyRead(prefix+(stage==='1'?id+'-meal':'memo:'+id));const food=stage==='1'?'':safelyRead(prefix+'foods:'+id);let details='';try{const data=JSON.parse(food);if(Array.isArray(data))details=data.map(x=>(x.name||'')+(x.amount||x.grams||'')+(x.unit||'')).join('、')}catch(e){}return label+'：'+[memo,details].filter(Boolean).join('／')}).filter(x=>!x.endsWith('：')).join('\n')}
+function fields(stage,slot){
+  const prefix=stage==='1'
+    ? (/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(slot)?'equineris:diary-step1:v1:entry:'+slot+':':'equineris:paper-first3:v1:'+slot+':')
+    : 'equineris:diary-step'+stage+':v1:entry:'+slot+':';
+  return meals.map(([id,label])=>{
+    const memo=safelyRead(prefix+(stage==='1'?id+'-meal':'memo:'+id));
+    let details='';
+    if(stage!=='1'){
+      try{
+        const parsed=JSON.parse(safelyRead(prefix+'foods:'+id)||'[]');
+        if(Array.isArray(parsed)){
+          details=parsed.slice(0,100).filter(x=>x&&typeof x.name==='string').map(x=>{
+            const group=String(x.masterGroup||x.sourceGroup||x.group||'');
+            const groupName=/^[1-4]$/.test(group)?'第'+group+'群':/^第[1-4]群$/.test(group)?group:'';
+            const amount=x.grams??x.amount??null;
+            const unit=stage==='3'?'g':String(x.unit||'g');
+            const point=stage==='3'&&Number(x.grams)>0&&Number(x.masterGramsPerPoint)>0
+              ? (Math.round((Number(x.grams)/Number(x.masterGramsPerPoint)+Number.EPSILON)*100)/100).toFixed(2)+'点'
+              : '';
+            return [x.name,amount!==null?String(amount)+unit:'',groupName,point].filter(Boolean).join('／');
+          }).join('、');
+        }
+      }catch(e){/* An invalid locally stored food list must not send made-up food data. */}
+    }
+    return label+'：'+[memo,details].filter(Boolean).join('／');
+  }).filter(x=>!x.endsWith('：')).join('\n');
+}
 async function photo(dbName,key){return new Promise(resolve=>{if(typeof indexedDB==='undefined'){resolve(null);return}const req=indexedDB.open(dbName,1);req.onerror=()=>resolve(null);req.onupgradeneeded=()=>{req.transaction?.abort();resolve(null)};req.onsuccess=()=>{const db=req.result;if(!db.objectStoreNames.contains('photos')){db.close();resolve(null);return}const tx=db.transaction('photos','readonly'),get=tx.objectStore('photos').get(key);get.onsuccess=()=>{db.close();resolve(get.result?.file instanceof Blob?get.result.file:null)};get.onerror=()=>{db.close();resolve(null)}}})}
 async function loadSaved(){autoPhotos=[];for(const u of previewUrls)URL.revokeObjectURL(u);previewUrls=[];$('photoGrid').replaceChildren();const stage=$('stage').value;
 let key1=day>=1&&day<=3?String(day):null;
