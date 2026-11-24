@@ -36,7 +36,7 @@ test('registration has only previously approved three fields',()=>{
  for(const id of ['age','waist','threeMonthGoal','bmiValue','rate5'])
   assert.doesNotMatch(s,new RegExp('id="'+id+'"'));
  assert.match(s,/equineris:registration:v1/);
- assert.match(s,/window\.location\.assign\('\.\/learning\.html'\)/);
+ assert.match(s,/window\.location\.assign\('\.\/learning\.html\?week=1'\)/);
 });
 test('mobile reader and empty history avoid blank-page regression',()=>{
  const step=source['smart-diet.html'];
