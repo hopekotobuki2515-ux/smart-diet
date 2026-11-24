@@ -33,3 +33,5 @@ jobs:
         run: node equineris/tests/reader-browser.cjs
       - name: Audit mobile geometry across EQUINERIS screens
         run: node equineris/tests/mobile-layout-audit.cjs
+      - name: Compare actual GitHub Pages and Sakura served HTML and JavaScript byte-for-byte
+        run: node equineris/tests/live-content-compare.cjs
