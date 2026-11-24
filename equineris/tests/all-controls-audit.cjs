@@ -74,6 +74,11 @@ function inspect(){
 function prepareTap(index){
  const e=[...document.querySelectorAll('button,input[type=button],input[type=submit],a[href],[role=button]')][index];
  if(!e||e.disabled||e.closest('[hidden],dialog:not([open])'))return {skip:'not available'};
+ const inactive=e.closest('.goal-slide[inert]');
+ if(inactive){const i=[...inactive.parentElement.children].indexOf(inactive);
+  const tab=document.querySelector('[data-goal-slide="'+i+'"]');
+  if(tab){tab.click();return {wait:300};}
+ }
  if(/^(https?:|mailto:|tel:|\/\/)/i.test(e.getAttribute('href')||''))return {skip:'external'};
  e.scrollIntoView({block:'center',inline:'center',behavior:'instant'});
  const b=e.getBoundingClientRect(),x=b.left+b.width/2,y=b.top+b.height/2;
@@ -88,10 +93,11 @@ function prepareTap(index){
  const tab=await ready(async()=>{const t=await fetchTabs();return t.find(x=>x.type==='page'&&x.webSocketDebuggerUrl)});
  const ws=new WebSocket(tab.webSocketDebuggerUrl);
  await new Promise((resolve,reject)=>{ws.addEventListener('open',resolve,{once:true});ws.addEventListener('error',reject,{once:true})});
- let id=0,currentRoute='',errors=[];
+ let id=0,currentRoute='',errors=[],navEvents=0;
  const pending=new Map();
  ws.addEventListener('message',evt=>{
   const m=JSON.parse(evt.data);
+  if(m.method==='Page.frameNavigated'&&!m.params.frame.parentId){navEvents++;return}
   if(m.method==='Page.javascriptDialogOpening'){void cdp('Page.handleJavaScriptDialog',{accept:false}).catch(()=>{});return}
   if(m.method==='Runtime.exceptionThrown'){errors.push({route:currentRoute,detail:m.params.exceptionDetails?.exception?.description||m.params.exceptionDetails?.text});return}
   const p=pending.get(m.id);if(!p)return;
@@ -156,14 +162,16 @@ function prepareTap(index){
    await cdp('Page.navigate',{url});await sleep(110);
    currentRoute=route+' '+item.label;
    try{
-    const p=await evaluate('('+prepareTap.toString()+')('+i+')');
+    let p=await evaluate('('+prepareTap.toString()+')('+i+')');
+    if(p.wait){await sleep(p.wait);p=await evaluate('('+prepareTap.toString()+')('+i+')')}
     if(p.skip){tapSkipped.push({route,label:item.label,reason:p.skip});continue}
     if(p.blocked){tapBlocked.push({route,label:item.label,obstacle:p.top});continue}
+    const beforeNav=navEvents;
     await cdp('Input.dispatchMouseEvent',{type:'mousePressed',x:p.x,y:p.y,button:'left',clickCount:1});
     await cdp('Input.dispatchMouseEvent',{type:'mouseReleased',x:p.x,y:p.y,button:'left',clickCount:1});
     await sleep(35);
     const after=await evaluate('({hit:!!window.__auditTapReceived,url:location.href})');
-    if(after.hit||after.url!==url)tapSuccess++;
+    if(after.hit||after.url!==url||navEvents>beforeNav)tapSuccess++;
     else tapUnresponsive.push({route,label:item.label});
    }catch(e){
     try{if((await evaluate('location.href'))!==url){tapSuccess++;continue}}catch(x){}
