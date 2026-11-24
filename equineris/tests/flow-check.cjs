@@ -854,7 +854,7 @@ test('starting BMI stays recorded after later daily weight measurements',()=>{
   const localStorage={getItem:key=>store.get(key)??null,setItem:(key,val)=>store.set(key,String(val))};
   const script=scriptOf(source['measurements.html'])[0];
   vm.runInNewContext(script,{document,localStorage,window:{confirm(){return false;}},
-   location:{origin:'https://example.test'},URL,Date});
+   location:{origin:'https://example.test',search:''},URL,URLSearchParams,Date});
   return {els,store};
  }
  const initial={name:'Test',heightCm:'170',weightKg:'70'};
