@@ -167,6 +167,31 @@ test('full history merges saved food, photo and body records by actual date and 
  assert.equal(model.dateValid('2026-02-30'),false);
  assert.equal(values.size,11,'no storage key may be modified by read-only review');
 });
+test('food diary sample and four-group captions remain readable without changing totals or input keys',()=>{
+ const wrapper=source['record.html'],groups=source['diary-step1.html'],details=source['diary-step3.html'];
+ const status=source['diary-step3.js'];
+ assert.match(wrapper,/<p class="help"><span>記録と写真はこのブラウザに保存されます。<\/span><span>別端末への自動同期はありません。<\/span><\/p>/);
+ assert.match(wrapper,/\.help span\{display:block/);
+ const headerLabels=[
+  '<small><span>乳製品・卵</span></small>',
+  '<small><span>魚・肉</span><span>豆製品</span></small>',
+  '<small><span>野菜・きのこ</span><span>いも・果物</span></small>',
+  '<small><span>米・パン・麺</span><span>油脂・調味料</span><span>酒類</span></small>'
+ ];
+ for(const text of headerLabels)assert.equal(groups.split(text).length-1,5,'all five four-group tables use the same split');
+ assert.match(groups,/\.food-groups th small span\{display:block;white-space:nowrap/);
+ for(const key of ['breakfast','lunch','dinner','snack']){
+  for(let g=1;g<=4;g++)assert.match(groups,new RegExp('data-diary-key="'+key+'-group-'+g+'"'));
+ }
+ assert.match(details,/class="sample-total-amount">夕食の小計：3\.57点<\/span>/);
+ assert.match(details,/class="sample-total-note">※ 調味料0\.06点は見本の転記値です。<\/span>/);
+ assert.match(details,/小計は丸める前の値を合算するため、表示された点数の合計と0\.01点異なる場合があります/);
+ assert.match(details,/見本に分量が記載されていないため、食品マスターでの照合が完了していません/);
+ for(const expected of ['0.00点','1.00点','0.66点','1.91点','3.57点'])
+  assert.match(details,new RegExp(expected.replace('.','\\.')));
+ assert.match(status,/入力内容は自動保存されます/);
+ assert.doesNotMatch(status,/独立して自動保存されます/);
+});
 test('STEP1 preserves four-group checks, unlimited dates, legacy data, and save/preview buttons',()=>{
  const page=source['diary-step1.html'];
  assert.match(page,/const DATE_PREFIX='equineris:diary-step1:v1:entry:'/);
