@@ -551,11 +551,16 @@ test('all twelve weeks reference existing textbook cards and preserve return lin
 test('12-week learning and every week have direct links to diary with a reliable return route',()=>{
  const lesson=source['learning.html'],record=source['record-unified.js'];
  assert.match(lesson,/id="indexRecordLink" href="\.\/record\.html\?from=learning"/);
- assert.match(lesson,/id="weekRecordLink" href="\.\/record\.html\?from=learning&amp;week=1"/);
- assert.match(lesson,/weekRecordLink\.href='\.\/record\.html\?from=learning&week='\+picker\.value\+'&card='\+slideIndex/);
- const title=lesson.indexOf('id="lessonTitle"'),recordEntry=lesson.indexOf('id="weekRecordLink"');
+ assert.doesNotMatch(lesson,/class="lesson-step-link" id="weekRecordLink"/,'do not insert extra record button above textbook');
+ assert.match(lesson,/function slide\(title,subtitle,weeklySections,showRecord\)/);
+ assert.match(lesson,/if\(showRecord\)\{/);
+ assert.match(lesson,/action\.id='weekRecordLink'/);
+ assert.match(lesson,/action\.href='\.\/record\.html\?from=learning&week='\+picker\.value\+'&card=2'/);
+ assert.match(lesson,/panel\.appendChild\(action\)/);
+ assert.match(lesson,/track\.appendChild\(slide\(titles\[i\],[^\n]+sections,i===2\)\)/);
+ const title=lesson.indexOf('id="lessonTitle"');
  const reference=lesson.indexOf('id="weekTextbookEntry"'),track=lesson.indexOf('id="lessonTrack"');
- assert.ok(title<recordEntry&&recordEntry<reference&&reference<track,'record link is above the reader in each week');
+ assert.ok(title<reference&&reference<track,'the approved textbook link must immediately precede the reader');
  assert.match(record,/const fromLearning=!recordOnly&&params\.get\('from'\)==='learning'/);
  assert.match(record,/backLink\.href='\.\/learning\.html'\+/);
  assert.match(record,/if\(fromLearning\)\{q\.set\('from','learning'\);for\(const \[key,value\] of learningOrigin\)q\.set\(key,value\);\}/);
