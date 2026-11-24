@@ -111,7 +111,7 @@
   
 /* この点数配分ページに限る、スマホ優先の4枚横スワイプ */
 .point-intro{text-align:center;font-size:13px;line-height:1.8;color:var(--ink-light);margin:0 0 15px}
-.point-track{display:flex;width:100%;max-width:100%;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;overscroll-behavior-x:contain}
+.point-track{display:flex;width:100%;max-width:100%;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;scroll-behavior:auto;overscroll-behavior-x:contain}
 .point-track::-webkit-scrollbar{display:none}
 .point-slide{min-width:0;flex:0 0 100%;width:100%;scroll-snap-align:start;scroll-snap-stop:always;padding:2px 1px 8px}
 .point-panel{background:#fffefb;border:1px solid #dee7db;border-radius:20px;padding:20px 16px 21px;min-height:100%;color:var(--ink);overflow-wrap:break-word;word-break:normal;box-shadow:0 7px 20px rgba(28,67,40,.04)}
@@ -454,8 +454,7 @@ function update(){
 function go(i,smooth=true){
  slideIndex=Math.max(0,Math.min(track.children.length-1,i));
  update();
- const reduced=typeof window.matchMedia==='function'&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
- track.scrollTo({left:slideIndex*track.clientWidth,behavior:smooth&&!reduced?'smooth':'auto'});
+ track.scrollTo({left:slideIndex*track.clientWidth,behavior:'auto'});
 }
 function loadWeek(n){
  const entry=data[n-1];
