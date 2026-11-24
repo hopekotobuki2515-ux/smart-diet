@@ -12,7 +12,8 @@ const additional=[
  'food-groups.html?from=learning&week=3&card=1',
  'point-allocation.html?from=learning&week=3&card=1',
  'maintenance-energy.html?from=learning&week=12&card=2',
- 'textbook.html#s1-c1','textbook.html#s3-c1','textbook.html#s6-c14'
+ 'textbook.html#s1-c1','textbook.html#s3-c1','textbook.html#s6-c14',
+ '../food-search.html','../nutrient-food-search.html'
 ];
 const candidate=[process.env.CHROME_BIN,'/usr/bin/google-chrome','/usr/bin/chromium','google-chrome','chromium'].filter(Boolean);
 const exe=candidate.find(p=>!p.includes('/')||fs.existsSync(p));
@@ -91,6 +92,7 @@ function prepareTap(index){
  const pending=new Map();
  ws.addEventListener('message',evt=>{
   const m=JSON.parse(evt.data);
+  if(m.method==='Page.javascriptDialogOpening'){void cdp('Page.handleJavaScriptDialog',{accept:false}).catch(()=>{});return}
   if(m.method==='Runtime.exceptionThrown'){errors.push({route:currentRoute,detail:m.params.exceptionDetails?.exception?.description||m.params.exceptionDetails?.text});return}
   const p=pending.get(m.id);if(!p)return;
   pending.delete(m.id);if(m.error)p.reject(Error(m.error.message));else p.resolve(m.result);
