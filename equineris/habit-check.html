@@ -191,6 +191,28 @@ if(fromGoal){
   document.getElementById('groupsLink').textContent='次へ：具体的な行動目標を考える ›';
  }
 }
+const flowParams=new URLSearchParams(window.location.search);
+const returnCard=Number(flowParams.get('card'));
+const fromWeekTwo=flowParams.get('from')==='learning'&&flowParams.get('week')==='2'&&
+ flowParams.has('card')&&Number.isInteger(returnCard)&&returnCard>=0&&returnCard<=3;
+if(fromWeekTwo){
+ document.title='食行動チェック | SMART Diet · EQUINERIS';
+ const heading=document.getElementById('habitTitle');
+ heading.replaceChildren();
+ const mark=document.createElement('span');mark.className='heading-stamp';mark.textContent='食';
+ heading.append(mark,document.createTextNode('行動チェック'));
+ document.getElementById('habitLeadOne').textContent='第2週は、3か月後の目標と普段の食行動を確認します。';
+ document.getElementById('habitLeadTwo').textContent='17項目のうち、今の自分に当てはまるものに○を付けてください。';
+ const back=document.getElementById('choiceLink');
+ back.href='./learning.html?week=2&card='+returnCard;
+ back.textContent='〈 第2週の学びへ戻る';
+ const reflection=document.getElementById('groupsLink');
+ reflection.href='./learning.html?week=2&card=3';
+ reflection.textContent='次へ：第2週の振り返り ›';
+ const diary=document.getElementById('diaryLink');
+ diary.href='./record.html?from=learning&week=2&card='+returnCard;
+ diary.textContent='食事を記録する';
+}
 
 function selected(){return boxes.filter(box=>box.checked).map(box=>box.dataset.habit);}
 function setStatus(message,error=false){status.textContent=message;status.dataset.error=String(error);}

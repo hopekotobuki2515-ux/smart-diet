@@ -62,7 +62,9 @@ const ready=async(fn)=>{
    'measurements.html?from=learning&week=3&card=2',
    'record.html?from=learning&week=3&card=2',
    'record.html?from=learning&week=3&card=3&stage=history',
-   'maintenance-energy.html?from=learning&week=12&card=2'
+   'maintenance-energy.html?from=learning&week=12&card=2',
+   'week-1-goal.html?from=learning&week=2&card=2',
+   'habit-check.html?from=learning&week=2&card=2'
  ];
  const routes=[...cases,...extraRoutes];
  const diagnostics=[];
@@ -207,6 +209,34 @@ const ready=async(fn)=>{
    return !narrow&&scrollOk&&!singleCharColumns;
   })(),weekTextbookReady:(()=>{const entry=document.querySelector('#weekTextbookEntry'),items=[...document.querySelectorAll('#relatedTextbookLinks a')],panel=document.querySelector('#lessonTrack'),heading=document.querySelector('#lessonTitle');return !!(entry&&heading&&panel&&entry.getBoundingClientRect().top>=heading.getBoundingClientRect().top&&entry.getBoundingClientRect().bottom<=panel.getBoundingClientRect().top&&items.length>0&&items.every(x=>x.href.includes('textbook.html?week=')&&x.hash.length>2)&&entry.href===items[0].href);})(),routeContinuity:(()=>{
    const filename=location.pathname.split('/').pop(),params=new URLSearchParams(location.search);
+   if(filename==='learning.html'&&params.get('week')==='2'){
+    const companion=document.getElementById('lessonCompanion');
+    if(!companion||companion.hidden)return false;
+    const dest=new URL(companion.href,location.href);
+    if(!dest.pathname.endsWith('/week-1-goal.html')||dest.searchParams.get('from')!=='learning'||
+      dest.searchParams.get('week')!=='2'||dest.searchParams.get('card')!=='0')return false;
+    const slides=[...document.querySelectorAll('#lessonTrack .point-slide')],practice=slides[2];
+    const actionLinks=[...practice.querySelectorAll('a')].map(a=>new URL(a.href,location.href));
+    return actionLinks.some(x=>x.pathname.endsWith('/week-1-goal.html')&&x.searchParams.get('week')==='2'&&x.searchParams.get('card')==='2')&&
+      actionLinks.some(x=>x.pathname.endsWith('/habit-check.html')&&x.searchParams.get('week')==='2'&&x.searchParams.get('card')==='2')&&
+      [...document.querySelectorAll('#relatedTextbookLinks a')].some(a=>a.hash==='#s2-habit-check');
+   }
+   if(filename==='week-1-goal.html'&&params.get('from')==='learning'&&params.get('week')==='2'){
+    const back=document.querySelector('.topbar .back'),next=document.querySelector('.bmi-slide-action');
+    if(!back||!next||document.querySelector('.topbar .step')?.textContent!=='WEEK 02')return false;
+    const home=new URL(back.href,location.href),sheet=new URL(next.href,location.href);
+    return home.pathname.endsWith('/learning.html')&&home.searchParams.get('week')==='2'&&
+      home.searchParams.get('card')===params.get('card')&&sheet.pathname.endsWith('/habit-check.html')&&
+      sheet.searchParams.get('week')==='2'&&sheet.searchParams.get('card')===params.get('card');
+   }
+   if(filename==='habit-check.html'&&params.get('from')==='learning'&&params.get('week')==='2'){
+    const back=document.getElementById('choiceLink'),next=document.getElementById('groupsLink');
+    if(!back||!next||document.querySelectorAll('[data-habit]').length!==17)return false;
+    const home=new URL(back.href,location.href),reflection=new URL(next.href,location.href);
+    return home.pathname.endsWith('/learning.html')&&home.searchParams.get('week')==='2'&&
+      home.searchParams.get('card')===params.get('card')&&reflection.pathname.endsWith('/learning.html')&&
+      reflection.searchParams.get('week')==='2'&&reflection.searchParams.get('card')==='3';
+   }
    if(filename==='learning.html'&&[3,12].includes(Number(params.get('week')))){
     const companion=document.getElementById('lessonCompanion');
     if(!companion||companion.hidden)return false;

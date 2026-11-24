@@ -312,7 +312,7 @@ const after=document.getElementById('nextWeek');
 const companion=document.getElementById('lessonCompanion');
 const relatedLinks=document.getElementById('relatedTextbookLinks');
 const weekTextbookEntry=document.getElementById('weekTextbookEntry');
-const relatedTextbookByWeek=[[["s2-c2","BMIで体格を確認しましょう"],["s2-c4","お腹まわりを測ってみましょう"],["s2-c7","普段の食べ方を振り返る"],["s4-c1","何を食べたか記録しましょう"]],[["s2-c5","どのくらいの減量を目指す？"],["s2-habit-check","食行動チェック表"],["s2-goal","3か月後の目標体重を計算しましょう"]],[["s3-c6","1点＝80kcalで考えます"],["s3-c1","スマートダイエット式食事を学ぶ"]],[["s4-c2","食べた量を確認しましょう"]],[["s4-c3","食品の点数を確認しましょう"]],[["s3-c7","3食にバランスよく振り分ける"],["s3-c10","主食・主菜・副菜・もう一品"]],[["s3-c2","卵・乳・乳製品"],["s3-c3","魚・肉・豆・豆製品"],["s3-c4","野菜・果物・いも・きのこ・海藻"],["s3-c5","穀類・油脂・砂糖・嗜好品"]],[["s5-c4","外食でも食品群を意識する"],["s5-c6","コンビニでも食事を整える"]],[["s5-c3","おやつも選び方を考える"],["s5-c8","体重が減らない時期もあります"],["s5-c7","お酒の量を見直しましょう"]],[["s6-c1","自分に合った運動を見つけましょう"],["s6-c8","筋肉を使う習慣をつくりましょう"],["s6-c12","日常生活の動きも運動の一部"]],[["s3-c10","主食・主菜・副菜・もう一品"],["s3-c7","3食にバランスよく振り分ける"]],[["s5-c9","目標達成後も食習慣を大切に"],["s5-c10","続けられる習慣を身につける"]]];
+const relatedTextbookByWeek=[[["s2-c2","BMIで体格を確認しましょう"],["s2-c4","お腹まわりを測ってみましょう"],["s2-c7","普段の食べ方を振り返る"],["s4-c1","何を食べたか記録しましょう"]],[["s2-c5","どのくらいの減量を目指す？"],["s2-goal","3か月後の目標体重を計算しましょう"],["s2-c6","自分に合った目標を決めましょう"],["s2-c7","普段の食べ方を振り返る"],["s2-habit-check","食行動チェック表"],["s2-c8","今日から何を変えますか？"]],[["s3-c6","1点＝80kcalで考えます"],["s3-c1","スマートダイエット式食事を学ぶ"]],[["s4-c2","食べた量を確認しましょう"]],[["s4-c3","食品の点数を確認しましょう"]],[["s3-c7","3食にバランスよく振り分ける"],["s3-c10","主食・主菜・副菜・もう一品"]],[["s3-c2","卵・乳・乳製品"],["s3-c3","魚・肉・豆・豆製品"],["s3-c4","野菜・果物・いも・きのこ・海藻"],["s3-c5","穀類・油脂・砂糖・嗜好品"]],[["s5-c4","外食でも食品群を意識する"],["s5-c6","コンビニでも食事を整える"]],[["s5-c3","おやつも選び方を考える"],["s5-c8","体重が減らない時期もあります"],["s5-c7","お酒の量を見直しましょう"]],[["s6-c1","自分に合った運動を見つけましょう"],["s6-c8","筋肉を使う習慣をつくりましょう"],["s6-c12","日常生活の動きも運動の一部"]],[["s3-c10","主食・主菜・副菜・もう一品"],["s3-c7","3食にバランスよく振り分ける"]],[["s5-c9","目標達成後も食習慣を大切に"],["s5-c10","続けられる習慣を身につける"]]];
 if(!Array.isArray(data)||data.length!==12||data.some((week,i)=>week.week!==i+1)){
  index.hidden=false;content.hidden=true;
  document.getElementById('lessonIndexLead').textContent='教材を読み込めませんでした。ページを再読み込みしてください。';
@@ -388,12 +388,18 @@ function slide(title,subtitle,weeklySections,weekNumber,cardIndex){
  };
  const back='?from=learning&week='+weekNumber+'&card='+cardIndex;
  if(cardIndex===1){
+  if(weekNumber===2)
+   action('目標設定のテキストを読む','./textbook.html'+back+'#s2-c6');
   if(weekNumber===3||weekNumber===7)
    action('4つの食品群を学ぶ','./food-groups.html'+back);
   if(weekNumber>=3&&weekNumber<=7)
    action('1点＝80kcal・点数配分を学ぶ','./point-allocation.html'+back);
  }
  if(cardIndex===2){
+  if(weekNumber===2){
+   action('3か月後の減量目標を設定する','./week-1-goal.html'+back);
+   action('食行動チェックシート（17項目）','./habit-check.html'+back);
+  }
   action('食事を記録する','./record.html'+back,'weekRecordLink');
   action('体重・腹囲を記録する','./measurements.html'+back);
  }
@@ -434,6 +440,8 @@ function update(){
  }
  for(const a of relatedLinks.children){a.href='./textbook.html?week='+picker.value+'&card='+slideIndex+'#'+encodeURIComponent(a.dataset.cardId);}
  const firstCardId=relatedTextbookByWeek[Number(picker.value)-1]?.[0]?.[0];
+ if(currentWeek===2&&!companion.hidden)
+  companion.href='./week-1-goal.html?from=learning&week=2&card='+slideIndex;
  if((currentWeek===3||currentWeek===12)&&!companion.hidden){
   const filename=currentWeek===3?'food-groups.html':'maintenance-energy.html';
   companion.href='./'+filename+'?from=learning&week='+currentWeek+'&card='+slideIndex;
@@ -477,7 +485,7 @@ function loadWeek(n){
  before.href='./learning.html?week='+(n-1);
  after.href='./learning.html?week='+(n+1);
  companion.hidden=true;
- if(n===1){companion.href='./week-1-goal.html';companion.textContent='スマートダイエットの減量目標設定';companion.hidden=false;}
+ if(n===2){companion.href='./week-1-goal.html?from=learning&week=2&card=0';companion.textContent='3か月後の減量目標を設定する';companion.hidden=false;}
  if(n===3){companion.href='./food-groups.html?day=1';companion.textContent='4つの食品群と点数配分を詳しく見る';companion.hidden=false;}
  if(n===12){companion.href='./maintenance-energy.html';companion.textContent='12週間修了後のエネルギー構成と四群の点数配分を見る';companion.hidden=false;}
  relatedLinks.replaceChildren();

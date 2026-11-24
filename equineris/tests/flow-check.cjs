@@ -68,7 +68,7 @@ test('weight goal and BMI remain inside separate lesson flow',()=>{
  for(const id of ['targetWeight','bmiAutoCurrent','bmiAuto22','bmiAuto25'])
   assert.match(s,new RegExp('id="'+id+'"'));
  assert.match(s,/goalInput\.value=display\(startWeight\*\(1-Number\(input\.value\)\/100\)\)/);
- assert.match(s,/fromTextbook\?\(requestedSlide==='bmi'\?2:1\):0/);
+ assert.match(s,/go\(fromTextbook\|\|fromWeekTwo\?\(requestedSlide==='bmi'\?2:1\):0\)/);
  assert.match(s,/habit-intro\.html\?from=textbook-step2/);
 });
 test('17 item checklist retains its marks and local save key',()=>{
@@ -553,6 +553,41 @@ test('all twelve weeks reference existing textbook cards and preserve return lin
  assert.ok(source['textbook.html'].includes("history.replaceState(null,'',(location.search||'')+'#index')"));
  assert.match(source['diary-step1.html'],/href="\.\/textbook\.html#s4-c1"/);
  assert.doesNotMatch(source['learning-data.js'],/振り返るします/);
+});
+test('week 2 goal and 17-item behavior sheet are real linked tools, not just reference text',()=>{
+ const week=source['learning.html'],goal=source['week-1-goal.html'],habit=source['habit-check.html'];
+ const mapped=JSON.parse(week.match(/^const relatedTextbookByWeek=(.+);$/m)[1]);
+ const byWeek=(n)=>mapped[n-1].map(x=>x[0]);
+ assert.equal(mapped.length,12);
+ const minimumRelevant={
+  1:['s2-c2','s4-c1'],2:['s2-c5','s2-c6','s2-c7','s2-habit-check','s2-goal'],
+  3:['s3-c6'],4:['s4-c2'],5:['s4-c3'],6:['s3-c7'],7:['s3-c2','s3-c5'],
+  8:['s5-c4','s5-c6'],9:['s5-c3','s5-c8'],10:['s6-c1','s6-c8'],
+  11:['s3-c10'],12:['s5-c9','s5-c10']
+ };
+ for(const [number,required] of Object.entries(minimumRelevant))
+  for(const id of required)assert.ok(byWeek(Number(number)).includes(id),'week '+number+' missing its subject: '+id);
+ assert.ok(!byWeek(1).includes('s2-goal'),'goal belongs to week 2, not the week 1 companion');
+ assert.deepEqual(byWeek(2),['s2-c5','s2-goal','s2-c6','s2-c7','s2-habit-check','s2-c8']);
+ assert.match(week,/if\(n===2\)\{companion\.href='\.\/week-1-goal\.html\?from=learning&week=2&card=0'/);
+ assert.doesNotMatch(week,/if\(n===1\)\{companion\.href='\.\/week-1-goal\.html'/);
+ assert.match(week,/action\('3か月後の減量目標を設定する','\.\/week-1-goal\.html'\+back\)/);
+ assert.match(week,/action\('食行動チェックシート（17項目）','\.\/habit-check\.html'\+back\)/);
+ assert.match(week,/action\('目標設定のテキストを読む','\.\/textbook\.html'\+back\+'#s2-c6'\)/);
+ assert.match(week,/if\(currentWeek===2&&!companion\.hidden\)/);
+ assert.match(goal,/const fromWeekTwo=entry\.get\('from'\)==='learning'&&entry\.get\('week'\)==='2'/);
+ assert.match(goal,/back\.href='\.\/learning\.html\?week=2&card='\+returnCard/);
+ assert.match(goal,/next\.href='\.\/habit-check\.html\?from=learning&week=2&card='\+returnCard/);
+ assert.match(goal,/const GOAL_KEY='equineris:week1:goal:v1'/,'previously saved goals must remain readable');
+ assert.match(habit,/const STORAGE_KEY='equineris:program:habit-check:v1'/);
+ const existing=[...habit.matchAll(/data-habit="(h\d{2})"/g)].map(m=>m[1]);
+ assert.deepEqual(existing,Array.from({length:17},(_,i)=>'h'+String(i+1).padStart(2,'0')));
+ assert.match(habit,/reflection\.href='\.\/learning\.html\?week=2&card=3'/);
+ assert.match(habit,/diary\.href='\.\/record\.html\?from=learning&week=2&card='\+returnCard/);
+ for(const [n,row] of mapped.entries()){
+  assert.ok(row.length>0,'week '+(n+1)+' must retain a textbook');
+  assert.ok(row.every(pair=>pair.length===2),'week '+(n+1)+' malformed reference');
+ }
 });
 test('short four-card weekly guidance retains the full source, with contextual actions and a round-trip to the diary',()=>{
  const lesson=source['learning.html'],record=source['record-unified.js'];
