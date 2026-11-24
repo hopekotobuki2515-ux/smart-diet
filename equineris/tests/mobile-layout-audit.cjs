@@ -245,6 +245,21 @@ const ready=async(fn)=>{
     return dest.pathname.endsWith('/'+expected)&&dest.searchParams.get('from')==='learning'&&
      dest.searchParams.get('week')===params.get('week')&&dest.searchParams.get('card')==='0';
    }
+   if(filename==='food-groups.html'){
+    const last=document.querySelector('[data-tab="3"]');
+    const next=document.getElementById('groupNext');
+    const counter=document.getElementById('groupCounter');
+    const pointLink=document.getElementById('pointAllocationLink');
+    if(!last||!next||!counter||!pointLink)return false;
+    last.click();
+    const url=new URL(pointLink.href,location.href);
+    return counter.textContent.trim()==='4 / 4'&&!next.disabled&&
+      url.pathname.endsWith('/point-allocation.html')&&
+      (params.get('from')!=='learning'||(
+        url.searchParams.get('from')==='learning'&&
+        url.searchParams.get('week')===params.get('week')&&
+        url.searchParams.get('card')===params.get('card')));
+   }
    if(filename==='maintenance-energy.html'){
     const back=document.getElementById('backToLearning');
     if(!back)return false;
