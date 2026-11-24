@@ -87,6 +87,24 @@ const ready=async(fn)=>{
   if(hash==='s2-habit-check')assert.equal(snap.habitRows,17);
   process.stdout.write('PASS '+width+'x'+height+' '+hash+' slides='+snap.cardCount+'\n');
  }
+
+ // Diagnostic only: record actual button selection and scroll movement in Chromium.
+ const lessons=pathToFileURL(path.resolve(__dirname,'../learning.html')).href+'?week=2';
+ await cdp('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:2,mobile:true});
+ await cdp('Page.navigate',{url:lessons});
+ await ready(async()=>await evalJS("document.querySelector('#lessonNext')&&document.querySelectorAll('#lessonTabs button').length===4"));
+ const traceReply=await cdp('Runtime.evaluate',{expression:"(async()=>{"+
+   "const track=document.getElementById('lessonTrack');const next=document.getElementById('lessonNext');"+
+   "const tabs=[...document.querySelectorAll('#lessonTabs button')];const trace=[];"+
+   "const snap=(label)=>{trace.push({label,x:Math.round(track.scrollLeft),selected:tabs.findIndex(b=>b.getAttribute('aria-pressed')==='true'),"+
+   "counter:document.getElementById('lessonCounter').textContent,buttonX:Math.round(next.getBoundingClientRect().left)});};"+
+   "snap('before');next.click();snap('after-click');"+
+   "for(let i=0;i<25;i++){await new Promise(r=>setTimeout(r,16));snap('t'+(i+1)*16);}"+
+   "return JSON.stringify({trace,scrollBehavior:getComputedStyle(track).scrollBehavior,snapType:getComputedStyle(track).scrollSnapType});"+
+   "})()",returnByValue:true,awaitPromise:true});
+ if(traceReply.exceptionDetails)throw Error(traceReply.exceptionDetails.text);
+ const trace=JSON.parse(traceReply.result.result.value);
+ process.stdout.write('BUTTON_JITTER_DIAGNOSTIC '+JSON.stringify(trace)+'\n');
  ws.close();
 })().catch(e=>{console.error(e.stack||e);process.exitCode=1;}).finally(()=>{
  // The CI runner removes its own temporary filesystem after the job.
