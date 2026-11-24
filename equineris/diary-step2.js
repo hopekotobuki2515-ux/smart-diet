@@ -183,7 +183,7 @@
   }
   function goToSlide(index,animate=true) {
     const next=Math.max(0,Math.min(slides.length-1,index));
-    track.scrollTo({left:next*track.clientWidth,behavior:animate?'smooth':'auto'});
+    track.scrollTo({left:next*track.clientWidth,behavior:'auto'});
     displaySlide(next);
   }
   tabs.forEach((button,index)=>button.addEventListener('click',()=>goToSlide(index)));
