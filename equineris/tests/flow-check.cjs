@@ -362,6 +362,7 @@ test('opening continuation resumes the saved 12-week lesson, not the unrelated t
  assert.ok(script);
  for(const id of ['continueProgramLink','startButton','recordOnlyLink'])assert.match(page,new RegExp('id="'+id+'"'));
  assert.doesNotMatch(page,/id="loginButton"/,'do not offer an unavailable account login');
+ assert.match(source['setup.html'],/window\.location\.assign\('\.\/learning\.html\?week=1'\)/,'first setup should open week one');
  const resume=raw=>{
   const state=new Map([['equineris:textbook:last:v1',JSON.stringify('s4-c3')]]);
   if(raw!==undefined)state.set('equineris:learning:position:v1',raw);
