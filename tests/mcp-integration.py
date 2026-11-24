@@ -38,10 +38,14 @@ try:
  photo = BytesIO()
  Image.new('RGB',(45,30),(100,130,90)).save(photo,format='PNG')
  photo.seek(0)
- data = {'client_key':'e'*64,'consent':'yes','name':'Test Coach Client','date':'2026-11-24','stage':'1','note':'食事内容を確認してください','summary':'朝食：ご飯、豆腐'}
+ data = {'client_key':'e'*64,'consent':'yes','ai_consent':'yes','name':'Test Coach Client','date':'2026-11-24','stage':'1','note':'食事内容を確認してください','summary':'朝食：ご飯、豆腐'}
  submitted = session.post(review+'?action=submit',data=data,files={'photos[]':('meal.png',photo,'image/png')},headers={'X-CSRF-Token':csrf},timeout=10)
  check('fixture record stored privately',submitted.status_code==200)
  rid = submitted.json()['id']
+ private_data = {'client_key':'f'*64,'consent':'yes','name':'Private test','date':'2026-11-24','stage':'1','summary':'同意していない個人の記録'}
+ private_record=session.post(review+'?action=submit',data=private_data,headers={'X-CSRF-Token':csrf},timeout=10)
+ check('non-consenting record submitted for manual review',private_record.status_code==200)
+ private_id=private_record.json()['id']
  denied = session.post(mcp,json={'jsonrpc':'2.0','id':1,'method':'tools/list'})
  check('MCP unauthenticated rejected with OAuth discovery',denied.status_code==401 and 'oauth-protected-resource' in denied.headers.get('WWW-Authenticate',''))
  bogus = session.get(oauth,params={'action':'authorize','client_id':client,'redirect_uri':'https://evil.example/cb','response_type':'code','code_challenge':'A'*43,'code_challenge_method':'S256'})
@@ -71,6 +75,11 @@ try:
  waiting = invoke(session,token,'tools/call',{'name':'list_meal_requests','arguments':{'status':'waiting','limit':5}},5)
  pending = json.loads(waiting.json()['result']['content'][0]['text'])
  check('MCP lists pending private record',rid in [x['id'] for x in pending['items']])
+ check('MCP hides records lacking separate AI consent',private_id not in [x['id'] for x in pending['items']])
+ refused=invoke(session,token,'tools/call',{'name':'get_meal_request','arguments':{'id':private_id}},20)
+ check('MCP denies access to non-consenting record','同意していない' in refused.json()['result']['content'][0]['text'])
+ refused_write=invoke(session,token,'tools/call',{'name':'send_trainer_comment','arguments':{'id':private_id,'comment':'not allowed','confirmed':True}},21)
+ check('MCP rejects comments on non-consenting record','同意していない' in refused_write.json()['result']['content'][0]['text'])
  detail = invoke(session,token,'tools/call',{'name':'get_meal_request','arguments':{'id':rid}},6)
  body = json.loads(detail.json()['result']['content'][0]['text'])
  check('MCP reads meal, question and photo count',body['summary']=='朝食：ご飯、豆腐' and body['photo_count']==1)
