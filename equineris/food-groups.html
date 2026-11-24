@@ -284,7 +284,7 @@ function updateUI(index){
  active=Math.max(0,Math.min(slides.length-1,index));
  counter.textContent=(active+1)+' / '+slides.length;
  previous.disabled=active===0;
- next.disabled=active===slides.length-1;
+ next.disabled=false;
  tabs.forEach((tab,i)=>tab.setAttribute('aria-pressed',String(i===active)));
 }
 function navigate(index,smooth=true){
@@ -293,7 +293,13 @@ function navigate(index,smooth=true){
  track.scrollTo({left:target*track.clientWidth,behavior:'auto'});
 }
 previous.addEventListener('click',()=>navigate(active-1));
-next.addEventListener('click',()=>navigate(active+1));
+next.addEventListener('click',()=>{
+ if(active===slides.length-1){
+  window.location.assign(document.getElementById('pointAllocationLink').href);
+  return;
+ }
+ navigate(active+1);
+});
 tabs.forEach((tab,i)=>tab.addEventListener('click',()=>navigate(i)));
 track.addEventListener('scroll',()=>{
  if(framePending)return;
