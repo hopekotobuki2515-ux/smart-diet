@@ -1092,6 +1092,7 @@ test('four-food-group Next remains enabled on 4/4 and advances to existing point
  const window={location:{search:'?from=learning&week=3&card=1',assign:href=>assigned.push(href)},addEventListener(){},matchMedia:()=>({matches:false})};
  const document={getElementById:id=>ids[id],querySelectorAll:sel=>sel==='.group-slide'?slides:sel==='[data-tab]'?tabs:[]};
  vm.runInNewContext(scriptOf(source['food-groups.html'])[0],{window,document,URLSearchParams,requestAnimationFrame:fn=>fn()});
+ tabs[0].click();
  assert.equal(ids.groupCounter.textContent,'1 / 4');
  tabs[2].click();
  assert.equal(ids.groupCounter.textContent,'3 / 4');
