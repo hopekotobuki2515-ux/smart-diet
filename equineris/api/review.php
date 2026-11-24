@@ -134,7 +134,7 @@ if($action==='list'){
  output(['items'=>array_slice($items,0,100),'ai_configured'=>$aiReady]);
 }
 if($action==='ai_generate'){
- require_admin();require __DIR__.'/ai-review.php';
+ require_admin();define('EQUINERIS_TRAINER_AI_CONTEXT',true);require __DIR__.'/ai-review.php';
 }
 if($action==='comment'){
  require_admin();$id=file_id(field('id',32));$comment=field('comment',2000);
