@@ -930,7 +930,7 @@ test('saved goal is shown on measurements page without modifying daily logs',()=
  vm.runInNewContext(scriptOf(source['measurements.html'])[0],{
   document:{referrer:'',getElementById:id=>nodes[id],createElement:tag=>new MockEl(tag)},
   localStorage:{getItem:key=>storage.get(key)??null,setItem:(key,v)=>storage.set(key,String(v))},
-  window:{confirm(){return false;}},location:{origin:'https://example.test'},URL,Date
+  window:{confirm(){return false;}},location:{origin:'https://example.test',search:''},URL,URLSearchParams,Date
  });
  assert.equal(nodes.goalStartWeight.textContent,'80.0 kg');
  assert.equal(nodes.goalTargetWeight.textContent,'73.6 kg');
