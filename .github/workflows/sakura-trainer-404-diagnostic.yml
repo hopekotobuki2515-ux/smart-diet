@@ -1,0 +1,54 @@
+name: Read-only Sakura trainer 404 diagnosis
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/sakura-trainer-404-diagnostic.yml"
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Confirm source files exist
+        run: |
+          for file in equineris/trainer-dashboard.html equineris/trainer-check.html equineris/api/review.php equineris/index.html; do
+            test -s "$file" || exit 1
+            printf 'SOURCE_EXISTS %s\n' "$file"
+          done
+      - name: Inspect exact published URL status and content hashes
+        shell: bash
+        run: |
+          set -uo pipefail
+          for path in \
+            "equineris/index.html" \
+            "equineris/trainer-dashboard.html" \
+            "equineris/trainer-dashboard.js" \
+            "equineris/trainer-check.html" \
+            "equineris/trainer-check.js" \
+            "equineris/api/review.php?action=status"; do
+            url="https://rakudadou.sakura.ne.jp/smart-diet/$path"
+            output="$(mktemp)"
+            code="$(curl --silent --show-error --location --max-time 20 --output "$output" --write-out '%{http_code}' "$url")" || code="CURL_ERROR"
+            bytes="$(wc -c < "$output" | tr -d ' ')"
+            printf 'REMOTE_STATUS %s status=%s bytes=%s\n' "$path" "$code" "$bytes"
+            if [[ "$code" == "200" && "$path" != *".php"* ]]; then
+              actual="$(sha256sum "$output" | cut -d' ' -f1)"
+              expected="$(sha256sum "$path" | cut -d' ' -f1)"
+              if [[ "$actual" == "$expected" ]]; then
+                printf 'CONTENT_MATCH %s yes\n' "$path"
+              else
+                printf 'CONTENT_MATCH %s NO source_sha256=%s remote_sha256=%s\n' "$path" "$expected" "$actual"
+              fi
+            fi
+            if [[ "$path" == *".php"* ]]; then
+              # The status endpoint returns no private data; do not print arbitrary response bodies.
+              if [[ "$code" == "200" ]] && grep -q '"configured"' "$output"; then
+                printf 'API_STATUS valid_json_shape\n'
+              else
+                printf 'API_STATUS unavailable_or_unexpected\n'
+              fi
+            fi
+            rm -f "$output"
+          done
