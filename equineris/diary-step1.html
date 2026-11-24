@@ -345,7 +345,7 @@ function renderMeal(i){
 }
 function goMeal(i,animate=true){
  const index=Math.max(0,Math.min(slides.length-1,i));
- track.scrollTo({left:index*track.clientWidth,behavior:animate?'smooth':'auto'});
+ track.scrollTo({left:index*track.clientWidth,behavior:'auto'});
  renderMeal(index);
 }
 mealTabs.forEach((button,i)=>button.addEventListener('click',()=>goMeal(i)));
