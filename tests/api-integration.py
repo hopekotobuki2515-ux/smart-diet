@@ -1,4 +1,4 @@
-import requests, subprocess, os, time, tempfile, sys, pathlib
+import requests, subprocess, os, time, tempfile, sys, pathlib, json
 from PIL import Image
 from io import BytesIO
 base=pathlib.Path(__file__).resolve().parents[1]/'equineris'
@@ -6,7 +6,9 @@ api=base/'api'
 password='integration-very-long-password-for-local-test'
 hash=subprocess.check_output(['php','-r',f'echo password_hash({password!r},PASSWORD_DEFAULT);'],text=True)
 (api/'config.local.php').write_text('<?php return ["trainer_password_hash" => '+repr(hash)+'];')
-env=dict(os.environ,EQUINERIS_LOCAL_TEST='1')
+mock_draft={'food_observations':'写真から食材候補が見られます。重量は不明です。','four_group_review':'点数は入力されていません。','improvement_suggestion':'食品群を確認してみましょう。','trainer_comment_draft':'次の食事では主菜も意識してみましょう。'}
+mock_response={'status':'completed','output':[{'type':'message','content':[{'type':'output_text','text':json.dumps(mock_draft,ensure_ascii=False)}]}]}
+env=dict(os.environ,EQUINERIS_LOCAL_TEST='1',EQUINERIS_AI_TEST_RESPONSE=json.dumps(mock_response,ensure_ascii=False))
 port='18896'; proc=subprocess.Popen(['php','-S',f'127.0.0.1:{port}','-t',str(base)],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.PIPE)
 url=f'http://127.0.0.1:{port}/api/review.php'
 s=requests.Session(); ok=[]
@@ -46,3 +48,4 @@ try:
 finally:
   proc.terminate();proc.wait(timeout=4)
   (api/'config.local.php').unlink(missing_ok=True)
+  (api/'ai-config.local.php').unlink(missing_ok=True)
