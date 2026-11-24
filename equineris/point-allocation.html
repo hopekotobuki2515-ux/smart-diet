@@ -251,7 +251,7 @@
   </div>
   <div class="point-follow">
    <a id="openLearning" href="./learning.html">12週間の学びを一覧で見る</a>
-   <a id="openWeeklyRecord" href="./week-1-3-record.html?week=1&amp;day=1">第1〜3週の食事・体重記録へ進む</a>
+   <a id="openWeeklyRecord" href="./record.html?stage=1">食事を記録する</a>
    <a id="returnToGroup" href="./food-groups.html?day=1">4つの食品群を見返す</a>
   </div>
  </article>
@@ -268,6 +268,18 @@ const num=Number(new URLSearchParams(location.search).get('day'));
 const day=[1,2,3].includes(num)?num:1;
 document.getElementById('backToGroups').href='./food-groups.html?day='+day;
 document.getElementById('returnToGroup').href='./food-groups.html?day='+day;
+const origin=new URLSearchParams(location.search);
+const returnWeek=Number(origin.get('week')),returnCard=Number(origin.get('card'));
+if(origin.get('from')==='learning'&&Number.isInteger(returnWeek)&&returnWeek>=1&&returnWeek<=12&&
+ origin.has('card')&&Number.isInteger(returnCard)&&returnCard>=0&&returnCard<4){
+ const context='?from=learning&week='+returnWeek+'&card='+returnCard;
+ document.getElementById('backToGroups').href='./food-groups.html'+context;
+ document.getElementById('returnToGroup').href='./food-groups.html'+context;
+ const learning=document.getElementById('openLearning');
+ learning.href='./learning.html?week='+returnWeek+'&card='+returnCard;
+ learning.textContent='第'+returnWeek+'週の学びに戻る';
+ document.getElementById('openWeeklyRecord').href='./record.html'+context;
+}
 const reduceMotion=typeof window.matchMedia==='function'&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 let active=0, pending=false;
 function update(index){
