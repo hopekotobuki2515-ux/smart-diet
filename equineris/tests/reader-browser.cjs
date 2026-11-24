@@ -118,7 +118,8 @@ const ready=async(fn)=>{
   ['textbook.html','#s2-c5','.course-step:not([hidden]) .track','.course-step:not([hidden]) .slide-nav .next','.course-step:not([hidden]) .counter']
  ]){
   await cdp('Page.navigate',{url:pathToFileURL(path.resolve(__dirname,'../'+filename)).href+hash});
-  await ready(async()=>await evalJS("!!(document.querySelector("+JSON.stringify(trackSelector)+")&&document.querySelector("+JSON.stringify(nextSelector)+"))"));
+  // STEP1 and STEP2 share element IDs; a previous page is not proof that STEP2 loaded.
+  await ready(async()=>await evalJS("document.readyState==='complete'&&location.pathname.endsWith("+JSON.stringify('/'+filename)+")&&!!(document.querySelector("+JSON.stringify(trackSelector)+")&&document.querySelector("+JSON.stringify(nextSelector)+"))"));
   const expression="(async()=>{const track=document.querySelector("+JSON.stringify(trackSelector)+"),"+
    "btn=document.querySelector("+JSON.stringify(nextSelector)+"),counter=document.querySelector("+JSON.stringify(counterSelector)+");"+
    "const samples=[];const add=(tag)=>samples.push({tag,x:Math.round(track.scrollLeft),counter:counter?.textContent.trim()});"+
