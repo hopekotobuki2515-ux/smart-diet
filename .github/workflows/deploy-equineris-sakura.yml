@@ -43,11 +43,17 @@ jobs:
         run: |
           php -l equineris/api/review.php
           php -l equineris/api/ai-review.php
+          php -l equineris/mcp/common.php
+          php -l equineris/mcp/oauth.php
+          php -l equineris/mcp/server.php
+          python -m json.tool equineris/mcp/discovery/oauth-authorization-server >/dev/null
+          python -m json.tool equineris/mcp/discovery/oauth-protected-resource >/dev/null
           node --check equineris/trainer-check.js
           node --check equineris/trainer-dashboard.js
           node --check equineris/trainer-link.js
           python -m pip install --disable-pip-version-check -q requests pillow
           python tests/api-integration.py
+          python tests/mcp-integration.py
 
   deploy:
     needs: verify
@@ -152,6 +158,37 @@ jobs:
             "$SAKURA_USER@$SAKURA_HOST:/home/rakudadou/www/smart-diet/equineris/api/ai-config.local.php"
           ssh -i ~/.ssh/id_sakura -o BatchMode=yes "$SAKURA_USER@$SAKURA_HOST" \
             'chmod 600 /home/rakudadou/www/smart-diet/equineris/api/ai-config.local.php'
+      - name: Install scoped OAuth discovery under host .well-known without overwriting other files
+        env:
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes "$SAKURA_USER@$SAKURA_HOST" '
+            set -eu
+            W=/home/rakudadou/www/.well-known
+            mkdir -p "$W"
+            for NAME in oauth-authorization-server oauth-protected-resource; do
+              if test -e "$W/$NAME" && ! grep -Fq "rakudadou.sakura.ne.jp" "$W/$NAME"; then
+                echo "Refusing to overwrite an existing OAuth metadata file"
+                exit 1
+              fi
+            done
+            if test -e "$W/.htaccess" && test -L "$W/.htaccess"; then
+              echo "Refusing to change a symlinked metadata config"
+              exit 1
+            fi
+            if ! grep -Fq "# BEGIN EQUINERIS MCP JSON METADATA" "$W/.htaccess" 2>/dev/null; then
+              if test -f "$W/.htaccess"; then
+                cp "$W/.htaccess" "/home/rakudadou/equineris-deploy-backups/well-known-htaccess-$(date +%Y%m%d-%H%M%S).bak"
+              fi
+              printf "\\n# BEGIN EQUINERIS MCP JSON METADATA\\n<FilesMatch \\"^(oauth-authorization-server|oauth-protected-resource)$\\">\\nForceType application/json\\n</FilesMatch>\\n# END EQUINERIS MCP JSON METADATA\\n" >> "$W/.htaccess"
+            fi
+          '
+          scp -i ~/.ssh/id_sakura -o BatchMode=yes \
+            equineris/mcp/discovery/oauth-authorization-server equineris/mcp/discovery/oauth-protected-resource \
+            "$SAKURA_USER@$SAKURA_HOST:/home/rakudadou/www/.well-known/"
+          echo "ChatGPT OAuth discovery deployed"
+
       - name: Verify uploaded files on Sakura
         env:
           SAKURA_HOST: ${{ vars.SAKURA_HOST }}
@@ -174,6 +211,23 @@ jobs:
             if (!is_array($payload)||!isset($payload["configured"])||!is_bool($payload["configured"])) exit(1);
             echo "Trainer-review API reachable; configured=" . ($payload["configured"]?"true":"false") . "\n";
           '
+      - name: Verify ChatGPT MCP discovery and authorization protection
+        run: |
+          for endpoint in oauth-authorization-server oauth-protected-resource; do
+            CONTENT=$(curl --fail --silent --show-error --max-time 20 \
+              "https://rakudadou.sakura.ne.jp/.well-known/$endpoint")
+            printf '%s' "$CONTENT" | php -r '
+              $j=json_decode(stream_get_contents(STDIN),true);
+              if(!is_array($j))exit(1);
+            '
+          done
+          HTTP_CODE=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
+            --max-time 20 -X POST -H 'Content-Type: application/json' \
+            --data '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' \
+            https://rakudadou.sakura.ne.jp/smart-diet/equineris/mcp/server.php)
+          test "$HTTP_CODE" = 401 || { echo "::error::MCP must reject unauthenticated calls"; exit 1; }
+          echo "ChatGPT MCP metadata is public and private meal API is authenticated"
+
       - name: Verify public URLs over HTTPS
         run: |
           for path in \
