@@ -88,7 +88,7 @@ const ready=async(fn)=>{
   process.stdout.write('PASS '+width+'x'+height+' '+hash+' slides='+snap.cardCount+'\n');
  }
 
- // Diagnostic only: record actual button selection and scroll movement in Chromium.
+ // Click stability regression: selected cards must not flash back while buttons navigate.
  const lessons=pathToFileURL(path.resolve(__dirname,'../learning.html')).href+'?week=2';
  await cdp('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:2,mobile:true});
  await cdp('Page.navigate',{url:lessons});
@@ -104,9 +104,14 @@ const ready=async(fn)=>{
    "})()",returnByValue:true,awaitPromise:true});
  if(traceReply.exceptionDetails)throw Error(traceReply.exceptionDetails.text);
  const trace=JSON.parse(traceReply.result.value);
- process.stdout.write('BUTTON_JITTER_DIAGNOSTIC '+JSON.stringify(trace)+'\n');
+ assert.equal(trace.scrollBehavior,'auto','lesson buttons should not use smooth scroll');
+ assert.equal(trace.trace[0].selected,0);
+ assert.equal(trace.trace[1].selected,1);
+ assert.ok(trace.trace.slice(1).every(x=>x.selected===1&&x.counter==='2 / 4'),'lesson highlight flashed back during click: '+JSON.stringify(trace.trace));
+ assert.equal(new Set(trace.trace.map(x=>x.buttonX)).size,1,'lesson next button shifted horizontally');
+ process.stdout.write('PASS stable weekly lesson buttons (no selection flash)\n');
 
- // Check whether the identical counter-flash occurs in the original diary and textbook controls.
+ // The same regression appeared in the original STEP1 and reference lesson controls.
  for(const [filename,hash,trackSelector,nextSelector,counterSelector] of [
   ['diary-step1.html','','#mealTrack','#mealNext','#mealCounter'],
   ['diary-step2.html','','#mealTrack','#mealNext','#mealCounter'],
@@ -121,7 +126,11 @@ const ready=async(fn)=>{
    "return JSON.stringify({file:"+JSON.stringify(filename)+",samples})})()";
   const response=await cdp('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});
   if(response.exceptionDetails)throw Error(response.exceptionDetails.text);
-  process.stdout.write('BUTTON_JITTER_DIAGNOSTIC2 '+response.result.value+'\n');
+  const output=JSON.parse(response.result.value),samples=output.samples;
+  const current=samples[1]?.counter,previous=samples[0]?.counter;
+  assert.ok(previous&&current&&previous!==current,'click must advance card: '+filename+' '+JSON.stringify(samples));
+  assert.ok(samples.slice(1).every(x=>x.counter===current),'card selection flickered in '+filename+': '+JSON.stringify(samples));
+  process.stdout.write('PASS stable card navigation: '+filename+'\n');
  }
  ws.close();
 })().catch(e=>{console.error(e.stack||e);process.exitCode=1;}).finally(()=>{
