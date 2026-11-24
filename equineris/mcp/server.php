@@ -29,7 +29,7 @@ function run_tool(string $name,array $args):array{
   if(!in_array($status,['waiting','reviewed','all'],true)||!is_int($limit)||$limit<1||$limit>30)return txt('Invalid status or limit');
   $items=[];
   foreach(glob(ehome().'/requests/*.json')?:[] as $path){
-   $data=json_decode((string)file_get_contents($path),true);if(!is_array($data))continue;
+   $data=json_decode((string)file_get_contents($path),true);if(!is_array($data)||empty($data['ai_consent']))continue;
    if($status!=='all'&&($data['status']??'')!==$status)continue;
    $items[]=['id'=>$data['id']??'','date'=>$data['date']??'','stage'=>$data['stage']??0,'name'=>$data['name']??'','status'=>$data['status']??'','created'=>$data['created']??'','photo_count'=>count($data['photos']??[])];
   }
@@ -38,13 +38,16 @@ function run_tool(string $name,array $args):array{
  }
  if($name==='get_meal_request'){
   eratelimit('mcp-read',500);$r=erecord(read_request_id($args));
+  if(empty($r['ai_consent']))return txt('この記録はChatGPT分析に同意していないため取得できません。');
   $wanted=['id','name','date','stage','note','summary','created','status','comment','reviewed'];
   $info=[];foreach($wanted as $field)$info[$field]=$r[$field]??null;
   $info['photo_count']=count($r['photos']??[]);
   return txt(json_encode($info,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
  }
  if($name==='get_meal_photo'){
-  eratelimit('mcp-image',160);$r=erecord(read_request_id($args));$index=$args['index']??null;
+  eratelimit('mcp-image',160);$r=erecord(read_request_id($args));
+  if(empty($r['ai_consent']))return txt('この記録はChatGPT分析に同意していないため写真を取得できません。');
+  $index=$args['index']??null;
   if(!is_int($index)||$index<0||$index>3||!isset($r['photos'][$index]))return txt('Photo not found');
   $photo=$r['photos'][$index];$name=$photo['name']??'';$mime=$photo['mime']??'';
   if(!is_string($name)||preg_match('/^[a-f0-9]{32}-[0-3]\.(jpg|png|webp)$/D',$name)!==1
@@ -68,6 +71,7 @@ function run_tool(string $name,array $args):array{
   $lockPath=ehome().'/oauth/ratelimit/reply-'.$id.'.lock';
   $h=fopen($lockPath,'c');if(!$h||!flock($h,LOCK_EX))return txt('Could not acquire review lock');
   $path=ehome().'/requests/'.$id.'.json';$r=erecord($id);
+  if(empty($r['ai_consent'])){flock($h,LOCK_UN);fclose($h);return txt('ChatGPT分析に同意していない記録には返信できません。');}
   if(($r['status']??'')!=='waiting'){
    flock($h,LOCK_UN);fclose($h);return txt('未送信：この記録はすでに確認済みです。既存コメントは変更しません。');
   }
