@@ -1073,4 +1073,38 @@ test('STEP5 can advance; STEP6 correctly finishes',()=>{
  assert.equal(end.elements.textbookEnding.hidden,false);
  assert.equal(end.elements.textbookRelated.hidden,false);
 });
+test('four-food-group Next remains enabled on 4/4 and advances to existing point-allocation route',()=>{
+ const listeners=new Map();
+ const control=id=>({
+  id,href:'',textContent:'',disabled:false,hidden:false,attrs:{},
+  addEventListener(kind,fn){this['on_'+kind]=fn;},
+  setAttribute(k,v){this.attrs[k]=v;},
+  click(){if(!this.disabled)this.on_click?.({});}
+ });
+ const ids=Object.fromEntries(['groupTrack','groupPrev','groupNext','groupCounter',
+  'backToCheck','checkLink','diaryLink','pointAllocationLink'].map(k=>[k,control(k)]));
+ const track=ids.groupTrack;
+ track.clientWidth=320;track.scrollLeft=0;
+ track.scrollTo=({left})=>{track.scrollLeft=left;};
+ const tabs=Array.from({length:4},(_,i)=>{const x=control('tab'+i);x.dataset={tab:String(i)};return x;});
+ const slides=Array.from({length:4},(_,i)=>({dataset:{slide:String(i)}}));
+ const assigned=[];
+ const window={location:{search:'?from=learning&week=3&card=1',assign:href=>assigned.push(href)},addEventListener(){},matchMedia:()=>({matches:false})};
+ const document={getElementById:id=>ids[id],querySelectorAll:sel=>sel==='.group-slide'?slides:sel==='[data-tab]'?tabs:[]};
+ vm.runInNewContext(scriptOf(source['food-groups.html'])[0],{window,document,URLSearchParams,requestAnimationFrame:fn=>fn()});
+ assert.equal(ids.groupCounter.textContent,'1 / 4');
+ tabs[2].click();
+ assert.equal(ids.groupCounter.textContent,'3 / 4');
+ ids.groupNext.click();
+ assert.equal(ids.groupCounter.textContent,'4 / 4');
+ assert.equal(ids.groupNext.disabled,false,'the last food group must not disable Next');
+ assert.equal(assigned.length,0,'moving between groups must not leave the page');
+ ids.groupNext.click();
+ assert.equal(assigned.length,1);
+ assert.equal(assigned[0],'./point-allocation.html?from=learning&week=3&card=1');
+ tabs[0].click();
+ assert.equal(ids.groupCounter.textContent,'1 / 4');
+ assert.equal(ids.groupPrev.disabled,true);
+ assert.equal(ids.groupNext.disabled,false);
+});
 process.stdout.write('EQUINERIS regression tests completed.\n');
