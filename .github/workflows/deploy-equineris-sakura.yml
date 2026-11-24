@@ -1,6 +1,17 @@
 name: Deploy EQUINERIS to Sakura
-# Sakura deployment runs only on explicit manual action, never on a code push.
+# GitHub main is the source of truth. Only verified commits can reach Sakura.
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'equineris/**'
+      - 'food-search.html'
+      - 'food-master.json'
+      - 'nutrient-food-search.html'
+      - 'nutrient-master.json'
+      - 'nutrient-panel.js'
+      - 'program.css'
+      - '.github/workflows/deploy-equineris-sakura.yml'
   workflow_dispatch:
 permissions:
   contents: read
@@ -8,9 +19,31 @@ concurrency:
   group: deploy-equineris-sakura
   cancel-in-progress: false
 jobs:
-  deploy:
+  verify:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify all required deployment files
+        run: |
+          test -s equineris/index.html
+          for file in food-search.html food-master.json nutrient-food-search.html nutrient-master.json nutrient-panel.js program.css; do
+            test -s "$file" || { echo "::error::Missing dependency: $file"; exit 1; }
+          done
+      - name: Test page syntax, links, food diary and learning controls
+        run: node equineris/tests/flow-check.cjs
+      - name: Test textbook and navigation in browser
+        run: node equineris/tests/reader-browser.cjs
+      - name: Test responsive layouts and buttons
+        run: node equineris/tests/mobile-layout-audit.cjs
+
+  deploy:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - name: Verify SSH configuration
@@ -24,20 +57,65 @@ jobs:
           test -n "$SAKURA_USER" || { echo "SAKURA_USER missing"; exit 1; }
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          # Accept a normal multiline key, CRLF key, or a key saved with literal \n sequences.
           printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
           chmod 600 ~/.ssh/id_sakura
           ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null 2>&1 || {
-            echo "::error::SAKURA_SSH_KEY is not a valid private key after newline normalization"
+            echo "::error::SAKURA_SSH_KEY is not a valid private key"
             exit 1
           }
           ssh-keyscan -T 10 -H "$SAKURA_HOST" >> ~/.ssh/known_hosts
           test -s ~/.ssh/known_hosts
-      - name: Upload EQUINERIS files without deleting server files
+      - name: Back up live files outside the public directory
         env:
           SAKURA_HOST: ${{ vars.SAKURA_HOST }}
           SAKURA_USER: ${{ vars.SAKURA_USER }}
         run: |
-          ssh -i ~/.ssh/id_sakura -o BatchMode=yes "$SAKURA_USER@$SAKURA_HOST" 'test -d /home/rakudadou/www/smart-diet/equineris'
-          scp -i ~/.ssh/id_sakura -o BatchMode=yes -r equineris/. "$SAKURA_USER@$SAKURA_HOST:/home/rakudadou/www/smart-diet/equineris/"
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes "$SAKURA_USER@$SAKURA_HOST" \
+            'set -eu
+             cd /home/rakudadou/www/smart-diet
+             test -d equineris
+             mkdir -p /home/rakudadou/equineris-deploy-backups
+             set -- equineris
+             for file in food-search.html food-master.json nutrient-food-search.html nutrient-master.json nutrient-panel.js program.css; do
+               if test -f "$file"; then set -- "$@" "$file"; fi
+             done
+             tar -czf "/home/rakudadou/equineris-deploy-backups/predeploy-$(date +%Y%m%d-%H%M%S).tar.gz" "$@"
+             echo "Sakura backup finished"'
+      - name: Upload only EQUINERIS and its verified shared files
+        env:
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          scp -i ~/.ssh/id_sakura -o BatchMode=yes -r equineris/. \
+            "$SAKURA_USER@$SAKURA_HOST:/home/rakudadou/www/smart-diet/equineris/"
+          scp -i ~/.ssh/id_sakura -o BatchMode=yes food-search.html food-master.json nutrient-food-search.html nutrient-master.json nutrient-panel.js program.css \
+            "$SAKURA_USER@$SAKURA_HOST:/home/rakudadou/www/smart-diet/"
           echo "Sakura upload finished"
+      - name: Verify uploaded files on Sakura
+        env:
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes "$SAKURA_USER@$SAKURA_HOST" \
+            'set -eu
+             cd /home/rakudadou/www/smart-diet
+             test -s equineris/index.html
+             test -s equineris/learning.html
+             test -s equineris/food-groups.html
+             for file in food-search.html food-master.json nutrient-food-search.html nutrient-master.json nutrient-panel.js program.css; do test -s "$file"; done
+             echo "Sakura files verified"'
+      - name: Verify public URLs over HTTPS
+        run: |
+          for path in \
+            equineris/index.html \
+            equineris/learning.html \
+            equineris/food-groups.html \
+            food-search.html \
+            nutrient-food-search.html; do
+            curl --fail --silent --show-error --location --max-time 20 --retry 2 \
+              --output /dev/null "https://rakudadou.sakura.ne.jp/smart-diet/$path" || {
+                echo "::error::Public URL did not pass: $path"
+                exit 1
+              }
+          done
+          echo "Sakura HTTPS pages verified"
