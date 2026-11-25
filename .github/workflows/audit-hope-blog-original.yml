@@ -1,0 +1,76 @@
+name: Compare original FC2 and HOPE Sakura preview
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/audit-hope-blog-original.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Set up isolated browser audit
+        run: |
+          mkdir -p /tmp/hope-audit
+          cd /tmp/hope-audit
+          npm install --no-audit --no-fund --silent playwright
+          google-chrome --version
+      - name: Compare live public pages without editing either website
+        run: |
+          cd /tmp/hope-audit
+          cat > audit.cjs <<'JS'
+          const { chromium } = require('playwright');
+          const fs = require('fs');
+          const orig = 'https://hope-fitness.jp/';
+          const dest = 'https://rakudadou.sakura.ne.jp/hope-blog/';
+          const routes = ['', 'page-1.html', 'blog-entry-120.html', 'blog-category-23.html', '?all'];
+          (async () => {
+            const browser = await chromium.launch({channel:'chrome',headless:true,args:['--no-sandbox']});
+            const reports = [];
+            for (const width of [1366,390]) {
+              const context = await browser.newContext({viewport:{width,height:900},deviceScaleFactor:1,locale:'ja-JP'});
+              for (const [i,route] of routes.entries()) {
+                const pair = [];
+                for (const [side,base] of [['original',orig],['preview',dest]]) {
+                  const page = await context.newPage();
+                  const errors = [];
+                  page.on('pageerror',e=>errors.push(String(e).slice(0,180)));
+                  try {
+                    const res = await page.goto(base+route,{waitUntil:'domcontentloaded',timeout:30000});
+                    await page.waitForTimeout(900);
+                    const report = await page.evaluate(() => {
+                      const rect=e=>{if(!e)return null;const r=e.getBoundingClientRect(),s=getComputedStyle(e);return {x:Math.round(r.x),y:Math.round(r.y+scrollY),w:Math.round(r.width),h:Math.round(r.height),display:s.display,position:s.position}};
+                      const sel=s=>document.querySelector(s);
+                      const cards=[...document.querySelectorAll('.blog_content_item')].map(e=>{
+                        const t=e.querySelector('.blog_content_title'), d=e.querySelector('.blog_content_date'), im=e.querySelector('.blog_content_tmb'), desc=e.querySelector('.blog_content_desc');
+                        return {title:t?.textContent.trim().replace(/\s+/g,' '),href:t?.getAttribute('href'),card:rect(e),titleBox:rect(t),date:rect(d),thumb:rect(im?.parentElement),image:im?.style.backgroundImage,desc:rect(desc)};
+                      });
+                      return {title:document.title,bodyClass:document.body.className,viewport:innerWidth,scrollWidth:document.documentElement.scrollWidth,bodyStart:[...document.body.childNodes].filter(n=>n.nodeType===3&&n.textContent.trim()).map(n=>n.textContent.trim().slice(0,100)),header:rect(sel('.l_header')),hero:rect(sel('.hope-hero')),main:rect(sel('.l_left_area')),sidebar:rect(sel('.l_right_area')),footer:rect(sel('.l_footer')),article:rect(sel('.blog_entry')),visibleCards:cards.filter(c=>c.card?.w>0&&c.card?.h>0).length,cards:cards.slice(0,9),lists:document.querySelectorAll('.titlelist_item').length,brokenImages:[...document.images].filter(e=>e.complete&&e.naturalWidth===0).length,imageCount:document.images.length,fixMarker:!!sel('#hope-no-image-fix')};
+                    });
+                    await page.screenshot({path:`/tmp/hope-audit/${side}-${width}-${i}.png`,fullPage:false,timeout:10000});
+                    pair.push({side,status:res?.status(),...report,errors:errors.slice(0,3)});
+                  } catch(e) { pair.push({side,error:String(e).slice(0,250)}); }
+                  await page.close();
+                }
+                reports.push({width,route,pair});
+                console.log(JSON.stringify({width,route,pair}));
+              }
+              await context.close();
+            }
+            fs.writeFileSync('/tmp/hope-audit/report.json',JSON.stringify(reports,null,2));
+            await browser.close();
+          })().catch(e=>{console.error(e);process.exit(1)});
+          JS
+          node audit.cjs
+      - name: Retain public-page comparison screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hope-live-layout-comparison
+          path: |
+            /tmp/hope-audit/*.png
+            /tmp/hope-audit/report.json
+          retention-days: 3
