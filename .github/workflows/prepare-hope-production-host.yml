@@ -1,0 +1,132 @@
+name: Prepare HOPE production host without DNS changes
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/prepare-hope-production-host.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: hope-blog-production-host
+  cancel-in-progress: false
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Prepare isolated host-aware metadata, preserve data and verify
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          P=/home/rakudadou/www/hope-blog
+          D=/home/rakudadou/hope-blog-private/data
+          test ! -L "$P/index.php"
+          test ! -L "$P/common.php"
+          T=$(mktemp -d "$D/host-prep.XXXXXXXX")
+          export T
+          trap 'rm -rf "$T"' EXIT
+          cat > "$T/patch.php" <<'PHP'
+          <?php
+          $p='/home/rakudadou/www/hope-blog';
+          $d='/home/rakudadou/hope-blog-private/data';
+          $t=getenv('T');
+          $c=json_decode(file_get_contents($d.'/config.json'),true,512,JSON_THROW_ON_ERROR);
+          $a=json_decode(file_get_contents($d.'/articles.json'),true,512,JSON_THROW_ON_ERROR);
+          if($c['preview']!==true||$c['canonical_origin']!=='https://hope-fitness.jp'||$c['ga4']!=='G-Y4G18KF9NV'||empty($c['verify'])||count($a)!==117||array_count_values(array_column($a,'status'))['public']!==115)throw new RuntimeException('Unexpected data/config state');
+          $source=file_get_contents($p.'/index.php');
+          $common=file_get_contents($p.'/common.php');
+          $old=<<<'ANCHOR'
+          $c=loadj('config.json');$f=loadj('fragments.json');
+          ANCHOR;
+          $new=<<<'REPLACEMENT'
+          $c=loadj('config.json');
+          // Keep nonproduction hosts and unencrypted requests out of search and analytics.
+          $productionHost=strtolower((string)($_SERVER['HTTP_HOST']??''))==='hope-fitness.jp';
+          $secureRequest=!empty($_SERVER['HTTPS'])&&strtolower((string)$_SERVER['HTTPS'])!=='off'&&$_SERVER['HTTPS']!=='0';
+          $c['preview']=!($productionHost&&$secureRequest);
+          $f=loadj('fragments.json');
+          REPLACEMENT;
+          if(substr_count($source,$old)!==1)throw new RuntimeException('Unexpected index revision: no changes made');
+          if(!str_contains($common,"function base()")||!str_contains($common,"dirname(\$_SERVER['SCRIPT_NAME'])"))throw new RuntimeException('Unexpected base implementation: no changes made');
+          if(!str_contains($source,"if(\$c['preview'])header('X-Robots-Tag: noindex, nofollow');")||!str_contains($source,"googletagmanager.com/gtag/js")||!str_contains($source,"analytics-event.html"))throw new RuntimeException('Expected metadata logic absent');
+          if(file_put_contents($t.'/index.php',str_replace($old,$new,$source))===false||!copy($p.'/common.php',$t.'/common.php'))throw new RuntimeException('Staging failed');
+          file_put_contents($t.'/ids.txt',implode("\n",array_column(array_filter($a,fn($x)=>$x['status']==='public'),'id'))."\n");
+          PHP
+          php "$T/patch.php"
+          php -l "$T/index.php"
+          php -l "$T/common.php"
+          # Test real migrated content without printing article text or credentials.
+          cat > "$T/test.php" <<'PHP'
+          <?php
+          $host=$argv[1];$secure=$argv[2]==='yes';$route=$argv[3];$prefix=$host==='hope-fitness.jp'?'/':'/hope-blog/';
+          $_SERVER['HTTP_HOST']=$host;
+          $_SERVER['HTTPS']=$secure?'on':'off';
+          $_SERVER['SCRIPT_NAME']=$prefix.'index.php';
+          $_SERVER['REQUEST_URI']=$prefix.$route;
+          $_SERVER['REQUEST_METHOD']='GET';
+          parse_str((string)parse_url($_SERVER['REQUEST_URI'],PHP_URL_QUERY),$_GET);
+          require __DIR__.'/index.php';
+          PHP
+          cat > "$T/verify.php" <<'PHP'
+          <?php
+          $t=getenv('T');
+          $ids=file($t.'/ids.txt',FILE_IGNORE_NEW_LINES|FILE_SKIP_EMPTY_LINES);
+          $routes=array_merge([''],array_map(fn($id)=>'blog-entry-'.$id.'.html',$ids),['blog-category-0.html','blog-category-23.html','blog-category-24.html','blog-category-25.html','page-1.html','?all','?q=HOPE']);
+          function render($host,$secure,$route){$cmd=escapeshellarg(PHP_BINARY).' '.escapeshellarg(getenv('T').'/test.php').' '.escapeshellarg($host).' '.escapeshellarg($secure).' '.escapeshellarg($route);$o=shell_exec($cmd);if(!is_string($o)||$o==='')throw new RuntimeException('Render failed');return $o;}
+          foreach($routes as $route){
+           $prod=render('hope-fitness.jp','yes',$route);
+           if(!str_contains($prod,'G-Y4G18KF9NV')||!str_contains($prod,'google-site-verification')||!str_contains($prod,'rel="canonical"')||str_contains($prod,'name="robots" content="noindex,nofollow"')||!str_contains($prod,'/assets/style.css'))throw new RuntimeException('Production metadata check failed: '.$route);
+           if(str_starts_with($route,'blog-entry-')&&!str_contains($prod,'href="https://hope-fitness.jp/'.$route.'"'))throw new RuntimeException('Canonical check failed: '.$route);
+           $stage=render('rakudadou.sakura.ne.jp','yes',$route);
+           if(str_contains($stage,'G-Y4G18KF9NV')||!str_contains($stage,'name="robots" content="noindex,nofollow"')||!str_contains($stage,'/hope-blog/assets/style.css'))throw new RuntimeException('Preview metadata check failed: '.$route);
+          }
+          $http=render('hope-fitness.jp','no','');
+          if(!str_contains($http,'name="robots" content="noindex,nofollow"')||str_contains($http,'G-Y4G18KF9NV'))throw new RuntimeException('HTTP safety check failed');
+          $robots=render('hope-fitness.jp','yes','robots.txt');
+          if(!str_contains($robots,'Sitemap: https://hope-fitness.jp/sitemaps.xml'))throw new RuntimeException('Production robots check failed');
+          if(!str_contains(render('rakudadou.sakura.ne.jp','yes','robots.txt'),'Disallow: /'))throw new RuntimeException('Preview robots check failed');
+          $sitemap=render('hope-fitness.jp','yes','sitemaps.xml');
+          foreach($ids as $id)if(!str_contains($sitemap,'https://hope-fitness.jp/blog-entry-'.$id.'.html'))throw new RuntimeException('Missing sitemap ID');
+          echo "PASS: ".count($ids)." public article URLs, ".count($routes)." production and preview routes, canonical, GA4, verification, robots and sitemap. HTTP remains noindex.\n";
+          PHP
+          php "$T/verify.php"
+          B="$D/host-backup-$(date +%Y%m%d%H%M%S)"
+          mkdir -m 700 "$B"
+          cp "$P/index.php" "$B/index.php"
+          chmod 600 "$B/index.php"
+          php -r 'foreach(["articles.json","config.json","fragments.json"] as $f)echo $f," ",hash_file("sha256",$argv[1]."/".$f),PHP_EOL;' "$D" > "$T/before"
+          chmod 644 "$T/index.php"
+          mv "$T/index.php" "$P/index.php"
+          if ! php -l "$P/index.php"; then cp "$B/index.php" "$P/index.php"; chmod 644 "$P/index.php"; exit 1; fi
+          php -r 'foreach(["articles.json","config.json","fragments.json"] as $f)echo $f," ",hash_file("sha256",$argv[1]."/".$f),PHP_EOL;' "$D" > "$T/after"
+          cmp "$T/before" "$T/after"
+          echo 'PASS: deployed index only; articles, config and templates unchanged.'
+          REMOTE
+      - name: Verify live preview and virtual host routing before DNS switch
+        run: |
+          set -eu
+          curl -fsS --max-time 20 'https://rakudadou.sakura.ne.jp/hope-blog/' -o /tmp/hope-preview.html
+          grep -Fq 'name="robots" content="noindex,nofollow"' /tmp/hope-preview.html
+          if grep -Fq 'G-Y4G18KF9NV' /tmp/hope-preview.html; then exit 1; fi
+          echo 'PASS: live preview remains noindex and GA4 disabled.'
+          for host in hope-fitness.jp mail.hope-fitness.jp rakudadou.sakura.ne.jp; do
+            for type in A AAAA MX TXT CAA; do
+              printf '%s %s: ' "$host" "$type"
+              dig +time=3 +tries=1 +short "$host" "$type" | paste -sd ' ' -
+            done
+          done
+          curl -sS --max-time 20 --resolve hope-fitness.jp:80:112.78.112.75 http://hope-fitness.jp/ -o /tmp/hope-vhost.html -w 'Sakura virtual host HTTP %{http_code}; IP %{remote_ip}\n'
+          if grep -Fq 'name="robots" content="noindex,nofollow"' /tmp/hope-vhost.html; then echo 'PASS: HTTP virtual host shows preview metadata.'; else echo 'HTTP virtual host not yet confirmed; do not change DNS.'; fi
+          if grep -Fq '/assets/style.css' /tmp/hope-vhost.html && ! grep -Fq '/hope-blog/assets/style.css' /tmp/hope-vhost.html; then echo 'PASS: root asset URL.'; else echo 'Root URL not yet confirmed; do not change DNS.'; fi
+          curl -sS --max-time 20 --resolve hope-fitness.jp:443:112.78.112.75 https://hope-fitness.jp/ -o /dev/null -w 'Sakura HTTPS %{http_code}; SSL verification %{ssl_verify_result}\n' || echo 'SSL not yet verified; expected before issuing certificate.'
