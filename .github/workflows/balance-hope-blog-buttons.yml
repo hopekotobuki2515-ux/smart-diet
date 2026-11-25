@@ -1,0 +1,90 @@
+name: Balance HOPE homepage navigation and search buttons
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/balance-hope-blog-buttons.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: hope-blog-production-host
+  cancel-in-progress: false
+jobs:
+  balance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Apply only homepage button CSS
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          D=/home/rakudadou/hope-blog-private/data
+          P=/home/rakudadou/www/hope-blog
+          test ! -L "$D/home-page.php"
+          T=$(mktemp -d "$D/buttons-stage.XXXXXXXX")
+          export T
+          trap 'rm -rf "$T"' EXIT
+          cat > "$T/buttons.css" <<'CSS'
+          /* Equalize homepage navigation and search controls. */
+          .site-header .nav{display:grid;grid-template-columns:repeat(3,minmax(0,112px));gap:10px;align-items:stretch}
+          .site-header .nav a{width:100%;min-width:0;min-height:44px;padding:0 10px;line-height:1.4;text-align:center;border-radius:8px}
+          .hero .search{display:grid;grid-template-columns:minmax(0,1fr) 88px;gap:10px;align-items:stretch}
+          .hero .search input,.hero .search button{height:50px;min-height:50px;line-height:1.5;margin:0}
+          .hero .search input{padding:0 14px}
+          .hero .search button{width:100%;padding:0 8px}
+          @media(max-width:520px){.site-header .nav{width:100%;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.site-header .nav a{font-size:13px;padding:0 5px}.hero .search{grid-template-columns:minmax(0,1fr) 76px;gap:8px}.hero .search input{padding:0 10px}.hero .search input,.hero .search button{height:48px;min-height:48px}}
+          CSS
+          php -r '$d=$argv[1];$t=$argv[2];$s=file_get_contents($d."/home-page.php");if(substr_count($s,"</style>")!==1||!str_contains($s,".hero-layout{display:grid")||!str_contains($s,".site-header{position:sticky")||str_contains($s,"Equalize homepage navigation"))exit(1);$n=str_replace("</style>",file_get_contents($t."/buttons.css")."</style>",$s);if(file_put_contents($t."/home-page.php",$n)===false)exit(1);' "$D" "$T"
+          php -l "$T/home-page.php"
+          B=$(mktemp -d "$D/buttons-backup.XXXXXXXX")
+          cp "$D/home-page.php" "$B/home-page.php"
+          chmod 600 "$B/home-page.php" "$T/home-page.php"
+          php -r 'foreach(["articles.json","config.json","fragments.json"] as $f)echo hash_file("sha256",$argv[1]."/".$f),PHP_EOL;foreach(["index.php","common.php","admin.php",".htaccess","assets/style.css","assets/blog-header-training.jpg"] as $f)echo hash_file("sha256",$argv[2]."/".$f),PHP_EOL;' "$D" "$P" > "$T/before"
+          mv "$T/home-page.php" "$D/home-page.php"
+          if ! php -l "$D/home-page.php"; then cp "$B/home-page.php" "$D/home-page.php"; exit 1; fi
+          php -r 'foreach(["articles.json","config.json","fragments.json"] as $f)echo hash_file("sha256",$argv[1]."/".$f),PHP_EOL;foreach(["index.php","common.php","admin.php",".htaccess","assets/style.css","assets/blog-header-training.jpg"] as $f)echo hash_file("sha256",$argv[2]."/".$f),PHP_EOL;' "$D" "$P" > "$T/after"
+          cmp "$T/before" "$T/after"
+          echo 'PASS: homepage button CSS only, original files unchanged.'
+          REMOTE
+      - name: Measure button widths, heights, spacing and navigation
+        run: |
+          cd /tmp
+          npm install --no-audit --no-fund playwright
+          npx playwright install chromium
+          cat > /tmp/check.cjs <<'JS'
+          const {chromium}=require('playwright');
+          (async()=>{
+            const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
+            const base='https://rakudadou.sakura.ne.jp/hope-blog/';
+            try{
+              for(const width of [320,390,520,768,1366]){
+                const page=await browser.newPage({viewport:{width,height:1000},isMobile:width<=520,hasTouch:width<=520});
+                const response=await page.goto(base+'?buttoncheck=1',{waitUntil:'domcontentloaded'});
+                if(response.status()!==200)throw Error('HTTP '+response.status());
+                await page.evaluate(()=>document.fonts.ready);
+                const d=await page.evaluate(()=>{const r=e=>{const b=e.getBoundingClientRect();return{x:b.x,y:b.y,w:b.width,h:b.height,right:b.right,bottom:b.bottom}};const nav=[...document.querySelectorAll('.site-header .nav a')].map(r);return{client:document.documentElement.clientWidth,scroll:document.documentElement.scrollWidth,nav,navBox:r(document.querySelector('.site-header .nav')),input:r(document.querySelector('.hero .search input')),search:r(document.querySelector('.hero .search button')),cards:document.querySelectorAll('.article-card').length,thumbs:[...document.querySelectorAll('.thumb')].map(r),banner:r(document.querySelector('.hero-photo img'))}});
+                const a=d.nav;
+                if(d.scroll>d.client+1||a.length!==3||a.some(n=>Math.abs(n.w-a[0].w)>1||Math.abs(n.h-a[0].h)>1||Math.abs(n.y-a[0].y)>1||n.h<44)||Math.abs((a[1].x-a[0].right)-(a[2].x-a[1].right))>1||Math.abs(d.input.h-d.search.h)>1||Math.abs(d.input.y-d.search.y)>1||d.search.h<44||d.search.right>d.client||d.cards!==9||d.thumbs.some(i=>Math.abs(i.h-i.w*426/640)>2)||Math.abs(d.banner.h-d.banner.w*2/3)>2||(width<=520&&(Math.abs(a[0].x-d.navBox.x)>1||Math.abs(a[2].right-d.navBox.right)>1)))throw Error(JSON.stringify(d));
+                console.log('PASS '+width+' nav '+a.map(n=>n.w.toFixed(1)+'x'+n.h.toFixed(1)).join(', ')+' search/input height '+d.search.h+'/'+d.input.h+' overflow '+(d.scroll-d.client));
+                await page.close();
+              }
+              const page=await browser.newPage({viewport:{width:390,height:844}});
+              await page.goto(base);
+              for(const href of await page.locator('.site-header .nav a').evaluateAll(a=>a.map(x=>x.href))){const r=await page.request.get(href);if(r.status()!==200)throw Error('Navigation '+r.status());}
+              await page.locator('.search input').fill('加圧');await page.locator('.search button').click();await page.waitForURL(u=>u.searchParams.get('q')==='加圧');
+              console.log('PASS: all navigation links and search action.');
+            }finally{await browser.close()}
+          })().catch(e=>{console.error(e);process.exit(1)});
+          JS
+          node /tmp/check.cjs
