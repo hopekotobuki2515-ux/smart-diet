@@ -1,0 +1,101 @@
+name: Receive HOPE blog migration securely
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/receive-hope-blog-migration.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: hope-blog-receiver
+  cancel-in-progress: false
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Validate receiver source
+        run: |
+          set -eu
+          umask 077
+          cat > /tmp/hope-receiver.php <<'PHP_SOURCE'
+          <?php
+          declare(strict_types=1);
+          header('Content-Type: text/html; charset=UTF-8');
+          header('Cache-Control: no-store');
+          header('X-Robots-Tag: noindex, nofollow, noarchive');
+          header('Referrer-Policy: no-referrer');
+          header("Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
+          if (empty($_SERVER['HTTPS']) || $_SERVER['HTTPS'] === 'off' || ($_SERVER['HTTP_HOST'] ?? '') !== 'rakudadou.sakura.ne.jp') { http_response_code(403); exit('HTTPS required'); }
+          $dir = '/home/rakudadou/hope-blog-private';
+          $target = $dir . '/incoming.zip';
+          if (realpath($dir) !== $dir || !is_writable($dir) || (fileperms($dir) & 0077) !== 0) { http_response_code(503); exit('受け取り先の準備が完了していません。'); }
+          $message = '';
+          $done = is_file($target);
+          if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+              if ($done) { http_response_code(409); exit('移行データは受け取り済みです。'); }
+              $token = $_POST['code'] ?? '';
+              if (!is_string($token) || !hash_equals('a5efadf1c1b74582c6ffbb6be775c4694f6387e689377c5452b348cd641bd3fb', hash('sha256', $token))) { http_response_code(403); exit('確認コードが一致しません。'); }
+              $f = $_FILES['archive'] ?? [];
+              if (($f['error'] ?? -1) !== UPLOAD_ERR_OK || !is_string($f['tmp_name'] ?? null) || !is_uploaded_file($f['tmp_name']) || filesize($f['tmp_name']) !== 938969 || !hash_equals('97c1408ffd88b150aba1947efc07e67ba187611cc6156870da75b7cd5df38017', hash_file('sha256', $f['tmp_name']))) { http_response_code(400); exit('指定された移行ZIPと一致しません。元のZIPを選択してください。'); }
+              umask(0077);
+              $lock = fopen($dir . '/receive.lock', 'c');
+              if (!$lock || !flock($lock, LOCK_EX)) { http_response_code(503); exit('受け取り先を確保できません。'); }
+              $tmp = null;
+              try {
+                  if (file_exists($target) || is_link($target)) { http_response_code(409); exit('移行データは受け取り済みです。'); }
+                  $tmp = tempnam($dir, '.incoming-');
+                  if ($tmp === false || dirname($tmp) !== $dir || !move_uploaded_file($f['tmp_name'], $tmp) || !chmod($tmp, 0600) || !rename($tmp, $target)) { http_response_code(500); exit('保存に失敗しました。'); }
+                  $tmp = null; $done = true; $message = '受け取り完了';
+              } finally { if (is_string($tmp) && is_file($tmp)) unlink($tmp); flock($lock, LOCK_UN); fclose($lock); }
+          } elseif ($_SERVER['REQUEST_METHOD'] !== 'GET') { http_response_code(405); exit; }
+          ?>
+          <!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>HOPEブログ移行データ受け取り</title><style>body{font-family:system-ui,sans-serif;margin:24px auto;padding:0 16px;max-width:520px;line-height:1.7}label{display:block;margin:20px 0}input,button{max-width:100%;font-size:16px}button{padding:10px 20px}</style><h1>HOPEブログ移行</h1>
+          <?php if ($done): ?><p>受け取り完了</p><p>非公開領域に保存しました。この画面からの再アップロードはできません。</p><?php else: ?><form method="post" enctype="multipart/form-data"><label>確認コード<br><input type="password" name="code" required autocomplete="off"></label><label>移行ZIP<br><input type="file" name="archive" accept=".zip" required></label><button type="submit">移行データを送信</button></form><?php endif; ?></html>
+          PHP_SOURCE
+          php -l /tmp/hope-receiver.php
+      - name: Connect using existing Sakura credentials
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          test -n "$SSH_KEY" && test -n "$SAKURA_HOST" && test -n "$SAKURA_USER"
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          test -s ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          P=/home/rakudadou/www/hope-blog
+          D=/home/rakudadou/hope-blog-private
+          test -d "$P" && test ! -L "$P" && test -d "$D" && test ! -L "$D"
+          test ! -e "$P/migration-receive.php" && test ! -L "$P/migration-receive.php"
+          test ! -e "$D/incoming.zip" && test ! -L "$D/incoming.zip"
+          test ! -e "$D/receiver-staged.php" && test ! -L "$D/receiver-staged.php"
+          chmod 700 "$D"
+          REMOTE
+          scp -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes /tmp/hope-receiver.php "$SAKURA_USER@$SAKURA_HOST:/home/rakudadou/hope-blog-private/receiver-staged.php"
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          P=/home/rakudadou/www/hope-blog
+          D=/home/rakudadou/hope-blog-private
+          php -l "$D/receiver-staged.php"
+          umask 022
+          set -C
+          cat "$D/receiver-staged.php" > "$P/migration-receive.php"
+          rm "$D/receiver-staged.php"
+          REMOTE
+      - name: Verify secure receiver and rejected unauthenticated upload
+        run: |
+          set -eu
+          URL=https://rakudadou.sakura.ne.jp/hope-blog/migration-receive.php
+          curl --fail --silent --show-error --max-time 20 "$URL" > /tmp/hope-form.html
+          grep -Fq '移行データを送信' /tmp/hope-form.html
+          STATUS=$(curl --silent --show-error --max-time 20 --output /dev/null --write-out '%{http_code}' -X POST -d 'code=invalid' "$URL")
+          test "$STATUS" = 403
+          echo 'HTTPS receiver ready; invalid code rejected. No archive has been uploaded.'
