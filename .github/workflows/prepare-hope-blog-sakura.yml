@@ -52,6 +52,19 @@ jobs:
           umask 022
           mkdir -p "$PUBLIC"
           test -d "$PUBLIC" && test -d "$PRIVATE"
-          printf '%s\n' 'HOPE blog folders prepared. No files, domains or existing sites changed.'
+          INCOMING="$PUBLIC/migration-upload"
+          test ! -e "$INCOMING" && test ! -L "$INCOMING"
+          mkdir "$INCOMING"
+          printf '%s\n' 'Require all denied' > "$INCOMING/.htaccess"
+          printf '%s\n' 'Nonprivate test file' > "$INCOMING/probe.zip"
+          printf '%s\n' 'HOPE blog folders prepared; temporary upload path denies HTTP access.'
           if command -v php >/dev/null 2>&1; then php -v | head -n 1; else echo 'PHP CLI unavailable'; fi
           REMOTE
+      - name: Verify temporary upload path is inaccessible via HTTPS and HTTP
+        run: |
+          set -eu
+          for scheme in https http; do
+            code=$(curl --silent --show-error --location --max-time 20 --output /dev/null --write-out '%{http_code}' "$scheme://rakudadou.sakura.ne.jp/hope-blog/migration-upload/probe.zip")
+            test "$code" = 403 || { echo "Upload path did not return 403: $code"; exit 1; }
+          done
+          echo 'Nonprivate probe returned 403 via both HTTP and HTTPS.'
