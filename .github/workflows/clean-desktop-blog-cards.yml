@@ -1,0 +1,119 @@
+name: Clean verified blog cards and audit legacy external links
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/clean-desktop-blog-cards.yml'
+permissions:
+  contents: read
+concurrency:
+  group: rakudadou-desktop-content
+  cancel-in-progress: false
+jobs:
+  clean:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Remove only eight confirmed blog cards with private backups
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          T=$(mktemp -d /home/rakudadou/hope-card-clean.XXXXXXXX)
+          trap 'rm -rf "$T"' EXIT
+          cat > "$T/clean.php" <<'PHP'
+          <?php
+          $root='/home/rakudadou/www';
+          $pages=['kaatsutoha.htm','kaatsukouka.htm','taiken.htm','ryoukin.htm','koutsu.htm','shitsumon.htm','nyuukainagare.htm','pro.html'];
+          $old=[];$new=[];
+          $pattern='~<a\b[^>]*\bhref\s*=\s*["\x27]http://ameblo\.jp/hopekotobuki/["\x27][^>]*>(?:(?:\s|<br\s*/?>))*<img\b(?=[^>]*\bsrc\s*=\s*["\x27]image35\.gif["\x27])[^>]*>(?:(?:\s|<br\s*/?>))*</a\s*>~i';
+          foreach($pages as $p){
+              $f=$root.'/'.$p;
+              if(!is_file($f)||is_link($f))throw new RuntimeException('Unexpected path '.$p);
+              $s=file_get_contents($f);
+              if(preg_match_all($pattern,$s,$m,PREG_OFFSET_CAPTURE)!==1){
+                  echo 'CARD REVIEW '.$p.PHP_EOL;
+                  if(preg_match('~<img\b[^>]*image35\.gif[^>]*>~i',$s,$i,PREG_OFFSET_CAPTURE)){
+                      $context=substr($s,max(0,$i[0][1]-450),850);
+                      echo iconv('CP932','UTF-8//IGNORE',$context),PHP_EOL;
+                  }
+                  throw new RuntimeException('Exact card not confirmed; nothing changed');
+              }
+              [$block,$pos]=$m[0][0];
+              $n=substr($s,0,$pos).substr($s,$pos+strlen($block));
+              if(substr($n,0,$pos).$block.substr($n,$pos)!==$s||str_contains($n,'image35.gif'))throw new RuntimeException('Unexpected change '.$p);
+              foreach(['hope-site-contact.html','hope-site-privacy.html','image7.jpg','pro.html'] as $x)if(!str_contains($n,$x)||substr_count($s,$x)!==substr_count($n,$x))throw new RuntimeException('Lost navigation '.$p);
+              $old[$p]=$s;$new[$p]=$n;
+              echo 'MATCH '.$p.' '.strlen($block).' bytes'.PHP_EOL;
+          }
+          $backup=tempnam('/home/rakudadou','hope-card-backup.');
+          if(!$backup||!unlink($backup)||!mkdir($backup,0700))throw new RuntimeException('Backup directory failure');
+          $tmp=[];$done=[];
+          try{
+              foreach($pages as $p){
+                  if(file_get_contents($root.'/'.$p)!==$old[$p])throw new RuntimeException('Concurrent change');
+                  if(file_put_contents($backup.'/'.$p,$old[$p])!==strlen($old[$p]))throw new RuntimeException('Backup failed');
+                  $t=tempnam($root,'hope-card-stage-');$tmp[$p]=$t;
+                  if(!$t||file_put_contents($t,$new[$p])!==strlen($new[$p])||!chmod($t,0644))throw new RuntimeException('Stage failed');
+              }
+              foreach($pages as $p){
+                  if(file_get_contents($root.'/'.$p)!==$old[$p]||!rename($tmp[$p],$root.'/'.$p))throw new RuntimeException('Publish failed');
+                  $done[]=$p;
+              }
+              foreach($pages as $p)if(file_get_contents($root.'/'.$p)!==$new[$p])throw new RuntimeException('Verification failed');
+          }catch(Throwable $e){foreach($done as $p){copy($backup.'/'.$p,$root.'/'.$p);chmod($root.'/'.$p,0644);}throw $e;}
+          finally{foreach($tmp as $t)if($t&&file_exists($t))unlink($t);}
+          echo 'PASS: only eight blog-card blocks removed; every other byte preserved; private backups saved.',PHP_EOL;
+          PHP
+          php -l "$T/clean.php"
+          php "$T/clean.php"
+          REMOTE
+      - name: Verify published pages and inspect remaining external destinations
+        run: |
+          python3 - <<'PY'
+          from urllib.request import urlopen,Request
+          from urllib.parse import urlsplit
+          from html.parser import HTMLParser
+          from concurrent.futures import ThreadPoolExecutor
+          import re
+          base='https://www.rakudadou.jp/'
+          pages=['index.htm','kaatsutoha.htm','kaatsukouka.htm','taiken.htm','ryoukin.htm','koutsu.htm','shitsumon.htm','nyuukainagare.htm','pro.html']
+          class P(HTMLParser):
+              def __init__(self):super().__init__();self.links=[];self.current=None
+              def handle_starttag(self,t,a):
+                  a=dict(a)
+                  if t=='a':self.current=[a.get('href',''),'']
+                  if self.current is not None and t=='img':self.current[1]+=' [img '+a.get('src','')+' '+a.get('alt','')+']'
+              def handle_data(self,d):
+                  if self.current is not None:self.current[1]+=d.strip()
+              def handle_endtag(self,t):
+                  if t=='a' and self.current is not None:self.links.append(self.current);self.current=None
+          destinations=set()
+          for p in pages:
+              with urlopen(base+p,timeout=15) as r:
+                  assert r.status==200;s=r.read()
+              assert b'image35.gif' not in s and b'sapuriimage2.gif' not in s
+              assert b'hope-site-contact.html' in s and b'hope-site-privacy.html' in s
+              print('PASS HTTPS 200; card absent; footer retained',p)
+              q=P();q.feed(s.decode('cp932','replace'))
+              for u,label in q.links:
+                  if urlsplit(u).scheme in ('http','https') and urlsplit(u).hostname not in ('rakudadou.jp','www.rakudadou.jp'):
+                      print('EXTERNAL',p,u,label[:200]);destinations.add(u)
+          def check(u):
+              try:
+                  with urlopen(Request(u,headers={'User-Agent':'Mozilla/5.0'}),timeout=12) as r:
+                      d=r.read(65536)
+                      title=re.search(br'<title[^>]*>(.*?)</title>',d,re.I|re.S)
+                      print('DESTINATION',u,'HTTP',r.status,'FINAL',r.geturl(),'TITLE',title.group(1).decode(r.headers.get_content_charset() or 'utf-8','replace')[:160] if title else '')
+              except Exception as e:print('DESTINATION',u,'ERROR',type(e).__name__,str(e)[:200])
+          with ThreadPoolExecutor(max_workers=5) as ex:list(ex.map(check,sorted(destinations)))
+          PY
