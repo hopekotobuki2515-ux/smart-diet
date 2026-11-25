@@ -72,6 +72,14 @@ jobs:
               assert n==1,(path,'FC2 footer marker',n)
               s,n=re.subn(r'<!-- FC2, inc\.-->\s*<img\b[^>]*src="//media\.fc2\.com/counter_img\.php\?id=50"[^>]*>\s*<!-- FC2, inc\.-->','',s)
               assert n==1,(path,'FC2 counter marker',n)
+              # A missing, obsolete background is safe to remove only when its selector is unused.
+              if 'background: url("life-guide.png") center / cover no-repeat;' in s:
+                  outside_styles=re.sub(r'<style\b[^>]*>.*?</style>','',s,flags=re.S|re.I)
+                  assert not re.search(r'\bhero-image\b|(?<![A-Za-z0-9_-])life-guide\.png',outside_styles),(path,'Missing background is in use; original required')
+                  before=s
+                  s=s.replace('background: url("life-guide.png") center / cover no-repeat;','')
+                  assert s!=before
+                  print('Removed unused missing background declaration:',path)
               original=parse(s)
               # Rewrite only absolute/root-relative references pointing to this same site.
               def rewrite(m):
