@@ -1,0 +1,49 @@
+name: Diagnose HOPE mobile public path
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/check-hope-mobile-sakura.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Inspect only the deployed folder and relevant parent settings
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          test -n "$SSH_KEY" && test -n "$SAKURA_HOST" && test -n "$SAKURA_USER"
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          chmod 600 ~/.ssh/id_sakura
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" >> ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          d=/home/rakudadou/www/hope-mobile
+          ls -ld "$d" "$d/index.html" "$d/assets/hero.jpg"
+          test -s "$d/index.html"
+          test -r "$d/index.html"
+          for f in /home/rakudadou/www/.htaccess "$d/.htaccess"; do
+            if test -f "$f"; then
+              printf "%s present\n" "$f"
+              if grep -Eiq "^[[:space:]]*Rewrite(Rule|Cond|Engine)" "$f"; then echo "Rewrite directives present"; fi
+              if grep -Eiq "^[[:space:]]*(Redirect|RedirectMatch)" "$f"; then echo "Redirect directives present"; fi
+            else
+              printf "%s absent\n" "$f"
+            fi
+          done
+          REMOTE
+      - name: Compare response status from public hostnames
+        run: |
+          for url in             https://rakudadou.sakura.ne.jp/hope-mobile/index.html             https://rakudadou.sakura.ne.jp/hope-mobile/             https://rakudadou.sakura.ne.jp/smart-diet/equineris/index.html             https://www.rakudadou.jp/hope-mobile/index.html             https://sp.rakudadou.jp/; do
+            printf '%s ' "$url"
+            curl -sS -o /dev/null -w 'HTTP %{http_code}\n' --max-time 15 "$url" || true
+          done
