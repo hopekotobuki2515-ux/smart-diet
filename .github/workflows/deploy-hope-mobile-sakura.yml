@@ -1,0 +1,76 @@
+name: Publish HOPE mobile to Sakura (initial migration)
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/deploy-hope-mobile-sakura.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: deploy-hope-mobile-sakura
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: hopekotobuki2515-ux/hope-homepage
+          ref: 8d0cdf4c101e9e94b09bcce1584470d88a3b31eb
+          persist-credentials: false
+      - name: Prepare unchanged public files
+        run: |
+          set -eu
+          mkdir -p "$RUNNER_TEMP/hope-site"
+          test -s index.html
+          test -d assets
+          cp -a ./*.html ./*.pdf assets "$RUNNER_TEMP/hope-site/"
+          if find "$RUNNER_TEMP/hope-site" -type l -print | grep -q .; then
+            echo "Unexpected symbolic link; stopping"
+            exit 1
+          fi
+          tar -czf "$RUNNER_TEMP/hope-site.tar.gz" -C "$RUNNER_TEMP/hope-site" .
+      - name: Transfer to a new dedicated folder only
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          test -n "$SSH_KEY" && test -n "$SAKURA_HOST" && test -n "$SAKURA_USER"
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          chmod 600 ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" >> ~/.ssh/known_hosts
+          test -s ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'set -eu
+            test -d /home/rakudadou/www
+            dest=/home/rakudadou/www/hope-mobile
+            if test -e "$dest" || test -L "$dest"; then
+              echo "Destination already exists; refusing to overwrite"
+              exit 1
+            fi
+            stage=$(mktemp -d /home/rakudadou/hope-mobile-stage.XXXXXXXX)
+            trap '\''rm -rf "$stage"'\'' EXIT
+            tar -xzf - -C "$stage"
+            test -s "$stage/index.html"
+            test -d "$stage/assets"
+            mkdir -m 755 "$dest"
+            cp -Rp "$stage/." "$dest/"
+            chmod -R a+rX "$dest"
+            test -s "$dest/index.html"
+            echo "New HOPE folder deployed; no existing site overwritten"
+          ' < "$RUNNER_TEMP/hope-site.tar.gz"
+      - name: Verify public files on Sakura
+        run: |
+          set -eu
+          base=https://rakudadou.sakura.ne.jp/hope-mobile
+          for file in index.html experience.html pricing.html assets/hero.jpg; do
+            curl --fail --silent --show-error --max-time 30 "$base/$file" -o "$RUNNER_TEMP/hope-verify"
+            cmp "$RUNNER_TEMP/hope-site/$file" "$RUNNER_TEMP/hope-verify"
+          done
+          echo "HOPE public files match GitHub source"
