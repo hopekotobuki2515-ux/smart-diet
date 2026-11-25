@@ -1,0 +1,74 @@
+name: Remove only standalone personal stretching price
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/remove-standalone-stretching-price.yml'
+permissions:
+  contents: read
+concurrency:
+  group: rakudadou-desktop-content
+  cancel-in-progress: false
+jobs:
+  remove:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Remove exactly one confirmed price line
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          T=$(mktemp -d /home/rakudadou/hope-stretch-price.XXXXXXXX)
+          trap 'rm -rf "$T"' EXIT
+          cat > "$T/patch.php" <<'PHP'
+          <?php
+          $root='/home/rakudadou/www';
+          $f=$root.'/ryoukin.htm';
+          if(!is_file($f)||is_link($f))throw new RuntimeException('Unexpected page path');
+          $s=file_get_contents($f);
+          $old=iconv('UTF-8','CP932','　　・パーソナルストレッチング３０分　　￥３，０００<br>');
+          if($old===false||substr_count($s,$old)!==1)throw new RuntimeException('Exact confirmed line not found');
+          $i=strpos($s,$old);
+          $n=substr($s,0,$i).substr($s,$i+strlen($old));
+          if(substr($n,0,$i).$old.substr($n,$i)!==$s)throw new RuntimeException('Unexpected change');
+          $d=iconv('CP932','UTF-8//IGNORE',$n);
+          foreach(['パーソナルトレーニング６０分／回','加圧トレーニング３０分／回','19,800円','月4時間まで','2,475円','8,250円','15,750円','30,000円','59,800円','山口銀行','hope-site-contact.html','hope-site-privacy.html'] as $x)if(!str_contains($d,$x))throw new RuntimeException('Required content missing: '.$x);
+          if(str_contains($d,'パーソナルストレッチング３０分'))throw new RuntimeException('Remaining target');
+          umask(0077);
+          $b=tempnam('/home/rakudadou','hope-stretch-price-backup.');
+          if(!$b||file_put_contents($b,$s)!==strlen($s))throw new RuntimeException('Backup failed');
+          $t=tempnam($root,'hope-stretch-price-stage-');
+          try{
+              if(!$t||file_put_contents($t,$n)!==strlen($n)||!chmod($t,0644))throw new RuntimeException('Stage failed');
+              if(file_get_contents($f)!==$s)throw new RuntimeException('Concurrent change');
+              if(!rename($t,$f))throw new RuntimeException('Publish failed');
+              if(file_get_contents($f)!==$n){copy($b,$f);chmod($f,0644);throw new RuntimeException('Verification failed');}
+          }finally{if($t&&file_exists($t))unlink($t);}
+          echo 'PASS exactly one standalone stretching price line removed; all other original bytes preserved; private backup saved.',PHP_EOL;
+          PHP
+          php -l "$T/patch.php"
+          php -d display_errors=1 -d log_errors=0 "$T/patch.php"
+          REMOTE
+      - name: Verify current public pricing
+        run: |
+          python3 - <<'PY'
+          from urllib.request import urlopen
+          for host in ['https://www.rakudadou.jp/','https://rakudadou.jp/']:
+              with urlopen(host+'ryoukin.htm',timeout=15) as r:
+                  assert r.status==200
+                  s=r.read().decode('cp932')
+              assert 'パーソナルストレッチング３０分' not in s
+              for x in ['パーソナルトレーニング６０分／回','加圧トレーニング３０分／回','19,800円','8,250円','15,750円','30,000円','59,800円','hope-site-contact.html','hope-site-privacy.html']:
+                  assert x in s,x
+              print('PASS HTTPS 200, standalone stretching price absent, other prices retained:',host+'ryoukin.htm')
+          PY
