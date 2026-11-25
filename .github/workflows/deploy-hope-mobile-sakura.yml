@@ -18,7 +18,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: hopekotobuki2515-ux/hope-homepage
-          ref: d5e9ecb17dfd87bceb6d1733d0da74dd3f20dcc0
+          ref: fc2f69362d67c7c4ce957fa63a35783121c2e7af
           persist-credentials: false
       - name: Prepare unchanged public files
         run: |
