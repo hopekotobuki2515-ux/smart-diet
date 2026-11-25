@@ -1,0 +1,35 @@
+name: Inspect existing public HOPE header image candidates
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/inspect-hope-header-image-options.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Compare existing studio photographs and illustrations
+        run: |
+          python3 -m pip install --quiet pillow
+          python3 - <<'PY'
+          import urllib.request,io,base64
+          from PIL import Image,ImageOps
+          base='https://rakudadou.sakura.ne.jp/hope-mobile/assets/'
+          for name in ['kaatsu-training-studio.jpg','training_kaatsu.png','experience-trial-photo.webp','hero.jpg','trial-training-collage.jpg']:
+              try:
+                  with urllib.request.urlopen(base+name,timeout=20) as r:
+                      raw=r.read()
+                  im=ImageOps.exif_transpose(Image.open(io.BytesIO(raw))).convert('RGB')
+                  print('PHOTO',name,im.size,len(raw))
+                  im.thumbnail((760,450))
+                  buf=io.BytesIO();im.save(buf,'JPEG',quality=72)
+                  b=base64.b64encode(buf.getvalue()).decode()
+                  print('SHOT_BEGIN',name)
+                  for i in range(0,len(b),3000):print('SHOT_PART',b[i:i+3000])
+                  print('SHOT_END')
+              except Exception as e:print('SKIP',name,str(e))
+          PY
