@@ -102,6 +102,9 @@ jobs:
                   if target: assets.add(target)
           print('HTML count:',len(pages),'asset count:',len(assets),'affiliate links:',len(amazon),'distinct:',len(set(amazon)))
           print('Pages:',sorted(pages));print('Assets:',sorted(assets))
+          for p,t in pages.items():
+              for m in re.finditer(r'(?<![A-Za-z0-9_-])life-guide\.png',t):
+                  print('MISSING IMAGE CONTEXT:',p,repr(t[max(0,m.start()-120):m.end()+120]))
           assert len(pages)>=27 and len(assets)>=5 and len(amazon)>=408,(len(pages),len(assets),len(amazon))
           assert 'home.html' not in pages and 'products/index.html' not in pages,'Legacy routes unexpectedly linked'
           for path,s in pages.items(): save(root,path,s.encode('utf-8'))
