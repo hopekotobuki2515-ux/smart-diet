@@ -1,0 +1,74 @@
+name: Remove obsolete renewal opening banner only
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/remove-rakudadou-renewal-banner.yml'
+permissions:
+  contents: read
+concurrency:
+  group: rakudadou-desktop-content
+  cancel-in-progress: false
+jobs:
+  remove:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Remove only verified obsolete banner with backup
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          T=$(mktemp -d /home/rakudadou/remove-renewal-stage.XXXXXXXX)
+          trap 'rm -rf "$T"' EXIT
+          cat > "$T/remove.php" <<'PHP'
+          <?php
+          $root='/home/rakudadou/www';
+          $f=$root.'/index.htm';
+          if(!is_file($f)||is_link($f))throw new RuntimeException('Unexpected page path');
+          $s=file_get_contents($f);
+          $pat='~<img src="logo21\.gif" width="417" height="41" border="0" alt="[^"]*">~i';
+          if(preg_match_all($pat,$s,$m,PREG_OFFSET_CAPTURE)!==1)throw new RuntimeException('Expected single banner not found');
+          [$old,$offset]=$m[0][0];
+          $decoded=iconv('CP932','UTF-8',$old);
+          if($decoded===false||!str_contains($decoded,'リニューアルOPEN')||!str_contains($decoded,'２０１８年９月'))throw new RuntimeException('Banner label mismatch');
+          $next=substr($s,0,$offset).substr($s,$offset+strlen($old));
+          if(substr($next,0,$offset).$old.substr($next,$offset)!==$s)throw new RuntimeException('Unexpected difference');
+          foreach(['logo3.gif','hope-local-photo-show','hpb-slideshow1','hope-site-contact.html','hope-site-privacy.html','pro.html','taiken.htm','ryoukin.htm'] as $x)if(!str_contains($next,$x)||substr_count($next,$x)!==substr_count($s,$x))throw new RuntimeException('Unrelated content changed');
+          foreach(['logo21.gif','image35.gif','sapuriimage2.gif','youtube.com/embed/X1irH7MnZf0'] as $x)if(str_contains($next,$x))throw new RuntimeException('Removed element reference remains');
+          umask(0077);
+          $b=tempnam('/home/rakudadou','hope-renewal-backup.');
+          if(!$b||file_put_contents($b,$s)!==strlen($s))throw new RuntimeException('Backup failed');
+          $t=tempnam($root,'hope-renewal-stage-');
+          try{
+              if(!$t||file_put_contents($t,$next)!==strlen($next)||!chmod($t,0644))throw new RuntimeException('Stage failed');
+              if(file_get_contents($f)!==$s)throw new RuntimeException('Concurrent change');
+              if(!rename($t,$f))throw new RuntimeException('Publish failed');
+              if(file_get_contents($f)!==$next){copy($b,$f);chmod($f,0644);throw new RuntimeException('Verification failed');}
+          }finally{if($t&&file_exists($t))unlink($t);}
+          echo 'PASS: exactly one renewal opening image tag removed; all other bytes identical; original backed up outside public folder.',PHP_EOL;
+          PHP
+          php -l "$T/remove.php"
+          php "$T/remove.php"
+          REMOTE
+      - name: Verify three public homepage URLs
+        run: |
+          python3 - <<'PY'
+          from urllib.request import urlopen
+          for u in ['http://www.rakudadou.jp/index.htm','http://www.rakudadou.jp/','http://rakudadou.jp/']:
+              with urlopen(u,timeout=20) as r:
+                  assert r.status==200
+                  s=r.read()
+              assert all(x not in s for x in [b'logo21.gif',b'image35.gif',b'sapuriimage2.gif',b'youtube.com/embed/X1irH7MnZf0'])
+              assert all(x in s for x in [b'logo3.gif',b'hope-local-photo-show',b'hpb-slideshow1',b'hope-site-contact.html',b'hope-site-privacy.html'])
+              print('PASS HTTP 200, renewal banner absent, previous changes retained:',u)
+          PY
