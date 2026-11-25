@@ -1,0 +1,44 @@
+name: Migrate Kurashi to Sakura
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/migrate-kurashi-sakura.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: migrate-kurashi-sakura
+  cancel-in-progress: false
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Inspect current public site without changing it
+        run: |
+          python3 - <<'PY'
+          from urllib.request import Request,urlopen
+          from urllib.parse import urljoin,urlsplit
+          from html.parser import HTMLParser
+          from collections import Counter
+          import re
+          base='https://rakudadou719.web.fc2.com/'
+          def get(url):
+              with urlopen(Request(url,headers={'User-Agent':'Mozilla/5.0'}),timeout=20) as r:
+                  assert r.status==200
+                  return r.read(),r.headers.get_content_charset() or 'utf-8'
+          data,encoding=get(base)
+          s=data.decode(encoding)
+          print('HOME bytes:',len(data))
+          print('HEAD:',s[:3500])
+          print('TAIL:',s[-4000:])
+          class Parser(HTMLParser):
+              def __init__(self): super().__init__(); self.refs=[]
+              def handle_starttag(self,tag,attrs):
+                  for k,v in attrs:
+                      if k in ('href','src','poster','data-src') and v: self.refs.append((tag,k,v))
+          p=Parser();p.feed(s)
+          print('SAME HOST REFERENCES:',sorted(set((t,k,v) for t,k,v in p.refs if urlsplit(urljoin(base,v)).netloc==urlsplit(base).netloc and not v.startswith('#'))))
+          print('EXTERNAL HOSTS:',Counter(urlsplit(urljoin(base,v)).netloc for t,k,v in p.refs if urlsplit(urljoin(base,v)).netloc!=urlsplit(base).netloc))
+          assert '暮らしのいいもの案内所' in s
+          PY
