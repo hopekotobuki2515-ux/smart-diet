@@ -1,0 +1,116 @@
+name: Enable host-scoped HOPE HTTPS and device routing
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/enable-hope-domain-routing.yml'
+permissions:
+  contents: read
+concurrency:
+  group: rakudadou-desktop-content
+  cancel-in-progress: false
+jobs:
+  routing:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Confirm strict TLS before changing server
+        run: |
+          set -eu
+          for u in https://www.rakudadou.jp/ https://rakudadou.jp/ https://www.rakudadou.jp/hope-mobile/; do
+            test "$(curl -sS --max-time 15 -o /dev/null -w '%{http_code}' "$u")" = 200
+          done
+      - name: Add narrowly scoped rules and validate live behavior
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          cd /home/rakudadou/www
+          test ! -e .htaccess && test ! -L .htaccess
+          test "$(sha256 -q index.htm)" = 093275f84d405294c20d8c44c53b872350baa80fad917eb9407cef0ea4ebedfa
+          test "$(sha256 -q hope-mobile/index.html)" = aeaabe498b8a5afaeba754ef2ee93882c6d7490ca9258ada8ad7219535837823
+          test "$(sha256 -q hope-mobile/.htaccess)" = 8411f88a8e916c4e2b126ad761208f5838ef163fc5a92878ed56bfdabf148cd2
+          T=$(mktemp /home/rakudadou/hope-routing.XXXXXXXX)
+          published=0
+          accepted=0
+          cleanup() {
+            if test "$published" = 1 && test "$accepted" != 1; then
+              if cmp -s "$T" .htaccess; then rm .htaccess; echo 'ROLLBACK original absence of .htaccess restored'; fi
+            fi
+            rm -f "$T"
+          }
+          trap cleanup EXIT
+          cat > "$T" <<'RULES'
+          # HOPE independent domain only. Other domains and applications are untouched.
+          RewriteEngine On
+          # Normalize host and transport without changing paths or query strings.
+          RewriteCond %{HTTP_HOST} ^rakudadou\.jp(?::[0-9]+)?$ [NC,OR]
+          RewriteCond %{HTTPS} !=on
+          RewriteCond %{HTTP_HOST} ^(?:www\.)?rakudadou\.jp(?::[0-9]+)?$ [NC]
+          RewriteRule ^ https://www.rakudadou.jp%{REQUEST_URI} [R=301,L,NE]
+          # Only the homepage is selected by device. Never redirect content pages.
+          RewriteCond %{HTTP_HOST} ^www\.rakudadou\.jp(?::[0-9]+)?$ [NC]
+          RewriteCond %{HTTP_USER_AGENT} "(iPhone|iPod|Windows Phone|Android.*Mobile|Mobile.*Android|Mobile)" [NC]
+          RewriteRule ^(?:index\.htm)?$ /hope-mobile/ [R=302,L]
+          # Mark both homepage variants as user-agent dependent.
+          <IfModule mod_headers.c>
+            <If "%{HTTP_HOST} =~ m#^www\.rakudadou\.jp(?::[0-9]+)?$#i && %{REQUEST_URI} =~ m#^/(?:index\.htm)?$#">
+              Header always merge Vary User-Agent
+            </If>
+          </IfModule>
+          RULES
+          chmod 644 "$T"
+          cp "$T" .htaccess
+          published=1
+          desktop='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131.0.0.0 Safari/537.36'
+          mobile='Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1'
+          check() {
+            actual=$(curl -sS --max-time 15 -L --max-redirs 5 -A "$1" -o /dev/null -w '%{http_code} %{url_effective}' "$2")
+            printf 'ROUTE %s => %s\n' "$2" "$actual"
+            test "$actual" = "$3"
+          }
+          check "$desktop" 'http://rakudadou.jp/' '200 https://www.rakudadou.jp/'
+          check "$desktop" 'http://www.rakudadou.jp/' '200 https://www.rakudadou.jp/'
+          check "$desktop" 'https://rakudadou.jp/' '200 https://www.rakudadou.jp/'
+          check "$desktop" 'https://www.rakudadou.jp/' '200 https://www.rakudadou.jp/'
+          check "$mobile" 'https://www.rakudadou.jp/' '200 https://www.rakudadou.jp/hope-mobile/'
+          check "$mobile" 'http://rakudadou.jp/' '200 https://www.rakudadou.jp/hope-mobile/'
+          check "$mobile" 'https://www.rakudadou.jp/index.htm' '200 https://www.rakudadou.jp/hope-mobile/'
+          check "$mobile" 'https://www.rakudadou.jp/ryoukin.htm' '200 https://www.rakudadou.jp/ryoukin.htm'
+          check "$desktop" 'https://rakudadou.sakura.ne.jp/hope-blog/' '200 https://rakudadou.sakura.ne.jp/hope-blog/'
+          check "$desktop" 'https://rakudadou.sakura.ne.jp/kurashi/' '200 https://rakudadou.sakura.ne.jp/kurashi/'
+          check "$desktop" 'https://rakudadou.sakura.ne.jp/smart-diet/equineris/index.html' '200 https://rakudadou.sakura.ne.jp/smart-diet/equineris/index.html'
+          test "$(curl -sS --max-time 15 -A "$desktop" https://www.rakudadou.jp/ | sha256 -q)" = 093275f84d405294c20d8c44c53b872350baa80fad917eb9407cef0ea4ebedfa
+          test "$(curl -sS --max-time 15 -L -A "$mobile" https://www.rakudadou.jp/ | sha256 -q)" = aeaabe498b8a5afaeba754ef2ee93882c6d7490ca9258ada8ad7219535837823
+          for ua in "$desktop" "$mobile"; do
+            curl -sS --max-time 15 -A "$ua" -D - -o /dev/null https://www.rakudadou.jp/ | grep -i '^vary:.*user-agent'
+          done
+          accepted=1
+          echo 'PASS verified routing, strict TLS, unchanged page bytes, Vary headers and unrelated sites.'
+          REMOTE
+      - name: Independent external confirmation
+        run: |
+          python3 - <<'PY'
+          from urllib.request import urlopen,Request
+          from concurrent.futures import ThreadPoolExecutor
+          from hashlib import sha256
+          pc='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131.0.0.0 Safari/537.36'
+          mobile='Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1'
+          base='https://www.rakudadou.jp/'
+          cases=[('http://rakudadou.jp/',pc,base),('http://www.rakudadou.jp/',mobile,base+'hope-mobile/'),(base,pc,base),(base,mobile,base+'hope-mobile/'),(base+'ryoukin.htm',mobile,base+'ryoukin.htm'),('https://rakudadou.sakura.ne.jp/hope-mobile/',mobile,'https://rakudadou.sakura.ne.jp/hope-mobile/')]
+          def check(c):
+              u,ua,target=c
+              with urlopen(Request(u,headers={'User-Agent':ua}),timeout=15) as r:
+                  assert r.status==200 and r.geturl()==target,(u,r.status,r.geturl())
+                  print('PASS',u,'=>',target,'SHA256',sha256(r.read()).hexdigest())
+          with ThreadPoolExecutor(max_workers=5) as ex:list(ex.map(check,cases))
+          PY
