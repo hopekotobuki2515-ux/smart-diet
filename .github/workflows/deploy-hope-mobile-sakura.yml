@@ -78,45 +78,7 @@ jobs:
           ssh-keyscan -T 10 -H "$SAKURA_HOST" >> ~/.ssh/known_hosts
           test -s ~/.ssh/known_hosts
           remote=$(cat <<'REMOTE'
-          sh -c '
-            set -eu
-            dest=/home/rakudadou/www/hope-mobile
-            test -d "$dest"; test ! -L "$dest"
-            stage=$(mktemp -d /home/rakudadou/hope-seo-stage.XXXXXXXX)
-            trap "rm -rf \"$stage\"" EXIT
-            tar -xzf - -C "$stage"
-            test -s "$stage/index.html"; test -s "$stage/.htaccess"
-            for f in "$stage"/*.html; do
-              n=$(basename "$f"); test -f "$dest/$n"; test ! -L "$dest/$n"; grep -Fq G-ZCETMLPKX3 "$f"
-            done
-            for d in "$stage"/*/; do
-              n=$(basename "$d"); test -s "$d/index.html"
-              if test -e "$dest/$n" || test -L "$dest/$n"; then
-                test -d "$dest/$n"; test ! -L "$dest/$n"; test -f "$dest/$n/index.html"; test ! -L "$dest/$n/index.html"
-                cmp -s "$d/index.html" "$dest/$n/index.html" || { echo "Existing alias differs; stopping"; exit 1; }
-              fi
-            done
-            for n in .htaccess sitemap.xml; do
-              if test -e "$dest/$n" || test -L "$dest/$n"; then
-                test -f "$dest/$n"; test ! -L "$dest/$n"
-                cmp -s "$stage/$n" "$dest/$n" || { echo "Existing $n differs; stopping before write"; exit 1; }
-              fi
-            done
-            backup=$(mktemp -d /home/rakudadou/hope-seo-backup.XXXXXXXX)
-            chmod 700 "$backup"
-            for f in "$stage"/*.html; do n=$(basename "$f"); cp -p "$dest/$n" "$backup/$n"; done
-            for n in .htaccess sitemap.xml; do if test -f "$dest/$n"; then cp -p "$dest/$n" "$backup/$n"; fi; done
-            for d in "$stage"/*/; do
-              n=$(basename "$d")
-              if test ! -d "$dest/$n"; then mkdir -m 755 "$dest/$n"; cp -p "$d/index.html" "$dest/$n/index.html"; chmod a+r "$dest/$n/index.html"; fi
-            done
-            for f in "$stage"/*.html; do
-              n=$(basename "$f"); cp -p "$f" "$dest/$n.seo-new"; chmod a+r "$dest/$n.seo-new"; mv -f "$dest/$n.seo-new" "$dest/$n"
-            done
-            cp -p "$stage/sitemap.xml" "$dest/sitemap.xml.seo-new"; chmod a+r "$dest/sitemap.xml.seo-new"; mv -f "$dest/sitemap.xml.seo-new" "$dest/sitemap.xml"
-            cp -p "$stage/.htaccess" "$dest/.htaccess.seo-new"; chmod a+r "$dest/.htaccess.seo-new"; mv -f "$dest/.htaccess.seo-new" "$dest/.htaccess"
-            echo "HOPE SEO files deployed; backup stored outside public root"
-          '
+          sh -c 'set -eu; dest=/home/rakudadou/www/hope-mobile; test -d "$dest"; test ! -L "$dest"; stage=$(mktemp -d /home/rakudadou/hope-seo-stage.XXXXXXXX); trap "rm -rf \"$stage\"" EXIT; tar -xzf - -C "$stage"; test -s "$stage/index.html"; test -s "$stage/.htaccess"; for f in "$stage"/*.html; do n=$(basename "$f"); test -f "$dest/$n"; test ! -L "$dest/$n"; grep -Fq G-ZCETMLPKX3 "$f"; done; for d in "$stage"/*/; do n=$(basename "$d"); test -s "$d/index.html"; if test -e "$dest/$n" || test -L "$dest/$n"; then test -d "$dest/$n"; test ! -L "$dest/$n"; test -f "$dest/$n/index.html"; test ! -L "$dest/$n/index.html"; cmp -s "$d/index.html" "$dest/$n/index.html" || { echo "Existing alias differs; stopping"; exit 1; }; fi; done; for n in .htaccess sitemap.xml; do if test -e "$dest/$n" || test -L "$dest/$n"; then test -f "$dest/$n"; test ! -L "$dest/$n"; cmp -s "$stage/$n" "$dest/$n" || { echo "Existing $n differs; stopping before write"; exit 1; }; fi; done; backup=$(mktemp -d /home/rakudadou/hope-seo-backup.XXXXXXXX); chmod 700 "$backup"; for f in "$stage"/*.html; do n=$(basename "$f"); cp -p "$dest/$n" "$backup/$n"; done; for n in .htaccess sitemap.xml; do if test -f "$dest/$n"; then cp -p "$dest/$n" "$backup/$n"; fi; done; for d in "$stage"/*/; do n=$(basename "$d"); if test ! -d "$dest/$n"; then mkdir -m 755 "$dest/$n"; cp -p "$d/index.html" "$dest/$n/index.html"; chmod a+r "$dest/$n/index.html"; fi; done; for f in "$stage"/*.html; do n=$(basename "$f"); cp -p "$f" "$dest/$n.seo-new"; chmod a+r "$dest/$n.seo-new"; mv -f "$dest/$n.seo-new" "$dest/$n"; done; cp -p "$stage/sitemap.xml" "$dest/sitemap.xml.seo-new"; chmod a+r "$dest/sitemap.xml.seo-new"; mv -f "$dest/sitemap.xml.seo-new" "$dest/sitemap.xml"; cp -p "$stage/.htaccess" "$dest/.htaccess.seo-new"; chmod a+r "$dest/.htaccess.seo-new"; mv -f "$dest/.htaccess.seo-new" "$dest/.htaccess"; echo "HOPE SEO files deployed; backup stored outside public root"'
           REMOTE
           )
           ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" "$remote" < "$RUNNER_TEMP/hope-site.tar.gz"
