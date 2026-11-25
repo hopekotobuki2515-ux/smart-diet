@@ -1,5 +1,9 @@
 name: Prepare HOPE blog on Sakura
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/prepare-hope-blog-sakura.yml'
   workflow_dispatch:
 permissions:
   contents: read
