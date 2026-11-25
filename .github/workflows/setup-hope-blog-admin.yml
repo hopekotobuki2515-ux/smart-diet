@@ -1,0 +1,189 @@
+name: Configure and verify HOPE blog admin
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/setup-hope-blog-admin.yml'
+permissions:
+  contents: read
+concurrency:
+  group: hope-blog-layout-repair
+  cancel-in-progress: false
+jobs:
+  configure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Check existing SSH connection and stage current admin code
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          umask 077
+          test -n "$SSH_KEY" && test -n "$SAKURA_HOST" && test -n "$SAKURA_USER"
+          mkdir -p ~/.ssh /tmp/hope-admin-check/public /tmp/hope-admin-check/private
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          scp -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST:/home/rakudadou/www/hope-blog/admin.php" /tmp/hope-admin-check/original-admin.php
+          scp -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST:/home/rakudadou/www/hope-blog/common.php" /tmp/hope-admin-check/public/common.php
+          cat > /tmp/hope-admin-patch.php <<'PATCH'
+          <?php
+          declare(strict_types=1);
+          $p=$argv[1];$s=file_get_contents($p);
+          if(hash('sha256',$s)!=='b3b54c863d9491ce0c596ce35bfce03c7ab50e0669a062c04b8bf9a4db6e994c')throw new RuntimeException('Unexpected admin revision; refusing to overwrite');
+          $old='if($new)$rows[]=$row;else $rows[$i]=$row;';
+          $new='if($new){$rows[]=$row;}else{if($body===$old["body"]){$row["description"]=$old["description"];$row["image"]=$old["image"];}else{$row["titlelist_description"]=$row["description"];} $rows[$i]=array_replace($old,$row);}';
+          if(substr_count($s,$old)!==1)throw new RuntimeException('Expected save code not found');
+          if(file_put_contents($argv[2],str_replace($old,$new,$s))===false)throw new RuntimeException('Cannot stage');
+          PATCH
+          php -l /tmp/hope-admin-patch.php
+          php /tmp/hope-admin-patch.php /tmp/hope-admin-check/original-admin.php /tmp/hope-admin-check/public/admin.php
+          php -l /tmp/hope-admin-check/public/admin.php
+          sed -i "s|/home/rakudadou/hope-blog-private/data/|/tmp/hope-admin-check/private/|g" /tmp/hope-admin-check/public/common.php
+          grep -Fq "const DATA='/tmp/hope-admin-check/private/';" /tmp/hope-admin-check/public/common.php
+          cat > /tmp/hope-admin-setup.php <<'SETUP'
+          <?php
+          declare(strict_types=1);
+          require __DIR__.'/common.php';
+          header('X-Robots-Tag: noindex, nofollow, noarchive');
+          header('Referrer-Policy: no-referrer');
+          header('X-Content-Type-Options: nosniff');
+          header("Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
+          if (empty($_SERVER['HTTPS']) || $_SERVER['HTTPS']==='off' || ($_SERVER['HTTP_HOST']??'')!=='rakudadou.sakura.ne.jp') {http_response_code(403);exit('HTTPS required');}
+          session_start_safe();
+          $c=loadj('config.json');
+          if (!empty($c['admin_hash'])) {http_response_code(410);exit('初期設定は終了しています。管理画面からログインしてください。');}
+          if(time()>filemtime(__FILE__)+86400){http_response_code(410);exit('設定期限が過ぎました。');}
+          $error='';
+          if($_SERVER['REQUEST_METHOD']==='POST'){
+           verifycsrf();
+           $token=$_POST['code']??null;
+           if(!is_string($token)||!hash_equals('d798b50414c9477a5539d8f3fc5ec4502907be0fef0e083ea36b4bc4b2a91991',hash('sha256',$token))){sleep(1);http_response_code(403);exit('確認コードが違います。');}
+           $p=$_POST['password']??null;$q=$_POST['confirm']??null;$r=$_POST['restricted']??'';
+           if(!is_string($p)||!is_string($q)||!is_string($r)||strlen($p)<12||strlen($p)>72||str_contains($p,"\0")||$p!==$q||strlen($r)>72||str_contains($r,"\0")){$error='管理者パスワードは12～72バイトで、確認欄と一致させてください。';}
+           else {
+            umask(0077);
+            $lock=fopen(DATA.'write.lock','c');
+            if(!$lock||!flock($lock,LOCK_EX)){http_response_code(503);exit('保存先を確保できません。');}
+            try{
+             $c=loadj('config.json');
+             if(!empty($c['admin_hash'])){http_response_code(410);exit('初期設定は終了しています。');}
+             $c['admin_hash']=password_hash($p,PASSWORD_DEFAULT);
+             if($r!=='')$c['restricted_hash']=password_hash($r,PASSWORD_DEFAULT);
+             writej('config.json',$c);
+             session_regenerate_id(true);
+             unset($_SESSION['admin']);
+            }finally{flock($lock,LOCK_UN);fclose($lock);}
+            go('admin.php');
+           }
+          }elseif($_SERVER['REQUEST_METHOD']!=='GET'){http_response_code(405);exit;}
+          ?><!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>HOPEブログ管理者の初期設定</title><style>body{font:16px/1.7 system-ui,sans-serif;max-width:560px;padding:16px;margin:auto}label{display:block;margin:16px 0}input,button{font:inherit;padding:9px;box-sizing:border-box;width:100%}button{margin-top:12px}.error{color:#a22}</style><h1>HOPEブログ管理者の初期設定</h1><p>パスワードはサーバー内でハッシュ化して保存します。初期設定は一度だけ実行できます。</p><?php if($error!=='')echo '<p class="error">'.e($error).'</p>';?><form method="post"><input type="hidden" name="csrf" value="<?=e(csrf())?>"><label>設定用確認コード<input name="code" type="password" autocomplete="off" required></label><label>管理者パスワード（半角12文字以上推奨）<input type="password" name="password" autocomplete="new-password" required></label><label>管理者パスワード（確認）<input type="password" name="confirm" autocomplete="new-password" required></label><label>限定公開記事の閲覧パスワード（任意・未入力なら閲覧不可のまま）<input type="password" name="restricted" autocomplete="new-password"></label><button type="submit">設定して管理画面へ</button></form></html>
+          SETUP
+          php -l /tmp/hope-admin-setup.php
+      - name: Verify admin save and authentication against isolated synthetic data
+        run: |
+          set -eu
+          umask 077
+          cat > /tmp/hope-admin-fixture.php <<'FIXTURE'
+          <?php
+          $d=$argv[1];$pw=bin2hex(random_bytes(24));
+          file_put_contents($d.'/test-password',$pw);
+          file_put_contents($d.'/config.json',json_encode(['admin_hash'=>password_hash($pw,PASSWORD_DEFAULT),'restricted_hash'=>'','cats'=>[0=>'未分類',23=>'加圧トレーニング',24=>'ダイエット',25=>'ストレッチ']]));
+          file_put_contents($d.'/articles.json',json_encode([['id'=>120,'title'=>'Existing article','date'=>'2026-01-01 00:00:00','category'=>23,'status'=>'public','body'=>'<p>Body</p>','more'=>'','excerpt'=>'','keywords'=>'','description'=>'Original list summary','titlelist_description'=>'Original all list summary','image'=>'https://example.com/original-thumb.png','comments'=>[],'allow_comments'=>true,'convert_breaks'=>false]]));
+          FIXTURE
+          php /tmp/hope-admin-fixture.php /tmp/hope-admin-check/private
+          cat > /tmp/hope-admin-check/test.py <<'PY'
+          import urllib.request, urllib.parse, urllib.error, http.cookiejar, json, re, pathlib, secrets
+          base='http://127.0.0.1:18765/admin.php'
+          d=pathlib.Path('/tmp/hope-admin-check/private')
+          p=(d/'articles.json')
+          def read(): return json.loads(p.read_text())
+          original=read()
+          pw=(d/'test-password').read_text()
+          op=urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+          def request(suffix='',data=None):
+              try:
+                  with op.open(base+suffix, data=None if data is None else urllib.parse.urlencode(data).encode(),timeout=10) as res: return res.status,res.read().decode(),res.geturl()
+              except urllib.error.HTTPError as e: return e.code,e.read().decode(),e.geturl()
+          def fields(html): return dict(re.findall(r'<input type="hidden" name="([^"]+)" value="([^"]*)">',html))
+          status,html,_=request()
+          assert status==200 and 'ログイン' in html
+          csrf=fields(html)['csrf']
+          assert request(data={'csrf':csrf,'action':'save'})[0]==403
+          assert read()==original
+          assert 'ログインできません' in request(data={'csrf':csrf,'action':'login','password':'invalid'})[1]
+          status,html,_=request(data={'csrf':csrf,'action':'login','password':pw})
+          assert status==200 and '記事一覧（1件）' in html
+          status,html,_=request('?new=1')
+          f=fields(html)
+          f.update(title='Synthetic draft',date='2026-01-01T00:00:00',category='23',status='draft',body='<p>Test</p><img src="https://example.com/sample.png">',more='',excerpt='',keywords='')
+          assert '保存しました' in request(data=f)[1]
+          rows=read();assert len(rows)==2 and rows[0]==original[0] and rows[1]['status']=='draft'
+          i=rows[1]['id'];status,html,_=request('?edit='+str(i));f=fields(html);f.update(title='Edited draft',date='2026-01-01T00:00:00',category='23',status='draft',body=rows[1]['body'],more='',excerpt='',keywords='')
+          assert '保存しました' in request(data=f)[1]
+          assert read()[1]['title']=='Edited draft'
+          assert '別の編集が保存されました' in request(data=f)[1]
+          status,html,_=request('?edit=120');f=fields(html);f.update(title='Existing article title revised',date='2026-01-01T00:00:00',category='23',status='public',body=original[0]['body'],more='',excerpt='',keywords='')
+          assert '保存しました' in request(data=f)[1]
+          r=read()[0];assert r['title']=='Existing article title revised'
+          for k in ['image','description','titlelist_description','body','status','date']: assert r[k]==original[0][k],k
+          status,html,_=request('?edit='+str(i));f=fields(html);f.update(title='Edited draft',date='2026-01-01T00:00:00',category='23',status='public',body=rows[1]['body'],more='',excerpt='',keywords='')
+          assert '保存しました' in request(data=f)[1] and read()[1]['status']=='public'
+          assert request(data={'csrf':csrf,'action':'logout'})[0]==200
+          assert request(data={'csrf':csrf,'action':'save'})[0]==403
+          print('Synthetic admin tests passed: auth, unauthorized save, draft creation, edit, publication, concurrent edit protection, original thumbnail preservation, logout. No production articles copied or edited.')
+          PY
+          php -S 127.0.0.1:18765 -t /tmp/hope-admin-check/public > /tmp/hope-admin-check/server.log 2>&1 &
+          PID=$!
+          trap 'kill "$PID" 2>/dev/null || true' EXIT
+          for i in 1 2 3 4 5; do if curl --fail --silent http://127.0.0.1:18765/admin.php >/dev/null; then break; fi; sleep 1; done
+          python3 /tmp/hope-admin-check/test.py
+      - name: Install only verified admin patch and one-time setup page
+        env:
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          P=/home/rakudadou/www/hope-blog
+          D=/home/rakudadou/hope-blog-private/data
+          test -d "$P" && test ! -L "$P" && test -d "$D" && test ! -L "$D"
+          test ! -L "$P/admin.php" && test ! -L "$D/config.json"
+          test ! -e "$P/admin-setup.php" && test ! -L "$P/admin-setup.php"
+          test ! -e "$D/admin-install.php" && test ! -e "$D/admin-setup-stage.php"
+          php -r 'if(hash_file("sha256",$argv[1])!=="b3b54c863d9491ce0c596ce35bfce03c7ab50e0669a062c04b8bf9a4db6e994c")exit(1);$c=json_decode(file_get_contents($argv[2]),true,512,JSON_THROW_ON_ERROR);if(!empty($c["admin_hash"])||$c["preview"]!==true)exit(1);' "$P/admin.php" "$D/config.json"
+          REMOTE
+          scp -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes /tmp/hope-admin-check/public/admin.php "$SAKURA_USER@$SAKURA_HOST:/home/rakudadou/hope-blog-private/data/admin-install.php"
+          scp -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes /tmp/hope-admin-setup.php "$SAKURA_USER@$SAKURA_HOST:/home/rakudadou/hope-blog-private/data/admin-setup-stage.php"
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          P=/home/rakudadou/www/hope-blog
+          D=/home/rakudadou/hope-blog-private/data
+          umask 077
+          php -l "$D/admin-install.php"
+          php -l "$D/admin-setup-stage.php"
+          php -r 'if(hash_file("sha256",$argv[1])!=="b3b54c863d9491ce0c596ce35bfce03c7ab50e0669a062c04b8bf9a4db6e994c")exit(1);' "$P/admin.php"
+          BACKUP=$(mktemp -d "$D/admin-backup.XXXXXXXX")
+          cp "$P/admin.php" "$BACKUP/admin.php"
+          chmod 600 "$BACKUP/admin.php"
+          chmod 644 "$D/admin-install.php" "$D/admin-setup-stage.php"
+          mv "$D/admin-install.php" "$P/admin.php"
+          if ! mv -n "$D/admin-setup-stage.php" "$P/admin-setup.php"; then cp "$BACKUP/admin.php" "$P/admin.php"; exit 1; fi
+          test -f "$P/admin-setup.php" && test ! -e "$D/admin-setup-stage.php"
+          echo 'Admin patch and setup form installed; production articles and configuration unchanged.'
+          REMOTE
+      - name: Verify public HTTPS setup form and admin protection
+        run: |
+          set -eu
+          BASE=https://rakudadou.sakura.ne.jp/hope-blog
+          curl --fail --silent --show-error --max-time 20 "$BASE/admin-setup.php" > /tmp/hope-admin-setup.html
+          grep -Fq '設定して管理画面へ' /tmp/hope-admin-setup.html
+          curl --fail --silent --show-error --max-time 20 "$BASE/admin.php" > /tmp/hope-admin-login.html
+          grep -Fq '管理者パスワード未設定' /tmp/hope-admin-login.html
+          CODE=$(curl --silent --show-error --max-time 20 -o /dev/null -w '%{http_code}' -X POST -d 'action=save' "$BASE/admin.php")
+          test "$CODE" = 403
+          echo 'Setup form available; admin save without authentication rejected.'
