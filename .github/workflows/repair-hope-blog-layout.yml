@@ -1,0 +1,152 @@
+name: Repair HOPE blog layout without changing CSS
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/repair-hope-blog-layout.yml'
+permissions:
+  contents: read
+concurrency:
+  group: hope-blog-layout-repair
+  cancel-in-progress: false
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Prepare checked PHP patch
+        run: |
+          set -eu
+          umask 077
+          cat > /tmp/hope-layout-patch.php <<'PHP_PATCH'
+          <?php
+          declare(strict_types=1);
+          $root=$argv[1]; $data=$argv[2];
+          $fpath=$data.'/fragments.json'; $ipath=$root.'/index.php';
+          $f=json_decode(file_get_contents($fpath),true,512,JSON_THROW_ON_ERROR);
+          $i=file_get_contents($ipath);
+          if(hash('sha256',$i)!=='e706bc2dd5fb2a72c624bd6328360ace68f3b95e278736817bf773304ab1c8af'||hash_file('sha256',$fpath)!=='50f7f80e0be268aa2848096b214514563ef6581b68c107fd14734252294f7d07')throw new RuntimeException('Unexpected revision; stop without overwriting');
+          if(preg_match_all('~<style\b[^>]*>.*?</style>~s',$f['head'],$m)!==2)throw new RuntimeException('Expected original inline styles missing');
+          $f['head']=<<<'HTML'
+          <!DOCTYPE html>
+          <html lang="ja">
+          <head>
+          <meta charset="utf-8">
+          <meta http-equiv="X-UA-Compatible" content="IE=edge">
+          <title><%title></title>
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <meta name="author" content="<%author_name>">
+          <meta name="format-detection" content="telephone=no">
+          <link rel="stylesheet" href="<%css_link>">
+          <link rel="start" href="<%url>">
+          HTML;
+          $f['head'].="\n".implode("\n",$m[0])."\n<%seo>\n</head>\n";
+          $f['search_item']=<<<'HTML'
+          <li class="search_item">
+            <a class="search_item_title" href="<%topentry_link>"><%topentry_title></a>
+            <p class="search_item_description"><%topentry_description></p>
+            <div class="search_item_sup">
+              <a class="search_item_category" href="<%topentry_category_link>"><%topentry_category></a>
+              <span class="search_item_day"><%topentry_year>/<%topentry_month>/<%topentry_day></span>
+            </div>
+          </li>
+          HTML;
+          $f['titlelist_item']=<<<'HTML'
+          <li class="titlelist_item">
+            <a class="titlelist_item_title" href="<%topentry_link>"><%topentry_title></a>
+            <p class="titlelist_item_description"><%topentry_description></p>
+            <div class="titlelist_item_sup">
+              <a class="titlelist_item_category" href="<%topentry_category_link>"><%topentry_category></a>
+              <span class="titlelist_item_day"><%topentry_year>/<%topentry_month>/<%topentry_day></span>
+            </div>
+          </li>
+          HTML;
+          $old=<<<'SOURCE'
+          $content=($heading!==''?'<h2 class="titlelist_area_title">'.e($heading).'</h2>':'').'<ul class="blog_content_list">';foreach(array_slice($listing,$page*$limit,$limit) as $a)$content.=fill($f['item'],$v+rowvals($a,$c));$content.='</ul>';
+          SOURCE;
+          $new=<<<'SOURCE'
+          if(isset($_GET['all'])){$content='<div class="titlelist_area cf"><h2 class="titlelist_area_title">記事一覧</h2><ul class="titlelist_list">';$item='titlelist_item';$end='</ul></div>';}elseif(isset($_GET['q'])){$content='<div class="search_area cf"><h2 class="search_area_title">'.e($heading).'</h2><ul class="search_list">';$item='search_item';$end='</ul></div>';}else{$content=($heading!==''?'<h2 class="titlelist_area_title">'.e($heading).'</h2>':'').'<ul class="blog_content_list">';$item='item';$end='</ul>';}foreach(array_slice($listing,$page*$limit,$limit) as $a)$content.=fill($f[$item],$v+rowvals($a,$c));$content.=$end;
+          SOURCE;
+          if(substr_count($i,$old)!==1)throw new RuntimeException('Expected listing renderer not found');
+          $i=str_replace($old,$new,$i);
+          $backup=$data.'/layout-backup-'.gmdate('YmdHis').'-'.bin2hex(random_bytes(4));
+          umask(0077);if(!mkdir($backup,0700))throw new RuntimeException('Cannot create backup');
+          if(!copy($fpath,$backup.'/fragments.json')||!copy($ipath,$backup.'/index.php'))throw new RuntimeException('Cannot back up original files');
+          $fnew=tempnam($data,'layout-');$inew=tempnam($root,'.layout-');
+          try {
+              if(file_put_contents($fnew,json_encode($f,JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT|JSON_THROW_ON_ERROR))===false||file_put_contents($inew,$i)===false)throw new RuntimeException('Cannot write staged files');
+              $out=[];$code=1;exec(escapeshellarg(PHP_BINARY).' -l '.escapeshellarg($inew).' 2>&1',$out,$code);if($code!==0)throw new RuntimeException('PHP lint failed');
+              chmod($fnew,0600);chmod($inew,0644);
+              if(!rename($fnew,$fpath))throw new RuntimeException('Cannot install fragments');
+              if(!rename($inew,$ipath)){copy($backup.'/fragments.json',$fpath);throw new RuntimeException('Cannot install index; fragments restored');}
+              echo "Layout patch applied; original styles and article data unchanged.\n";
+          }finally{if(is_file($fnew))unlink($fnew);if(is_file($inew))unlink($inew);}
+          PHP_PATCH
+          php -l /tmp/hope-layout-patch.php
+      - name: Back up and repair only the HOPE preview layout
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          test -n "$SSH_KEY" && test -n "$SAKURA_HOST" && test -n "$SAKURA_USER"
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          test -s ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          P=/home/rakudadou/www/hope-blog
+          D=/home/rakudadou/hope-blog-private/data
+          test -d "$P" && test ! -L "$P" && test -d "$D" && test ! -L "$D"
+          test ! -e "$D/layout-patch.php" && test ! -L "$D/layout-patch.php"
+          php -r 'if(hash_file("sha256",$argv[1])!=="0379f1d2c7406bad2c7b4724063930e953a953bcf73710115bda0362d103a9dd")exit(1);' "$P/assets/style.css"
+          REMOTE
+          scp -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes /tmp/hope-layout-patch.php "$SAKURA_USER@$SAKURA_HOST:/home/rakudadou/hope-blog-private/data/layout-patch.php"
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          P=/home/rakudadou/www/hope-blog
+          D=/home/rakudadou/hope-blog-private/data
+          trap 'rm -f "$D/layout-patch.php"' EXIT
+          php -l "$D/layout-patch.php"
+          php "$D/layout-patch.php" "$P" "$D"
+          php -l "$P/index.php"
+          php -r 'if(hash_file("sha256",$argv[1])!=="0379f1d2c7406bad2c7b4724063930e953a953bcf73710115bda0362d103a9dd")exit(1);' "$P/assets/style.css"
+          REMOTE
+      - name: Verify rendered page structure over HTTPS
+        run: |
+          python3 - <<'PY'
+          from urllib.request import urlopen
+          from urllib.error import HTTPError
+          from html.parser import HTMLParser
+          from hashlib import sha256
+          class Audit(HTMLParser):
+              def __init__(self):
+                  super().__init__(); self.classes={}; self.head=False; self.head_text=[]; self.inside=0; self.stylesheet=None
+              def handle_starttag(self,tag,attrs):
+                  a=dict(attrs)
+                  if tag=='head': self.head=True
+                  if self.head and tag in ('style','title','script'): self.inside+=1
+                  if self.head and tag=='link' and a.get('rel')=='stylesheet': self.stylesheet=a.get('href')
+                  for c in a.get('class','').split(): self.classes[c]=self.classes.get(c,0)+1
+              def handle_endtag(self,tag):
+                  if tag=='head': self.head=False
+                  if self.head and tag in ('style','title','script'): self.inside-=1
+              def handle_data(self,data):
+                  if self.head and self.inside==0 and data.strip(): self.head_text.append(data.strip())
+          base='https://rakudadou.sakura.ne.jp/hope-blog/'
+          for path,cls,expected in [('', 'blog_content_item',9),('?all','titlelist_item',115),('?q=HOPE','search_item',5),('blog-entry-120.html','blog_entry',1)]:
+              with urlopen(base+path,timeout=25) as res:
+                  assert res.status==200 and 'noindex' in res.headers.get('X-Robots-Tag','')
+                  p=Audit();p.feed(res.read().decode());assert not p.head_text;assert p.classes.get(cls)==expected,(path,cls,p.classes.get(cls));assert p.stylesheet=='/hope-blog/assets/style.css',p.stylesheet
+              print(path or 'top','OK',expected)
+          with urlopen(base+'assets/style.css',timeout=20) as res:
+              assert sha256(res.read()).hexdigest()=='0379f1d2c7406bad2c7b4724063930e953a953bcf73710115bda0362d103a9dd'
+          for path,expected in [('blog-entry-74.html',404),('blog-entry-79.html',403)]:
+              try: urlopen(base+path,timeout=20); raise AssertionError('Unexpected access')
+              except HTTPError as e: assert e.code==expected
+          print('Original CSS and nonpublic access verified')
+          PY
