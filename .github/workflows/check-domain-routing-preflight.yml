@@ -1,0 +1,58 @@
+name: Check domain routing prerequisites without changes
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/check-domain-routing-preflight.yml'
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Inspect only relevant public routing files
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          cd /home/rakudadou/www
+          for p in .htaccess index.htm index.html index.php robots.txt ads.txt hope-mobile/.htaccess hope-mobile/index.html hope-mobile/sitemap.xml hope-mobile/robots.txt; do
+            if test -f "$p"; then
+              printf 'FOUND %s ' "$p"; sha256 -q "$p"
+              case "$p" in .htaccess|robots.txt|hope-mobile/.htaccess|hope-mobile/sitemap.xml|hope-mobile/robots.txt) cat "$p"; printf '\n';; esac
+            else printf 'ABSENT %s\n' "$p"; fi
+          done
+          REMOTE
+      - name: Check strict TLS and baseline response headers
+        run: |
+          python3 - <<'PY'
+          from urllib.request import urlopen, Request
+          from concurrent.futures import ThreadPoolExecutor
+          from html.parser import HTMLParser
+          import hashlib
+          urls=['https://www.rakudadou.jp/','https://rakudadou.jp/','http://www.rakudadou.jp/','http://rakudadou.jp/','https://www.rakudadou.jp/hope-mobile/','https://rakudadou.jp/hope-mobile/','https://rakudadou.sakura.ne.jp/hope-mobile/','https://rakudadou.sakura.ne.jp/hope-blog/','https://rakudadou.sakura.ne.jp/kurashi/','https://rakudadou.sakura.ne.jp/smart-diet/equineris/index.html']
+          class P(HTMLParser):
+              def __init__(self):super().__init__();self.seo=[]
+              def handle_starttag(self,t,attrs):
+                  a=dict(attrs)
+                  if t=='link' and a.get('rel') in ('canonical','alternate'):self.seo.append(a)
+                  if t=='meta' and a.get('name','').lower() in ('robots','viewport'):self.seo.append(a)
+          def check(u):
+              try:
+                  with urlopen(Request(u,headers={'User-Agent':'Mozilla/5.0'}),timeout=15) as r:
+                      b=r.read()
+                      q=P();q.feed(b.decode('cp932' if b'charset=Shift_JIS' in b else 'utf-8','replace'))
+                      print('BASELINE',u,r.status,r.geturl(),hashlib.sha256(b).hexdigest(),repr(q.seo),'VARY',r.headers.get('Vary'),'SERVER',r.headers.get('Server'))
+              except Exception as e:print('ERROR',u,str(e))
+          with ThreadPoolExecutor(max_workers=6) as ex:list(ex.map(check,urls))
+          PY
