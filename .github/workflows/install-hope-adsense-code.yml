@@ -1,0 +1,109 @@
+name: Install supplied AdSense code on HOPE pages only
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/install-hope-adsense-code.yml'
+permissions:
+  contents: read
+concurrency:
+  group: rakudadou-desktop-content
+  cancel-in-progress: false
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Insert supplied script once in each verified HOPE page head
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          T=$(mktemp -d /home/rakudadou/hope-adsense-stage.XXXXXXXX)
+          trap 'rm -rf "$T"' EXIT
+          cat > "$T/install.php" <<'PHP'
+          <?php
+          $root='/home/rakudadou/www';
+          $pages=['index.htm','kaatsutoha.htm','kaatsukouka.htm','taiken.htm','ryoukin.htm','koutsu.htm','shitsumon.htm','nyuukainagare.htm','pro.html','hope-site-contact.html','hope-site-privacy.html','hope-mobile/index.html','hope-mobile/体験トレーニング/index.html','hope-mobile/加圧トレーニングの効果/index.html','hope-mobile/パーソナルトレーニング料金/index.html','hope-mobile/入会案内/index.html','hope-mobile/よくある質問/index.html','hope-mobile/トレーナー紹介/index.html'];
+          $code='<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9698828723468598" crossorigin="anonymous"></script>';
+          $old=[];$new=[];
+          foreach($pages as $p){
+              $f=$root.'/'.$p;
+              if(!is_file($f)||is_link($f))throw new RuntimeException('Unexpected path '.$p);
+              $s=file_get_contents($f);
+              if(preg_match_all('~</head\s*>~i',$s,$m,PREG_OFFSET_CAPTURE)!==1)throw new RuntimeException('Unexpected head '.$p);
+              if(stripos($s,'adsbygoogle.js')!==false||stripos($s,'google-adsense-account')!==false)throw new RuntimeException('Existing AdSense code; not duplicated '.$p);
+              $pos=$m[0][0][1];
+              $insertion=$code."\n";
+              $n=substr($s,0,$pos).$insertion.substr($s,$pos);
+              if(substr($n,0,$pos).substr($n,$pos+strlen($insertion))!==$s)throw new RuntimeException('Unrelated byte change');
+              if(substr_count($n,$code)!==1)throw new RuntimeException('Duplicate code');
+              $old[$p]=$s;$new[$p]=$n;
+          }
+          $backup=tempnam('/home/rakudadou','hope-adsense-backup.');
+          if(!$backup||!unlink($backup)||!mkdir($backup,0700))throw new RuntimeException('Backup failed');
+          $tmp=[];$done=[];
+          try{
+              foreach($new as $p=>$n){
+                  $f=$root.'/'.$p;
+                  if(file_get_contents($f)!==$old[$p])throw new RuntimeException('Concurrent change '.$p);
+                  $b=$backup.'/'.$p;
+                  if(!is_dir(dirname($b))&&!mkdir(dirname($b),0700,true))throw new RuntimeException('Backup directory failed');
+                  if(file_put_contents($b,$old[$p])!==strlen($old[$p]))throw new RuntimeException('Backup write failed');
+                  $t=tempnam(dirname($f),'hope-adsense-stage-');$tmp[$p]=$t;
+                  if(!$t||file_put_contents($t,$n)!==strlen($n)||!chmod($t,0644))throw new RuntimeException('Stage failed');
+              }
+              foreach($new as $p=>$n){
+                  $f=$root.'/'.$p;
+                  if(file_get_contents($f)!==$old[$p]||!rename($tmp[$p],$f))throw new RuntimeException('Publish failed '.$p);
+                  $done[]=$p;
+              }
+              foreach($new as $p=>$n)if(file_get_contents($root.'/'.$p)!==$n)throw new RuntimeException('Readback failed '.$p);
+          }catch(Throwable $e){foreach($done as $p){copy($backup.'/'.$p,$root.'/'.$p);chmod($root.'/'.$p,0644);}throw $e;}
+          finally{foreach($tmp as $t)if($t&&file_exists($t))unlink($t);}
+          echo 'PASS '.count($pages).' verified pages; supplied script inserted once in head; all other bytes preserved; private backup.',PHP_EOL;
+          PHP
+          php -l "$T/install.php"
+          php -d display_errors=1 -d log_errors=0 "$T/install.php"
+          REMOTE
+      - name: Check all published pages and AdSense crawler routing
+        run: |
+          python3 - <<'PY'
+          from urllib.request import urlopen,Request
+          from urllib.parse import quote
+          from html.parser import HTMLParser
+          from concurrent.futures import ThreadPoolExecutor
+          base='https://www.rakudadou.jp/'
+          src='https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9698828723468598'
+          pages=['','kaatsutoha.htm','kaatsukouka.htm','taiken.htm','ryoukin.htm','koutsu.htm','shitsumon.htm','nyuukainagare.htm','pro.html','hope-site-contact.html','hope-site-privacy.html','hope-mobile/']+['hope-mobile/'+quote(x) +'/' for x in ['体験トレーニング','加圧トレーニングの効果','パーソナルトレーニング料金','入会案内','よくある質問','トレーナー紹介']]
+          class P(HTMLParser):
+              def __init__(self):super().__init__();self.head=False;self.matches=[]
+              def handle_starttag(self,t,attrs):
+                  if t=='head':self.head=True
+                  a=dict(attrs)
+                  if t=='script' and 'adsbygoogle.js' in a.get('src',''):self.matches.append((self.head,a))
+              def handle_endtag(self,t):
+                  if t=='head':self.head=False
+          def check(path,ua='Mozilla/5.0 (Windows NT 10.0; Win64; x64)'):
+              with urlopen(Request(base+path,headers={'User-Agent':ua}),timeout=20) as r:
+                  assert r.status==200
+                  b=r.read()
+              q=P();q.feed(b.decode('cp932' if b'charset=Shift_JIS' in b else 'utf-8','replace'))
+              assert len(q.matches)==1,(path,q.matches)
+              head,a=q.matches[0]
+              assert head and a.get('src')==src and 'async' in a and a.get('crossorigin')=='anonymous',(path,a)
+              print('PASS HTTP 200, single correct head script',path or '/',ua)
+          with ThreadPoolExecutor(max_workers=5) as ex:list(ex.map(check,pages))
+          for ua in ['Mediapartners-Google','Google-Display-Ads-Bot','Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) Mobile/15E148']:
+              check('',ua)
+          print('PASS all 18 pages and simulated crawler/mobile requests.')
+          PY
