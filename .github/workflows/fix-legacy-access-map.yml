@@ -1,0 +1,100 @@
+name: Replace obsolete HTTP Yahoo map with secure map link
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fix-legacy-access-map.yml'
+permissions:
+  contents: read
+concurrency:
+  group: rakudadou-desktop-content
+  cancel-in-progress: false
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify exact old map and replace only its script
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          T=$(mktemp -d /home/rakudadou/hope-map-stage.XXXXXXXX)
+          trap 'rm -rf "$T"' EXIT
+          cat > "$T/repair.php" <<'PHP'
+          <?php
+          $root='/home/rakudadou/www';
+          $f=$root.'/koutsu.htm';
+          if(!is_file($f)||is_link($f))throw new RuntimeException('Unexpected page path');
+          $s=file_get_contents($f);
+          $old="<script type='text/javascript' charset='UTF-8' src='http://map.yahooapis.jp/MapsService/embedmap/V2/?lat=33.95208628&amp;lon=131.25062113&amp;z=18&amp;mode=map&amp;pointer=on&amp;datum=wgs&amp;fa=ks&amp;home=on&amp;hlat=33.95208628&amp;hlon=131.25062113&amp;ei=utf-8&amp;s=1303449041e5d2c7a3af2cbbeea52f4affab21e516&amp;width=480&amp;height=360'></script>";
+          if(substr_count($s,$old)!==1)throw new RuntimeException('Expected exact map script not found; unchanged');
+          $decoded=iconv('CP932','UTF-8//IGNORE',$s);
+          if(!str_contains($decoded,'宇部市寿町')||!str_contains($decoded,'5-15')||!str_contains($decoded,'０８３６－３９―８２００'))throw new RuntimeException('Existing address or telephone mismatch');
+          $url='https://www.google.com/maps/search/?api=1&amp;query='.rawurlencode('加圧パーソナルエクササイズスタジオHOPE 山口県宇部市寿町2丁目5-15');
+          $html='<div id="hope-access-map-link" style="box-sizing:border-box;max-width:480px;width:100%;margin:0 auto;padding:22px 12px;text-align:center;border:1px solid #b8cde0;background:#f5f9fd;font:14px/1.8 sans-serif;"><p style="margin:0 0 10px;">山口県宇部市寿町2丁目5-15</p><a href="'.$url.'" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:10px 20px;border-radius:4px;background:#164e7d;color:#fff;text-decoration:none;font-weight:bold;">Googleマップで場所を確認する</a><p style="margin:10px 0 0;font-size:12px;color:#444;">地図は別のタブで開きます。</p></div>';
+          $html=iconv('UTF-8','CP932',$html);
+          if($html===false)throw new RuntimeException('Encoding failure');
+          $next=str_replace($old,$html,$s,$count);
+          if($count!==1||str_replace($html,$old,$next)!==$s)throw new RuntimeException('Unexpected non-target changes');
+          if(str_contains($next,'http://map.yahooapis.jp')||!str_contains($next,'hope-site-contact.html')||!str_contains($next,'hope-site-privacy.html'))throw new RuntimeException('Verification failed');
+          umask(0077);
+          $b=tempnam('/home/rakudadou','hope-map-backup.');
+          if(!$b||file_put_contents($b,$s)!==strlen($s))throw new RuntimeException('Backup failed');
+          $t=tempnam($root,'hope-map-stage-');
+          try{
+              if(!$t||file_put_contents($t,$next)!==strlen($next)||!chmod($t,0644))throw new RuntimeException('Stage failed');
+              if(file_get_contents($f)!==$s)throw new RuntimeException('Concurrent change');
+              if(!rename($t,$f))throw new RuntimeException('Publish failed');
+              if(file_get_contents($f)!==$next){copy($b,$f);chmod($f,0644);throw new RuntimeException('Verification failed');}
+          }finally{if($t&&file_exists($t))unlink($t);}
+          echo 'PASS exactly one old map script replaced with secure Maps URL link; all other bytes preserved; backup saved outside document root.',PHP_EOL;
+          PHP
+          php -l "$T/repair.php"
+          php "$T/repair.php"
+          REMOTE
+      - name: Verify HTTPS access page, map address and all desktop pages
+        run: |
+          python3 - <<'PY'
+          from urllib.request import urlopen,Request
+          from urllib.parse import urlsplit,parse_qs
+          from html.parser import HTMLParser
+          from concurrent.futures import ThreadPoolExecutor
+          class P(HTMLParser):
+              def __init__(self):super().__init__();self.maps=[];self.insecure=[]
+              def handle_starttag(self,t,attrs):
+                  a=dict(attrs)
+                  if t=='a' and a.get('href','').startswith('https://www.google.com/maps/search/'):self.maps.append(a)
+                  if t in ('script','iframe','img','link','object','embed') and a.get('src',a.get('href',a.get('data',''))).startswith('http://'):self.insecure.append(a)
+          base='https://www.rakudadou.jp/'
+          pages=['index.htm','kaatsutoha.htm','kaatsukouka.htm','taiken.htm','ryoukin.htm','koutsu.htm','shitsumon.htm','nyuukainagare.htm','pro.html','hope-site-contact.html','hope-site-privacy.html']
+          def check(p):
+              with urlopen(base+p,timeout=15) as r:
+                  assert r.status==200
+                  b=r.read()
+              assert b'hope-site-contact.html' in b and b'hope-site-privacy.html' in b
+              q=P();q.feed(b.decode('utf-8' if p in pages[-2:] else 'cp932','replace'))
+              assert not q.insecure,(p,q.insecure)
+              if p=='koutsu.htm':
+                  assert b'map.yahooapis.jp' not in b and len(q.maps)==1
+                  a=q.maps[0];v=parse_qs(urlsplit(a['href']).query)
+                  assert v['api']==['1'] and v['query']==['加圧パーソナルエクササイズスタジオHOPE 山口県宇部市寿町2丁目5-15']
+                  assert a['target']=='_blank' and 'noopener' in a['rel']
+                  print('PASS Google Maps official URL format and exact existing address',a['href'])
+                  try:
+                      with urlopen(Request(a['href'],headers={'User-Agent':'Mozilla/5.0'}),timeout=15) as r:
+                          print('MAP_DESTINATION_HTTP',r.status,'FINAL_HOST',urlsplit(r.geturl()).hostname)
+                  except Exception as e:
+                      print('MAP_DESTINATION_UNVERIFIED',type(e).__name__,str(e)[:160])
+              print('PASS HTTPS 200; no direct insecure resources',p)
+          with ThreadPoolExecutor(max_workers=5) as ex:list(ex.map(check,pages))
+          PY
