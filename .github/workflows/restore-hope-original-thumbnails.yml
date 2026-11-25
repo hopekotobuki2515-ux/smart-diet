@@ -1,0 +1,184 @@
+name: Restore exact original HOPE thumbnail references and list summaries
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/restore-hope-original-thumbnails.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: hope-blog-layout-repair
+  cancel-in-progress: false
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Connect with existing Sakura SSH credentials and get public IDs only
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'php -r '\''$a=json_decode(file_get_contents("/home/rakudadou/hope-blog-private/data/articles.json"),true,512,JSON_THROW_ON_ERROR); $ids=[];foreach($a as $x)if($x["status"]==="public")$ids[]=$x["id"];if(count($ids)!==115)exit(1);echo json_encode($ids);'\''' > /tmp/hope-public-ids.json
+      - name: Retrieve original thumbnail metadata, not image backups
+        run: |
+          set -eu
+          mkdir -p /tmp/hope-restore
+          cd /tmp/hope-restore
+          npm install --no-audit --no-fund --silent playwright
+          cat > collect.cjs <<'JS_SOURCE'
+          const { chromium } = require('playwright');
+          const fs=require('fs');
+          const ids=new Set(JSON.parse(fs.readFileSync('/tmp/hope-public-ids.json','utf8')));
+          const orig='https://hope-fitness.jp/';
+          const norm=s=>(s||'').trim().replace(/\s+/gu,' ');
+          (async()=>{
+           const browser=await chromium.launch({channel:'chrome',headless:true,args:['--no-sandbox']});
+           const ctx=await browser.newContext({viewport:{width:1366,height:900},locale:'ja-JP'});
+           await ctx.route('**/*',r=>['image','font','media'].includes(r.request().resourceType())?r.abort():r.continue());
+           const get=async(route,selector)=>{
+            const page=await ctx.newPage();
+            try{
+             const response=await page.goto(orig+route,{waitUntil:'domcontentloaded',timeout:35000});
+             if(response?.status()!==200)throw Error('Source HTTP '+response?.status()+' '+route);
+             await page.waitForSelector(selector,{state:'attached',timeout:10000});
+             return await page.$$eval(selector,els=>els.map(e=>{
+              const a=e.querySelector('.blog_content_title,.titlelist_item_title');
+              const m=a?.href.match(/\/blog-entry-(\d+)\.html(?:[?#]|$)/);
+              const raw=e.querySelector('.blog_content_tmb')?.style.backgroundImage||'';
+              const u=raw.match(/^url\(["']?(.*?)["']?\)$/);
+              return {id:m?Number(m[1]):null,title:a?.textContent||'',description:e.querySelector('.blog_content_desc,.titlelist_item_description')?.textContent||'',image:u?u[1]:''};
+             }));
+            }finally{await page.close();}
+           };
+           try{
+            const list=await get('?all','.titlelist_item');
+            const publicList=list.filter(x=>ids.has(x.id));
+            if(publicList.length!==ids.size||new Set(publicList.map(x=>x.id)).size!==ids.size)throw Error('Source all-list does not match public article IDs');
+            const pages=Math.ceil(list.length/9);
+            const map=new Map();
+            for(let p=0;p<pages;p+=3){
+             const batch=await Promise.all(Array.from({length:Math.min(3,pages-p)},(_,k)=>get(p+k===0?'':'page-'+(p+k)+'.html','.blog_content_item')));
+             for(const rows of batch)for(const r of rows){
+              if(!ids.has(r.id))continue;
+              if(map.has(r.id))throw Error('Duplicate ID '+r.id);
+              if(r.image&&!/^https?:\/\/[^\s"'()<>\x00-\x1f]+$/u.test(r.image))throw Error('Unexpected image URL for public ID '+r.id);
+              map.set(r.id,{id:r.id,title:norm(r.title),image:r.image,description:norm(r.description)});
+             }
+            }
+            if(map.size!==ids.size)throw Error('Thumbnail coverage incomplete: '+map.size+' / '+ids.size);
+            for(const r of publicList){
+             const e=map.get(r.id);
+             if(e.title!==norm(r.title))throw Error('Source title mismatch for '+r.id);
+             e.titlelist_description=norm(r.description);
+            }
+            fs.writeFileSync('/tmp/hope-original-list-metadata.json',JSON.stringify([...map.values()]));
+            console.log('Collected '+map.size+' public article records; source thumbnail URLs present: '+[...map.values()].filter(x=>x.image).length+'. No restricted or draft records collected.');
+           }finally{await browser.close();}
+          })().catch(e=>{console.error(e.message);process.exit(1)});
+          JS_SOURCE
+          node collect.cjs
+      - name: Match IDs and titles, back up data, restore original metadata only
+        env:
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          umask 077
+          cat > /tmp/restore-hope.php <<'PHP_SOURCE'
+          <?php
+          declare(strict_types=1);
+          $d='/home/rakudadou/hope-blog-private/data';$p='/home/rakudadou/www/hope-blog';
+          $metadata=json_decode(file_get_contents($argv[1]),true,512,JSON_THROW_ON_ERROR);
+          if(count($metadata)!==115)throw new RuntimeException('Unexpected public metadata count');
+          foreach([$d,$p,$d.'/articles.json',$p.'/common.php',$p.'/index.php',$d.'/fragments.json'] as $file)if(is_link($file))throw new RuntimeException('Unexpected symbolic link');
+          $lock=fopen($d.'/write.lock','c');if(!$lock||!flock($lock,LOCK_EX))throw new RuntimeException('Cannot acquire lock');
+          try{
+           $a=json_decode(file_get_contents($d.'/articles.json'),true,512,JSON_THROW_ON_ERROR);
+           $map=[];foreach($metadata as $r){if(isset($map[$r['id']]))throw new RuntimeException('Duplicate metadata ID');$map[$r['id']]=$r;}
+           $normal=fn($s)=>trim(preg_replace('/\s+/u',' ',$s));
+           $before=$a;$count=0;$missing=0;$changed=0;
+           foreach($a as &$r){
+            if($r['status']!=='public')continue;
+            $m=$map[$r['id']]??null;
+            if(!$m||$normal($r['title'])!==$normal($m['title']))throw new RuntimeException('Original title/ID mismatch for public ID '.$r['id']);
+            if($r['image']===''&&$m['image']!=='')$missing++;
+            if($r['image']!==$m['image'])$changed++;
+            $r['image']=$m['image'];$r['description']=$m['description'];$r['titlelist_description']=$m['titlelist_description'];$count++;
+           }unset($r);
+           if($count!==115||count($a)!==117)throw new RuntimeException('Unexpected record count');
+           foreach($a as $k=>$r){$old=$before[$k];if($r['status']!=='public'){if($old!==$r)throw new RuntimeException('Nonpublic record changed');continue;}foreach(['image','description','titlelist_description'] as $key){unset($r[$key],$old[$key]);}if($old!==$r)throw new RuntimeException('Unexpected article change');}
+           $common=file_get_contents($p.'/common.php');$index=file_get_contents($p.'/index.php');$fr=json_decode(file_get_contents($d.'/fragments.json'),true,512,JSON_THROW_ON_ERROR);
+           $old="'description'=>e(\$a['description']),'image_url'=>";
+           $new="'description'=>e(\$a['description']),'titlelist_description'=>e(\$a['titlelist_description']??\$a['description']),'image_url'=>";
+           if(substr_count($common,$old)!==1||substr_count($fr['titlelist_item'],'<%topentry_description>')!==1)throw new RuntimeException('Unexpected template revision');
+           $common=str_replace($old,$new,$common);
+           $fr['titlelist_item']=str_replace('<%topentry_description>','<%topentry_titlelist_description>',$fr['titlelist_item']);
+           $old='($heading!==\'\'?\'<h2 class="titlelist_area_title">\'.e($heading).\'</h2>\':\'\').\'<ul class="blog_content_list">\';';
+           if(substr_count($index,$old)!==1)throw new RuntimeException('Unexpected category renderer');
+           $index=str_replace($old,'\'<ul class="blog_content_list">\';',$index);
+           $files=[$d.'/articles.json'=>json_encode($a,JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT|JSON_THROW_ON_ERROR),$d.'/fragments.json'=>json_encode($fr,JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT|JSON_THROW_ON_ERROR),$p.'/common.php'=>$common,$p.'/index.php'=>$index];
+           umask(0077);$backup=$d.'/thumbnail-backup-'.gmdate('YmdHis').'-'.bin2hex(random_bytes(4));
+           if(!mkdir($backup,0700))throw new RuntimeException('Backup failed');
+           $tmp=[];$installed=[];
+           try{
+            foreach($files as $file=>$content){
+             if(!copy($file,$backup.'/'.basename($file)))throw new RuntimeException('Backup failed');
+             $t=tempnam($d,'restore-');if($t===false)throw new RuntimeException('Staging failed');$tmp[$file]=$t;
+             if(file_put_contents($t,$content)===false)throw new RuntimeException('Staging failed');
+             if(str_ends_with($file,'.php')){$out=[];$code=1;exec(escapeshellarg(PHP_BINARY).' -l '.escapeshellarg($t).' 2>&1',$out,$code);if($code!==0)throw new RuntimeException('PHP lint failed');chmod($t,0644);}else chmod($t,0600);
+            }
+            foreach($tmp as $file=>$t){if(!rename($t,$file))throw new RuntimeException('Install failed');$installed[]=$file;}
+           }catch(Throwable $e){foreach($installed as $file)copy($backup.'/'.basename($file),$file);throw $e;}finally{foreach($tmp as $t)if(is_file($t))unlink($t);}
+           echo "Matched 115 public IDs and titles. Restored $missing missing thumbnails; $changed original thumbnail references differ in total. All 117 article bodies, statuses and dates unchanged.\n";
+          }finally{flock($lock,LOCK_UN);fclose($lock);}
+          PHP_SOURCE
+          php -l /tmp/restore-hope.php
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'test -d /home/rakudadou/hope-blog-private/data && test ! -e /home/rakudadou/hope-blog-private/data/restore-metadata.json && test ! -e /home/rakudadou/hope-blog-private/data/restore-thumbnails.php'
+          scp -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes /tmp/restore-hope.php "$SAKURA_USER@$SAKURA_HOST:/home/rakudadou/hope-blog-private/data/restore-thumbnails.php"
+          scp -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes /tmp/hope-original-list-metadata.json "$SAKURA_USER@$SAKURA_HOST:/home/rakudadou/hope-blog-private/data/restore-metadata.json"
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          D=/home/rakudadou/hope-blog-private/data
+          trap 'rm -f "$D/restore-thumbnails.php" "$D/restore-metadata.json"' EXIT
+          chmod 600 "$D/restore-thumbnails.php" "$D/restore-metadata.json"
+          php "$D/restore-thumbnails.php" "$D/restore-metadata.json"
+          REMOTE
+      - name: Verify source thumbnail references and responsive output
+        run: |
+          set -eu
+          cd /tmp/hope-restore
+          cat > verify.cjs <<'JS_SOURCE'
+          const {chromium}=require('playwright');
+          const fs=require('fs');
+          const expected=new Map(JSON.parse(fs.readFileSync('/tmp/hope-original-list-metadata.json','utf8')).map(x=>[x.id,x]));
+          (async()=>{
+           const b=await chromium.launch({channel:'chrome',headless:true,args:['--no-sandbox']});
+           try{
+            for(const width of [1366,390]){
+             const c=await b.newContext({viewport:{width,height:900},locale:'ja-JP'});
+             await c.route('**/*',r=>['image','font','media'].includes(r.request().resourceType())?r.abort():r.continue());
+             for(const route of ['', 'page-1.html','blog-category-23.html','?all']){
+              const page=await c.newPage();
+              const r=await page.goto('https://rakudadou.sakura.ne.jp/hope-blog/'+route,{waitUntil:'domcontentloaded',timeout:30000});
+              if(r.status()!==200||!r.headers()['x-robots-tag']?.includes('noindex'))throw Error('Preview HTTP or noindex failure');
+              const result=await page.evaluate(()=>({overflow:document.documentElement.scrollWidth-innerWidth,cards:[...document.querySelectorAll('.blog_content_item')].map(e=>({id:Number(e.querySelector('.blog_content_title')?.href.match(/blog-entry-(\d+)\.html/)?.[1]),img:e.querySelector('.blog_content_tmb')?.style.backgroundImage?.match(/^url\(["']?(.*?)["']?\)$/)?.[1]||''})),list:[...document.querySelectorAll('.titlelist_item')].map(e=>({id:Number(e.querySelector('.titlelist_item_title')?.href.match(/blog-entry-(\d+)\.html/)?.[1]),desc:e.querySelector('.titlelist_item_description')?.textContent.trim().replace(/\s+/gu,' ')}))}));
+              if(result.overflow>0)throw Error('Horizontal overflow '+width+' '+route);
+              for(const x of result.cards)if(expected.get(x.id)?.image!==x.img)throw Error('Thumbnail mismatch '+x.id);
+              if(route==='?all'&&(result.list.length!==115||result.list.some(x=>expected.get(x.id)?.titlelist_description!==x.desc)))throw Error('All-list description mismatch');
+              console.log(width+' '+(route||'top')+' verified: '+result.cards.length+' cards, '+result.list.length+' list records');
+              await page.close();
+             }await c.close();
+            }
+           }finally{await b.close();}
+          })().catch(e=>{console.error(e.message);process.exit(1)});
+          JS_SOURCE
+          node verify.cjs
