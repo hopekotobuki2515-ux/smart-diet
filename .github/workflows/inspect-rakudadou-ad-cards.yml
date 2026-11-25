@@ -1,0 +1,29 @@
+name: Inspect legacy homepage blog and supplement card markup
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/inspect-rakudadou-ad-cards.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Inspect actual public homepage HTML
+        run: |
+          python3 - <<'PY'
+          from urllib.request import urlopen
+          import re
+          u='http://www.rakudadou.jp/index.htm'
+          with urlopen(u,timeout=20) as r: s=r.read().decode('cp932','replace')
+          for m in re.finditer(r'<a\b[^>]*>[\s\S]*?</a\s*>',s,re.I):
+              a=m.group(0)
+              print('ANCHOR',a[:1100].replace('\r','').replace('\n',' '))
+              if re.search(r'ブログ|サプリ|supplement|blog|fc2|amazon|a8\.net|rakuten',a,re.I):
+                  print('CONTEXT',s[max(0,m.start()-1200):min(len(s),m.end()+1200)].replace('\r','').replace('\n',' '))
+          for m in re.finditer(r'ブログ|サプリメント|supplement|blog|amazon|a8\.net',s,re.I):
+              print('MATCH',s[max(0,m.start()-300):min(len(s),m.end()+500)].replace('\r','').replace('\n',' '))
+          PY
