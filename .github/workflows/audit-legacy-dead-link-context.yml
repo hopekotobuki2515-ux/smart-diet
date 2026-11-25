@@ -1,0 +1,24 @@
+name: Identify exact obsolete link contexts
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/audit-legacy-dead-link-context.yml'
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Inspect external links in actual pages
+        run: |
+          python3 - <<'PY'
+          from urllib.request import urlopen
+          import re
+          pages=['kaatsutoha.htm','kaatsukouka.htm','taiken.htm','ryoukin.htm','koutsu.htm','shitsumon.htm','nyuukainagare.htm','pro.html']
+          for p in pages:
+              with urlopen('https://www.rakudadou.jp/'+p,timeout=15) as r:s=r.read().decode('cp932','replace')
+              for m in re.finditer(r'<a\b[^>]*\bhref\s*=\s*["\x27]http://(?:www\.rakudadou-reserve\.com/|mimudemore\.xsrv\.jp/|ameblo\.jp/hopekotobuki/)["\x27][^>]*>[\s\S]*?</a\s*>',s,re.I):
+                  print('LINK',p,repr(m.group()[:900]))
+          PY
