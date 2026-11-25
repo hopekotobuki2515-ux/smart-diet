@@ -18,7 +18,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: hopekotobuki2515-ux/hope-homepage
-          ref: d6069b55d64798d6edbac7761d85da69713515f2
+          ref: 33a8320f89cf6a252e12fbd4961cd2e1e890f439
           persist-credentials: false
       - name: Prepare and validate exact SEO files
         run: |
@@ -61,6 +61,16 @@ jobs:
           assert len(ElementTree.parse(root/'sitemap.xml').getroot())==7
           print('Seven SEO pages: GA4, canonical and relative links validated')
           PY
+          cat > "$RUNNER_TEMP/hope-site/.htaccess.previous" <<'PREVIOUS'
+          # HOPE mobile SEO routes only
+          RewriteEngine On
+          RewriteRule ^experience\.html$ /hope-mobile/%E4%BD%93%E9%A8%93%E3%83%88%E3%83%AC%E3%83%BC%E3%83%8B%E3%83%B3%E3%82%B0/ [R=301,L,NE]
+          RewriteRule ^kaatsu\.html$ /hope-mobile/%E5%8A%A0%E5%9C%A7%E3%83%88%E3%83%AC%E3%83%BC%E3%83%8B%E3%83%B3%E3%82%B0%E3%81%AE%E5%8A%B9%E6%9E%9C/ [R=301,L,NE]
+          RewriteRule ^pricing\.html$ /hope-mobile/%E3%83%91%E3%83%BC%E3%82%BD%E3%83%8A%E3%83%AB%E3%83%88%E3%83%AC%E3%83%BC%E3%83%8B%E3%83%B3%E3%82%B0%E6%96%99%E9%87%91/ [R=301,L,NE]
+          RewriteRule ^membership\.html$ /hope-mobile/%E5%85%A5%E4%BC%9A%E6%A1%88%E5%86%85/ [R=301,L,NE]
+          RewriteRule ^faq\.html$ /hope-mobile/%E3%82%88%E3%81%8F%E3%81%82%E3%82%8B%E8%B3%AA%E5%95%8F/ [R=301,L,NE]
+          RewriteRule ^profile\.html$ /hope-mobile/%E3%83%88%E3%83%AC%E3%83%BC%E3%83%8A%E3%83%BC%E7%B4%B9%E4%BB%8B/ [R=301,L,NE]
+          PREVIOUS
           tar -czf "$RUNNER_TEMP/hope-site.tar.gz" -C "$RUNNER_TEMP/hope-site" .
       - name: Deploy only HOPE with guarded backup
         env:
@@ -78,7 +88,7 @@ jobs:
           ssh-keyscan -T 10 -H "$SAKURA_HOST" >> ~/.ssh/known_hosts
           test -s ~/.ssh/known_hosts
           remote=$(cat <<'REMOTE'
-          sh -c 'set -eu; dest=/home/rakudadou/www/hope-mobile; test -d "$dest"; test ! -L "$dest"; stage=$(mktemp -d /home/rakudadou/hope-seo-stage.XXXXXXXX); trap "rm -rf \"$stage\"" EXIT; tar -xzf - -C "$stage"; test -s "$stage/index.html"; test -s "$stage/.htaccess"; for f in "$stage"/*.html; do n=$(basename "$f"); test -f "$dest/$n"; test ! -L "$dest/$n"; grep -Fq G-ZCETMLPKX3 "$f"; done; for d in "$stage"/*/; do n=$(basename "$d"); test -s "$d/index.html"; if test -e "$dest/$n" || test -L "$dest/$n"; then test -d "$dest/$n"; test ! -L "$dest/$n"; test -f "$dest/$n/index.html"; test ! -L "$dest/$n/index.html"; cmp -s "$d/index.html" "$dest/$n/index.html" || { echo "Existing alias differs; stopping"; exit 1; }; fi; done; for n in .htaccess sitemap.xml; do if test -e "$dest/$n" || test -L "$dest/$n"; then test -f "$dest/$n"; test ! -L "$dest/$n"; cmp -s "$stage/$n" "$dest/$n" || { echo "Existing $n differs; stopping before write"; exit 1; }; fi; done; backup=$(mktemp -d /home/rakudadou/hope-seo-backup.XXXXXXXX); chmod 700 "$backup"; for f in "$stage"/*.html; do n=$(basename "$f"); cp -p "$dest/$n" "$backup/$n"; done; for n in .htaccess sitemap.xml; do if test -f "$dest/$n"; then cp -p "$dest/$n" "$backup/$n"; fi; done; for d in "$stage"/*/; do n=$(basename "$d"); if test ! -d "$dest/$n"; then mkdir -m 755 "$dest/$n"; cp -p "$d/index.html" "$dest/$n/index.html"; chmod a+r "$dest/$n/index.html"; fi; done; for f in "$stage"/*.html; do n=$(basename "$f"); cp -p "$f" "$dest/$n.seo-new"; chmod a+r "$dest/$n.seo-new"; mv -f "$dest/$n.seo-new" "$dest/$n"; done; cp -p "$stage/sitemap.xml" "$dest/sitemap.xml.seo-new"; chmod a+r "$dest/sitemap.xml.seo-new"; mv -f "$dest/sitemap.xml.seo-new" "$dest/sitemap.xml"; cp -p "$stage/.htaccess" "$dest/.htaccess.seo-new"; chmod a+r "$dest/.htaccess.seo-new"; mv -f "$dest/.htaccess.seo-new" "$dest/.htaccess"; echo "HOPE SEO files deployed; backup stored outside public root"'
+          sh -c 'set -eu; dest=/home/rakudadou/www/hope-mobile; test -d "$dest"; test ! -L "$dest"; stage=$(mktemp -d /home/rakudadou/hope-seo-stage.XXXXXXXX); trap "rm -rf \"$stage\"" EXIT; tar -xzf - -C "$stage"; test -s "$stage/index.html"; test -s "$stage/.htaccess"; for f in "$stage"/*.html; do n=$(basename "$f"); test -f "$dest/$n"; test ! -L "$dest/$n"; grep -Fq G-ZCETMLPKX3 "$f"; done; for d in "$stage"/*/; do n=$(basename "$d"); test -s "$d/index.html"; if test -e "$dest/$n" || test -L "$dest/$n"; then test -d "$dest/$n"; test ! -L "$dest/$n"; test -f "$dest/$n/index.html"; test ! -L "$dest/$n/index.html"; cmp -s "$d/index.html" "$dest/$n/index.html" || { echo "Existing alias differs; stopping"; exit 1; }; fi; done; for n in .htaccess sitemap.xml; do if test -e "$dest/$n" || test -L "$dest/$n"; then test -f "$dest/$n"; test ! -L "$dest/$n"; cmp -s "$stage/$n" "$dest/$n" || { test "$n" = .htaccess && cmp -s "$stage/.htaccess.previous" "$dest/$n"; } || { echo "Existing $n differs; stopping before write"; exit 1; }; fi; done; backup=$(mktemp -d /home/rakudadou/hope-seo-backup.XXXXXXXX); chmod 700 "$backup"; for f in "$stage"/*.html; do n=$(basename "$f"); cp -p "$dest/$n" "$backup/$n"; done; for n in .htaccess sitemap.xml; do if test -f "$dest/$n"; then cp -p "$dest/$n" "$backup/$n"; fi; done; for d in "$stage"/*/; do n=$(basename "$d"); if test ! -d "$dest/$n"; then mkdir -m 755 "$dest/$n"; cp -p "$d/index.html" "$dest/$n/index.html"; chmod a+r "$dest/$n/index.html"; fi; done; for f in "$stage"/*.html; do n=$(basename "$f"); cp -p "$f" "$dest/$n.seo-new"; chmod a+r "$dest/$n.seo-new"; mv -f "$dest/$n.seo-new" "$dest/$n"; done; cp -p "$stage/sitemap.xml" "$dest/sitemap.xml.seo-new"; chmod a+r "$dest/sitemap.xml.seo-new"; mv -f "$dest/sitemap.xml.seo-new" "$dest/sitemap.xml"; cp -p "$stage/.htaccess" "$dest/.htaccess.seo-new"; chmod a+r "$dest/.htaccess.seo-new"; mv -f "$dest/.htaccess.seo-new" "$dest/.htaccess"; echo "HOPE SEO files deployed; backup stored outside public root"'
           REMOTE
           )
           ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" "$remote" < "$RUNNER_TEMP/hope-site.tar.gz"
