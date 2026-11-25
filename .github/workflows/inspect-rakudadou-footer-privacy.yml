@@ -1,0 +1,37 @@
+name: Inspect legacy footer and privacy-related public markup
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/inspect-rakudadou-footer-privacy.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Inspect nine known public pages
+        run: |
+          python3 - <<'PY'
+          import urllib.request,re,concurrent.futures
+          from html.parser import HTMLParser
+          base='http://www.rakudadou.jp/'
+          pages=['index.htm','kaatsutoha.htm','kaatsukouka.htm','taiken.htm','ryoukin.htm','koutsu.htm','shitsumon.htm','nyuukainagare.htm','pro.html']
+          class P(HTMLParser):
+              def __init__(self): super().__init__();self.ext=[];self.forms=[];self.scripts=[];self.frames=[]
+              def handle_starttag(self,t,attrs):
+                  a=dict(attrs)
+                  if t in ['script','iframe','frame','object','embed']:
+                      self.ext.append((t,a.get('src',a.get('data',''))))
+                  if t=='form':self.forms.append(a.get('action',''))
+          def read(n):
+              with urllib.request.urlopen(base+n,timeout=15) as r: raw=r.read()
+              s=raw.decode('cp932','replace')
+              p=P();p.feed(s)
+              print('PAGE',n,'BODY_CLOSE',len(re.findall(r'</body\s*>',s,re.I)),'FORMS',p.forms,'EXTERNAL',p.ext,'ANALYTICS',bool(re.search(r'google-analytics|googletagmanager|gtag\(|analytics\.js|ga\.js|pagead|adsbygoogle',s,re.I)))
+              if n in ('index.htm','kaatsukouka.htm','ryoukin.htm'):
+                  print('TAIL',n,s[-4500:].replace('\n',' '))
+          with concurrent.futures.ThreadPoolExecutor(max_workers=4) as e:list(e.map(read,pages))
+          PY
