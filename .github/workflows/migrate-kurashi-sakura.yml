@@ -106,7 +106,10 @@ jobs:
           assert 'home.html' not in pages and 'products/index.html' not in pages,'Legacy routes unexpectedly linked'
           for path,s in pages.items(): save(root,path,s.encode('utf-8'))
           def asset(path):
-              data,typ=get(path);assert typ!='text/html',(path,typ);save(root,path,data);save(raw,path,data)
+              try:
+                  data,typ=get(path);assert typ!='text/html',(path,typ);save(root,path,data);save(raw,path,data);print('ASSET OK:',path)
+              except Exception as e:
+                  print('ASSET FAILED:',path,repr(e), 'referenced by:',[p for p,t in pages.items() if path in t]);raise
           with ThreadPoolExecutor(max_workers=5) as ex: list(ex.map(asset,sorted(assets)))
           for path,s in pages.items():
               for tag,key,v in parse(s).refs:
