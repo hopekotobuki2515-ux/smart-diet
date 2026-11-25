@@ -1,0 +1,53 @@
+name: Prepare HOPE blog on Sakura
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: prepare-hope-blog-sakura
+  cancel-in-progress: false
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Prepare existing SSH connection
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          test -n "$SSH_KEY" && test -n "$SAKURA_HOST" && test -n "$SAKURA_USER"
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          test -s ~/.ssh/known_hosts
+      - name: Create only isolated HOPE blog directories
+        env:
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          ROOT=/home/rakudadou
+          PUBLIC="$ROOT/www/hope-blog"
+          PRIVATE="$ROOT/hope-blog-private"
+          test -d "$ROOT/www"
+          test ! -L "$ROOT/www"
+          for d in "$PUBLIC" "$PRIVATE"; do
+            if test -L "$d"; then echo 'Refusing symbolic link'; exit 1; fi
+            if test -e "$d" && ! test -d "$d"; then echo 'Refusing existing non-directory'; exit 1; fi
+            if test -d "$d" && test -n "$(ls -A "$d")"; then echo 'Refusing existing nonempty directory'; exit 1; fi
+          done
+          umask 077
+          mkdir -p "$PRIVATE"
+          chmod 700 "$PRIVATE"
+          umask 022
+          mkdir -p "$PUBLIC"
+          test -d "$PUBLIC" && test -d "$PRIVATE"
+          printf '%s\n' 'HOPE blog folders prepared. No files, domains or existing sites changed.'
+          if command -v php >/dev/null 2>&1; then php -v | head -n 1; else echo 'PHP CLI unavailable'; fi
+          REMOTE
