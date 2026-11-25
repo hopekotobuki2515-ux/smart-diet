@@ -1,0 +1,111 @@
+name: Add visual banner to HOPE blog header only
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/hope-blog-visual-header.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: hope-blog-production-host
+  cancel-in-progress: false
+jobs:
+  visual-header:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Reuse inspected existing studio image and patch only home banner
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          D=/home/rakudadou/hope-blog-private/data
+          P=/home/rakudadou/www/hope-blog
+          SRC=/home/rakudadou/www/hope-mobile/assets/kaatsu-training-studio.jpg
+          DST="$P/assets/blog-header-training.jpg"
+          test -f "$SRC" && test ! -L "$SRC"
+          test ! -e "$DST" && test ! -L "$DST"
+          test ! -L "$D/home-page.php"
+          T=$(mktemp -d "$D/banner-stage.XXXXXXXX")
+          export T
+          trap 'rm -rf "$T"' EXIT
+          cat > "$T/changes.json" <<'JSON'
+          {"old":"<section class=\"hero\"><div class=\"wrap\"><span class=\"kicker\">加圧トレーニング・運動・食事</span><h1>加圧トレーニング専門ブログ</h1><p><?=e($c['intro'])?></p><form class=\"search\" role=\"search\" method=\"get\" action=\"<?=e(url())?>\"><input name=\"q\" type=\"search\" placeholder=\"気になるキーワードを検索\" aria-label=\"記事を検索\" required><button type=\"submit\">検索</button></form></div></section>","replacement":"<section class=\"hero\"><div class=\"wrap hero-layout\"><div class=\"hero-copy\"><span class=\"kicker\">加圧トレーニング・運動・食事</span><h1>加圧トレーニング専門ブログ</h1><p><?=e($c['intro'])?></p></div><figure class=\"hero-photo\"><img src=\"<?=e(url('assets/blog-header-training.jpg'))?>\" alt=\"加圧機器とダンベルを使った加圧トレーニング\" width=\"1536\" height=\"1024\" fetchpriority=\"high\" decoding=\"async\"></figure><form class=\"search\" role=\"search\" method=\"get\" action=\"<?=e(url())?>\"><input name=\"q\" type=\"search\" placeholder=\"気になるキーワードを検索\" aria-label=\"記事を検索\" required><button type=\"submit\">検索</button></form></div></section>","css":"/* Blog header banner only. Preserve the approved article layout. */\n.hero{background:linear-gradient(120deg,#111b27 0%,#202e3d 100%);border-bottom:4px solid var(--orange);color:#fff;padding:34px 0}\n.hero-layout{display:grid;grid-template-columns:minmax(0,1.06fr) minmax(0,1fr);grid-template-areas:\"copy photo\" \"search photo\";align-items:center;gap:20px 42px}\n.hero-copy{grid-area:copy;align-self:end;min-width:0}\n.hero .kicker{color:#ffc578;font-size:13px;letter-spacing:.08em;margin-bottom:14px}\n.hero h1{font-size:clamp(28px,3.15vw,42px);color:#fff;line-height:1.4;margin:0 0 16px}\n.hero p{color:#e4e9ef;font-size:15px;line-height:1.85;max-width:100%;margin:0}\n.hero-photo{grid-area:photo;margin:0;min-width:0;border:1px solid rgba(255,255,255,.16);border-radius:12px;overflow:hidden;background:#1b2531;box-shadow:0 12px 28px rgba(0,0,0,.2)}\n.hero-photo img{display:block;width:100%;height:auto;aspect-ratio:3/2;object-fit:contain}\n.hero .search{grid-area:search;align-self:start;margin:0;max-width:100%}\n.hero .search input{border-color:#d0d5da}\n@media(max-width:720px){.hero{padding:25px 0 24px}.hero-layout{grid-template-columns:minmax(0,1fr);grid-template-areas:\"copy\" \"photo\" \"search\";gap:18px}.hero .kicker{margin-bottom:9px}.hero h1{font-size:clamp(24px,6.5vw,32px);margin-bottom:10px}.hero p{font-size:14px;line-height:1.75}.hero-photo{border-radius:10px}.hero .search{max-width:100%}}\n"}
+          JSON
+          cat > "$T/patch.php" <<'PHP'
+          <?php
+          $d='/home/rakudadou/hope-blog-private/data';$t=getenv('T');
+          $path=$d.'/home-page.php';
+          $s=file_get_contents($path);
+          $v=json_decode(file_get_contents($t.'/changes.json'),true,512,JSON_THROW_ON_ERROR);
+          if(substr_count($s,$v['old'])!==1||substr_count($s,'</style>')!==1||!str_contains($s,'height:auto;aspect-ratio:640/426;flex:none')||!str_contains($s,'.site-header{position:sticky'))throw new RuntimeException('Home revision mismatch; nothing changed');
+          $patched=str_replace($v['old'],$v['replacement'],$s);
+          $patched=str_replace('</style>',$v['css']."</style>",$patched);
+          if(file_put_contents($t.'/home-page.php',$patched)===false)throw new RuntimeException('Staging failed');
+          $img=getimagesize('/home/rakudadou/www/hope-mobile/assets/kaatsu-training-studio.jpg');
+          if($img[0]!==1536||$img[1]!==1024||$img[2]!==IMAGETYPE_JPEG)throw new RuntimeException('Inspected image size/type mismatch');
+          PHP
+          php "$T/patch.php"
+          php -l "$T/home-page.php"
+          cp "$SRC" "$T/blog-header-training.jpg"
+          cmp "$SRC" "$T/blog-header-training.jpg"
+          B=$(mktemp -d "$D/banner-backup.XXXXXXXX")
+          cp "$D/home-page.php" "$B/home-page.php"
+          chmod 600 "$B/home-page.php" "$T/home-page.php"
+          chmod 644 "$T/blog-header-training.jpg"
+          php -r 'foreach(["articles.json","config.json","fragments.json"] as $f)echo hash_file("sha256",$argv[1]."/".$f),PHP_EOL;foreach(["index.php","common.php","admin.php",".htaccess","assets/style.css"] as $f)echo hash_file("sha256",$argv[2]."/".$f),PHP_EOL;echo hash_file("sha256",$argv[3]),PHP_EOL;' "$D" "$P" "$SRC" > "$T/before"
+          mv "$T/blog-header-training.jpg" "$DST"
+          if ! mv "$T/home-page.php" "$D/home-page.php"; then rm "$DST"; exit 1; fi
+          if ! php -l "$D/home-page.php"; then cp "$B/home-page.php" "$D/home-page.php"; rm "$DST"; exit 1; fi
+          cmp "$SRC" "$DST"
+          php -r 'foreach(["articles.json","config.json","fragments.json"] as $f)echo hash_file("sha256",$argv[1]."/".$f),PHP_EOL;foreach(["index.php","common.php","admin.php",".htaccess","assets/style.css"] as $f)echo hash_file("sha256",$argv[2]."/".$f),PHP_EOL;echo hash_file("sha256",$argv[3]),PHP_EOL;' "$D" "$P" "$SRC" > "$T/after"
+          cmp "$T/before" "$T/after"
+          echo 'PASS: home banner and one image copy only; other files and original image unchanged.'
+          REMOTE
+      - name: Verify banner and existing card layout in browser
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-noto-cjk
+          cd /tmp
+          npm install --no-audit --no-fund playwright
+          npx playwright install chromium
+          cat > /tmp/check.cjs <<'JS'
+          const {chromium}=require('playwright');
+          (async()=>{
+            const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
+            const base='https://rakudadou.sakura.ne.jp/hope-blog/';
+            try{
+              for(const width of [320,390,768,1366]){
+                const page=await browser.newPage({viewport:{width,height:1050},deviceScaleFactor:1,isMobile:width<=390,hasTouch:width<=390});
+                const response=await page.goto(base+'?bannercheck=1',{waitUntil:'domcontentloaded',timeout:30000});
+                if(response.status()!==200)throw Error('HTTP '+response.status());
+                await page.evaluate(async()=>{for(const i of document.images)i.loading='eager';await document.fonts.ready});
+                await page.waitForFunction(()=>[...document.images].every(i=>i.complete&&i.naturalWidth>0),{},{timeout:30000});
+                const d=await page.evaluate(()=>{const r=e=>{const b=e.getBoundingClientRect();return{x:b.x,y:b.y,w:b.width,h:b.height,right:b.right,bottom:b.bottom}};const img=document.querySelector('.hero-photo img');return{client:document.documentElement.clientWidth,scroll:document.documentElement.scrollWidth,img:r(img),natural:[img.naturalWidth,img.naturalHeight],title:r(document.querySelector('.hero h1')),search:r(document.querySelector('.hero .search')),nav:document.querySelectorAll('.nav a').length,cols:getComputedStyle(document.querySelector('.articles')).gridTemplateColumns.split(' ').length,cards:document.querySelectorAll('.article-card').length,thumbs:[...document.querySelectorAll('.thumb')].map(r),broken:[...document.images].filter(i=>!i.naturalWidth).length}});
+                if(d.scroll>d.client+1||d.nav!==3||d.cards!==9||d.broken||d.natural[0]!==1536||d.natural[1]!==1024||Math.abs(d.img.h-d.img.w*2/3)>2||d.img.x<0||d.img.right>d.client+1||d.thumbs.some(i=>Math.abs(i.h-i.w*426/640)>2)||(width<=520&&d.cols!==1)||(width<=720&&d.img.y<d.title.bottom)||(width>720&&d.img.x<d.title.right-1))throw Error(JSON.stringify(d));
+                console.log('PASS '+width+' '+JSON.stringify(d));
+                if(width===390||width===1366){
+                  const shot=await page.screenshot({type:'jpeg',quality:60});
+                  console.log('SHOT_BEGIN '+width);const b=shot.toString('base64');for(let i=0;i<b.length;i+=3000)console.log('SHOT_PART '+b.slice(i,i+3000));console.log('SHOT_END');
+                }
+                await page.close();
+              }
+              const p=await browser.newPage({viewport:{width:390,height:844}});
+              await p.goto(base,{waitUntil:'domcontentloaded'});
+              await p.locator('.search input').fill('加圧');await p.locator('.search button').click();await p.waitForURL(u=>u.searchParams.get('q')==='加圧');
+              for(const route of ['','?all','blog-entry-120.html','blog-category-23.html','admin.php','assets/blog-header-training.jpg']){const r=await p.request.get(base+route);if(r.status()!==200)throw Error(route+' HTTP '+r.status());}
+              console.log('PASS: search, home, article, category, admin, and image HTTP 200.');
+            }finally{await browser.close()}
+          })().catch(e=>{console.error(e);process.exit(1)});
+          JS
+          node /tmp/check.cjs
