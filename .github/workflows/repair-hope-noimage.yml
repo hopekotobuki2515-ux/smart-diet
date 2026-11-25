@@ -1,0 +1,85 @@
+name: Correct HOPE cards without thumbnails
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/repair-hope-noimage.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: hope-blog-layout-repair
+  cancel-in-progress: false
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Prepare validated patch
+        run: |
+          set -eu
+          umask 077
+          cat > /tmp/hope-noimage.php <<'PHP_SOURCE'
+          <?php
+          declare(strict_types=1);
+          $d='/home/rakudadou/hope-blog-private/data';
+          $p='/home/rakudadou/www/hope-blog';
+          $f=$d.'/fragments.json';
+          if(is_link($d)||is_link($p)||is_link($f)||is_link($p.'/index.php'))throw new RuntimeException('Unexpected symbolic link');
+          if(hash_file('sha256',$p.'/index.php')!=='255ff1dabf75d9f17bc6d306c9f0813ccc855e535428351fd2f38b5694135f2a'||hash_file('sha256',$f)!=='2f4d8c566d33ff630ff2d878be42efe52de99ccb110a4de824fcdca50a791fdc')throw new RuntimeException('Previous layout repair is not installed or files changed; no changes made');
+          if(hash_file('sha256',$p.'/assets/style.css')!=='0379f1d2c7406bad2c7b4724063930e953a953bcf73710115bda0362d103a9dd')throw new RuntimeException('Original CSS changed');
+          $j=json_decode(file_get_contents($f),true,512,JSON_THROW_ON_ERROR);
+          if(substr_count($j['head'],'<%seo>')!==1)throw new RuntimeException('Unexpected head');
+          $css=<<<'CSS'
+          <style id="hope-no-image-fix">
+          /* Correct only cards with no source thumbnail; leave existing image cards unchanged. */
+          body .blog_content .blog_content_list .blog_content_item:has(.blog_content_tmb[style*="url()"]) .blog_content_tmb_wrap{display:none!important}
+          body .blog_content .blog_content_list .blog_content_item:has(.blog_content_tmb[style*="url()"]) .blog_content_text{display:block;position:static;width:100%;flex:1 1 auto}
+          body .blog_content .blog_content_list .blog_content_item:has(.blog_content_tmb[style*="url()"]) .blog_content_text_inner{margin:0;width:100%}
+          body .blog_content .blog_content_list .blog_content_item:has(.blog_content_tmb[style*="url()"]) .blog_content_title{float:none;min-height:0;height:auto;max-height:none;overflow:visible;margin:0;padding:15px 16px 6px}
+          body .blog_content .blog_content_list .blog_content_item:has(.blog_content_tmb[style*="url()"]) .blog_content_sup{position:static;width:100%;margin:0;padding:0 16px 12px}
+          body:not(.top_page) .blog_content .blog_content_list .blog_content_item:has(.blog_content_tmb[style*="url()"]) .blog_content_date{float:left;margin:8px 0 0}
+          .top_page .blog_content .blog_content_list .blog_content_item:has(.blog_content_tmb[style*="url()"]) .blog_content_text{flex:none}
+          </style>
+          CSS;
+          $j['head']=str_replace('<%seo>',$css."\n<%seo>",$j['head']);
+          umask(0077);
+          $b=$d.'/noimage-backup-'.gmdate('YmdHis').'-'.bin2hex(random_bytes(4));
+          if(!mkdir($b,0700)||!copy($f,$b.'/fragments.json'))throw new RuntimeException('Backup failed');
+          $t=tempnam($d,'noimage-');
+          try{if($t===false||file_put_contents($t,json_encode($j,JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT|JSON_THROW_ON_ERROR))===false||!chmod($t,0600)||!rename($t,$f))throw new RuntimeException('Install failed');}finally{if(is_string($t)&&is_file($t))unlink($t);}
+          echo "Scoped thumbnail-free layout fix installed; original stylesheet and article data unchanged.\n";
+          PHP_SOURCE
+          php -l /tmp/hope-noimage.php
+      - name: Apply only to HOPE preview
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          test -n "$SSH_KEY" && test -n "$SAKURA_HOST" && test -n "$SAKURA_USER"
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          test -s ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" php < /tmp/hope-noimage.php
+      - name: Verify live preview
+        run: |
+          python3 - <<'PY'
+          import urllib.request, urllib.error, hashlib
+          base='https://rakudadou.sakura.ne.jp/hope-blog/'
+          for path, marker in [('',b'hope-no-image-fix'),('page-1.html',b'hope-no-image-fix'),('?all',b'class="titlelist_item"'),('?q=HOPE',b'class="search_item"')]:
+              with urllib.request.urlopen(base+path,timeout=25) as r:
+                  body=r.read(); assert r.status==200 and marker in body and 'noindex' in r.headers.get('X-Robots-Tag',''),path
+                  assert b'?xml" title="RSS" />' not in body.split(b'</head>',1)[0],path
+                  if path=='?all': assert body.count(b'class="titlelist_item"')==115
+          with urllib.request.urlopen(base+'assets/style.css',timeout=25) as r:
+              assert hashlib.sha256(r.read()).hexdigest()=='0379f1d2c7406bad2c7b4724063930e953a953bcf73710115bda0362d103a9dd'
+          for path,expected in [('blog-entry-74.html',404),('blog-entry-79.html',403)]:
+              try: urllib.request.urlopen(base+path,timeout=20); raise AssertionError('Unexpected access')
+              except urllib.error.HTTPError as e: assert e.code==expected
+          print('Layout patch and public/private routing verified; original CSS preserved.')
+          PY
