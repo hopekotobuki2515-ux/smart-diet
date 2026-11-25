@@ -1,0 +1,95 @@
+name: Fix HOPE homepage image sizing and spacing
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fix-hope-home-image-layout.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: hope-blog-production-host
+  cancel-in-progress: false
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Patch only home view CSS
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          D=/home/rakudadou/hope-blog-private/data
+          P=/home/rakudadou/www/hope-blog
+          T=$(mktemp -d "$D/home-layout-fix.XXXXXXXX")
+          export T
+          trap 'rm -rf "$T"' EXIT
+          cat > "$T/patch.php" <<'PHP'
+          <?php
+          $d='/home/rakudadou/hope-blog-private/data';$t=getenv('T');
+          $path=$d.'/home-page.php';
+          if(is_link($path)||!is_file($path))throw new RuntimeException('Unexpected home view');
+          $s=file_get_contents($path);
+          $pairs=[
+            '.thumb{display:block;width:100%;aspect-ratio:640/426;background:#f6f6f5;object-fit:contain}'=>'.thumb{display:block;width:100%;height:auto;aspect-ratio:640/426;flex:none;background:#f6f6f5;object-fit:contain}',
+            'main{padding-top:36px;padding-bottom:50px}'=>'main.wrap{padding-top:36px;padding-bottom:50px}',
+            'main{padding-top:27px;padding-bottom:30px}'=>'main.wrap{padding-top:27px;padding-bottom:30px}'
+          ];
+          foreach($pairs as $old=>$new){if(substr_count($s,$old)!==1)throw new RuntimeException('Unexpected home CSS revision; stop');$s=str_replace($old,$new,$s);}
+          file_put_contents($t.'/home-page.php',$s);
+          PHP
+          php "$T/patch.php"
+          php -l "$T/home-page.php"
+          B=$(mktemp -d "$D/home-layout-backup.XXXXXXXX")
+          cp "$D/home-page.php" "$B/home-page.php"
+          chmod 600 "$B/home-page.php" "$T/home-page.php"
+          php -r 'foreach(["articles.json","config.json","fragments.json"] as $f)echo hash_file("sha256",$argv[1]."/".$f),PHP_EOL;foreach(["index.php","common.php","admin.php",".htaccess","assets/style.css"] as $f)echo hash_file("sha256",$argv[2]."/".$f),PHP_EOL;' "$D" "$P" > "$T/before"
+          mv "$T/home-page.php" "$D/home-page.php"
+          if ! php -l "$D/home-page.php"; then cp "$B/home-page.php" "$D/home-page.php"; exit 1; fi
+          php -r 'foreach(["articles.json","config.json","fragments.json"] as $f)echo hash_file("sha256",$argv[1]."/".$f),PHP_EOL;foreach(["index.php","common.php","admin.php",".htaccess","assets/style.css"] as $f)echo hash_file("sha256",$argv[2]."/".$f),PHP_EOL;' "$D" "$P" > "$T/after"
+          cmp "$T/before" "$T/after"
+          echo 'PASS: home view CSS only; articles, config, templates, index, admin, CSS unchanged.'
+          REMOTE
+      - name: Verify Japanese rendering and correct image ratio
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-noto-cjk
+          cd /tmp
+          npm install --no-audit --no-fund playwright
+          npx playwright install chromium
+          cat > /tmp/check.cjs <<'JS'
+          const {chromium}=require('playwright');
+          (async()=>{
+            const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
+            try{
+              for(const width of [320,390,768,1366]){
+                const page=await browser.newPage({viewport:{width,height:1050},deviceScaleFactor:1,isMobile:width<=390,hasTouch:width<=390});
+                const base='https://rakudadou.sakura.ne.jp/hope-blog/';
+                const response=await page.goto(base,{waitUntil:'domcontentloaded',timeout:30000});
+                if(response.status()!==200)throw Error('Home HTTP '+response.status());
+                await page.evaluate(async()=>{for(const i of document.images)i.loading='eager';await document.fonts.ready});
+                await page.waitForFunction(()=>[...document.images].every(i=>i.complete&&i.naturalWidth>0),{},{timeout:30000});
+                const data=await page.evaluate(()=>({width:document.documentElement.clientWidth,scroll:document.documentElement.scrollWidth,mainPadding:getComputedStyle(document.querySelector('main')).paddingTop,thumbs:[...document.querySelectorAll('.thumb')].map(i=>{const b=i.getBoundingClientRect();return {w:b.width,h:b.height,ratio:b.width/b.height}}),cards:document.querySelectorAll('.article-card').length}));
+                if(data.scroll>data.width+1||data.cards!==9||data.thumbs.some(i=>Math.abs(i.h-i.w*426/640)>2)||parseInt(data.mainPadding)<24)throw Error(JSON.stringify(data));
+                console.log('PASS '+width+' '+JSON.stringify(data));
+                if(width===390||width===1366){
+                  const shot=await page.screenshot({type:'jpeg',quality:55});
+                  console.log('SHOT_BEGIN '+width);
+                  const b=shot.toString('base64');for(let i=0;i<b.length;i+=3000)console.log('SHOT_PART '+b.slice(i,i+3000));console.log('SHOT_END');
+                }
+                await page.close();
+              }
+            }finally{await browser.close()}
+          })().catch(e=>{console.error(e);process.exit(1)});
+          JS
+          node /tmp/check.cjs
