@@ -1,0 +1,144 @@
+name: Add verified PC-site privacy and contact navigation for AdSense
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/prepare-rakudadou-adsense-basics.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: rakudadou-desktop-content
+  cancel-in-progress: false
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Patch only verified legacy pages with private backup
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          T=$(mktemp -d /home/rakudadou/adsense-stage.XXXXXXXX)
+          export T
+          trap 'rm -rf "$T"' EXIT
+          cat > "$T/prepare.php" <<'PHP'
+          <?php
+          $root='/home/rakudadou/www';
+          $pages=['index.htm','kaatsutoha.htm','kaatsukouka.htm','taiken.htm','ryoukin.htm','koutsu.htm','shitsumon.htm','nyuukainagare.htm','pro.html'];
+          $new=['hope-site-privacy.html','hope-site-contact.html'];
+          foreach($new as $name)if(file_exists($root.'/'.$name)||is_link($root.'/'.$name))throw new RuntimeException('New page already exists: '.$name);
+          $footer='<div style="box-sizing:border-box;max-width:955px;margin:12px auto 16px;padding:10px 12px;text-align:center;border-top:1px solid #b8cde0;font:13px/1.8 sans-serif;color:#333;"><a href="pro.html">運営者情報</a>　｜　<a href="hope-site-contact.html">お問い合わせ</a>　｜　<a href="hope-site-privacy.html">プライバシーポリシー</a></div>';
+          $footer=iconv('UTF-8','CP932',$footer);
+          if($footer===false)throw new RuntimeException('Footer encoding failed');
+          $bodyPrivacy=<<<'HTML'
+          <h1>プライバシーポリシー</h1>
+          <p>加圧パーソナルエクササイズスタジオHOPEの公式ホームページにおける情報の取り扱いについてご案内します。</p>
+          <h2>お問い合わせに関する情報</h2>
+          <p>お問い合わせや体験予約の際には、回答・連絡・サービスの案内に必要な情報をお伺いする場合があります。個人情報の取り扱いに関するご質問は、下記の窓口までお問い合わせください。</p>
+          <h2>アクセス情報と外部サービス</h2>
+          <p>当サイトではレンタルサーバーを利用しています。サイトの閲覧に伴い、IPアドレス、ブラウザーの種類、閲覧したページなどのアクセス情報がサーバーに記録される場合があります。また、一部のページに外部の動画や地図を掲載しており、これらのサービスの提供元がCookie等を利用して情報を取得する場合があります。外部サービスの情報の取り扱いは、各提供元のポリシーをご確認ください。</p>
+          <h2>広告配信について</h2>
+          <p>今後、当サイトでGoogle AdSenseなどの第三者配信の広告サービスを利用する場合、Google等の第三者配信事業者はCookieを使用し、当サイトや他のサイトへの過去のアクセス情報などに基づいて広告を配信することがあります。</p>
+          <p>Googleによるパーソナライズド広告は<a href="https://myadcenter.google.com/">Googleの広告設定</a>から無効にできます。第三者配信事業者のパーソナライズド広告については<a href="https://www.aboutads.info/">aboutads.info</a>もご参照ください。Googleによる情報の利用方法は、<a href="https://policies.google.com/technologies/partner-sites?hl=ja">Googleのパートナーサイトに関する説明</a>をご確認ください。</p>
+          <h2>運営者・お問い合わせ</h2>
+          <p>加圧パーソナルエクササイズスタジオHOPE<br>代表　村田健作<br>〒755-0032 山口県宇部市寿町2丁目5-15<br>電話：<a href="tel:0836398200">0836-39-8200</a></p>
+          <p>制定日：2026年11月25日</p>
+          HTML;
+          $bodyContact=<<<'HTML'
+          <h1>お問い合わせ</h1>
+          <p>加圧パーソナルエクササイズスタジオHOPEへのお問い合わせ、体験トレーニングのご相談・ご予約は、お電話にて承ります。</p>
+          <div class="contact"><p>お電話でのお問い合わせ</p><a class="telephone" href="tel:0836398200">0836-39-8200</a></div>
+          <h2>店舗情報</h2>
+          <p>加圧パーソナルエクササイズスタジオHOPE<br>代表　村田健作<br>〒755-0032 山口県宇部市寿町2丁目5-15</p>
+          <p><a href="koutsu.htm">交通アクセスを確認する</a>　｜　<a href="taiken.htm">体験レッスンのご案内</a></p>
+          <p><a href="pro.html">トレーナープロフィール</a>　｜　<a href="shitsumon.htm">よくある質問</a></p>
+          HTML;
+          function page($title,$body){
+            return '<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'.$title.'｜スタジオHOPE</title><meta name="description" content="宇部市の加圧パーソナルエクササイズスタジオHOPEの'.$title.'。"><style>*{box-sizing:border-box}body{margin:0;background:#fff;color:#333;font:16px/1.9 sans-serif;overflow-wrap:anywhere}header{background:#eaf4ff;border-bottom:1px solid #bfd3e5;padding:18px 20px}header div,main,footer{max-width:955px;margin:0 auto}header a{color:#164e7d;font-weight:bold;text-decoration:none}main{padding:28px 24px 40px;max-width:880px}h1{font-size:28px;margin:0 0 22px;color:#164e7d;border-bottom:3px solid #93c9ff;padding-bottom:10px}h2{font-size:20px;margin:24px 0 8px;color:#164e7d}a{color:#195c99}footer{border-top:1px solid #b8cde0;padding:16px;text-align:center;font-size:13px}footer a{display:inline-block;margin:4px 10px}.contact{padding:20px;background:#f0f7ff;border:1px solid #cbddeb;border-radius:10px;text-align:center}.contact p{margin:0}.telephone{font-size:clamp(23px,5vw,32px);font-weight:bold}.contact a:focus-visible,a:focus-visible{outline:3px solid #93c9ff;outline-offset:3px}</style></head><body><header><div><a href="index.htm">加圧パーソナルエクササイズスタジオHOPE</a></div></header><main>'.$body.'</main><footer><a href="index.htm">ホーム</a><a href="pro.html">運営者情報</a><a href="hope-site-contact.html">お問い合わせ</a><a href="hope-site-privacy.html">プライバシーポリシー</a></footer></body></html>';
+          }
+          $staged=[];$original=[];
+          foreach($pages as $name){
+            $path=$root.'/'.$name;
+            if(!is_file($path)||is_link($path))throw new RuntimeException('Unexpected legacy path: '.$name);
+            $s=file_get_contents($path);
+            if(preg_match_all('~</body\s*>~i',$s)!==1||str_contains($s,'hope-site-privacy.html'))throw new RuntimeException('Unexpected footer state: '.$name);
+            $original[$name]=$s;
+            $n=preg_replace_callback('~</body\s*>~i',fn($m)=>$footer.$m[0],$s,1);
+            if(str_replace($footer,'',$n)!==$s)throw new RuntimeException('Unexpected footer difference');
+            $staged[$name]=$n;
+          }
+          function enc($s){$r=iconv('UTF-8','CP932',$s);if($r===false)throw new RuntimeException('Encoding failed');return $r;}
+          function fix($s,$old,$new,$label){$old=enc($old);$new=enc($new);if(substr_count($s,$old)!==1){echo 'REVIEW REQUIRED ', $label,PHP_EOL;return $s;}echo 'CORRECTED ', $label,PHP_EOL;return str_replace($old,$new,$s);}
+          $staged['ryoukin.htm']=fix($staged['ryoukin.htm'],'２，４５７','２，４７５','monthly 30-minute arithmetic');
+          $staged['kaatsukouka.htm']=fix($staged['kaatsukouka.htm'],'トレーニングを行うと増大する成長ホルモンによって、太りにくい体になります。','加圧トレーニングでは運動後に成長ホルモンが一時的に増加することがあります。','growth hormone claim');
+          $staged['kaatsukouka.htm']=fix($staged['kaatsukouka.htm'],'また、トレーニングによって筋肉が増えると、脂肪が燃焼しやすい体になります。','体重や体脂肪の変化には食事や運動習慣など複数の要因が関わります。','body fat claim');
+          $pat='~'.preg_quote(enc('加圧トレーニングでは通常の約２９０倍もの成長ホルモンが分泌されたという'), '~').'<BR>\s*'.preg_quote(enc('　　研究結果が出ています。成長ホルモンは、肌のハリやツヤを取り戻し、脂肪の'),'~').'<BR>\s*'.preg_quote(enc('　　つきにくい体にしてくれます。'),'~').'~';
+          if(preg_match_all($pat,$staged['kaatsukouka.htm'])===1){
+            $rep=enc('2000年の研究では、低負荷の血流制限運動後15分の成長ホルモン濃度が<BR>　　運動前の安静時の約290倍となった例が報告されています。<BR>　　この一時的な反応だけで、減量や美容効果が保証されるものではありません。<BR>　　出典：<A href="https://pubmed.ncbi.nlm.nih.gov/10642363/">Takaradaほか（2000年）</A>');
+            $staged['kaatsukouka.htm']=preg_replace_callback($pat,fn($m)=>$rep,$staged['kaatsukouka.htm'],1);
+            echo 'CORRECTED growth hormone 290-fold reference',PHP_EOL;
+          }else echo 'REVIEW REQUIRED growth hormone 290-fold exact source',PHP_EOL;
+          $staged['hope-site-privacy.html']=page('プライバシーポリシー',$bodyPrivacy);
+          $staged['hope-site-contact.html']=page('お問い合わせ',$bodyContact);
+          umask(0077);
+          $backup=tempnam('/home/rakudadou','adsense-backup.');
+          if($backup===false||!unlink($backup)||!mkdir($backup,0700))throw new RuntimeException('Backup creation failed');
+          $tmp=[];$installed=[];
+          try{
+            foreach($staged as $name=>$bytes){
+              if(isset($original[$name])){
+                if(file_get_contents($root.'/'.$name)!==$original[$name])throw new RuntimeException('Concurrent change detected');
+                if(file_put_contents($backup.'/'.$name,$original[$name])===false)throw new RuntimeException('Backup failed');
+              }
+              $f=tempnam($root,'hope-safe-');
+              if($f===false)throw new RuntimeException('Staging failed');
+              $tmp[$name]=$f;
+              if(file_put_contents($f,$bytes)!==strlen($bytes))throw new RuntimeException('Staging write failed');
+              chmod($f,0644);
+            }
+            foreach($tmp as $name=>$f){
+              if(isset($original[$name])&&file_get_contents($root.'/'.$name)!==$original[$name])throw new RuntimeException('Concurrent change detected');
+              if(!isset($original[$name])&&(file_exists($root.'/'.$name)||is_link($root.'/'.$name)))throw new RuntimeException('New path conflict');
+              if(!rename($f,$root.'/'.$name))throw new RuntimeException('Publish failed');
+              $installed[]=$name;
+            }
+            foreach($staged as $name=>$bytes)if(hash_file('sha256',$root.'/'.$name)!==hash('sha256',$bytes))throw new RuntimeException('Verification failed');
+          }catch(Throwable $e){foreach($installed as $name){if(isset($original[$name])){copy($backup.'/'.$name,$root.'/'.$name);chmod($root.'/'.$name,0644);}else unlink($root.'/'.$name);}throw $e;}
+          finally{foreach($tmp as $f)if(file_exists($f))unlink($f);}
+          echo 'PASS: 9 existing legacy pages updated with small footer; 2 new policy/contact pages added. Original files backed up outside web root. No other directories touched.',PHP_EOL;
+          PHP
+          php -l "$T/prepare.php"
+          php "$T/prepare.php"
+          REMOTE
+      - name: Verify public page and footer links
+        run: |
+          python3 - <<'PY'
+          from urllib.request import urlopen
+          from html.parser import HTMLParser
+          import concurrent.futures
+          pages=['index.htm','kaatsutoha.htm','kaatsukouka.htm','taiken.htm','ryoukin.htm','koutsu.htm','shitsumon.htm','nyuukainagare.htm','pro.html','hope-site-privacy.html','hope-site-contact.html']
+          base='http://www.rakudadou.jp/'
+          def check(p):
+              with urlopen(base+p,timeout=20) as r:
+                  assert r.status==200
+                  raw=r.read()
+                  assert b'hope-site-privacy.html' in raw and b'hope-site-contact.html' in raw,p
+                  if p in ('hope-site-privacy.html','hope-site-contact.html'):
+                      s=raw.decode('utf-8')
+                      assert 'tel:0836398200' in s
+                      assert '<meta name="viewport"' in s
+                      if p=='hope-site-privacy.html': assert 'myadcenter.google.com' in s and 'policies.google.com/technologies/partner-sites' in s
+                  print('PASS HTTP 200 and links',p)
+          with concurrent.futures.ThreadPoolExecutor(max_workers=4) as ex:list(ex.map(check,pages))
+          PY
