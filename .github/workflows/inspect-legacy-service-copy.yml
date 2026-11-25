@@ -1,0 +1,26 @@
+name: Inspect legacy service copy and exact editable sections
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/inspect-legacy-service-copy.yml'
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Read exact existing HTML sections
+        run: |
+          python3 - <<'PY'
+          from urllib.request import urlopen
+          import re
+          targets={'ryoukin.htm':['基本価格','お得な月会費制','３カ月集中','パーソナルトレーニング６０分チケット','入会時に用意','指定銀行','事務手数料'],'taiken.htm':['３つのコース','二の腕集中','下半身集中','ウェスト集中','当日ご持参'],'shitsumon.htm':['具体的に期待','何歳まで','駐車場','ロッカールーム','月会費の会員','指定銀行','事務手数料'],'nyuukainagare.htm':['会員資格','月会費は','お申し込み'],'kaatsutoha.htm':['大きな効果','成長ホルモン','慢性痛'],'kaatsukouka.htm':['慢性痛','成長ホルモン'],'index.htm':['成果がでる']}
+          for p,terms in targets.items():
+              with urlopen('https://www.rakudadou.jp/'+p,timeout=15) as r:s=r.read().decode('cp932','replace')
+              for term in terms:
+                  matches=list(re.finditer(re.escape(term),s))
+                  for m in matches[:2]:
+                      print('CONTEXT',p,term,repr(s[max(0,m.start()-300):m.end()+1700]))
+          PY
