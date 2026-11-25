@@ -26,4 +26,7 @@ jobs:
                   print('CONTEXT',s[max(0,m.start()-1200):min(len(s),m.end()+1200)].replace('\r','').replace('\n',' '))
           for m in re.finditer(r'ブログ|サプリメント|supplement|blog|amazon|a8\.net',s,re.I):
               print('MATCH',s[max(0,m.start()-300):min(len(s),m.end()+500)].replace('\r','').replace('\n',' '))
+          for m in re.finditer(r'<(?:img|iframe|object|embed)\b[^>]*>',s,re.I): print('IMAGE',m.group(0))
+          m=re.search(r'<A href="http://ameblo.jp/hopekotobuki/"',s,re.I)
+          if m: print('SIDEBAR',s[m.start()-2400:m.start()+3500].replace('\n',' '))
           PY
