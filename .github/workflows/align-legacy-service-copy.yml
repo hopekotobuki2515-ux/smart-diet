@@ -1,0 +1,144 @@
+name: Align verified desktop service information with approved mobile pages
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/align-legacy-service-copy.yml'
+permissions:
+  contents: read
+concurrency:
+  group: rakudadou-desktop-content
+  cancel-in-progress: false
+jobs:
+  align:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Apply guarded text-only changes with private backups
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          T=$(mktemp -d /home/rakudadou/hope-service-stage.XXXXXXXX)
+          trap 'rm -rf "$T"' EXIT
+          cat > "$T/align.php" <<'PHP'
+          <?php
+          $root='/home/rakudadou/www';
+          $pages=['index.htm','ryoukin.htm','taiken.htm','shitsumon.htm','nyuukainagare.htm','kaatsutoha.htm','kaatsukouka.htm'];
+          $before=[];$after=[];
+          foreach($pages as $p){$f=$root.'/'.$p;if(!is_file($f)||is_link($f))throw new RuntimeException('Unexpected path '.$p);$before[$p]=$after[$p]=file_get_contents($f);}
+          function enc($s){$b=iconv('UTF-8','CP932',$s);if($b===false)throw new RuntimeException('Encoding failed');return $b;}
+          function one(&$s,$old,$new,$label){
+              $old=enc($old);$new=enc($new);
+              if(substr_count($s,$old)!==1)throw new RuntimeException('Expected single match '.$label.' actual='.substr_count($s,$old));
+              $s=str_replace($old,$new,$s);
+              echo 'PATCH '.$label.PHP_EOL;
+          }
+          function section(&$s,$start,$end,$required,$replacement,$label){
+              $a=enc($start);$b=enc($end);
+              if(substr_count($s,$a)!==1)throw new RuntimeException('Ambiguous section start '.$label);
+              $i=strpos($s,$a);$j=strpos($s,$b,$i+strlen($a));
+              if($j===false||$j-$i>18000)throw new RuntimeException('Section end absent '.$label);
+              $old=substr($s,$i,$j-$i);
+              foreach($required as $r)if(!str_contains($old,enc($r)))throw new RuntimeException('Expected section content missing '.$label.' '.$r);
+              if(preg_match('~<(?:img|a\b|table|td\b|tr\b|script|iframe|div|form)\b~i',$old))throw new RuntimeException('Structural element in text range '.$label);
+              $s=substr($s,0,$i).enc($replacement).substr($s,$j);
+              echo 'PATCH '.$label.PHP_EOL;
+          }
+          $monthly='月額19,800円（月4時間まで）。<BR>1回30分・60分・90分・120分など、ご予定に合わせて選べます。<BR>1回の上限は120分です。月4時間ご利用の場合、30分あたり2,475円です。';
+          $bank='月会費は山口銀行の口座から、ご利用月の前月25日に引き落とします。';
+          $consult='詳しくはお電話または店頭でお問い合わせください。';
+          $s=&$after['ryoukin.htm'];
+          section($s,'■お得な月会費制<br>','</p>',['３カ月集中スマートダイエットコース','パーソナルトレーニング６０分チケット','３０分×１２回券','スマートダイエット教材費'],'■月会費プラン<br>'.$monthly.'<BR><BR>■加圧トレーニング30分の回数券<BR>Ａクーポン　8,250円（30分×3回）<BR>Ｂクーポン　15,750円（30分×6回）<BR>Ｃクーポン　30,000円（30分×12回）<BR>Ｄクーポン　59,800円（30分×24回）<BR><BR>その他のコース・教材についてはお問い合わせください。','pricing plans');
+          section($s,'月４回　￥19,800のコースです。','※詳細・ご不明な点は',['１ヶ月最大で４回','ゆうちょ銀行','山口銀行'],$monthly.'<BR>60分を月4回利用する場合は、1回あたり4,950円です。<BR>ご自身の予定に合わせて無理なく運動習慣づくりを目指しましょう。<BR><BR>'.$bank.'<BR>','pricing monthly explanation');
+          one($s,'はい。銀行引き落としでのお支払いです。',$bank,'pricing bank FAQ');
+          one($s,'銀行通帳と届印・１ヶ月分の会費をお持ち下さい。','山口銀行の通帳・お届け印・1カ月分の会費をお持ちください。','pricing enrollment items');
+          one($s,'事務手数料は会員登録の際に一度だけ3,000円を頂いています。','事務手数料については入会前にお問い合わせください。','pricing fee not confirmed');
+          unset($s);
+          $s=&$after['taiken.htm'];
+          section($s,'３つのコースをご用意しております。','<IMG src="taikenimage3.gif"',['二の腕集中','下半身集中','ウェスト集中'],'目的に合わせて選べる3つの体験コースをご用意しています。<BR>初回体験：60分3,000円／加圧トレーニング30分は無料。<BR><BR>１：理想のカラダづくり<BR>筋力アップやボディラインづくりを目指す方に。ウェイトトレーニングを基本に、目的や体力に応じて加圧トレーニングを組み合わせます。<BR><BR>２：カラダすっきりケア<BR>身体の硬さや動かしにくさが気になる方に。ストレッチングやコンディショニングに加え、加圧トレーニングも行います。痛みやしびれの治療を目的とするものではありません。<BR><BR>３：あなたにぴったり体験<BR>カウンセリングでご希望を伺い、加圧・ウェイト・ストレッチングなどから内容を組み立てます。<BR><BR>','trial courses');
+          one($s,'体験のお時間は約６０分程度（カウンセリングを含む）ですが、','60分の体験はカウンセリングを含みます。30分の体験もご用意しています。','trial duration');
+          unset($s);
+          $s=&$after['shitsumon.htm'];
+          section($s,'①　加圧トレーニングを行うと増大する成長ホルモンによって','<HR>',['太りにくい体になります','２９０倍','５００ｇ'],'比較的軽い負荷で筋力づくりを目指す方法の一つです。<BR>運動後に成長ホルモン濃度が一時的に上昇することがあります。<BR>体重・体脂肪や美容への変化が保証されるものではありません。<BR>体力や運動経験に合わせて負荷を調整します。<BR>','FAQ health claims');
+          section($s,'世間的には年齢制限はございませんが','<HR>',['６０歳まで'],'対象年齢やご利用の可否については、ご予約前にお電話でご確認ください。<BR>','FAQ age');
+          section($s,'駐車場は当店ではご用意しておりませんが','<HR>',['無料チケットをお渡し'],'スタジオの脇に車を1台停められます。場所は交通アクセスをご覧ください。<BR>','FAQ parking');
+          one($s,'お着替え専用のロッカールームがございますので、ご安心ください。','お着替えの場所については、ご予約時にお問い合わせください。','FAQ changing');
+          one($s,'予約方法は下記のお電話にてご予約ください。','完全予約制です。お電話でご予約ください。','FAQ booking');
+          section($s,'はい。月会費制がございます。','<HR>',['月４回','ゆうちょ銀行','山口銀行'],'はい。'.$monthly.'<BR>'.$bank.'<BR>','FAQ monthly and bank');
+          one($s,'はい。１回だけなどの都度利用や割引があるクーポン券を用意しております。','はい。都度利用や加圧トレーニング30分のA・B・C・Dクーポンをご利用いただけます。','FAQ coupons');
+          one($s,'銀行通帳と届印・１ヶ月分の会費をお持ち下さい。','山口銀行の通帳・お届け印・1カ月分の会費をお持ちください。','FAQ bank items');
+          one($s,'事務手数料は会員登録の際に一度だけ3,000円を頂いています。','事務手数料については入会前にお問い合わせください。','FAQ fee not confirmed');
+          unset($s);
+          $s=&$after['nyuukainagare.htm'];
+          one($s,'◎会員資格は１８歳以上６０歳までの方が対象となります。(高校生は不可)','◎対象年齢やご利用の可否は、事前にお問い合わせください。','membership eligibility');
+          one($s,'◎月会費は口座の自動引き落としとなります。','◎'.$monthly.'<BR>◎'.$bank.'<BR>◎山口銀行の通帳・お届け印・1カ月分の会費をお持ちください。','membership monthly');
+          unset($s);
+          $s=&$after['kaatsutoha.htm'];
+          section($s,'専用の器具を使い、適当な圧力をかけ','このように当店の加圧パーソナルエクササイズでは',['大きな効果','成長ホルモンの分泌量が増大','肌の弾力'],'腕や脚の付け根に専用のベルトを装着し、圧を調整して行う運動です。<BR>比較的軽い負荷で筋力や筋肉量の向上を目指します。<BR>研究では運動後に成長ホルモン濃度が一時的に上昇することが報告されています。<BR>一時的なホルモンの変化だけで、減量や美容効果が保証されるわけではありません。<BR>体調・運動経験に合わせてトレーナーが負荷を調整します。<BR><BR>','training explanation');
+          one($s,'肩コリ腰痛などの慢性痛を解消したい方','肩や腰の動かしにくさが気になる方（痛みの治療は医療機関へ）','training pain wording');
+          one($s,'を可能にするトレーニングをはじめ、','を目標とした運動をはじめ、','training goal');
+          unset($s);
+          $s=&$after['kaatsukouka.htm'];
+          one($s,'肩コリ腰痛などの慢性痛を解消したい方','肩や腰の動かしにくさが気になる方（痛みの治療は医療機関へ）','effect pain wording');
+          unset($s);
+          one($after['index.htm'],'専門のプロトレーナーと1対1の効果的な運動だから、成果がでる！','専門のトレーナーと1対1で、目的に合わせた運動をサポート！','homepage outcome wording');
+          foreach($pages as $p){
+              $s=$before[$p];$n=$after[$p];
+              foreach(['~<img\b[^>]*>~i','~<a\b[^>]*>~i','~</?(?:table|tr|td|tbody|script|iframe|div|form)\b[^>]*>~i'] as $pat){
+                  preg_match_all($pat,$s,$a);preg_match_all($pat,$n,$b);
+                  if($a[0]!==$b[0])throw new RuntimeException('Protected layout or link changed '.$p);
+              }
+              if(!str_contains($n,'hope-site-privacy.html')||!str_contains($n,'hope-site-contact.html'))throw new RuntimeException('Footer missing');
+          }
+          $backup=tempnam('/home/rakudadou','hope-service-backup.');
+          if(!$backup||!unlink($backup)||!mkdir($backup,0700))throw new RuntimeException('Backup failed');
+          $tmp=[];$done=[];
+          try{
+              foreach($pages as $p){
+                  if(file_get_contents($root.'/'.$p)!==$before[$p])throw new RuntimeException('Concurrent change');
+                  if(file_put_contents($backup.'/'.$p,$before[$p])!==strlen($before[$p]))throw new RuntimeException('Backup failed');
+                  $t=tempnam($root,'hope-service-stage-');$tmp[$p]=$t;
+                  if(!$t||file_put_contents($t,$after[$p])!==strlen($after[$p])||!chmod($t,0644))throw new RuntimeException('Stage failed');
+              }
+              foreach($pages as $p){
+                  if(file_get_contents($root.'/'.$p)!==$before[$p]||!rename($tmp[$p],$root.'/'.$p))throw new RuntimeException('Publish failed');
+                  $done[]=$p;
+              }
+              foreach($pages as $p)if(file_get_contents($root.'/'.$p)!==$after[$p])throw new RuntimeException('Verification failed');
+          }catch(Throwable $e){foreach($done as $p){copy($backup.'/'.$p,$root.'/'.$p);chmod($root.'/'.$p,0644);}throw $e;}
+          finally{foreach($tmp as $t)if($t&&file_exists($t))unlink($t);}
+          echo 'PASS seven desktop pages updated; existing image/link/table/script tags exactly preserved; backup outside public folder.',PHP_EOL;
+          PHP
+          php -l "$T/align.php"
+          php -d display_errors=1 -d log_errors=0 "$T/align.php"
+          REMOTE
+      - name: Verify live service facts and all eleven HTTPS pages
+        run: |
+          python3 - <<'PY'
+          from urllib.request import urlopen
+          from concurrent.futures import ThreadPoolExecutor
+          base='https://www.rakudadou.jp/'
+          pages=['index.htm','kaatsutoha.htm','kaatsukouka.htm','taiken.htm','ryoukin.htm','koutsu.htm','shitsumon.htm','nyuukainagare.htm','pro.html','hope-site-contact.html','hope-site-privacy.html']
+          required={'ryoukin.htm':['19,800円','月4時間まで','2,475円','59,800円','30分×24回','山口銀行','前月25日'],'taiken.htm':['理想のカラダづくり','カラダすっきりケア','あなたにぴったり体験','60分3,000円'],'shitsumon.htm':['月4時間まで','山口銀行','車を1台','一時的に上昇'],'nyuukainagare.htm':['月4時間まで','山口銀行','前月25日'],'kaatsutoha.htm':['一時的に上昇','保証されるわけではありません']}
+          forbidden={'ryoukin.htm':['ゆうちょ銀行','６２，４４０','パーソナルトレーニング６０分チケット'],'taiken.htm':['二の腕集中！','下半身集中！','ウェスト集中！'],'shitsumon.htm':['ゆうちょ銀行','２９０倍','６０歳まで','無料チケットをお渡し'],'nyuukainagare.htm':['６０歳まで'],'kaatsutoha.htm':['成長ホルモンの分泌量が増大','大きな効果</B>']}
+          def check(p):
+              with urlopen(base+p,timeout=15) as r:
+                  assert r.status==200
+                  s=r.read()
+              assert b'hope-site-contact.html' in s and b'hope-site-privacy.html' in s
+              t=s.decode('utf-8' if p in pages[-2:] else 'cp932','replace')
+              for x in required.get(p,[]):assert x in t,(p,x)
+              for x in forbidden.get(p,[]):assert x not in t,(p,x)
+              print('PASS HTTPS and expected content',p)
+          with ThreadPoolExecutor(max_workers=5) as ex:list(ex.map(check,pages))
+          PY
