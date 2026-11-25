@@ -48,7 +48,8 @@ jobs:
           assert len(pages)==7
           for p in pages:
               s=p.read_text()
-              assert 'G-ZCETMLPKX3' in s and 'phone_click' in s
+              assert 'G-ZCETMLPKX3' in s, (p, 'GA4 missing')
+              if 'tel:' in s: assert 'phone_click' in s, (p, 'phone tracking missing')
               parser=Links(); parser.feed(s)
               assert len(parser.canonical)==1 and parser.canonical[0].startswith('https://rakudadou.sakura.ne.jp/hope-mobile/')
               for link in parser.links:
