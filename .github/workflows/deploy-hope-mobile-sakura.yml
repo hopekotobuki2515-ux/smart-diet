@@ -18,7 +18,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: hopekotobuki2515-ux/hope-homepage
-          ref: 637fe2e2ebec5434d0fe46cd9c4aeced7ba9bdbb
+          ref: ff01018bfa49e73cae501167aad9489f85260a69
           persist-credentials: false
       - name: Prepare unchanged public files
         run: |
@@ -62,3 +62,24 @@ jobs:
             cmp "$RUNNER_TEMP/hope-site/$file" "$RUNNER_TEMP/hope-verify"
           done
           echo "All HOPE public HTML files match GA4-enabled GitHub source"
+      - name: Read-only check of approved custom hostname
+        run: |
+          set -eu
+          url=https://sp.rakudadou.jp/
+          if curl --fail --silent --show-error --max-time 20 "$url" -o "$RUNNER_TEMP/hope-domain-check"; then
+            if cmp -s "$RUNNER_TEMP/hope-site/index.html" "$RUNNER_TEMP/hope-domain-check"; then
+              echo 'CUSTOM_HOST_MATCH=YES'
+            else
+              echo 'CUSTOM_HOST_MATCH=NO'
+            fi
+          else
+            echo 'CUSTOM_HOST_MATCH=UNREACHABLE'
+          fi
+      - name: Read-only check for existing mobile directory configuration
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'd=/home/rakudadou/www/hope-mobile; test -d "$d" || exit 1; if test -e "$d/.htaccess" || test -L "$d/.htaccess"; then echo MOBILE_HTACCESS_PRESENT; else echo MOBILE_HTACCESS_ABSENT; fi; if test -e /home/rakudadou/www/.htaccess; then echo PARENT_HTACCESS_PRESENT; else echo PARENT_HTACCESS_ABSENT; fi'
