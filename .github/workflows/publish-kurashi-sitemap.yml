@@ -1,0 +1,87 @@
+name: Publish Kurashi sitemap
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/publish-kurashi-sitemap.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: kurashi-sitemap
+  cancel-in-progress: false
+jobs:
+  sitemap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Validate all 27 public pages and create sitemap
+        run: |
+          python3 - <<'PY'
+          from urllib.request import Request,urlopen
+          from html.parser import HTMLParser
+          from concurrent.futures import ThreadPoolExecutor
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+          import os
+          base='https://rakudadou.sakura.ne.jp/kurashi/'
+          pages=['','category-body.html','category-food.html','category-life.html','contact.html','disclaimer.html','exercise.html','genre-aerobic-exercise.html','genre-air-environment.html','genre-body-self-care.html','genre-cleaning-laundry.html','genre-cooking-tools.html','genre-daily-convenience.html','genre-food-drinks.html','genre-food-storage.html','genre-health-monitoring.html','genre-meal-management.html','genre-protein-supplements.html','genre-sleep-bedding.html','genre-storage-organization.html','genre-strength-training.html','genre-stretch-conditioning.html','goals.html','guide.html','privacy.html','profile.html','self.html']
+          assert len(pages)==len(set(pages))==27
+          class P(HTMLParser):
+              def __init__(self): super().__init__();self.blocked=False;self.canonical=[]
+              def handle_starttag(self,t,attrs):
+                  a=dict(attrs)
+                  if t=='meta' and a.get('name','').lower() in ('robots','googlebot') and 'noindex' in a.get('content','').lower(): self.blocked=True
+                  if t=='link' and 'canonical' in a.get('rel','').lower().split(): self.canonical.append(a.get('href'))
+          def check(page):
+              u=base+page
+              with urlopen(Request(u,headers={'User-Agent':'Mozilla/5.0'}),timeout=25) as r:
+                  assert r.status==200 and r.url==u and r.headers.get_content_type()=='text/html',u
+                  assert 'noindex' not in r.headers.get('X-Robots-Tag','').lower(),u
+                  p=P();p.feed(r.read().decode('utf-8'))
+                  assert not p.blocked and all(c==u for c in p.canonical),(u,p.canonical,p.blocked)
+              print('Verified:',u)
+          with ThreadPoolExecutor(max_workers=5) as ex: list(ex.map(check,pages))
+          ns='http://www.sitemaps.org/schemas/sitemap/0.9'
+          ET.register_namespace('',ns)
+          root=ET.Element('{'+ns+'}urlset')
+          for page in pages:
+              ET.SubElement(ET.SubElement(root,'{'+ns+'}url'),'{'+ns+'}loc').text=base+page
+          f=Path(os.environ['RUNNER_TEMP'])/'kurashi-sitemap.xml'
+          ET.indent(root)
+          ET.ElementTree(root).write(f,encoding='utf-8',xml_declaration=True)
+          assert len(ET.parse(f).getroot())==27
+          PY
+      - name: Publish only sitemap.xml
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          test -n "$SSH_KEY" && test -n "$SAKURA_HOST" && test -n "$SAKURA_USER"
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          chmod 600 ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" >> ~/.ssh/known_hosts
+          test -s ~/.ssh/known_hosts
+          remote=$(cat <<'REMOTE'
+          sh -c 'set -eu; dest=/home/rakudadou/www/kurashi; test -s "$dest/index.html"; test ! -L "$dest/sitemap.xml"; tmp=$(mktemp "$dest/.sitemap.XXXXXXXX"); trap "rm -f \"$tmp\"" EXIT; cat > "$tmp"; test -s "$tmp"; chmod 644 "$tmp"; if test -e "$dest/sitemap.xml"; then cmp "$tmp" "$dest/sitemap.xml"; else mv "$tmp" "$dest/sitemap.xml"; fi; echo "Sitemap installed; existing HTML and verification files untouched"'
+          REMOTE
+          )
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" "$remote" < "$RUNNER_TEMP/kurashi-sitemap.xml"
+      - name: Verify live XML matches generated sitemap
+        run: |
+          python3 - <<'PY'
+          from urllib.request import urlopen
+          from pathlib import Path
+          import os,xml.etree.ElementTree as ET
+          u='https://rakudadou.sakura.ne.jp/kurashi/sitemap.xml'
+          with urlopen(u,timeout=25) as r:
+              assert r.status==200 and r.url==u
+              data=r.read()
+          assert data==(Path(os.environ['RUNNER_TEMP'])/'kurashi-sitemap.xml').read_bytes()
+          assert len(ET.fromstring(data))==27
+          print('HTTP 200; exact XML match; 27 URLs:',u)
+          PY
