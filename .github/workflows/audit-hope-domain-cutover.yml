@@ -1,0 +1,63 @@
+name: Audit HOPE domain cutover readiness (read only)
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/audit-hope-domain-cutover.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Read current public DNS records and HTTPS status
+        run: |
+          set -eu
+          for host in hope-fitness.jp www.hope-fitness.jp rakudadou.sakura.ne.jp; do
+            for type in A AAAA CNAME NS MX; do
+              printf '%s %s: ' "$host" "$type"
+              dig +time=3 +tries=1 +short "$host" "$type" | paste -sd ' ' -
+            done
+          done
+          for url in 'https://hope-fitness.jp/' 'https://rakudadou.sakura.ne.jp/hope-blog/' 'https://rakudadou.sakura.ne.jp/hope-blog/admin.php'; do
+            printf '%s ' "$url"
+            curl -sS -o /dev/null -w 'HTTP %{http_code}; IP %{remote_ip}; SSL verify %{ssl_verify_result}\n' --max-time 20 "$url" || true
+          done
+      - name: Inspect deployed configuration without printing secrets or changing files
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          P=/home/rakudadou/www/hope-blog
+          D=/home/rakudadou/hope-blog-private/data
+          php -r '$d=$argv[1];$c=json_decode(file_get_contents($d."/config.json"),true,512,JSON_THROW_ON_ERROR);$a=json_decode(file_get_contents($d."/articles.json"),true,512,JSON_THROW_ON_ERROR);echo json_encode(["total"=>count($a),"statuses"=>array_count_values(array_column($a,"status")),"categories"=>count($c["cats"]??[]),"preview"=>$c["preview"]??null,"admin_configured"=>!empty($c["admin_hash"]),"restricted_configured"=>!empty($c["restricted_hash"]),"config_keys"=>array_keys($c)],JSON_UNESCAPED_SLASHES),PHP_EOL;' "$D"
+          php -r '$p=$argv[1];foreach(["common.php","index.php","admin.php"] as $n){$s=file_get_contents($p."/".$n);echo $n," ",json_encode(["preview_refs"=>substr_count($s,"preview"),"ga4_expected_id"=>str_contains($s,"G-Y4G18KF9NV"),"hardcoded_subdir"=>substr_count($s,"/hope-blog"),"canonical_domain"=>str_contains($s,"hope-fitness.jp")]),PHP_EOL;}' "$P"
+          for f in common.php index.php admin.php; do php -l "$P/$f"; done
+          grep -E '^(RewriteBase|RewriteRule|RewriteCond|DirectoryIndex|Options|Header)' "$P/.htaccess" || true
+          REMOTE
+      - name: Check current public page metadata and URLs
+        run: |
+          python3 - <<'PY'
+          import urllib.request, urllib.error, re, concurrent.futures
+          base='https://rakudadou.sakura.ne.jp/hope-blog/'
+          routes=['','blog-entry-120.html','blog-category-23.html','?all','?xml','sitemaps.xml','robots.txt','admin.php','admin-reset.php','blog-entry-74.html','blog-entry-79.html']
+          def read(path):
+              try:
+                  with urllib.request.urlopen(base+path,timeout=20) as r: code,h,b=r.status,r.headers,r.read().decode('utf-8','replace')
+              except urllib.error.HTTPError as e: code,h,b=e.code,e.headers,''
+              canonical=re.search(r'<link[^>]*rel=["\']canonical["\'][^>]*href=["\']([^"\']+)',b,re.I)
+              print(repr(path),code,'robots='+str(h.get('X-Robots-Tag','')),'canonical='+str(canonical.group(1) if canonical else ''),'ga4_present='+str('G-Y4G18KF9NV' in b),'ga4_script='+str('googletagmanager.com/gtag/js' in b),'noindex_meta='+str(bool(re.search(r'<meta[^>]*name=["\']robots["\'][^>]*noindex',b,re.I))))
+              if path=='robots.txt': print('robots.txt:',repr(b[:400]))
+          with concurrent.futures.ThreadPoolExecutor(max_workers=3) as ex: list(ex.map(read,routes))
+          PY
