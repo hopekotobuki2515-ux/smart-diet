@@ -1,0 +1,166 @@
+name: Publish Kurashi Japanese SEO URLs
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/deploy-kurashi-seo.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: kurashi-seo
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Prepare SEO changes from actual public files
+        run: |
+          set -eu
+          mkdir -p "$RUNNER_TEMP/kurashi-seo/original" "$RUNNER_TEMP/kurashi-seo/public"
+          python3 - <<'PY'
+          import os,re,json,html
+          from pathlib import Path
+          from urllib.request import Request,urlopen
+          from urllib.parse import urljoin,urlsplit,unquote,quote
+          from html.parser import HTMLParser
+          from concurrent.futures import ThreadPoolExecutor
+          from xml.etree import ElementTree as ET
+          base='https://rakudadou.sakura.ne.jp/kurashi/'
+          host=urlsplit(base).netloc
+          root=Path(os.environ['RUNNER_TEMP'])/'kurashi-seo'
+          public=root/'public'
+          mapping=json.loads(r'''{"index.html":["","身体・食生活・暮らしを整える商品選びをサポートする暮らしのいいもの案内所。使う場面や使いやすさから、自分の生活に合う商品を探せます。"],"guide.html":["商品の選び方","自分の暮らしに合う商品を選ぶための考え方をご紹介。使用目的や使いやすさなど、購入前に確認したいポイントを整理します。"],"exercise.html":["目的別エクササイズと効果","運動の目的に合わせたエクササイズと期待される効果をご紹介。身体を動かす目的からトレーニング用品を選ぶ参考にできます。"],"goals.html":["目的と目標から商品を探す","身体・食生活・暮らしの目的や目標から、自分に合う商品を探すための案内ページです。気になるテーマから商品を確認できます。"],"self.html":["セルフで選ぶ","自分で商品を比較して選びたい方へ。身体・食生活・暮らしに役立つアイテムを探し、特徴や使う場面を確認できます。"],"profile.html":["運営者プロフィール","暮らしのいいもの案内所の運営者プロフィール。商品を紹介する際に大切にしている考え方をご紹介します。"],"contact.html":["お問い合わせ","暮らしのいいもの案内所へのお問い合わせページ。サイトや掲載情報についてのお問い合わせ先をご確認いただけます。"],"privacy.html":["プライバシーポリシー","暮らしのいいもの案内所のプライバシーポリシー。個人情報の取り扱いなどについてご案内します。"],"disclaimer.html":["広告と免責事項","暮らしのいいもの案内所の広告・免責事項。Amazonアソシエイトを利用した広告掲載と掲載情報に関する注意事項をご確認いただけます。"],"category-body.html":["身体を整える","運動やストレッチ、健康管理、毎日のセルフケアに役立つ商品を探せるカテゴリーです。目的に合ったアイテムをご紹介します。"],"category-food.html":["食生活を整える","食事の準備や栄養管理に役立つ商品を探せるカテゴリー。毎日の食生活を支える食品、調理用品、保存用品などを紹介します。"],"category-life.html":["暮らしを整える","掃除、洗濯、収納など、日々の家事や生活環境を整える商品をご紹介。自分の暮らしに合うアイテムを探せます。"],"genre-strength-training.html":["筋力トレーニング用品","筋力トレーニング用品の特徴や使用場面を紹介。自宅などで運動に取り組む際の商品選びに役立つポイントを確認できます。"],"genre-aerobic-exercise.html":["有酸素運動用品","有酸素運動を日常に取り入れたい方へ。運動をサポートする用品の特徴や使う場面を確認し、自分に合う商品を探せます。"],"genre-stretch-conditioning.html":["ストレッチとコンディショニング用品","ストレッチやコンディショニングに役立つ用品をご紹介。使用する部位や目的、使いやすさなどから商品を選ぶ参考にできます。"],"genre-health-monitoring.html":["健康管理用品","毎日の健康管理に役立つ用品をご紹介。測定や記録を続けるための使いやすさなどから、自分に合う商品を探せます。"],"genre-body-self-care.html":["身体のセルフケア用品","日々の身体のセルフケアに役立つ用品をご紹介。使用場面や使いやすさ、商品ごとの特徴を確認できます。"],"genre-protein-supplements.html":["プロテインとサプリメント","プロテインやサプリメントの商品選びに役立つ情報をご紹介。栄養補給の目的や使用場面に合わせ、商品の特徴を確認できます。"],"genre-food-drinks.html":["食品と飲料","日々の食生活に取り入れる食品や飲料をご紹介。商品の特徴や取り入れやすさを確認し、自分の生活に合う商品を探せます。"],"genre-cooking-tools.html":["調理用品","毎日の食事づくりに役立つ調理用品をご紹介。調理する場面や使いやすさから、自分のキッチンに合う商品を探せます。"],"genre-food-storage.html":["食品保存と作り置き用品","食品保存や作り置きに役立つ用品をご紹介。保存する食品や量、扱いやすさなどを考えて商品を選ぶ参考にできます。"],"genre-meal-management.html":["食事管理用品","日々の食事管理に役立つ用品をご紹介。食事の準備や管理を続けやすくするため、商品の特徴や使用場面を確認できます。"],"genre-sleep-bedding.html":["睡眠と寝具用品","睡眠環境を整える寝具や関連用品をご紹介。使う場面や好みに合わせ、毎日の休息に取り入れたい商品を探せます。"],"genre-air-environment.html":["温度と湿度と空気環境用品","室内の温度・湿度・空気環境を整える用品をご紹介。部屋の広さや使う場面、扱いやすさから商品を選ぶ参考にできます。"],"genre-cleaning-laundry.html":["掃除と洗濯用品","毎日の掃除や洗濯に役立つ用品をご紹介。家事の場面や使いやすさ、手入れのしやすさから商品を探せます。"],"genre-storage-organization.html":["収納と整理用品","収納や整理整頓に役立つ用品をご紹介。片付けたい場所や収納する物、使いやすさに合わせて商品を探せます。"],"genre-daily-convenience.html":["暮らしの便利グッズ","毎日の生活に取り入れたい便利グッズをご紹介。使用場面や商品の特徴を確認し、自分の暮らしに合う商品を探せます。"]}''')
+          assets={'erugam-54177.jpg','kurashi-body-guide.jpg','kurashi-food-guide.png','kurashi-life-guide.png','kurashi-planning.png','kurashi-site-header.png'}
+          assert len(mapping)==27 and len(set(v[0] for v in mapping.values()))==27 and len(set(v[1] for v in mapping.values()))==27
+          class Parser(HTMLParser):
+              def __init__(self):super().__init__();self.refs=[];self.aff=[];self.meta=[];self.canon=[];self.title=[];self.in_title=False;self.scripts=[];self.in_script=False;self.robots=[]
+              def handle_starttag(self,tag,attrs):
+                  a=dict(attrs)
+                  if tag=='title':self.in_title=True
+                  if tag=='script':self.in_script=True
+                  if tag=='base':raise AssertionError('Unexpected base')
+                  if tag=='meta' and a.get('name','').lower()=='description':self.meta.append(a.get('content',''))
+                  if tag=='meta' and a.get('name','').lower()=='robots':self.robots.append(a.get('content',''))
+                  if tag=='link' and a.get('rel','').lower()=='canonical':self.canon.append(a.get('href',''))
+                  for k in ('href','src','poster','data-src','action'):
+                      if a.get(k):self.refs.append((tag,k,a[k]))
+                  if a.get('srcset'):raise AssertionError('srcset requires review')
+                  if tag=='a' and ('data-amazon-link' in a or 'link.amazon/' in a.get('href','')):self.aff.append(a.get('href',''))
+              def handle_endtag(self,tag):
+                  if tag=='title':self.in_title=False
+                  if tag=='script':self.in_script=False
+              def handle_data(self,d):
+                  if self.in_title:self.title.append(d)
+                  if self.in_script:self.scripts.append(d)
+          def parse(s):p=Parser();p.feed(s);return p
+          def read(path):
+              u=base+quote(path,safe='/')
+              with urlopen(Request(u,headers={'User-Agent':'Mozilla/5.0'}),timeout=25) as r:
+                  assert r.status==200 and r.url==u,(path,r.url)
+                  return r.read()
+          def dest(old):
+              slug=mapping[old][0]
+              return base+(quote(slug)+'/' if slug else '')
+          def change(v,old):
+              if not v or v.startswith(('#','data:','mailto:','tel:','javascript:')):return v
+              u=urlsplit(urljoin(base+old,html.unescape(v)))
+              if u.netloc!=host or not u.path.startswith('/kurashi/'):return v
+              p=unquote(u.path[len('/kurashi/'):]) or 'index.html'
+              assert p in mapping or p in assets,(old,v,p)
+              path='/kurashi/'+((quote(mapping[p][0])+'/' if mapping[p][0] else '') if p in mapping else p)
+              return path+('?' + u.query if u.query else '')+('#'+u.fragment if u.fragment else '')
+          def save(path,data):
+              path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(data)
+          count=0
+          with ThreadPoolExecutor(max_workers=5) as ex:data=dict(zip(mapping,ex.map(read,mapping)))
+          for old,raw in data.items():
+              save(root/'original'/old,raw)
+              s=raw.decode('utf-8');p=parse(s);slug,desc=mapping[old]
+              assert '暮らしのいいもの案内所' in s and len(p.meta)==1 and not p.canon,(old,p.meta,p.canon)
+              assert not any('noindex' in x.lower() for x in p.robots),(old,p.robots)
+              assert not any(re.search(r'(?<![\w.-])[\w-]+\.html\b|url\(',x) for x in p.scripts),(old,'Script links need review')
+              print('PAGE:',old,'TITLE:',''.join(p.title),'PREVIOUS:',p.meta[0],'NEW:',desc)
+              s,n=re.subn(r'<meta\b(?=[^>]*\bname\s*=\s*["\']description["\'])[^>]*>',lambda m:'<meta name="description" content="'+html.escape(desc,quote=True)+'">',s,flags=re.I);assert n==1,old
+              s,n=re.subn(r'</head>',lambda m:'<link rel="canonical" href="'+dest(old)+'">\n'+m.group(0),s,flags=re.I);assert n==1
+              s=re.sub(r'(\b(?:href|src|poster|data-src|action)\s*=\s*)(["\'])(.*?)\2',lambda m:m.group(1)+m.group(2)+change(m.group(3),old)+m.group(2),s,flags=re.I)
+              s=re.sub(r'(url\(\s*)(["\']?)([^)"\']+)\2(\s*\))',lambda m:m.group(1)+m.group(2)+change(m.group(3).strip(),old)+m.group(2)+m.group(4),s,flags=re.I)
+              p2=parse(s);assert p2.aff==p.aff and p2.scripts==p.scripts and p2.title==p.title and p2.robots==p.robots and p2.meta==[desc] and p2.canon==[dest(old)],old
+              count+=len(p.aff)
+              save(public/(slug+'/index.html' if slug else 'index.html'),s.encode('utf-8'))
+          assert count==836,count
+          targets={urlsplit(dest(p)).path for p in mapping}|{'/kurashi/'+p for p in assets}
+          for f in public.rglob('*.html'):
+              for _,_,v in parse(f.read_text()).refs:
+                  u=urlsplit(v)
+                  if u.path.startswith('/kurashi/'):assert u.path in targets,(f,v)
+                  elif u.path and not u.scheme and not u.netloc:raise AssertionError((f,v))
+          rules='# Kurashi Japanese URL redirects\nRewriteEngine On\n'+''.join('RewriteRule ^'+re.escape(old)+'$ /kurashi/'+slug+'/ [R=301,L]\n' for old,(slug,_) in mapping.items() if slug)
+          save(public/'.htaccess',rules.encode())
+          xml='<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'+''.join('  <url><loc>'+dest(old)+'</loc></url>\n' for old in mapping)+'</urlset>\n'
+          assert len(ET.fromstring(xml))==27
+          save(public/'sitemap.xml',xml.encode())
+          (root/'routes.json').write_text(json.dumps({old:slug for old,(slug,_) in mapping.items()},ensure_ascii=False))
+          print('PASS: 27 descriptions, 27 canonicals, 836 unchanged affiliate hrefs and internal paths')
+          PY
+          tar -czf "$RUNNER_TEMP/kurashi-seo.tar.gz" -C "$RUNNER_TEMP/kurashi-seo" original public
+      - name: Install isolated Kurashi files with backup
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          test -n "$SSH_KEY" && test -n "$SAKURA_HOST" && test -n "$SAKURA_USER"
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          chmod 600 ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" >> ~/.ssh/known_hosts
+          test -s ~/.ssh/known_hosts
+          remote=$(cat <<'REMOTE'
+          sh -c 'set -eu; dest=/home/rakudadou/www/kurashi; test -d "$dest"; test ! -L "$dest"; stage=$(mktemp -d /home/rakudadou/kurashi-seo-stage.XXXXXXXX); trap "rm -rf \"$stage\"" EXIT; tar -xzf - -C "$stage"; test -s "$stage/public/index.html"; test -s "$stage/public/.htaccess"; for f in "$stage/original"/*.html; do n=$(basename "$f"); test -f "$dest/$n"; test ! -L "$dest/$n"; cmp "$f" "$dest/$n"; done; for d in "$stage/public"/*/; do n=$(basename "$d"); test -s "$d/index.html"; test ! -e "$dest/$n"; test ! -L "$dest/$n"; done; for n in .htaccess sitemap.xml; do test ! -e "$dest/$n"; test ! -L "$dest/$n"; done; backup=$(mktemp -d /home/rakudadou/kurashi-seo-backup.XXXXXXXX); chmod 700 "$backup"; cp -Rp "$stage/original" "$backup/"; for d in "$stage/public"/*/; do n=$(basename "$d"); mkdir -m 755 "$dest/$n"; cp -p "$d/index.html" "$dest/$n/index.html"; chmod a+r "$dest/$n/index.html"; done; for n in index.html sitemap.xml .htaccess; do cp -p "$stage/public/$n" "$dest/$n.seo-new"; chmod a+r "$dest/$n.seo-new"; mv -f "$dest/$n.seo-new" "$dest/$n"; done; echo "Kurashi SEO installed; backup outside public root"'
+          REMOTE
+          )
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" "$remote" < "$RUNNER_TEMP/kurashi-seo.tar.gz"
+      - name: Verify live SEO and every old URL
+        run: |
+          python3 - <<'PY'
+          import os,json
+          from pathlib import Path
+          from urllib.parse import quote,unquote,urljoin
+          from urllib.request import Request,urlopen,build_opener,HTTPRedirectHandler
+          from urllib.error import HTTPError
+          from concurrent.futures import ThreadPoolExecutor
+          base='https://rakudadou.sakura.ne.jp/kurashi/'
+          root=Path(os.environ['RUNNER_TEMP'])/'kurashi-seo'
+          routes=json.loads((root/'routes.json').read_text())
+          class NoRedirect(HTTPRedirectHandler):
+              def redirect_request(self,*a,**kw):return None
+          def check(item):
+              old,slug=item;url=base+(quote(slug)+'/' if slug else '')
+              file=root/'public'/(slug+'/index.html' if slug else 'index.html')
+              with urlopen(Request(url,headers={'User-Agent':'Mozilla/5.0'}),timeout=25) as r:assert r.status==200 and r.read()==file.read_bytes(),url
+              if slug:
+                  try:
+                      with build_opener(NoRedirect()).open(base+old,timeout=25) as r:raise AssertionError((old,r.status))
+                  except HTTPError as e:
+                      assert e.code==301 and unquote(urljoin(base+old,e.headers['Location']))==unquote(url),(old,e.code,e.headers.get('Location'))
+              print('Verified:',old,url)
+          with ThreadPoolExecutor(max_workers=5) as ex:list(ex.map(check,routes.items()))
+          with urlopen(base+'sitemap.xml',timeout=25) as r:assert r.status==200 and r.read()==(root/'public/sitemap.xml').read_bytes()
+          for path in ['erugam-54177.jpg','kurashi-body-guide.jpg','kurashi-food-guide.png','kurashi-life-guide.png','kurashi-planning.png','kurashi-site-header.png']:
+              with urlopen(base+path,timeout=25) as r:assert r.status==200 and r.read(1)
+          print('PASS: 27 public pages, 26 permanent redirects, sitemap, 6 local images')
+          PY
+      - name: Save original and SEO package
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kurashi-seo-snapshot
+          path: |
+            ${{ runner.temp }}/kurashi-seo.tar.gz
+            ${{ runner.temp }}/kurashi-seo/routes.json
+          if-no-files-found: ignore
+          retention-days: 30
