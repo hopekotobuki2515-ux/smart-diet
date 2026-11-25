@@ -1,0 +1,130 @@
+name: Install and verify HOPE blog preview on Sakura
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/install-hope-blog-preview.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: install-hope-blog-preview
+  cancel-in-progress: false
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Connect using existing Sakura credentials
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          test -n "$SSH_KEY" && test -n "$SAKURA_HOST" && test -n "$SAKURA_USER"
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          test -s ~/.ssh/known_hosts
+      - name: Verify original ZIP and install isolated preview files
+        env:
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          umask 077
+          P=/home/rakudadou/www/hope-blog
+          D=/home/rakudadou/hope-blog-private
+          A="$D/incoming.zip"
+          test -d "$P" && test ! -L "$P" && test -d "$D" && test ! -L "$D"
+          test -f "$A" && test ! -L "$A"
+          chmod 700 "$D"
+          php -r 'if (hash_file("sha256", $argv[1]) !== "97c1408ffd88b150aba1947efc07e67ba187611cc6156870da75b7cd5df38017") { fwrite(STDERR,"Archive checksum mismatch\n"); exit(1); }' "$A"
+          echo 'Original archive checksum verified.'
+          command -v unzip >/dev/null
+          for f in .htaccess index.php common.php admin.php assets; do
+            if test -e "$P/$f" || test -L "$P/$f"; then echo 'Refusing to overwrite an existing preview file'; exit 1; fi
+          done
+          test ! -e "$D/data" && test ! -L "$D/data"
+          STAGE=$(mktemp -d "$D/install.XXXXXXXX")
+          trap 'rm -rf "$STAGE"' EXIT HUP INT TERM
+          unzip -q "$A" -d "$STAGE"
+          php -r '$a=json_decode(file_get_contents($argv[1]),true,512,JSON_THROW_ON_ERROR); $c=json_decode(file_get_contents($argv[2]),true,512,JSON_THROW_ON_ERROR); $counts=array_count_values(array_column($a,"status")); if(count($a)!==117||count(array_unique(array_column($a,"id")))!==117||($counts["public"]??0)!==115||($counts["draft"]??0)!==1||($counts["restricted"]??0)!==1||count($c["cats"])!==4||$c["preview"]!==true||$c["admin_hash"]!==""||$c["restricted_hash"]!=="")exit(1); echo "Verified 117 articles, 115 public, 1 draft, 1 restricted, 4 categories, preview enabled.\n";' "$STAGE/private/articles.json" "$STAGE/private/config.json"
+          php -r '$p=$argv[1]; $s=file_get_contents($p); $old="const DATA=__DIR__.".chr(39)."/../private/".chr(39).";"; $new="const DATA=".var_export("/home/rakudadou/hope-blog-private/data/",true).";"; if(substr_count($s,$old)!==1)exit(1); if(file_put_contents($p,str_replace($old,$new,$s))===false)exit(1);' "$STAGE/public/common.php"
+          for f in "$STAGE/public/"*.php "$STAGE/private/setup.php"; do php -l "$f"; done
+          chmod 700 "$STAGE/private"
+          find "$STAGE/private" -type f -exec chmod 600 {} +
+          mv "$STAGE/private" "$D/data"
+          chmod 755 "$STAGE/public/assets"
+          chmod 644 "$STAGE/public/assets/style.css"
+          for f in .htaccess index.php common.php admin.php; do chmod 644 "$STAGE/public/$f"; done
+          mv "$STAGE/public/assets" "$P/assets"
+          for f in .htaccess common.php admin.php index.php; do mv "$STAGE/public/$f" "$P/$f"; done
+          test -f "$P/index.php" && test -f "$D/data/articles.json"
+          echo 'Preview files installed; original archive and nonpublic files remain outside www.'
+          REMOTE
+      - name: Verify public URLs and nonpublic access protection over HTTPS
+        env:
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'php -r '\''$a=json_decode(file_get_contents("/home/rakudadou/hope-blog-private/data/articles.json"),true,512,JSON_THROW_ON_ERROR); foreach($a as $x)if($x["status"]==="public")echo (int)$x["id"],"\n";'\''' > /tmp/hope-public-ids.txt
+          test "$(wc -l </tmp/hope-public-ids.txt | tr -d ' ')" = 115
+          python3 - <<'PY'
+          import concurrent.futures, urllib.request, urllib.error, xml.etree.ElementTree as ET
+          base = 'https://rakudadou.sakura.ne.jp/hope-blog/'
+          ids = [int(x) for x in open('/tmp/hope-public-ids.txt')]
+          def get(path):
+              try:
+                  with urllib.request.urlopen(base+path, timeout=20) as r:
+                      return r.status, r.headers, r.read()
+              except urllib.error.HTTPError as e:
+                  return e.code, e.headers, e.read()
+          def article(i):
+              code, headers, body = get(f'blog-entry-{i}.html')
+              if code != 200 or 'noindex' not in headers.get('X-Robots-Tag','') or b'<title>' not in body:
+                  raise RuntimeError(f'Article {i}: HTTP {code} or missing preview metadata')
+          with concurrent.futures.ThreadPoolExecutor(max_workers=3) as ex:
+              list(ex.map(article, ids))
+          print('All 115 public article URLs returned 200 with noindex.')
+          for path in ['', 'blog-category-0.html', 'blog-category-23.html', 'blog-category-24.html', 'blog-category-25.html', '?all', '?q=HOPE', '?xml', 'sitemaps.xml', 'robots.txt', 'assets/style.css', 'admin.php']:
+              code, headers, body = get(path)
+              assert code == 200 and body, (path,code)
+              if path == 'sitemaps.xml':
+                  root=ET.fromstring(body)
+                  assert len(root)==120, len(root)
+              if path == 'robots.txt': assert b'Disallow: /' in body
+              if path == 'admin.php': assert '管理者パスワード未設定'.encode() in body
+              if path == '':
+                  assert 'noindex' in headers.get('X-Robots-Tag','')
+                  assert b'googletagmanager.com/gtag/js' not in body
+          for path, expected in [('blog-entry-74.html',404),('blog-entry-79.html',403),('common.php',403)]:
+              code, _, _ = get(path)
+              assert code == expected, (path,code)
+          for path in ['private/articles.json','data/articles.json','../hope-blog-private/incoming.zip','../hope-blog-private/data/articles.json']:
+              code, _, _ = get(path)
+              assert code in (403,404), (path,code)
+          print('Categories, search, RSS, sitemap, stylesheet, admin, draft and restricted access checks passed.')
+          PY
+      - name: Disable the completed migration receiver
+        env:
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          F=/home/rakudadou/www/hope-blog/migration-receive.php
+          D=/home/rakudadou/hope-blog-private
+          test -f "$F" && test ! -L "$F"
+          test -f "$D/incoming.zip" && test ! -e "$D/receiver-completed.php"
+          mv "$F" "$D/receiver-completed.php"
+          chmod 600 "$D/receiver-completed.php"
+          echo 'Receiver moved outside public directory.'
+          REMOTE
