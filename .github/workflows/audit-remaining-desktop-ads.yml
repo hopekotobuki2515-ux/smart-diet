@@ -1,0 +1,41 @@
+name: Read-only audit of remaining HOPE desktop pages
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/audit-remaining-desktop-ads.yml'
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Check all eight secondary pages and TLS
+        run: |
+          python3 - <<'PY'
+          import urllib.request, urllib.error, re, concurrent.futures
+          from html.parser import HTMLParser
+          from urllib.parse import urljoin,urlsplit
+          base='http://www.rakudadou.jp/'
+          pages=['kaatsutoha.htm','kaatsukouka.htm','taiken.htm','ryoukin.htm','koutsu.htm','shitsumon.htm','nyuukainagare.htm','pro.html']
+          class P(HTMLParser):
+              def __init__(self):super().__init__();self.imgs=[];self.links=[];self.embeds=[]
+              def handle_starttag(self,t,attrs):
+                  a=dict(attrs)
+                  if t=='img':self.imgs.append((a.get('src',''),a.get('alt','')))
+                  if t=='a':self.links.append(a.get('href',''))
+                  if t in ('iframe','frame','embed','object','script') and (a.get('src') or a.get('data')):self.embeds.append(a.get('src',a.get('data','')))
+          def check(p):
+              with urllib.request.urlopen(base+p,timeout=15) as r:
+                  s=r.read().decode('cp932','replace');status=r.status
+              parser=P();parser.feed(s)
+              ads=[i for i in parser.imgs if re.search('image35\\.gif|sapuri|logo21\\.gif|ブログ|サプリ|リニューアル|広告',i[0]+' '+i[1],re.I)]
+              ext=[i for i in parser.links if urlsplit(urljoin(base,i)).hostname not in ['www.rakudadou.jp','rakudadou.jp'] and i.startswith(('http:','https:'))]
+              print('PAGE',p,'HTTP',status,'ADS',repr(ads),'EXTERNAL_LINKS',repr(ext),'EMBEDS',repr(parser.embeds),'IMAGES',repr([x[0] for x in parser.imgs]),'FOOTER',all(x in s for x in ['hope-site-privacy.html','hope-site-contact.html']))
+          with concurrent.futures.ThreadPoolExecutor(max_workers=4) as ex:list(ex.map(check,pages))
+          for u in ['https://rakudadou.jp/','https://www.rakudadou.jp/']:
+              try:
+                  with urllib.request.urlopen(u,timeout=8) as r:print('TLS',u,r.status)
+              except Exception as e: print('TLS',u,type(e).__name__,str(e)[:300])
+          PY
