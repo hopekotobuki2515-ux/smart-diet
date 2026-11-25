@@ -1,0 +1,233 @@
+name: Redesign only HOPE blog home
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/redesign-hope-blog-home.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: hope-blog-production-host
+  cancel-in-progress: false
+jobs:
+  redesign:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Validate and deploy home-only view with rollback
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          P=/home/rakudadou/www/hope-blog
+          D=/home/rakudadou/hope-blog-private/data
+          test ! -L "$P/index.php"
+          test ! -e "$D/home-page.php"
+          T=$(mktemp -d "$D/home-redesign.XXXXXXXX")
+          export T
+          trap 'rm -rf "$T"' EXIT
+          cat > "$T/home-page.php" <<'HOME_PHP'
+          <?php
+          // Private view: included only by the blog's root route.
+          if(!defined('DATA')){http_response_code(404);exit;}
+          $recent=array_values(array_filter($rows,fn($a)=>!in_array((int)$a['id'],[107,108,109],true)));
+          $recent=array_slice($recent,0,9);
+          $categoryOrder=[23,24,25,0];
+          $categoryNotes=[23=>'基礎知識・安全性・実践方法',24=>'食事・体重管理・日々の習慣',25=>'柔軟性・セルフケア・体の動かし方',0=>'その他の記事'];
+          $info=[109=>'運営者情報',108=>'お問い合わせ',107=>'プライバシーポリシー'];
+          $publicIds=array_map('intval',array_column($rows,'id'));
+          $months=[];foreach($rows as $article){$month=substr($article['date'],0,7);$months[$month]=($months[$month]??0)+1;}
+          ?>
+          <!doctype html>
+          <html lang="ja">
+          <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <title><?=e($title)?></title>
+          <?=$seo?>
+          <style>
+          :root{color-scheme:light;--ink:#242a30;--muted:#626b74;--accent:#a64b12;--orange:#f39a32;--line:#e5e7e9;--soft:#f7f8f9}
+          *,*::before,*::after{box-sizing:border-box}
+          body{margin:0;background:#fff;color:var(--ink);font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;line-height:1.8;font-size:16px;overflow-wrap:anywhere}
+          a{color:inherit;text-decoration:none}
+          a:focus-visible,button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid var(--orange);outline-offset:3px}
+          .wrap{max-width:1120px;width:100%;margin:0 auto;padding:0 24px}
+          .site-header{border-bottom:1px solid var(--line);background:#fff}
+          .header-inner{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:78px;flex-wrap:wrap;padding-top:12px;padding-bottom:12px}
+          .brand{font-weight:800;font-size:21px;letter-spacing:.04em;line-height:1.3}
+          .brand small{display:block;font-weight:500;font-size:12px;letter-spacing:0;color:var(--muted);margin-top:4px}
+          .nav{display:flex;gap:20px;flex-wrap:wrap;align-items:center;font-size:14px;font-weight:700}
+          .nav a:hover,.footer-nav a:hover{color:var(--accent);text-decoration:underline}
+          .hero{background:linear-gradient(125deg,#fff9f1,#f8fafb 80%);border-bottom:1px solid var(--line);padding:48px 0 44px}
+          .kicker{display:inline-block;color:var(--accent);font-weight:750;letter-spacing:.08em;font-size:13px;margin:0 0 14px}
+          h1{font-size:clamp(27px,4.6vw,43px);line-height:1.35;margin:0 0 18px;letter-spacing:.015em;overflow-wrap:normal;word-break:normal}
+          .hero p{margin:0;color:#48535b;max-width:660px;font-size:16px}
+          .search{margin-top:24px;display:flex;max-width:600px;gap:10px}
+          .search input{min-width:0;width:100%;font:inherit;border:1px solid #b8c0c6;border-radius:8px;padding:12px 14px;background:white;color:var(--ink)}
+          button,.solid{display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:8px;background:#a64b12;color:white;font:inherit;font-weight:700;padding:12px 22px;white-space:nowrap;cursor:pointer}
+          button:hover,.solid:hover{background:#843b0d}
+          main{padding-top:36px;padding-bottom:50px}
+          .section{margin-bottom:44px}
+          .section h2{font-size:24px;line-height:1.45;margin:0 0 19px;padding:0 0 10px;border-bottom:3px solid var(--orange)}
+          .section-note{margin:-6px 0 18px;color:var(--muted);font-size:14px}
+          .categories{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px}
+          .category{display:flex;flex-direction:column;gap:7px;border:1px solid var(--line);border-radius:12px;background:#fff;padding:19px;min-width:0;transition:border-color .15s}
+          .category:hover,.article-card:hover{border-color:var(--orange)}
+          .category strong{font-size:18px;line-height:1.5;color:var(--ink)}
+          .category span{font-size:13px;color:var(--muted)}
+          .category .count{margin-top:auto;color:var(--accent);font-weight:700}
+          .articles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+          .article-card{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff;min-width:0;transition:border-color .15s}
+          .thumb{display:block;width:100%;aspect-ratio:640/426;background:#f6f6f5;object-fit:contain}
+          .article-copy{padding:17px 18px 20px;display:flex;flex-direction:column;gap:9px;flex:1}
+          .meta{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;font-size:12px;color:var(--muted)}
+          .category-tag{color:var(--accent);font-weight:700}
+          .article-card h3{font-size:18px;line-height:1.55;margin:0;font-weight:750;overflow-wrap:anywhere;word-break:normal}
+          .read{color:var(--accent);font-size:13px;font-weight:700;margin-top:auto;padding-top:6px}
+          .center{text-align:center;margin-top:24px}
+          .about{padding:23px;border:1px solid var(--line);border-radius:12px;background:var(--soft)}
+          .about p{margin:0 0 12px}
+          .about a,.archive a{color:var(--accent);text-decoration:underline;text-underline-offset:3px}
+          .archive{border:1px solid var(--line);border-radius:10px;padding:12px 18px}
+          .archive summary{cursor:pointer;font-weight:700}
+          .months{display:flex;flex-wrap:wrap;gap:10px 18px;padding:12px 0 2px}
+          .site-footer{background:var(--soft);border-top:1px solid var(--line);padding:24px 0 28px}
+          .footer-nav{display:flex;flex-wrap:wrap;gap:12px 20px;font-size:13px;margin-bottom:12px}
+          .copyright{color:var(--muted);font-size:12px;margin:0}
+          @media(max-width:820px){.categories{grid-template-columns:repeat(2,minmax(0,1fr))}.articles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+          @media(max-width:520px){.wrap{padding-left:16px;padding-right:16px}.header-inner{gap:12px;min-height:0}.brand{font-size:19px}.nav{gap:14px;font-size:13px}.hero{padding:34px 0}.hero p{font-size:15px}.search{gap:8px}.search input{padding:10px}.search button{padding:10px 16px}.section{margin-bottom:34px}.section h2{font-size:22px}.categories{gap:10px}.category{padding:13px;gap:5px}.category strong{font-size:16px}.category span{font-size:12px}.articles{grid-template-columns:minmax(0,1fr);gap:15px}.article-copy{padding:16px}.article-card h3{font-size:17px}main{padding-top:27px;padding-bottom:30px}}
+          @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+          </style>
+          </head>
+          <body>
+          <header class="site-header"><div class="wrap header-inner"><a class="brand" href="<?=e(url())?>">HOPE FITNESS<small>加圧トレーニング専門ブログ</small></a><nav class="nav" aria-label="主なメニュー"><a href="<?=e(url())?>">ホーム</a><a href="<?=e(url('?all'))?>">記事一覧</a><?php if(in_array(109,$publicIds,true)):?><a href="<?=e(articleurl(109))?>">運営者情報</a><?php endif;?></nav></div></header>
+          <section class="hero"><div class="wrap"><span class="kicker">加圧トレーニング・運動・食事</span><h1>加圧トレーニング専門ブログ</h1><p><?=e($c['intro'])?></p><form class="search" role="search" method="get" action="<?=e(url())?>"><input name="q" type="search" placeholder="気になるキーワードを検索" aria-label="記事を検索" required><button type="submit">検索</button></form></div></section>
+          <main class="wrap">
+          <section class="section" aria-labelledby="categories-heading"><h2 id="categories-heading">カテゴリーから探す</h2><div class="categories"><?php foreach($categoryOrder as $id):if(!isset($c['cats'][$id]))continue;$count=count(array_filter($rows,fn($a)=>(int)$a['category']===$id));?><a class="category" href="<?=e(categoryurl($id))?>"><strong><?=e($c['cats'][$id])?></strong><span><?=e($categoryNotes[$id])?></span><span class="count"><?=$count?>記事 ›</span></a><?php endforeach;?></div></section>
+          <section class="section" aria-labelledby="recent-heading"><h2 id="recent-heading">新着記事</h2><div class="articles"><?php foreach($recent as $a):$img=(string)($a['image']??'');?><a class="article-card" href="<?=e(articleurl($a['id']))?>"><?php if(preg_match('~^https?://~i',$img)):?><img class="thumb" src="<?=e($img)?>" alt="<?=e($a['title'])?>" width="640" height="426" loading="lazy" decoding="async"><?php endif;?><div class="article-copy"><div class="meta"><span class="category-tag"><?=e($c['cats'][$a['category']]??'未分類')?></span><time datetime="<?=e(substr($a['date'],0,10))?>"><?=e(substr($a['date'],0,10))?></time></div><h3><?=e($a['title'])?></h3><span class="read">記事を読む ›</span></div></a><?php endforeach;?></div><div class="center"><a class="solid" href="<?=e(url('?all'))?>">すべての記事を見る</a></div></section>
+          <section class="section"><h2>運営者について</h2><div class="about"><p><strong><?=e($c['author'])?></strong></p><p><?=nl2br(e($c['profile']))?></p><?php if(in_array(109,$publicIds,true)):?><a href="<?=e(articleurl(109))?>">運営者情報を読む ›</a><?php endif;?></div></section>
+          <section class="section"><h2>過去の記事を探す</h2><details class="archive"><summary>月別アーカイブ</summary><div class="months"><?php foreach($months as $month=>$count):?><a href="<?=e(url('blog-date-'.str_replace('-','',$month).'.html'))?>"><?=e($month)?>（<?=$count?>）</a><?php endforeach;?></div></details></section>
+          </main>
+          <footer class="site-footer"><div class="wrap"><nav class="footer-nav" aria-label="サイト情報"><a href="<?=e(url())?>">ホーム</a><a href="<?=e(url('?all'))?>">全記事一覧</a><?php foreach($info as $id=>$label):if(in_array($id,$publicIds,true)):?><a href="<?=e(articleurl($id))?>"><?=e($label)?></a><?php endif;endforeach;?><a href="<?=e(url('?xml'))?>">RSS</a></nav><p class="copyright">© <?=e($c['name'])?></p></div></footer>
+          <?= $c['preview']?'':file_get_contents(DATA.'analytics-event.html') ?>
+          </body>
+          </html>
+          HOME_PHP
+          php -l "$T/home-page.php"
+          cat > "$T/patch.php" <<'PATCH_PHP'
+          <?php
+          $p='/home/rakudadou/www/hope-blog';$d='/home/rakudadou/hope-blog-private/data';$t=getenv('T');
+          $source=file_get_contents($p.'/index.php');
+          $old="echo fill(\$f['head'],";
+          $new="if(\$home&&\$path===''){require DATA.'home-page.php';exit;}\n".$old;
+          if(substr_count($source,$old)!==1||!str_contains($source,'$productionHost')||str_contains($source,'home-page.php'))throw new RuntimeException('Unexpected index revision; abort');
+          $a=json_decode(file_get_contents($d.'/articles.json'),true,512,JSON_THROW_ON_ERROR);
+          if(count($a)!==117||count(array_unique(array_column($a,'id')))!==117)throw new RuntimeException('Data state mismatch');
+          $ids=array_column(array_filter($a,fn($x)=>$x['status']==='public'),'id');
+          if(count($ids)!==115)throw new RuntimeException('Public count mismatch');
+          file_put_contents($t.'/ids.txt',implode("\n",$ids)."\n");
+          $common=file_get_contents($p.'/common.php');
+          $anchor="const DATA='/home/rakudadou/hope-blog-private/data/';";
+          if(substr_count($common,$anchor)!==1)throw new RuntimeException('Unexpected private directory');
+          mkdir($t.'/old');mkdir($t.'/new');
+          $private=$t.'/data/';mkdir($private);
+          foreach(['articles.json','config.json','fragments.json','analytics-event.html'] as $f)if(!copy($d.'/'.$f,$private.$f))throw new RuntimeException('Copy failed');
+          copy($t.'/home-page.php',$private.'home-page.php');
+          foreach(['old','new'] as $rev)file_put_contents($t.'/'.$rev.'/common.php',str_replace($anchor,'const DATA='.var_export($private,true).';',$common));
+          file_put_contents($t.'/old/index.php',$source);
+          $patched=str_replace($old,$new,$source);
+          file_put_contents($t.'/new/index.php',$patched);file_put_contents($t.'/index.php',$patched);
+          PATCH_PHP
+          php "$T/patch.php"
+          php -l "$T/index.php"
+          cat > "$T/render.php" <<'RENDER_PHP'
+          <?php
+          $root=$argv[1];$host=$argv[2];$route=$argv[3];$prefix=$host==='hope-fitness.jp'?'/':'/hope-blog/';
+          $_SERVER['HTTP_HOST']=$host;$_SERVER['HTTPS']='on';$_SERVER['SCRIPT_NAME']=$prefix.'index.php';$_SERVER['REQUEST_URI']=$prefix.$route;$_SERVER['REQUEST_METHOD']='GET';
+          parse_str((string)parse_url($_SERVER['REQUEST_URI'],PHP_URL_QUERY),$_GET);
+          require $root.'/index.php';
+          RENDER_PHP
+          cat > "$T/verify.php" <<'VERIFY_PHP'
+          <?php
+          $t=getenv('T');$ids=file($t.'/ids.txt',FILE_IGNORE_NEW_LINES|FILE_SKIP_EMPTY_LINES);
+          function render($rev,$host,$route){$t=getenv('T');$cmd=escapeshellarg(PHP_BINARY).' '.escapeshellarg($t.'/render.php').' '.escapeshellarg($t.'/'.$rev).' '.escapeshellarg($host).' '.escapeshellarg($route);$r=shell_exec($cmd);if(!is_string($r)||$r==='')throw new RuntimeException('Render error');return $r;}
+          $routes=array_merge(array_map(fn($id)=>'blog-entry-'.$id.'.html',$ids),['blog-category-0.html','blog-category-23.html','blog-category-24.html','blog-category-25.html','page-1.html','?all','?q=HOPE','?xml','robots.txt','sitemaps.xml']);
+          foreach($routes as $route){$a=render('old','rakudadou.sakura.ne.jp',$route);$b=render('new','rakudadou.sakura.ne.jp',$route);if(hash('sha256',$a)!==hash('sha256',$b))throw new RuntimeException('Unintended route change: '.$route);}
+          foreach(['rakudadou.sakura.ne.jp','hope-fitness.jp'] as $host){$html=render('new',$host,'');$prefix=$host==='hope-fitness.jp'?'/':'/hope-blog/';if(substr_count($html,'class="article-card"')!==9||substr_count($html,'class="category"')!==4||substr_count($html,'<h1>')!==1||!str_contains($html,'action="'.$prefix.'"')||!str_contains($html,'href="'.$prefix.'?all"')||!str_contains($html,'name="viewport"'))throw new RuntimeException('Home view validation failed');if($host==='hope-fitness.jp'){if(!str_contains($html,'rel="canonical" href="https://hope-fitness.jp/"')||!str_contains($html,'G-Y4G18KF9NV'))throw new RuntimeException('Production metadata regression');}else{if(!str_contains($html,'name="robots" content="noindex,nofollow"')||str_contains($html,'G-Y4G18KF9NV'))throw new RuntimeException('Preview metadata regression');}}
+          echo 'PASS: '.count($routes).' existing route outputs byte-identical; both home hosts validated, nine articles and four categories. '.PHP_EOL;
+          VERIFY_PHP
+          php "$T/verify.php"
+          B=$(mktemp -d "$D/home-backup.XXXXXXXX")
+          cp "$P/index.php" "$B/index.php"
+          chmod 600 "$B/index.php"
+          php -r 'foreach(["articles.json","config.json","fragments.json"] as $f)echo $f," ",hash_file("sha256",$argv[1]."/".$f),PHP_EOL;foreach(["common.php","admin.php",".htaccess","assets/style.css"] as $f)echo $f," ",hash_file("sha256",$argv[2]."/".$f),PHP_EOL;' "$D" "$P" > "$T/before"
+          chmod 600 "$T/home-page.php"
+          chmod 644 "$T/index.php"
+          mv "$T/home-page.php" "$D/home-page.php"
+          if ! mv "$T/index.php" "$P/index.php"; then rm "$D/home-page.php"; exit 1; fi
+          if ! php -l "$P/index.php"; then cp "$B/index.php" "$P/index.php"; chmod 644 "$P/index.php"; rm "$D/home-page.php"; exit 1; fi
+          php -r 'foreach(["articles.json","config.json","fragments.json"] as $f)echo $f," ",hash_file("sha256",$argv[1]."/".$f),PHP_EOL;foreach(["common.php","admin.php",".htaccess","assets/style.css"] as $f)echo $f," ",hash_file("sha256",$argv[2]."/".$f),PHP_EOL;' "$D" "$P" > "$T/after"
+          cmp "$T/before" "$T/after"
+          echo 'PASS: articles, config, fragments, admin, common, rewrites and original CSS unchanged.'
+          REMOTE
+      - name: Verify new live homepage and article routes
+        run: |
+          set -eu
+          BASE=https://rakudadou.sakura.ne.jp/hope-blog/
+          curl --fail --silent --show-error --max-time 30 "$BASE" -o /tmp/hope-home.html
+          grep -Fq 'id="categories-heading"' /tmp/hope-home.html
+          grep -Fq 'name="robots" content="noindex,nofollow"' /tmp/hope-home.html
+          for route in blog-entry-120.html blog-category-23.html 'page-1.html' '?all' '?q=HOPE' 'admin.php'; do
+            curl --fail --silent --show-error --max-time 30 "$BASE$route" -o /tmp/hope-route.html
+            if grep -Fq 'id="categories-heading"' /tmp/hope-route.html; then exit 1; fi
+          done
+          for pair in 'blog-entry-74.html:404' 'blog-entry-79.html:403'; do
+            route=${pair%:*}; expected=${pair#*:}
+            code=$(curl --silent --show-error -o /dev/null --max-time 20 -w '%{http_code}' "$BASE$route")
+            test "$code" = "$expected"
+          done
+          echo 'PASS: live home, article, category, pagination, search, admin and private article protections.'
+      - name: Responsive browser and image verification
+        run: |
+          cd /tmp
+          npm install --no-audit --no-fund playwright
+          npx playwright install chromium
+          cat > /tmp/check-hope-home.cjs <<'JS'
+          const {chromium}=require('playwright');
+          (async()=>{
+            const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
+            const url='https://rakudadou.sakura.ne.jp/hope-blog/';
+            try{
+              for(const width of [320,390,768,1366]){
+                const page=await browser.newPage({viewport:{width,height:900},deviceScaleFactor:1});
+                await page.goto(url,{waitUntil:'domcontentloaded',timeout:45000});
+                const result=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,client:document.documentElement.clientWidth,cards:document.querySelectorAll('.article-card').length,cols:getComputedStyle(document.querySelector('.articles')).gridTemplateColumns.split(' ').length}));
+                if(result.scroll>result.client+1||result.cards!==9||(width<=520&&result.cols!==1))throw Error(JSON.stringify(result));
+                await page.locator('.article-card').last().scrollIntoViewIfNeeded();
+                const imgs=await page.locator('img.thumb').evaluateAll(async nodes=>{for(const n of nodes)n.loading='eager';await Promise.all(nodes.map(n=>new Promise(resolve=>{if(n.complete)return resolve();n.addEventListener('load',resolve,{once:true});n.addEventListener('error',resolve,{once:true});setTimeout(resolve,18000)})));return {total:nodes.length,loaded:nodes.filter(n=>n.complete&&n.naturalWidth>0).length}});
+                console.log('Viewport',width,'columns',result.cols,'overflow',result.scroll-result.client,'images',imgs.loaded+'/'+imgs.total);
+                if(imgs.total!==imgs.loaded)throw Error('Image load failed');
+                await page.close();
+              }
+              const page=await browser.newPage({viewport:{width:390,height:844}});
+              await page.goto(url,{waitUntil:'domcontentloaded'});
+              await page.locator('.category').first().click();await page.waitForURL('**/blog-category-23.html');
+              await page.goto(url,{waitUntil:'domcontentloaded'});
+              await page.locator('.search input').fill('加圧');await page.locator('.search button').click();await page.waitForURL(u=>u.searchParams.get('q')==='加圧');
+              await page.goto(url,{waitUntil:'domcontentloaded'});
+              await page.locator('.article-card').first().click();await page.waitForURL('**/blog-entry-*.html');
+              console.log('PASS: responsive views, actual image loading, category, search and article navigation.');
+            }finally{await browser.close()}
+          })().catch(e=>{console.error(e);process.exit(1)});
+          JS
+          node /tmp/check-hope-home.cjs
