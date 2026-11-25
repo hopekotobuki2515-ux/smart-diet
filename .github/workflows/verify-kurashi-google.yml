@@ -1,0 +1,38 @@
+name: Install Kurashi Google verification
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/verify-kurashi-google.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Install exact uploaded verification file
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          test -n "$SSH_KEY" && test -n "$SAKURA_HOST" && test -n "$SAKURA_USER"
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          chmod 600 ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" >> ~/.ssh/known_hosts
+          test -s ~/.ssh/known_hosts
+          printf '%s' 'google-site-verification: google09970eca0f74e2bc.html' > "$RUNNER_TEMP/google09970eca0f74e2bc.html"
+          test "$(wc -c < "$RUNNER_TEMP/google09970eca0f74e2bc.html")" -eq 53
+          remote=$(cat <<'REMOTE'
+          sh -c 'set -eu; dest=/home/rakudadou/www/kurashi; test -d "$dest"; test ! -L "$dest"; file="$dest/google09970eca0f74e2bc.html"; test ! -L "$file"; tmp=$(mktemp "$dest/.google-verification.XXXXXXXX"); trap "rm -f \"$tmp\"" EXIT; cat > "$tmp"; test "$(wc -c < "$tmp")" -eq 53; if test -e "$file"; then cmp "$file" "$tmp"; else chmod 644 "$tmp"; mv "$tmp" "$file"; fi'
+          REMOTE
+          )
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" "$remote" < "$RUNNER_TEMP/google09970eca0f74e2bc.html"
+          curl --fail --silent --show-error --max-time 20 'https://rakudadou.sakura.ne.jp/kurashi/google09970eca0f74e2bc.html' -o "$RUNNER_TEMP/verification-live.html"
+          cmp "$RUNNER_TEMP/google09970eca0f74e2bc.html" "$RUNNER_TEMP/verification-live.html"
+          echo "PASS: Public Google verification file matches uploaded 53 bytes"
