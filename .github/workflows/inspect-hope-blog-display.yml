@@ -1,0 +1,47 @@
+name: Inspect HOPE blog display (read only)
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/inspect-hope-blog-display.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Capture public blog at desktop and mobile widths
+        run: |
+          cd /tmp
+          npm install --no-audit --no-fund playwright
+          npx playwright install chromium
+          cat > /tmp/inspect.cjs <<'JS'
+          const {chromium}=require('playwright');
+          (async()=>{
+            const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
+            const base='https://rakudadou.sakura.ne.jp/hope-blog/';
+            try{
+              for(const [route,width] of [['',1366],['',390],['blog-entry-120.html',390],['blog-category-23.html',390]]){
+                const page=await browser.newPage({viewport:{width,height:900},deviceScaleFactor:1,isMobile:width===390,hasTouch:width===390});
+                const errors=[];page.on('pageerror',e=>errors.push(e.message));
+                const res=await page.goto(base+route,{waitUntil:'domcontentloaded',timeout:30000});
+                await page.locator('body').evaluate(n=>{for(const img of n.querySelectorAll('img'))img.loading='eager'});
+                await page.waitForTimeout(1000);
+                const result=await page.evaluate(()=>{
+                  const get=s=>{const n=document.querySelector(s);if(!n)return null;const b=n.getBoundingClientRect(),c=getComputedStyle(n);return {x:Math.round(b.x),y:Math.round(b.y),w:Math.round(b.width),h:Math.round(b.height),font:c.fontSize,display:c.display,position:c.position,overflow:c.overflow,grid:c.gridTemplateColumns}};
+                  return {title:document.title,viewport:document.querySelector('meta[name=viewport]')?.content,scroll:document.documentElement.scrollWidth,client:document.documentElement.clientWidth,header:get('header'),hero:get('.hero'),h1:get('h1'),search:get('.search'),categories:get('.categories'),articles:get('.articles'),card:get('.article-card'),thumb:get('.thumb'),images:[...document.images].filter(n=>n.complete&&n.naturalWidth===0).length,styles:[...document.styleSheets].map(s=>s.href||'inline'),main:get('main')};
+                });
+                console.log('LAYOUT '+JSON.stringify({route,width,status:res.status(),errors,result}));
+                const buffer=await page.screenshot({type:'jpeg',quality:40,fullPage:false});
+                console.log('SHOT_BEGIN '+width+' '+(route||'home'));
+                const b64=buffer.toString('base64');
+                for(let i=0;i<b64.length;i+=3000)console.log('SHOT_PART '+b64.slice(i,i+3000));
+                console.log('SHOT_END');
+                await page.close();
+              }
+            }finally{await browser.close()}
+          })().catch(e=>{console.error(e);process.exit(1)});
+          JS
+          node /tmp/inspect.cjs
