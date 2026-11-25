@@ -1,4 +1,4 @@
-name: Publish HOPE mobile GA4 to Sakura
+name: Publish HOPE mobile SEO to Sakura
 on:
   push:
     branches: [main]
@@ -13,26 +13,55 @@ concurrency:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
         with:
           repository: hopekotobuki2515-ux/hope-homepage
-          ref: ff01018bfa49e73cae501167aad9489f85260a69
+          ref: d6069b55d64798d6edbac7761d85da69713515f2
           persist-credentials: false
-      - name: Prepare unchanged public files
+      - name: Prepare and validate exact SEO files
         run: |
           set -eu
           mkdir -p "$RUNNER_TEMP/hope-site"
-          test -s index.html
-          test -d assets
-          cp -a ./*.html ./*.pdf assets "$RUNNER_TEMP/hope-site/"
-          if find "$RUNNER_TEMP/hope-site" -type l -print | grep -q .; then
-            echo "Unexpected symbolic link; stopping"
-            exit 1
-          fi
+          cp -p ./*.html .htaccess sitemap.xml "$RUNNER_TEMP/hope-site/"
+          for d in '体験トレーニング' '加圧トレーニングの効果' 'パーソナルトレーニング料金' '入会案内' 'よくある質問' 'トレーナー紹介'; do
+            test -s "$d/index.html"
+            mkdir "$RUNNER_TEMP/hope-site/$d"
+            cp -p "$d/index.html" "$RUNNER_TEMP/hope-site/$d/"
+          done
+          python3 - <<'PY'
+          from pathlib import Path
+          from html.parser import HTMLParser
+          from urllib.parse import urlsplit, unquote
+          from xml.etree import ElementTree
+          root=Path.cwd()
+          class Links(HTMLParser):
+              def __init__(self):
+                  super().__init__(); self.links=[]; self.canonical=[]
+              def handle_starttag(self, tag, attrs):
+                  a=dict(attrs)
+                  if tag=='link' and a.get('rel')=='canonical': self.canonical.append(a['href'])
+                  for k in ('href','src','poster'):
+                      if a.get(k): self.links.append(a[k])
+          pages=[root/'index.html', *[p for p in root.glob('*/index.html') if p.parent.name in ['体験トレーニング','加圧トレーニングの効果','パーソナルトレーニング料金','入会案内','よくある質問','トレーナー紹介']]]
+          assert len(pages)==7
+          for p in pages:
+              s=p.read_text()
+              assert 'G-ZCETMLPKX3' in s and 'phone_click' in s
+              parser=Links(); parser.feed(s)
+              assert len(parser.canonical)==1 and parser.canonical[0].startswith('https://rakudadou.sakura.ne.jp/hope-mobile/')
+              for link in parser.links:
+                  u=urlsplit(link)
+                  if u.scheme or u.netloc or not u.path: continue
+                  t=p.parent/unquote(u.path)
+                  if t.is_dir(): t=t/'index.html'
+                  assert t.is_file(), (p,link)
+          assert len(ElementTree.parse(root/'sitemap.xml').getroot())==7
+          print('Seven SEO pages: GA4, canonical and relative links validated')
+          PY
           tar -czf "$RUNNER_TEMP/hope-site.tar.gz" -C "$RUNNER_TEMP/hope-site" .
-      - name: Update HTML in existing HOPE folder only
+      - name: Deploy only HOPE with guarded backup
         env:
           SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
           SAKURA_HOST: ${{ vars.SAKURA_HOST }}
@@ -48,38 +77,83 @@ jobs:
           ssh-keyscan -T 10 -H "$SAKURA_HOST" >> ~/.ssh/known_hosts
           test -s ~/.ssh/known_hosts
           remote=$(cat <<'REMOTE'
-          sh -c 'set -eu; dest=/home/rakudadou/www/hope-mobile; test -d "$dest"; test ! -L "$dest"; stage=$(mktemp -d /home/rakudadou/hope-mobile-stage.XXXXXXXX); trap "rm -rf \"$stage\"" EXIT; tar -xzf - -C "$stage"; test -s "$stage/index.html"; for f in "$stage"/*.html; do n=$(basename "$f"); test -f "$dest/$n"; test ! -L "$dest/$n"; grep -Fq G-ZCETMLPKX3 "$f"; done; for f in "$stage"/*.html; do n=$(basename "$f"); cp -p "$f" "$dest/$n.ga4-new"; chmod a+r "$dest/$n.ga4-new"; mv -f "$dest/$n.ga4-new" "$dest/$n"; done; echo "HOPE HTML updated"'
+          sh -c '
+            set -eu
+            dest=/home/rakudadou/www/hope-mobile
+            test -d "$dest"; test ! -L "$dest"
+            stage=$(mktemp -d /home/rakudadou/hope-seo-stage.XXXXXXXX)
+            trap "rm -rf \"$stage\"" EXIT
+            tar -xzf - -C "$stage"
+            test -s "$stage/index.html"; test -s "$stage/.htaccess"
+            for f in "$stage"/*.html; do
+              n=$(basename "$f"); test -f "$dest/$n"; test ! -L "$dest/$n"; grep -Fq G-ZCETMLPKX3 "$f"
+            done
+            for d in "$stage"/*/; do
+              n=$(basename "$d"); test -s "$d/index.html"
+              if test -e "$dest/$n" || test -L "$dest/$n"; then
+                test -d "$dest/$n"; test ! -L "$dest/$n"; test -f "$dest/$n/index.html"; test ! -L "$dest/$n/index.html"
+                cmp -s "$d/index.html" "$dest/$n/index.html" || { echo "Existing alias differs; stopping"; exit 1; }
+              fi
+            done
+            for n in .htaccess sitemap.xml; do
+              if test -e "$dest/$n" || test -L "$dest/$n"; then
+                test -f "$dest/$n"; test ! -L "$dest/$n"
+                cmp -s "$stage/$n" "$dest/$n" || { echo "Existing $n differs; stopping before write"; exit 1; }
+              fi
+            done
+            backup=$(mktemp -d /home/rakudadou/hope-seo-backup.XXXXXXXX)
+            chmod 700 "$backup"
+            for f in "$stage"/*.html; do n=$(basename "$f"); cp -p "$dest/$n" "$backup/$n"; done
+            for n in .htaccess sitemap.xml; do if test -f "$dest/$n"; then cp -p "$dest/$n" "$backup/$n"; fi; done
+            for d in "$stage"/*/; do
+              n=$(basename "$d")
+              if test ! -d "$dest/$n"; then mkdir -m 755 "$dest/$n"; cp -p "$d/index.html" "$dest/$n/index.html"; chmod a+r "$dest/$n/index.html"; fi
+            done
+            for f in "$stage"/*.html; do
+              n=$(basename "$f"); cp -p "$f" "$dest/$n.seo-new"; chmod a+r "$dest/$n.seo-new"; mv -f "$dest/$n.seo-new" "$dest/$n"
+            done
+            cp -p "$stage/sitemap.xml" "$dest/sitemap.xml.seo-new"; chmod a+r "$dest/sitemap.xml.seo-new"; mv -f "$dest/sitemap.xml.seo-new" "$dest/sitemap.xml"
+            cp -p "$stage/.htaccess" "$dest/.htaccess.seo-new"; chmod a+r "$dest/.htaccess.seo-new"; mv -f "$dest/.htaccess.seo-new" "$dest/.htaccess"
+            echo "HOPE SEO files deployed; backup stored outside public root"
+          '
           REMOTE
           )
           ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" "$remote" < "$RUNNER_TEMP/hope-site.tar.gz"
-      - name: Verify public files on Sakura
+      - name: Verify live Japanese URLs and 301 redirects
         run: |
           set -eu
-          base=https://rakudadou.sakura.ne.jp/hope-mobile
-          for source in "$RUNNER_TEMP/hope-site/"*.html; do
-            file=$(basename "$source")
-            curl --fail --silent --show-error --max-time 30 "$base/$file" -o "$RUNNER_TEMP/hope-verify"
-            cmp "$RUNNER_TEMP/hope-site/$file" "$RUNNER_TEMP/hope-verify"
-          done
-          echo "All HOPE public HTML files match GA4-enabled GitHub source"
-      - name: Read-only check of approved custom hostname
-        run: |
-          set -eu
-          url=https://sp.rakudadou.jp/
-          if curl --fail --silent --show-error --max-time 20 "$url" -o "$RUNNER_TEMP/hope-domain-check"; then
-            if cmp -s "$RUNNER_TEMP/hope-site/index.html" "$RUNNER_TEMP/hope-domain-check"; then
-              echo 'CUSTOM_HOST_MATCH=YES'
-            else
-              echo 'CUSTOM_HOST_MATCH=NO'
-            fi
-          else
-            echo 'CUSTOM_HOST_MATCH=UNREACHABLE'
-          fi
-      - name: Read-only check for existing mobile directory configuration
-        env:
-          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
-          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
-          SAKURA_USER: ${{ vars.SAKURA_USER }}
-        run: |
-          set -eu
-          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'd=/home/rakudadou/www/hope-mobile; test -d "$d" || exit 1; if test -e "$d/.htaccess" || test -L "$d/.htaccess"; then echo MOBILE_HTACCESS_PRESENT; else echo MOBILE_HTACCESS_ABSENT; fi; if test -e /home/rakudadou/www/.htaccess; then echo PARENT_HTACCESS_PRESENT; else echo PARENT_HTACCESS_ABSENT; fi'
+          python3 - <<'PY'
+          from pathlib import Path
+          from urllib.parse import quote, unquote, urlsplit, urljoin
+          from urllib.request import build_opener, HTTPRedirectHandler, urlopen
+          from urllib.error import HTTPError
+          from html.parser import HTMLParser
+          base='https://rakudadou.sakura.ne.jp/hope-mobile/'
+          mapping={'experience.html':'体験トレーニング','kaatsu.html':'加圧トレーニングの効果','pricing.html':'パーソナルトレーニング料金','membership.html':'入会案内','faq.html':'よくある質問','profile.html':'トレーナー紹介'}
+          class NoRedirect(HTTPRedirectHandler):
+              def redirect_request(self,*args,**kwargs): return None
+          op=build_opener(NoRedirect())
+          def check(url,path):
+              with urlopen(url,timeout=20) as r:
+                  assert r.status==200, (url,r.status)
+                  assert r.read()==Path(path).read_bytes(), (url,'content mismatch')
+              print('HTTP 200 and exact source match:',url)
+          check(base,'index.html')
+          check(base+'sitemap.xml','sitemap.xml')
+          for old,slug in mapping.items():
+              new=base+quote(slug)+'/'
+              check(new,slug+'/index.html')
+              try:
+                  with op.open(base+old,timeout=20) as r:
+                      raise AssertionError((old,'expected 301',r.status))
+              except HTTPError as e:
+                  assert e.code==301,(old,e.code)
+                  actual=urljoin(base+old,e.headers['Location'])
+                  assert unquote(actual)==unquote(new),(old,actual,new)
+                  print('301 verified:',old,'->',new)
+          check(base+'taiken.html','taiken.html')
+          check(base+'sato-12-weeks.html','sato-12-weeks.html')
+          for asset in ['assets/experience-trial-photo.webp','assets/taiken_photo_2.png','assets/taiken_photo_3.png','assets/trial-training-collage.jpg','assets/training_kaatsu.png','assets/kaatsu-training-studio.jpg']:
+              check(base+asset,asset)
+          print('All Japanese pages, old redirects, GA4 source and selected images passed')
+          PY
