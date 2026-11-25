@@ -1,0 +1,148 @@
+name: Publish dedicated HOPE sitemap and homepage canonical
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/publish-hope-domain-sitemap.yml'
+permissions:
+  contents: read
+concurrency:
+  group: rakudadou-desktop-content
+  cancel-in-progress: false
+jobs:
+  sitemap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Build and validate new domain sitemap and canonical metadata
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          T=$(mktemp -d /home/rakudadou/hope-sitemap.XXXXXXXX)
+          trap 'rm -rf "$T"' EXIT
+          cat > "$T/publish.php" <<'PHP'
+          <?php
+          $root='/home/rakudadou/www';
+          $base='https://www.rakudadou.jp/';
+          $desktop=['index.htm'=>'','kaatsutoha.htm'=>'kaatsutoha.htm','kaatsukouka.htm'=>'kaatsukouka.htm','taiken.htm'=>'taiken.htm','ryoukin.htm'=>'ryoukin.htm','koutsu.htm'=>'koutsu.htm','shitsumon.htm'=>'shitsumon.htm','nyuukainagare.htm'=>'nyuukainagare.htm','pro.html'=>'pro.html','hope-site-contact.html'=>'hope-site-contact.html','hope-site-privacy.html'=>'hope-site-privacy.html'];
+          $mobile=[''=>'','体験トレーニング/'=>'taiken.htm','加圧トレーニングの効果/'=>'kaatsukouka.htm','パーソナルトレーニング料金/'=>'ryoukin.htm','入会案内/'=>'nyuukainagare.htm','よくある質問/'=>'shitsumon.htm','トレーナー紹介/'=>'pro.html'];
+          $old=[];$new=[];
+          function readPage($root,$p){
+              $f=$root.'/'.$p;
+              if(!is_file($f)||is_link($f))throw new RuntimeException('Unexpected path '.$p);
+              $s=file_get_contents($f);
+              if($s===false||preg_match_all('~</head\s*>~i',$s)!==1)throw new RuntimeException('Invalid head '.$p);
+              return $s;
+          }
+          function canonical($s,$url,$alternate=null){
+              $pat='~<link\b(?=[^>]*\brel\s*=\s*["\x27]canonical["\x27])[^>]*>~i';
+              $tag='<link rel="canonical" href="'.$url.'">';
+              $count=preg_match_all($pat,$s);
+              if($count>1)throw new RuntimeException('Multiple canonicals');
+              if($count===1)$n=preg_replace($pat,$tag,$s,1);
+              else $n=preg_replace('~</head\s*>~i',$tag."\n".'$0',$s,1);
+              if($alternate!==null){
+                  if(preg_match('~<link\b[^>]*\brel\s*=\s*["\x27]alternate["\x27][^>]*\bmedia\s*=~i',$n))throw new RuntimeException('Existing mobile alternate');
+                  $n=preg_replace('~</head\s*>~i','<link rel="alternate" media="only screen and (max-width: 767px)" href="'.$alternate.'">'."\n".'$0',$n,1);
+              }
+              return $n;
+          }
+          $paired=array_flip($mobile);
+          foreach($desktop as $p=>$url){
+              $s=readPage($root,$p);
+              $old[$p]=$s;
+              $alt=array_key_exists($url,$paired)?$base.'hope-mobile/'.str_replace('%2F','/',rawurlencode($paired[$url])):null;
+              $new[$p]=canonical($s,$base.$url,$alt);
+          }
+          foreach($mobile as $dir=>$url){
+              $p='hope-mobile/'.$dir.'index.html';
+              $s=readPage($root,$p);
+              if(!str_contains($s,'https://rakudadou.sakura.ne.jp/hope-mobile/'))throw new RuntimeException('Expected original canonical domain missing '.$p);
+              $old[$p]=$s;
+              $new[$p]=canonical($s,$base.$url);
+              if(!str_contains($new[$p],'rel="canonical" href="'.$base.$url.'"'))throw new RuntimeException('Canonical failed');
+          }
+          if(file_exists($root.'/sitemap.xml')||is_link($root.'/sitemap.xml'))throw new RuntimeException('Root sitemap already exists; not overwritten');
+          $xml="<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n";
+          foreach($desktop as $url)$xml.="  <url><loc>".htmlspecialchars($base.$url,ENT_XML1|ENT_QUOTES,'UTF-8')."</loc></url>\n";
+          $xml.="</urlset>\n";
+          $old['sitemap.xml']=null;$new['sitemap.xml']=$xml;
+          // All changes are confined to head metadata and new sitemap.
+          foreach($desktop as $p=>$u){if(substr($old[$p],stripos($old[$p],'</head>'))!==substr($new[$p],stripos($new[$p],'</head>')))throw new RuntimeException('Body changed '.$p);}
+          foreach($mobile as $dir=>$u){$p='hope-mobile/'.$dir.'index.html';if(substr($old[$p],stripos($old[$p],'</head>'))!==substr($new[$p],stripos($new[$p],'</head>')))throw new RuntimeException('Body changed '.$p);}
+          $backup=tempnam('/home/rakudadou','hope-sitemap-backup.');
+          if(!$backup||!unlink($backup)||!mkdir($backup,0700))throw new RuntimeException('Backup failed');
+          $tmp=[];$done=[];
+          try{
+              foreach($new as $p=>$n){
+                  $f=$root.'/'.$p;
+                  if($old[$p]!==null){
+                      if(file_get_contents($f)!==$old[$p])throw new RuntimeException('Concurrent change');
+                      $b=$backup.'/'.$p;if(!is_dir(dirname($b))&&!mkdir(dirname($b),0700,true))throw new RuntimeException('Backup directory failed');
+                      if(file_put_contents($b,$old[$p])!==strlen($old[$p]))throw new RuntimeException('Backup write failed');
+                  }elseif(file_exists($f))throw new RuntimeException('New file exists');
+                  $t=tempnam(dirname($f),'hope-seo-stage-');$tmp[$p]=$t;
+                  if(!$t||file_put_contents($t,$n)!==strlen($n)||!chmod($t,0644))throw new RuntimeException('Stage failed '.$p);
+              }
+              foreach($new as $p=>$n){
+                  $f=$root.'/'.$p;
+                  if($old[$p]===null?file_exists($f):file_get_contents($f)!==$old[$p])throw new RuntimeException('Concurrent change '.$p);
+                  if(!rename($tmp[$p],$f))throw new RuntimeException('Publish failed '.$p);
+                  $done[]=$p;
+              }
+              foreach($new as $p=>$n)if(file_get_contents($root.'/'.$p)!==$n)throw new RuntimeException('Readback failed '.$p);
+          }catch(Throwable $e){
+              foreach($done as $p){if($old[$p]===null)unlink($root.'/'.$p);else{copy($backup.'/'.$p,$root.'/'.$p);chmod($root.'/'.$p,0644);}}
+              throw $e;
+          }finally{foreach($tmp as $t)if($t&&file_exists($t))unlink($t);}
+          echo 'PASS root sitemap with '.count($desktop).' desktop canonical URLs; paired mobile metadata; all body bytes preserved; private backups.',PHP_EOL;
+          PHP
+          php -l "$T/publish.php"
+          php -d display_errors=1 -d log_errors=0 "$T/publish.php"
+          REMOTE
+      - name: Independently verify XML and page metadata
+        run: |
+          python3 - <<'PY'
+          from urllib.request import urlopen,Request
+          from urllib.parse import quote
+          from html.parser import HTMLParser
+          import xml.etree.ElementTree as ET
+          from concurrent.futures import ThreadPoolExecutor
+          base='https://www.rakudadou.jp/'
+          ns={'s':'http://www.sitemaps.org/schemas/sitemap/0.9'}
+          with urlopen(base+'sitemap.xml',timeout=15) as r:
+              assert r.status==200
+              urls=[e.text for e in ET.fromstring(r.read()).findall('s:url/s:loc',ns)]
+          assert len(urls)==11 and len(set(urls))==11 and all(u.startswith(base) for u in urls)
+          class P(HTMLParser):
+              def __init__(self):super().__init__();self.c=[];self.alt=[]
+              def handle_starttag(self,t,a):
+                  a=dict(a)
+                  if t=='link' and a.get('rel')=='canonical':self.c.append(a.get('href'))
+                  if t=='link' and a.get('rel')=='alternate' and a.get('media'):self.alt.append(a.get('href'))
+          def check(u):
+              with urlopen(Request(u,headers={'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}),timeout=20) as r:
+                  assert r.status==200 and r.geturl()==u
+                  b=r.read()
+              q=P();q.feed(b.decode('utf-8' if b'charset=Shift_JIS' not in b else 'cp932','replace'))
+              assert q.c==[u],(u,q.c)
+              for alt in q.alt:
+                  with urlopen(alt,timeout=20) as r:
+                      assert r.status==200
+                      m=P();m.feed(r.read().decode('utf-8','replace'))
+                  assert m.c==[u],(alt,m.c)
+                  print('PASS mobile alternate',alt,'=>',u)
+              print('PASS canonical',u)
+          with ThreadPoolExecutor(max_workers=5) as ex:list(ex.map(check,urls))
+          print('PASS sitemap XML, 11 unique canonical URLs and corresponding mobile metadata.')
+          PY
