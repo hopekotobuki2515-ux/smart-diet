@@ -64,7 +64,26 @@ jobs:
           PY
           oldsha=$(sha256sum /tmp/live-index.html | cut -d' ' -f1)
           newsha=$(sha256sum index.html | cut -d' ' -f1)
-          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" "sh -c 'set -eu; f=/home/rakudadou/www/hope-mobile/index.html; test -f \"\$f\"; test ! -L \"\$f\"; php -r '\''if(hash_file(\"sha256\",\$argv[1])!==\$argv[2])exit(1);'\'' \"\$f\" $oldsha; b=\$(mktemp -d /home/rakudadou/hope-home-link-backup.XXXXXXXX); cp -p \"\$f\" \"\$b/index.html\"; t=\$(mktemp /home/rakudadou/www/hope-mobile/.links-stage.XXXXXXXX); trap \"rm -f \\"\$t\\"\" EXIT; cat > \"\$t\"; php -r '\''if(hash_file(\"sha256\",\$argv[1])!==\$argv[2])exit(1);'\'' \"\$t\" $newsha; chmod 644 \"\$t\"; mv -f \"\$t\" \"\$f\"; echo Published-index-only'" < index.html
+          stage=$(ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'umask 077; mktemp /home/rakudadou/hope-home-link-stage.XXXXXXXX')
+          [[ "$stage" =~ ^/home/rakudadou/hope-home-link-stage\.[A-Za-z0-9]+$ ]]
+          scp -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes index.html "$SAKURA_USER@$SAKURA_HOST:$stage"
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" "sh -s -- $oldsha $newsha $stage" <<'REMOTE'
+          set -eu
+          oldsha=$1
+          newsha=$2
+          stage=$3
+          f=/home/rakudadou/www/hope-mobile/index.html
+          trap 'rm -f "$stage"' EXIT
+          test -f "$f" && test ! -L "$f"
+          test -f "$stage" && test ! -L "$stage"
+          php -r 'if(hash_file("sha256",$argv[1])!==$argv[2])exit(1);' "$f" "$oldsha"
+          php -r 'if(hash_file("sha256",$argv[1])!==$argv[2])exit(1);' "$stage" "$newsha"
+          b=$(mktemp -d /home/rakudadou/hope-home-link-backup.XXXXXXXX)
+          cp -p "$f" "$b/index.html"
+          chmod 644 "$stage"
+          mv -f "$stage" "$f"
+          echo 'PASS: Published index.html only'
+          REMOTE
       - name: Confirm live page matches exact updated source
         run: |
           python3 - <<'PY'
