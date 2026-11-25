@@ -1,0 +1,54 @@
+name: Audit existing desktop and mobile HOPE routes without changes
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/audit-hope-pc-mobile-domain.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check DNS, TLS and current HTTP routing
+        run: |
+          set -eu
+          for h in rakudadou.jp www.rakudadou.jp rakudadou.sakura.ne.jp; do
+            for t in A AAAA CNAME NS; do printf '%s %s: ' "$h" "$t"; dig +time=3 +tries=1 +short "$h" "$t" | paste -sd ' ' -; done
+            for scheme in https http; do
+              for route in / /index.htm /hope-mobile/; do
+                url="$scheme://$h$route"
+                printf '%s ' "$url"
+                curl -sS --max-time 12 -o /dev/null -w 'HTTP %{http_code} IP %{remote_ip} SSL %{ssl_verify_result} redirect %{redirect_url}\n' "$url" || true
+              done
+            done
+          done
+      - name: Inspect actual server settings and legacy entry points
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          cd /home/rakudadou/www
+          for f in index.htm index.html index.php .htaccess robots.txt hope-mobile/index.html hope-mobile/.htaccess hope-mobile/sitemap.xml; do
+            if test -f "$f"; then
+              printf 'FILE %s size=%s ' "$f" "$(wc -c < "$f")"
+              php -r 'echo hash_file("sha256",$argv[1]),PHP_EOL;' "$f"
+              if [ "$f" = .htaccess ] || [ "$f" = hope-mobile/.htaccess ]; then
+                grep -Ei '^ *(DirectoryIndex|RewriteEngine|RewriteRule|RewriteCond|RewriteBase|Redirect|Header|Options|ErrorDocument|AddHandler|AddType)' "$f" || true
+              fi
+              if [ "$f" = robots.txt ]; then head -c 1000 "$f"; echo; fi
+            else echo "ABSENT $f"; fi
+          done
+          php -r 'foreach(["index.htm","index.html","index.php","hope-mobile/index.html"] as $f){if(!is_file($f))continue;$s=file_get_contents($f);$r=[];foreach(["title"=>"~<title[^>]*>(.*?)</title>~is","canonical"=>"~<link[^>]*rel=[\x22\x27]canonical[\x22\x27][^>]*>~i","alternate"=>"~<link[^>]*rel=[\x22\x27]alternate[\x22\x27][^>]*>~i","robots"=>"~<meta[^>]*name=[\x22\x27]robots[\x22\x27][^>]*>~i","charset"=>"~<meta[^>]*charset[^>]*>~i"] as $k=>$p){preg_match($p,$s,$m);$r[$k]=$m[0]??"";}echo "META ",$f," ",json_encode($r,JSON_INVALID_UTF8_SUBSTITUTE|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),PHP_EOL;echo "RELATIVE_LINKS ",$f," ",preg_match_all("~(?:src|href)=[\x22\x27](?!https?:|//|#|mailto:|tel:)[^\x22\x27]+~i",$s),PHP_EOL;}' 
+          REMOTE
