@@ -1,0 +1,26 @@
+name: Inspect old access-page map before repair
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/inspect-legacy-map-https.yml'
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Inspect existing map and address
+        run: |
+          python3 - <<'PY'
+          from urllib.request import urlopen
+          import re
+          with urlopen('https://www.rakudadou.jp/koutsu.htm',timeout=20) as r:
+              s=r.read().decode('cp932','replace')
+          for m in re.finditer(r'<script\b[^>]*map\.yahooapis\.jp[^>]*>[\s\S]*?</script\s*>',s,re.I):
+              print('MAP',repr(m.group()))
+              print('CONTEXT',s[max(0,m.start()-1800):m.end()+1400].replace('\r','').replace('\n',' '))
+          for m in re.finditer('755-0032|寿町|０８３６',s):
+              print('ADDRESS',s[m.start()-100:m.end()+180].replace('\n',' '))
+          PY
