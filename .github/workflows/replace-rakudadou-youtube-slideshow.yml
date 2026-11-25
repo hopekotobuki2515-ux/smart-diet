@@ -1,0 +1,169 @@
+name: Replace only old desktop homepage YouTube with local photo slideshow
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/replace-rakudadou-youtube-slideshow.yml'
+permissions:
+  contents: read
+concurrency:
+  group: rakudadou-desktop-content
+  cancel-in-progress: false
+jobs:
+  replace:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Verify existing photos on public site
+        run: |
+          python3 - <<'PY'
+          from urllib.request import urlopen
+          from concurrent.futures import ThreadPoolExecutor
+          import re
+          base='http://www.rakudadou.jp/'
+          photos=['P1240006.jpg','P1240310.jpg','P1220211.jpg','P1230592.jpg','P12306211.jpg','P1230784.jpg','P1230917.jpg']
+          with urlopen(base+'index.htm',timeout=20) as r:
+              s=r.read()
+          assert b'https://www.youtube.com/embed/X1irH7MnZf0' in s
+          assert b'image35.gif' not in s and b'sapuriimage2.gif' not in s
+          def check(p):
+              assert ('data-src="'+p+'"').encode() in s,p
+              with urlopen(base+p,timeout=20) as r:
+                  data=r.read()
+                  assert r.status==200 and r.headers.get_content_type()=='image/jpeg' and data.startswith(b'\xff\xd8'),p
+                  print('PASS existing photo:',p,len(data))
+          with ThreadPoolExecutor(max_workers=4) as ex:list(ex.map(check,photos))
+          PY
+      - name: Stage exact replacement and preserve legacy page bytes
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          T=$(mktemp -d /home/rakudadou/hope-local-show.XXXXXXXX)
+          trap 'rm -rf "$T"' EXIT
+          cat > "$T/replace.php" <<'PHP'
+          <?php
+          $root='/home/rakudadou/www';
+          $f=$root.'/index.htm';
+          if(!is_file($f)||is_link($f))throw new RuntimeException('Unexpected page path');
+          $s=file_get_contents($f);
+          $photos=['P1240006.jpg','P1240310.jpg','P1220211.jpg','P1230592.jpg','P12306211.jpg','P1230784.jpg','P1230917.jpg'];
+          foreach($photos as $p){
+              if(!str_contains($s,'data-src="'.$p.'"'))throw new RuntimeException('Photo is not in existing gallery: '.$p);
+              $info=getimagesize($root.'/'.$p);
+              if(!$info||$info[2]!==IMAGETYPE_JPEG)throw new RuntimeException('Invalid JPEG: '.$p);
+          }
+          $pat='~<iframe\b(?=[^>]*\bwidth="877")(?=[^>]*\bheight="491")(?=[^>]*\bsrc="https://www\.youtube\.com/embed/X1irH7MnZf0")[^>]*>\s*</iframe\s*>~i';
+          if(preg_match_all($pat,$s,$m,PREG_OFFSET_CAPTURE)!==1)throw new RuntimeException('Expected one exact iframe with empty body; no change made');
+          if(str_contains($s,'hope-local-photo-show'))throw new RuntimeException('Already present');
+          [$old,$offset]=$m[0][0];
+          $html=<<<'HTML'
+          <style>
+          #hope-local-photo-show{box-sizing:border-box;display:inline-flex;vertical-align:middle;flex-direction:column;width:877px;max-width:100%;height:auto;aspect-ratio:877/491;background:#111;color:#fff;overflow:hidden;text-align:center;font:14px/1.4 sans-serif}
+          #hope-local-photo-show img{display:block;width:100%;height:0;min-height:0;flex:1 1 0;object-fit:contain;border:0}
+          #hope-local-photo-show .hope-show-controls{box-sizing:border-box;flex:0 0 44px;display:flex;align-items:center;justify-content:center;gap:12px;background:#222;padding:4px 10px}
+          #hope-local-photo-show .hope-show-controls[hidden]{display:none}
+          #hope-local-photo-show button{box-sizing:border-box;color:#fff;background:#333;border:1px solid #aaa;border-radius:4px;min-height:34px;padding:4px 12px;font:14px/1.4 sans-serif;cursor:pointer}
+          #hope-local-photo-show button:focus-visible{outline:2px solid #fff;outline-offset:2px}
+          #hope-local-photo-show .hope-show-count{min-width:44px;font-variant-numeric:tabular-nums}
+          </style>
+          <div id="hope-local-photo-show" role="region" aria-label="HOPEの紹介写真">
+            <img src="P1240006.jpg" alt="HOPEの紹介写真 1" width="877" height="491">
+            <div class="hope-show-controls" hidden>
+              <button type="button" data-action="prev" aria-label="前の写真">前へ</button>
+              <span class="hope-show-count">1 / 7</span>
+              <button type="button" data-action="next" aria-label="次の写真">次へ</button>
+              <button type="button" data-action="toggle">一時停止</button>
+            </div>
+          </div>
+          <script>
+          (function(){
+            var box=document.getElementById('hope-local-photo-show');
+            var photos=['P1240006.jpg','P1240310.jpg','P1220211.jpg','P1230592.jpg','P12306211.jpg','P1230784.jpg','P1230917.jpg'];
+            var img=box.querySelector('img'),controls=box.querySelector('.hope-show-controls'),count=box.querySelector('.hope-show-count'),toggle=box.querySelector('[data-action="toggle"]');
+            var i=0,playing=!window.matchMedia('(prefers-reduced-motion: reduce)').matches,timer=null;
+            function show(n){i=(n+photos.length)%photos.length;img.src=photos[i];img.alt='HOPEの紹介写真 '+(i+1);count.textContent=(i+1)+' / '+photos.length;}
+            function reset(){if(timer!==null)window.clearInterval(timer);timer=null;toggle.textContent=playing?'一時停止':'自動再生';if(playing)timer=window.setInterval(function(){if(!document.hidden)show(i+1);},5000);}
+            box.querySelector('[data-action="prev"]').addEventListener('click',function(){show(i-1);reset();});
+            box.querySelector('[data-action="next"]').addEventListener('click',function(){show(i+1);reset();});
+            toggle.addEventListener('click',function(){playing=!playing;reset();});
+            controls.hidden=false;reset();
+          })();
+          </script>
+          HTML;
+          $html=iconv('UTF-8','CP932',$html);
+          if($html===false)throw new RuntimeException('Encoding failure');
+          $next=substr($s,0,$offset).$html.substr($s,$offset+strlen($old));
+          if(substr($next,0,$offset).$old.substr($next,$offset+strlen($html))!==$s)throw new RuntimeException('Unexpected difference');
+          foreach(['youtube.com/embed/X1irH7MnZf0','image35.gif','sapuriimage2.gif'] as $x)if(str_contains($next,$x))throw new RuntimeException('Removed resource remains: '.$x);
+          foreach(['hope-site-privacy.html','hope-site-contact.html','pro.html','hpb-slideshow1','taiken.htm','ryoukin.htm'] as $x)if(!str_contains($next,$x)||substr_count($next,$x)!==substr_count($s,$x))throw new RuntimeException('Unrelated content changed');
+          umask(0077);
+          $b=tempnam('/home/rakudadou','hope-youtube-backup.');
+          if(!$b||file_put_contents($b,$s)!==strlen($s))throw new RuntimeException('Backup failed');
+          $t=tempnam($root,'hope-youtube-stage-');
+          try{
+              if(!$t||file_put_contents($t,$next)!==strlen($next)||!chmod($t,0644))throw new RuntimeException('Stage failed');
+              if(file_get_contents($f)!==$s)throw new RuntimeException('Concurrent change');
+              if(!rename($t,$f))throw new RuntimeException('Publish failed');
+              if(file_get_contents($f)!==$next){copy($b,$f);chmod($f,0644);throw new RuntimeException('Verification failed');}
+          }finally{if($t&&file_exists($t))unlink($t);}
+          echo 'PASS: one iframe replaced; every other original byte unchanged; all seven existing JPEGs valid; private backup saved.',PHP_EOL;
+          PHP
+          php -l "$T/replace.php"
+          php "$T/replace.php"
+          REMOTE
+      - name: Check public URLs and browser slideshow controls
+        run: |
+          set -eu
+          python3 - <<'PY'
+          from urllib.request import urlopen
+          for u in ['http://www.rakudadou.jp/index.htm','http://www.rakudadou.jp/','http://rakudadou.jp/']:
+              with urlopen(u,timeout=20) as r:
+                  assert r.status==200
+                  s=r.read()
+              assert b'hope-local-photo-show' in s and b'youtube.com/embed/X1irH7MnZf0' not in s
+              assert b'hope-site-privacy.html' in s and b'hope-site-contact.html' in s
+              print('PASS HTTP 200, local gallery:',u)
+          PY
+          mkdir -p /tmp/hope-slideshow-browser
+          cd /tmp/hope-slideshow-browser
+          npm install --no-audit --no-fund playwright
+          npx playwright install chromium
+          cat > test.cjs <<'JS'
+          const {chromium}=require('playwright');
+          const assert=require('node:assert/strict');
+          (async()=>{
+            const browser=await chromium.launch({headless:true});
+            try {
+              const page=await browser.newPage({viewport:{width:1366,height:900},reducedMotion:'reduce'});
+              await page.goto('http://www.rakudadou.jp/index.htm',{waitUntil:'domcontentloaded',timeout:30000});
+              const g=page.locator('#hope-local-photo-show'), img=g.locator('img'), n=g.locator('.hope-show-count'), next=g.locator('[data-action="next"]'), prev=g.locator('[data-action="prev"]'), toggle=g.locator('[data-action="toggle"]');
+              await g.waitFor({state:'visible'});
+              const rect=await g.boundingBox();assert.ok(Math.abs(rect.width-877)<2&&Math.abs(rect.height-491)<2,JSON.stringify(rect));
+              const photos=['P1240006.jpg','P1240310.jpg','P1220211.jpg','P1230592.jpg','P12306211.jpg','P1230784.jpg','P1230917.jpg'];
+              for(let i=0;i<photos.length;i++){
+                await page.waitForFunction((p)=>{const a=document.querySelector('#hope-local-photo-show img');return a.complete&&a.naturalWidth>0&&a.getAttribute('src')===p},photos[i]);
+                assert.equal(await n.textContent(),(i+1)+' / 7');
+                if(i<photos.length-1)await next.click();
+              }
+              await next.click();assert.equal(await n.textContent(),'1 / 7');await prev.click();assert.equal(await n.textContent(),'7 / 7');
+              await toggle.click();assert.equal(await n.textContent(),'7 / 7');await page.waitForFunction(()=>document.querySelector('#hope-local-photo-show .hope-show-count').textContent==='1 / 7',{},{timeout:9000});await toggle.click();
+              const paused=await n.textContent();await page.waitForTimeout(5500);assert.equal(await n.textContent(),paused);
+              assert.equal(await page.locator('iframe[src*="youtube"]').count(),0);
+              await g.scrollIntoViewIfNeeded();
+              const shot=await g.screenshot({type:'jpeg',quality:55});
+              const b=shot.toString('base64');console.log('SHOT_BEGIN');for(let i=0;i<b.length;i+=800)console.log('SHOT_PART '+b.slice(i,i+800));console.log('SHOT_END');
+              console.log('PASS BROWSER: 877x491, seven decoded photos, next/previous/wrap, autoplay and pause, no YouTube iframe');
+            } finally {await browser.close();}
+          })().catch(e=>{console.error(e);process.exit(1)});
+          JS
+          node test.cjs
