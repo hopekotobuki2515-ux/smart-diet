@@ -1,0 +1,72 @@
+name: Remove only legacy homepage blog and supplement cards
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/remove-rakudadou-ad-cards.yml'
+permissions:
+  contents: read
+concurrency:
+  group: rakudadou-desktop-content
+  cancel-in-progress: false
+jobs:
+  remove:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Verify exact card markup and remove it with backup
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          T=$(mktemp -d /home/rakudadou/remove-cards-stage.XXXXXXXX)
+          trap 'rm -rf "$T"' EXIT
+          cat > "$T/remove.php" <<'PHP'
+          <?php
+          $root='/home/rakudadou/www';
+          $f=$root.'/index.htm';
+          if(!is_file($f)||is_link($f))throw new RuntimeException('Unexpected path');
+          $s=file_get_contents($f);
+          $pattern='~<A href="http://ameblo\.jp/hopekotobuki/" target="_blank"><br>\s*<img src="image35\.gif" width="159" height="247" border="0"><br>\s*<BR>\s*</A><IMG src="sapuriimage2\.gif" width="194" height="194" border="0"><BR>\s*<BR>~i';
+          if(preg_match_all($pattern,$s,$matches,PREG_OFFSET_CAPTURE)!==1)throw new RuntimeException('Expected exact two-card block not found');
+          [$removed,$pos]=$matches[0][0];
+          $updated=substr($s,0,$pos).substr($s,$pos+strlen($removed));
+          if(substr($updated,0,$pos).$removed.substr($updated,$pos)!==$s)throw new RuntimeException('Unexpected difference');
+          foreach(['image35.gif','sapuriimage2.gif','http://ameblo.jp/hopekotobuki/'] as $x)if(str_contains($updated,$x))throw new RuntimeException('Card reference remains');
+          foreach(['image7.jpg','pro.html','hope-site-contact.html','hope-site-privacy.html','taiken.htm','ryoukin.htm'] as $x)if(substr_count($updated,$x)!==substr_count($s,$x)||!str_contains($updated,$x))throw new RuntimeException('Unrelated navigation changed');
+          umask(0077);
+          $b=tempnam('/home/rakudadou','ad-card-backup.');
+          if(!$b||file_put_contents($b,$s)!==strlen($s))throw new RuntimeException('Backup failed');
+          $t=tempnam($root,'hope-card-stage-');
+          try{
+            if(!$t||file_put_contents($t,$updated)!==strlen($updated)||!chmod($t,0644))throw new RuntimeException('Staging failed');
+            if(file_get_contents($f)!==$s)throw new RuntimeException('Concurrent change detected');
+            if(!rename($t,$f))throw new RuntimeException('Publish failed');
+            if(file_get_contents($f)!==$updated){copy($b,$f);chmod($f,0644);throw new RuntimeException('Post-write verification failed');}
+          }finally{if($t&&file_exists($t))unlink($t);}
+          echo 'PASS: exactly one verified two-card block removed; all other bytes unchanged. Backup outside web root.',PHP_EOL;
+          PHP
+          php -l "$T/remove.php"
+          php "$T/remove.php"
+          REMOTE
+      - name: Verify both desktop homepage URLs and retained navigation
+        run: |
+          python3 - <<'PY'
+          from urllib.request import urlopen
+          for u in ['http://www.rakudadou.jp/index.htm','http://www.rakudadou.jp/','http://rakudadou.jp/']:
+              with urlopen(u,timeout=20) as r:
+                  assert r.status==200
+                  s=r.read()
+              assert b'image35.gif' not in s and b'sapuriimage2.gif' not in s and b'http://ameblo.jp/hopekotobuki/' not in s,u
+              assert all(x in s for x in [b'image7.jpg',b'pro.html',b'hope-site-privacy.html',b'hope-site-contact.html',b'taiken.htm',b'ryoukin.htm']),u
+              print('PASS HTTP 200; only requested cards absent:',u)
+          PY
