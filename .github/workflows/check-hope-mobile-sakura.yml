@@ -45,5 +45,5 @@ jobs:
         run: |
           for url in             https://rakudadou.sakura.ne.jp/hope-mobile/index.html             https://rakudadou.sakura.ne.jp/hope-mobile/             https://rakudadou.sakura.ne.jp/smart-diet/equineris/index.html             https://www.rakudadou.jp/hope-mobile/index.html             https://sp.rakudadou.jp/; do
             printf '%s ' "$url"
-            curl -sS -o /dev/null -w 'HTTP %{http_code}\n' --max-time 15 "$url" || true
+            curl -sS -L -o /dev/null -w 'HTTP %{http_code} final=%{url_effective}\n' --max-time 15 "$url" || true
           done
