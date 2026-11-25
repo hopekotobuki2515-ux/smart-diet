@@ -1,0 +1,122 @@
+name: Remove only verified empty legacy external links
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/remove-empty-legacy-external-links.yml'
+permissions:
+  contents: read
+concurrency:
+  group: rakudadou-desktop-content
+  cancel-in-progress: false
+jobs:
+  clean:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Remove verified empty anchors while retaining original whitespace
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          T=$(mktemp -d /home/rakudadou/hope-empty-links.XXXXXXXX)
+          trap 'rm -rf "$T"' EXIT
+          cat > "$T/clean.php" <<'PHP'
+          <?php
+          $root='/home/rakudadou/www';
+          $expected=['kaatsutoha.htm'=>5,'kaatsukouka.htm'=>2,'taiken.htm'=>2,'ryoukin.htm'=>4,'koutsu.htm'=>2,'shitsumon.htm'=>2,'nyuukainagare.htm'=>3,'pro.html'=>3];
+          $urls=['http://www.rakudadou-reserve.com/','http://mimudemore.xsrv.jp/','http://ameblo.jp/hopekotobuki/'];
+          $pat='~<a\b[^>]*\bhref\s*=\s*["\x27]http://(?:www\.rakudadou-reserve\.com/|mimudemore\.xsrv\.jp/|ameblo\.jp/hopekotobuki/)["\x27][^>]*>((?:\s|<br\s*/?>)*)</a\s*>~i';
+          $before=[];$after=[];$count=0;
+          foreach($expected as $p=>$want){
+              $f=$root.'/'.$p;
+              if(!is_file($f)||is_link($f))throw new RuntimeException('Unexpected path '.$p);
+              $s=file_get_contents($f);
+              if(preg_match_all($pat,$s,$m,PREG_OFFSET_CAPTURE)!==$want)throw new RuntimeException('Unexpected target count '.$p);
+              $n=preg_replace_callback($pat,fn($a)=>$a[1],$s,-1,$actual);
+              if($actual!==$want||$n===null)throw new RuntimeException('Replacement failed');
+              $rebuild='';$pos=0;
+              foreach($m[0] as $i=>$match){[$tag,$off]=$match;$rebuild.=substr($s,$pos,$off-$pos).$m[1][$i][0];$pos=$off+strlen($tag);}
+              $rebuild.=substr($s,$pos);
+              if($n!==$rebuild)throw new RuntimeException('Unexpected non-target byte change');
+              foreach($urls as $u)if(stripos($n,$u)!==false)throw new RuntimeException('Remaining target URL '.$p);
+              foreach(['hope-site-contact.html','hope-site-privacy.html','pro.html','image7.jpg'] as $x)if(!str_contains($n,$x)||substr_count($s,$x)!==substr_count($n,$x))throw new RuntimeException('Navigation changed');
+              $before[$p]=$s;$after[$p]=$n;$count+=$actual;
+              echo 'MATCH '.$p.' '.$actual.PHP_EOL;
+          }
+          $backup=tempnam('/home/rakudadou','hope-empty-links-backup.');
+          if(!$backup||!unlink($backup)||!mkdir($backup,0700))throw new RuntimeException('Backup directory failure');
+          $tmp=[];$done=[];
+          try{
+              foreach($before as $p=>$s){
+                  if(file_get_contents($root.'/'.$p)!==$s)throw new RuntimeException('Concurrent change');
+                  if(file_put_contents($backup.'/'.$p,$s)!==strlen($s))throw new RuntimeException('Backup failed');
+                  $t=tempnam($root,'hope-empty-stage-');$tmp[$p]=$t;
+                  if(!$t||file_put_contents($t,$after[$p])!==strlen($after[$p])||!chmod($t,0644))throw new RuntimeException('Stage failed');
+              }
+              foreach($before as $p=>$s){
+                  if(file_get_contents($root.'/'.$p)!==$s||!rename($tmp[$p],$root.'/'.$p))throw new RuntimeException('Publish failed');
+                  $done[]=$p;
+              }
+              foreach($after as $p=>$n)if(file_get_contents($root.'/'.$p)!==$n)throw new RuntimeException('Verification failed');
+          }catch(Throwable $e){foreach($done as $p){copy($backup.'/'.$p,$root.'/'.$p);chmod($root.'/'.$p,0644);}throw $e;}
+          finally{foreach($tmp as $t)if($t&&file_exists($t))unlink($t);}
+          echo 'PASS '.$count.' empty anchors removed, all original inner whitespace and unrelated bytes retained.',PHP_EOL;
+          PHP
+          php -l "$T/clean.php"
+          php "$T/clean.php"
+          REMOTE
+      - name: Verify all existing public pages and policy links
+        run: |
+          python3 - <<'PY'
+          from urllib.request import urlopen
+          from concurrent.futures import ThreadPoolExecutor
+          from html.parser import HTMLParser
+          from urllib.parse import urljoin,urlsplit
+          base='https://www.rakudadou.jp/'
+          pages=['index.htm','kaatsutoha.htm','kaatsukouka.htm','taiken.htm','ryoukin.htm','koutsu.htm','shitsumon.htm','nyuukainagare.htm','pro.html','hope-site-contact.html','hope-site-privacy.html']
+          bad=[b'www.rakudadou-reserve.com',b'mimudemore.xsrv.jp',b'ameblo.jp/hopekotobuki/',b'image35.gif',b'sapuriimage2.gif']
+          class P(HTMLParser):
+              def __init__(self):super().__init__();self.links=set();self.imgs=set();self.scripts=set()
+              def handle_starttag(self,t,a):
+                  a=dict(a)
+                  if t=='a' and a.get('href'):self.links.add(a['href'])
+                  if t=='img' and a.get('src'):self.imgs.add(a['src'])
+                  if t in ('script','iframe') and a.get('src'):self.scripts.add(a['src'])
+          def check(p):
+              with urlopen(base+p,timeout=15) as r:
+                  assert r.status==200
+                  s=r.read()
+              assert not any(x in s for x in bad),p
+              assert b'hope-site-contact.html' in s and b'hope-site-privacy.html' in s
+              q=P();q.feed(s.decode('cp932' if p not in pages[-2:] else 'utf-8','replace'))
+              print('PASS HTTPS 200',p)
+              return q
+          with ThreadPoolExecutor(max_workers=4) as ex:parsed=list(ex.map(check,pages))
+          local=set()
+          for p,q in zip(pages,parsed):
+              for v in q.links|q.imgs|q.scripts:
+                  u=urljoin(base+p,v)
+                  if urlsplit(u).hostname in ('rakudadou.jp','www.rakudadou.jp') and urlsplit(u).scheme=='https':local.add(u.split('#')[0])
+          def resource(u):
+              try:
+                  with urlopen(u,timeout=12) as r:
+                      return u,r.status
+              except Exception as e:return u,str(e)
+          with ThreadPoolExecutor(max_workers=8) as ex:res=list(ex.map(resource,sorted(local)))
+          print('RESOURCE_COUNT',len(res))
+          for u,status in res:
+              if status!=200:print('REVIEW_RESOURCE',u,status)
+          for q in parsed:
+              for u in q.scripts:
+                  if u.startswith('http://'):print('MIXED_CONTENT_REVIEW',u)
+          PY
