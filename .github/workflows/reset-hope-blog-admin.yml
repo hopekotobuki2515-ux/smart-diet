@@ -1,0 +1,129 @@
+name: Reset HOPE blog administrator securely
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/reset-hope-blog-admin.yml'
+permissions:
+  contents: read
+concurrency:
+  group: hope-blog-layout-repair
+  cancel-in-progress: false
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Validate reset form and authentication patch
+        run: |
+          set -eu
+          umask 077
+          cat > /tmp/hope-reset.php <<'RESET'
+          <?php
+          declare(strict_types=1);
+          require __DIR__.'/common.php';
+          header('X-Robots-Tag: noindex, nofollow, noarchive');
+          header('Referrer-Policy: no-referrer');
+          header('X-Content-Type-Options: nosniff');
+          header("Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
+          if (empty($_SERVER['HTTPS']) || $_SERVER['HTTPS']==='off' || ($_SERVER['HTTP_HOST']??'')!=='rakudadou.sakura.ne.jp') {http_response_code(403);exit('HTTPS required');}
+          session_start_safe();
+          function pending_reset():array {
+              $f=DATA.'admin-reset-pending.json';
+              if(!is_file($f)||is_link($f)){http_response_code(410);exit('再設定は終了しています。');}
+              $r=loadj('admin-reset-pending.json');$c=loadj('config.json');
+              if(time()>($r['expires']??0)||!hash_equals((string)($r['expected']??''),hash('sha256',(string)$c['admin_hash']))){http_response_code(410);exit('再設定は終了したか期限切れです。');}
+              return $r;
+          }
+          pending_reset();
+          $error='';
+          if($_SERVER['REQUEST_METHOD']==='POST'){
+              verifycsrf();
+              $code=$_POST['code']??null;
+              if(!is_string($code)||!hash_equals('3de041a466ecb072429f80f8d366aaa8c812506151971cb44752018a1374d0b0',hash('sha256',$code))){sleep(1);http_response_code(403);exit('確認コードが違います。');}
+              $p=$_POST['password']??null;$q=$_POST['confirm']??null;
+              if(!is_string($p)||!is_string($q)||strlen($p)<12||strlen($p)>72||str_contains($p,"\0")||$p!==$q){$error='パスワードは半角12文字以上72バイト以内で、確認欄と一致させてください。';}
+              else{
+                  umask(0077);$lock=fopen(DATA.'write.lock','c');
+                  if(!$lock||!flock($lock,LOCK_EX)){http_response_code(503);exit('保存先を確保できません。');}
+                  try{
+                      pending_reset();$c=loadj('config.json');
+                      $c['admin_hash']=password_hash($p,PASSWORD_DEFAULT);
+                      writej('config.json',$c);
+                      unset($_SESSION['admin']);session_regenerate_id(true);
+                  }finally{flock($lock,LOCK_UN);fclose($lock);}
+                  go('admin.php');
+              }
+          }elseif($_SERVER['REQUEST_METHOD']!=='GET'){http_response_code(405);exit;}
+          ?><!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>HOPEブログ管理者パスワード再設定</title><style>body{font:16px/1.7 system-ui,sans-serif;max-width:560px;padding:16px;margin:auto}label{display:block;margin:16px 0}input,button{font:inherit;padding:9px;box-sizing:border-box;width:100%}button{margin-top:12px}.error{color:#a22}</style><h1>管理者パスワード再設定</h1><p>新しい管理者パスワードを設定します。限定公開記事の閲覧パスワードは変更しません。</p><?php if($error!=='')echo '<p class="error">'.e($error).'</p>';?><form method="post"><input type="hidden" name="csrf" value="<?=e(csrf())?>"><label>確認コード<input name="code" type="password" autocomplete="off" required></label><label>新しいパスワード<input name="password" type="password" autocomplete="new-password" minlength="12" required></label><label>新しいパスワード（確認）<input name="confirm" type="password" autocomplete="new-password" minlength="12" required></label><button type="submit">パスワードを再設定</button></form></html>
+          RESET
+          cat > /tmp/hope-reset-patch.php <<'PATCH'
+          <?php
+          declare(strict_types=1);
+          $p=$argv[1];$s=file_get_contents($p);
+          if(hash('sha256',$s)!=='6e4e6d819fad1378f50028bab5074172859ead665ea288fa6831dbd847bbe149')throw new RuntimeException('Unexpected admin revision; no changes made');
+          $changes=[
+           '$c=loadj(\'config.json\');$error='=>'$c=loadj(\'config.json\');$fingerprint=hash(\'sha256\',(string)$c[\'admin_hash\']);if(empty($c[\'admin_hash\'])||!is_string($_SESSION[\'admin\']??null)||!hash_equals($fingerprint,$_SESSION[\'admin\']))unset($_SESSION[\'admin\']);$error=',
+           '$_SESSION[\'admin\']=true;'=>'$_SESSION[\'admin\']=$fingerprint;',
+           'try{$rows=loadj(\'articles.json\');'=>'try{$latest=loadj(\'config.json\');if(empty($latest[\'admin_hash\'])||!hash_equals(hash(\'sha256\',(string)$latest[\'admin_hash\']),(string)($_SESSION[\'admin\']??\'\'))){unset($_SESSION[\'admin\']);http_response_code(403);exit(\'再ログインが必要です\');}$rows=loadj(\'articles.json\');'
+          ];
+          foreach($changes as $old=>$new){if(substr_count($s,$old)!==1)throw new RuntimeException('Unexpected authentication structure');$s=str_replace($old,$new,$s);}
+          if(file_put_contents($argv[2],$s)===false)throw new RuntimeException('Cannot stage admin code');
+          PATCH
+          php -l /tmp/hope-reset.php
+          php -l /tmp/hope-reset-patch.php
+      - name: Stage one-time reset without clearing the current password
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          umask 077
+          test -n "$SSH_KEY" && test -n "$SAKURA_HOST" && test -n "$SAKURA_USER"
+          mkdir -p ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          P=/home/rakudadou/www/hope-blog
+          D=/home/rakudadou/hope-blog-private/data
+          test -d "$P" && test ! -L "$P" && test -d "$D" && test ! -L "$D"
+          test -f "$P/admin.php" && test ! -L "$P/admin.php"
+          test -f "$D/config.json" && test ! -L "$D/config.json"
+          for f in "$P/admin-reset.php" "$D/admin-reset-pending.json" "$D/reset-stage.php" "$D/reset-patch.php"; do test ! -e "$f" && test ! -L "$f"; done
+          php -r 'if(hash_file("sha256",$argv[1])!=="6e4e6d819fad1378f50028bab5074172859ead665ea288fa6831dbd847bbe149")exit(1);' "$P/admin.php"
+          REMOTE
+          scp -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes /tmp/hope-reset.php "$SAKURA_USER@$SAKURA_HOST:/home/rakudadou/hope-blog-private/data/reset-stage.php"
+          scp -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes /tmp/hope-reset-patch.php "$SAKURA_USER@$SAKURA_HOST:/home/rakudadou/hope-blog-private/data/reset-patch.php"
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          umask 077
+          P=/home/rakudadou/www/hope-blog
+          D=/home/rakudadou/hope-blog-private/data
+          STAGE=$(mktemp -d "$D/reset.XXXXXXXX")
+          trap 'rm -f "$D/reset-stage.php" "$D/reset-patch.php"; rm -rf "$STAGE"' EXIT
+          php -l "$D/reset-stage.php"
+          php "$D/reset-patch.php" "$P/admin.php" "$STAGE/admin.php"
+          php -l "$STAGE/admin.php"
+          php -r '$d=$argv[1];$f=$d."/config.json";$lock=fopen($d."/write.lock","c");if(!$lock||!flock($lock,LOCK_EX))exit(1);try{$c=json_decode(file_get_contents($f),true,512,JSON_THROW_ON_ERROR);if(!array_key_exists("admin_hash",$c)||!is_string($c["admin_hash"])||file_exists($d."/admin-reset-pending.json"))exit(1);$h=fopen($d."/admin-reset-pending.json","x");if(!$h)exit(1);fwrite($h,json_encode(["expected"=>hash("sha256",$c["admin_hash"]),"expires"=>time()+86400],JSON_THROW_ON_ERROR));fclose($h);chmod($d."/admin-reset-pending.json",0600);echo empty($c["admin_hash"])?"Initial password not set.\n":"Existing password remains unchanged.\n";}finally{flock($lock,LOCK_UN);fclose($lock);}' "$D"
+          BACKUP=$(mktemp -d "$D/admin-reset-backup.XXXXXXXX")
+          cp "$P/admin.php" "$BACKUP/admin.php"
+          chmod 600 "$BACKUP/admin.php"
+          chmod 644 "$STAGE/admin.php" "$D/reset-stage.php"
+          mv "$STAGE/admin.php" "$P/admin.php"
+          if ! mv -n "$D/reset-stage.php" "$P/admin-reset.php" || test -e "$D/reset-stage.php"; then cp "$BACKUP/admin.php" "$P/admin.php"; rm -f "$D/admin-reset-pending.json"; exit 1; fi
+          echo 'Reset form installed. Existing administrator sessions now require login again. No articles or passwords changed.'
+          REMOTE
+      - name: Check HTTPS reset form and access control
+        run: |
+          set -eu
+          URL=https://rakudadou.sakura.ne.jp/hope-blog
+          curl --fail --silent --show-error --max-time 20 "$URL/admin-reset.php" > /tmp/reset-form.html
+          grep -Fq 'パスワードを再設定' /tmp/reset-form.html
+          CODE=$(curl --silent --show-error --max-time 20 -o /dev/null -w '%{http_code}' -X POST -d 'code=invalid' "$URL/admin-reset.php")
+          test "$CODE" = 403
+          CODE=$(curl --silent --show-error --max-time 20 -o /dev/null -w '%{http_code}' -X POST -d 'action=save' "$URL/admin.php")
+          test "$CODE" = 403
+          echo 'Reset form available; unauthenticated POST rejected.'
