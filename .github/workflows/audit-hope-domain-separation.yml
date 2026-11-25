@@ -1,0 +1,37 @@
+name: Audit HOPE domain separation prerequisites
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/audit-hope-domain-separation.yml'
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Inspect public routing and site metadata without writes
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          cd /home/rakudadou/www
+          printf 'ROOT_RULES\n'; cat .htaccess
+          printf '\nMOBILE_RULES\n'; cat hope-mobile/.htaccess
+          printf '\nPUBLIC_ROOT_DIRECTORIES\n'
+          find . -mindepth 1 -maxdepth 1 -type d -print | sort
+          printf '\nMOBILE_HTML\n'
+          find hope-mobile -type f -name '*.html' -print | sort
+          printf '\nSITEMAPS\n'
+          cat sitemap.xml hope-mobile/sitemap.xml
+          REMOTE
