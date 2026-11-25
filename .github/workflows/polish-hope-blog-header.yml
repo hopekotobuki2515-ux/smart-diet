@@ -1,0 +1,98 @@
+name: Polish HOPE blog header only
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/polish-hope-blog-header.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: hope-blog-production-host
+  cancel-in-progress: false
+jobs:
+  polish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Apply approved header CSS only
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          D=/home/rakudadou/hope-blog-private/data
+          P=/home/rakudadou/www/hope-blog
+          T=$(mktemp -d "$D/header-stage.XXXXXXXX")
+          export T
+          trap 'rm -rf "$T"' EXIT
+          cat > "$T/patch.php" <<'PHP'
+          <?php
+          $d='/home/rakudadou/hope-blog-private/data';$t=getenv('T');$path=$d.'/home-page.php';
+          if(is_link($path)||!is_file($path))throw new RuntimeException('Unexpected home view');
+          $s=file_get_contents($path);
+          $pairs=json_decode('[[".site-header{border-bottom:1px solid var(--line);background:#fff}",".site-header{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.96);backdrop-filter:blur(8px);border-bottom:1px solid #ece7e1;box-shadow:0 2px 10px rgba(0,0,0,.04)}"],[".header-inner{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:78px;flex-wrap:wrap;padding-top:12px;padding-bottom:12px}",".header-inner{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:78px;flex-wrap:wrap;padding-top:14px;padding-bottom:14px}"],[".brand{font-weight:800;font-size:21px;letter-spacing:.04em;line-height:1.3}",".brand{font-weight:800;font-size:28px;letter-spacing:.06em;line-height:1.1;color:#1f252b}"],[".brand small{display:block;font-weight:500;font-size:12px;letter-spacing:0;color:var(--muted);margin-top:4px}",".brand small{display:block;margin-top:6px;font-size:12px;font-weight:500;color:#6b7280;letter-spacing:.02em}"],[".nav{display:flex;gap:20px;flex-wrap:wrap;align-items:center;font-size:14px;font-weight:700}",".nav{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.nav a{display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border:1px solid #eadfce;border-radius:999px;background:#fffaf4;color:#7a3b10;font-size:14px;font-weight:700;white-space:nowrap;transition:background .2s,color .2s,border-color .2s}"],[".nav a:hover,.footer-nav a:hover{color:var(--accent);text-decoration:underline}",".nav a:hover{background:#f39a32;color:#fff;border-color:#f39a32;text-decoration:none}.footer-nav a:hover{color:var(--accent);text-decoration:underline}"],[".header-inner{gap:12px;min-height:0}.brand{font-size:19px}.nav{gap:14px;font-size:13px}",".header-inner{align-items:flex-start;flex-direction:column;gap:12px;min-height:0}.brand{font-size:24px}.nav{width:100%;gap:8px}.nav a{font-size:13px;padding:9px 12px}"]]',true,512,JSON_THROW_ON_ERROR);
+          if(!str_contains($s,'height:auto;aspect-ratio:640/426;flex:none'))throw new RuntimeException('Previous thumbnail fix missing');
+          foreach($pairs as [$old,$new]){if(substr_count($s,$old)!==1)throw new RuntimeException('Header revision mismatch');$s=str_replace($old,$new,$s);}
+          file_put_contents($t.'/home-page.php',$s);
+          PHP
+          php "$T/patch.php"
+          php -l "$T/home-page.php"
+          B=$(mktemp -d "$D/header-backup.XXXXXXXX")
+          cp "$D/home-page.php" "$B/home-page.php"
+          chmod 600 "$B/home-page.php" "$T/home-page.php"
+          php -r 'foreach(["articles.json","config.json","fragments.json"] as $f)echo hash_file("sha256",$argv[1]."/".$f),PHP_EOL;foreach(["index.php","common.php","admin.php",".htaccess","assets/style.css"] as $f)echo hash_file("sha256",$argv[2]."/".$f),PHP_EOL;' "$D" "$P" > "$T/before"
+          mv "$T/home-page.php" "$D/home-page.php"
+          if ! php -l "$D/home-page.php"; then cp "$B/home-page.php" "$D/home-page.php"; exit 1; fi
+          php -r 'foreach(["articles.json","config.json","fragments.json"] as $f)echo hash_file("sha256",$argv[1]."/".$f),PHP_EOL;foreach(["index.php","common.php","admin.php",".htaccess","assets/style.css"] as $f)echo hash_file("sha256",$argv[2]."/".$f),PHP_EOL;' "$D" "$P" > "$T/after"
+          cmp "$T/before" "$T/after"
+          echo 'PASS: approved header CSS only; other files unchanged.'
+          REMOTE
+      - name: Verify header responsiveness, links, and thumbnail sizes
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-noto-cjk
+          cd /tmp
+          npm install --no-audit --no-fund playwright
+          npx playwright install chromium
+          cat > /tmp/check.cjs <<'JS'
+          const {chromium}=require('playwright');
+          (async()=>{
+            const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
+            try{
+              for(const width of [320,390,768,1366]){
+                const page=await browser.newPage({viewport:{width,height:900},deviceScaleFactor:1,isMobile:width<=390,hasTouch:width<=390});
+                const base='https://rakudadou.sakura.ne.jp/hope-blog/';
+                const response=await page.goto(base+'?headercheck=1',{waitUntil:'domcontentloaded',timeout:30000});
+                if(response.status()!==200)throw Error('Home HTTP '+response.status());
+                await page.evaluate(()=>document.fonts.ready);
+                const d=await page.evaluate(()=>{const h=document.querySelector('.site-header'),n=document.querySelector('.nav'),b=document.querySelector('.brand');return{client:document.documentElement.clientWidth,scroll:document.documentElement.scrollWidth,position:getComputedStyle(h).position,headerHeight:h.getBoundingClientRect().height,brandSize:getComputedStyle(b).fontSize,navLinks:[...n.querySelectorAll('a')].map(a=>{const r=a.getBoundingClientRect();return{text:a.textContent,href:a.href,x:r.x,right:r.right,top:r.top,bottom:r.bottom,round:getComputedStyle(a).borderRadius}}),cards:document.querySelectorAll('.article-card').length,thumbs:[...document.querySelectorAll('.thumb')].map(i=>{const r=i.getBoundingClientRect();return{w:r.width,h:r.height}})}});
+                if(d.scroll>d.client+1||d.position!=='sticky'||d.navLinks.length!==3||d.navLinks.some(l=>l.x<0||l.right>d.client+1||l.bottom>d.headerHeight+1||l.round!=='999px')||d.cards!==9||d.thumbs.some(i=>Math.abs(i.h-i.w*426/640)>2))throw Error(JSON.stringify(d));
+                await page.evaluate(()=>scrollTo(0,450));
+                await page.waitForTimeout(100);
+                if(Math.abs(await page.locator('.site-header').evaluate(e=>e.getBoundingClientRect().top))>1)throw Error('Sticky check failed');
+                console.log('PASS '+width+' '+JSON.stringify(d));
+                if(width===390||width===1366){
+                  await page.evaluate(()=>scrollTo(0,0));
+                  const shot=await page.screenshot({type:'jpeg',quality:55});
+                  console.log('SHOT_BEGIN '+width);const b=shot.toString('base64');for(let i=0;i<b.length;i+=3000)console.log('SHOT_PART '+b.slice(i,i+3000));console.log('SHOT_END');
+                }
+                await page.close();
+              }
+              const page=await browser.newPage({viewport:{width:390,height:844}});
+              await page.goto('https://rakudadou.sakura.ne.jp/hope-blog/');
+              const links=await page.locator('.nav a').evaluateAll(a=>a.map(x=>x.href));
+              for(const url of links){const r=await page.request.get(url);if(r.status()!==200)throw Error('Header link HTTP '+r.status());}
+              console.log('PASS: all three header links return HTTP 200.');
+            }finally{await browser.close()}
+          })().catch(e=>{console.error(e);process.exit(1)});
+          JS
+          node /tmp/check.cjs
