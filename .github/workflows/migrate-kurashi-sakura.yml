@@ -10,35 +10,163 @@ concurrency:
   group: migrate-kurashi-sakura
   cancel-in-progress: false
 jobs:
-  inspect:
+  migrate:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 12
     steps:
-      - name: Inspect current public site without changing it
+      - name: Snapshot FC2 and verify complete linked site
+        run: |
+          set -eu
+          mkdir -p "$RUNNER_TEMP/kurashi-site" "$RUNNER_TEMP/kurashi-original"
+          python3 - <<'PY'
+          import os,re,hashlib,json
+          from pathlib import Path
+          from urllib.request import Request,urlopen
+          from urllib.parse import urljoin,urlsplit,unquote,quote
+          from html.parser import HTMLParser
+          from collections import deque,Counter
+          from concurrent.futures import ThreadPoolExecutor
+          base='https://rakudadou719.web.fc2.com/'
+          new='https://rakudadou.sakura.ne.jp/kurashi/'
+          root=Path(os.environ['RUNNER_TEMP'])/'kurashi-site'
+          raw=Path(os.environ['RUNNER_TEMP'])/'kurashi-original'
+          host=urlsplit(base).netloc
+          class Parser(HTMLParser):
+              def __init__(self): super().__init__(); self.refs=[]; self.amazon=[]; self.cards=[]
+              def handle_starttag(self,tag,attrs):
+                  a=dict(attrs)
+                  for k in ('href','src','poster','data-src','action'):
+                      if a.get(k): self.refs.append((tag,k,a[k]))
+                  if a.get('srcset'):
+                      for part in a['srcset'].split(','):
+                          if part.strip(): self.refs.append((tag,'srcset',part.strip().split()[0]))
+                  if tag=='a' and ('data-amazon-link' in a or 'link.amazon/' in a.get('href','')): self.amazon.append(a.get('href',''))
+          def safe(u):
+              p=urlsplit(u)
+              if p.netloc!=host or p.scheme!='https': return None
+              s=unquote(p.path).lstrip('/') or 'index.html'
+              if s.endswith('/'): s+='index.html'
+              assert re.fullmatch(r'[A-Za-z0-9_./-]+',s) and all(x not in ('','.','..') for x in s.split('/')),s
+              return s
+          def get(path):
+              u=base+quote(path,safe='/')
+              with urlopen(Request(u,headers={'User-Agent':'Mozilla/5.0'}),timeout=25) as r:
+                  assert r.status==200 and urlsplit(r.url).netloc==host,(u,r.status,r.url)
+                  data=r.read(12_000_001)
+                  assert 0<len(data)<=12_000_000,path
+                  return data,r.headers.get_content_type()
+          def save(root,path,data):
+              p=root/path;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(data)
+          def parse(s):
+              p=Parser();p.feed(s);return p
+          q=deque(['index.html']);seen=set();pages={};assets=set();amazon=[]
+          while q:
+              path=q.popleft()
+              if path in seen: continue
+              seen.add(path);assert len(seen)<=100,'Too many linked pages'
+              data,typ=get(path);assert typ=='text/html',(path,typ)
+              s=data.decode('utf-8'); assert '暮らしのいいもの案内所' in s,path
+              save(raw,path,data)
+              # Only remove FC2-injected footer code and invisible counter observed on the live source.
+              s,n=re.subn(r'<script><!--\s*var fc2footerparam\s*=.*?//--></script>','',s,flags=re.S)
+              assert n==1,(path,'FC2 footer marker',n)
+              s,n=re.subn(r'<!-- FC2, inc\.-->\s*<img\b[^>]*src="//media\.fc2\.com/counter_img\.php\?id=50"[^>]*>\s*<!-- FC2, inc\.-->','',s)
+              assert n==1,(path,'FC2 counter marker',n)
+              original=parse(s)
+              # Rewrite only absolute/root-relative references pointing to this same site.
+              def rewrite(m):
+                  pre,qmark,v=m.groups()
+                  if v.startswith(('https://'+host+'/','http://'+host+'/','//'+host+'/','/')) and not v.startswith('//') or v.startswith('//'+host+'/'):
+                      u=urljoin(base+path,v)
+                      if urlsplit(u).netloc==host:
+                          a=urlsplit(u)
+                          local=a.path.lstrip('/') or 'index.html'
+                          import posixpath
+                          rel=posixpath.relpath(local,posixpath.dirname(path) or '.')
+                          return pre+qmark+rel+('?' + a.query if a.query else '')+('#'+a.fragment if a.fragment else '')+qmark
+                  return m.group(0)
+              s=re.sub(r'(\b(?:href|src|poster|data-src|action)\s*=\s*)(["\'])(.*?)\2',rewrite,s,flags=re.I)
+              p=parse(s);assert p.amazon==original.amazon,(path,'affiliate URL changed')
+              assert 'fc2footerparam' not in s and 'media.fc2.com/counter_img.php' not in s
+              pages[path]=s;amazon+=p.amazon
+              for tag,key,v in p.refs:
+                  if v.startswith(('#','data:','mailto:','tel:','javascript:')): continue
+                  u=urljoin(base+path,v)
+                  target=safe(u)
+                  if target is None: continue
+                  if target.endswith(('.html','.htm')): q.append(target)
+                  else: assets.add(target)
+              for v in re.findall(r'url\(\s*["\']?([^)"\']+)["\']?\s*\)',s):
+                  if v.startswith(('data:','#')): continue
+                  target=safe(urljoin(base+path,v))
+                  if target: assets.add(target)
+          print('HTML count:',len(pages),'asset count:',len(assets),'affiliate links:',len(amazon),'distinct:',len(set(amazon)))
+          print('Pages:',sorted(pages));print('Assets:',sorted(assets))
+          assert len(pages)>=27 and len(assets)>=5 and len(amazon)>=408,(len(pages),len(assets),len(amazon))
+          assert 'home.html' not in pages and 'products/index.html' not in pages,'Legacy routes unexpectedly linked'
+          for path,s in pages.items(): save(root,path,s.encode('utf-8'))
+          def asset(path):
+              data,typ=get(path);assert typ!='text/html',(path,typ);save(root,path,data);save(raw,path,data)
+          with ThreadPoolExecutor(max_workers=5) as ex: list(ex.map(asset,sorted(assets)))
+          for path,s in pages.items():
+              for tag,key,v in parse(s).refs:
+                  if v.startswith(('#','data:','mailto:','tel:','javascript:')): continue
+                  target=safe(urljoin(base+path,v))
+                  if target: assert (root/target).is_file(),(path,target)
+          print('All same-site references exist; Amazon href values preserved')
+          manifest={str(p.relative_to(root)):hashlib.sha256(p.read_bytes()).hexdigest() for p in root.rglob('*') if p.is_file()}
+          (Path(os.environ['RUNNER_TEMP'])/'kurashi-manifest.json').write_text(json.dumps(manifest,ensure_ascii=False))
+          PY
+          tar -czf "$RUNNER_TEMP/kurashi-site.tar.gz" -C "$RUNNER_TEMP/kurashi-site" .
+          tar -czf "$RUNNER_TEMP/kurashi-original.tar.gz" -C "$RUNNER_TEMP/kurashi-original" .
+      - name: Publish to isolated Sakura directory without overwriting
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          test -n "$SSH_KEY" && test -n "$SAKURA_HOST" && test -n "$SAKURA_USER"
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          chmod 600 ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" >> ~/.ssh/known_hosts
+          test -s ~/.ssh/known_hosts
+          remote=$(cat <<'REMOTE'
+          sh -c 'set -eu; dest=/home/rakudadou/www/kurashi; test ! -e "$dest"; test ! -L "$dest"; stage=$(mktemp -d /home/rakudadou/kurashi-stage.XXXXXXXX); trap "rm -rf \"$stage\"" EXIT; tar -xzf - -C "$stage"; test -s "$stage/index.html"; test -z "$(find "$stage" -type l -print)"; chmod -R a+rX "$stage"; chmod 755 "$stage"; mv "$stage" "$dest"; echo "Kurashi published to isolated directory"'
+          REMOTE
+          )
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" "$remote" < "$RUNNER_TEMP/kurashi-site.tar.gz"
+      - name: Verify every migrated file on Sakura
         run: |
           python3 - <<'PY'
+          import os,json,hashlib
+          from pathlib import Path
+          from urllib.parse import quote
           from urllib.request import Request,urlopen
-          from urllib.parse import urljoin,urlsplit
-          from html.parser import HTMLParser
-          from collections import Counter
-          import re
-          base='https://rakudadou719.web.fc2.com/'
-          def get(url):
-              with urlopen(Request(url,headers={'User-Agent':'Mozilla/5.0'}),timeout=20) as r:
-                  assert r.status==200
-                  return r.read(),r.headers.get_content_charset() or 'utf-8'
-          data,encoding=get(base)
-          s=data.decode(encoding)
-          print('HOME bytes:',len(data))
-          print('HEAD:',s[:3500])
-          print('TAIL:',s[-4000:])
-          class Parser(HTMLParser):
-              def __init__(self): super().__init__(); self.refs=[]
-              def handle_starttag(self,tag,attrs):
-                  for k,v in attrs:
-                      if k in ('href','src','poster','data-src') and v: self.refs.append((tag,k,v))
-          p=Parser();p.feed(s)
-          print('SAME HOST REFERENCES:',sorted(set((t,k,v) for t,k,v in p.refs if urlsplit(urljoin(base,v)).netloc==urlsplit(base).netloc and not v.startswith('#'))))
-          print('EXTERNAL HOSTS:',Counter(urlsplit(urljoin(base,v)).netloc for t,k,v in p.refs if urlsplit(urljoin(base,v)).netloc!=urlsplit(base).netloc))
-          assert '暮らしのいいもの案内所' in s
+          from concurrent.futures import ThreadPoolExecutor
+          base='https://rakudadou.sakura.ne.jp/kurashi/'
+          manifest=json.loads((Path(os.environ['RUNNER_TEMP'])/'kurashi-manifest.json').read_text())
+          def verify(item):
+              path,expected=item
+              with urlopen(Request(base+quote(path,safe='/'),headers={'User-Agent':'Mozilla/5.0'}),timeout=25) as r:
+                  assert r.status==200 and hashlib.sha256(r.read()).hexdigest()==expected,path
+              print('HTTP 200, exact byte match:',path)
+          with ThreadPoolExecutor(max_workers=5) as ex: list(ex.map(verify,manifest.items()))
+          with urlopen(base,timeout=20) as r:
+              assert r.status==200 and hashlib.sha256(r.read()).hexdigest()==manifest['index.html']
+          print('All',len(manifest),'public files verified, including homepage')
           PY
+      - name: Retain source and migrated snapshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kurashi-migration-snapshot
+          path: |
+            ${{ runner.temp }}/kurashi-site.tar.gz
+            ${{ runner.temp }}/kurashi-original.tar.gz
+            ${{ runner.temp }}/kurashi-manifest.json
+          if-no-files-found: ignore
+          retention-days: 30
