@@ -45,7 +45,7 @@ jobs:
                 for(const [name,v] of targets){
                   const page=await context.newPage();
                   await page.goto(v.url,{waitUntil:'domcontentloaded',timeout:15000});
-                  const results=await page.evaluate(async mobile=>{
+                  const results=await page.evaluate(async ({mobile,expectedColumns})=>{
                     const grids=[...document.querySelectorAll('.product-section > .product-grid')],results=[];
                     const wait=()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
                     for(const g of grids){
@@ -63,21 +63,21 @@ jobs:
                         res.sameWidth=cards.every(c=>Math.abs(c.getBoundingClientRect().width-g.clientWidth)<=1);
                         res.fit=cards.every(c=>c.scrollWidth<=c.clientWidth+1);
                       } else {
-                        res.threeColumns=cs.gridTemplateColumns.split(' ').length===3 && (cards.length<3 || cards[0].getBoundingClientRect().top===cards[2].getBoundingClientRect().top) && (cards.length<2 || cards[1].getBoundingClientRect().left>cards[0].getBoundingClientRect().left) && (cards.length<4 || cards[3].getBoundingClientRect().top>cards[0].getBoundingClientRect().top);
+                        res.desktopColumns=cs.gridTemplateColumns.split(' ').length===expectedColumns && cards.slice(0,expectedColumns).every(c=>Math.abs(c.getBoundingClientRect().top-cards[0].getBoundingClientRect().top)<=1) && (cards.length<2 || cards[1].getBoundingClientRect().left>cards[0].getBoundingClientRect().left) && (cards.length<=expectedColumns || cards[expectedColumns].getBoundingClientRect().top>cards[0].getBoundingClientRect().top);
                       }
                       results.push(res);
                     }
                     return results;
-                  },mobile);
+                  },{mobile,expectedColumns:name==='self.html'?6:3});
                   if(!results.length || (name==='self.html'?results.length<2:results.length!==1))throw Error('Wrong number of product grids');
                   console.log('DISPLAY',width,name,JSON.stringify(results));
-                  for(const result of results)if(result.overflow||!result.gridInside||!result.all50||(mobile?!(result.sameWidth&&result.fit&&result.next&&result.last&&result.reset&&result.snap.includes('mandatory')&&(result.count===1||result.scrollWidth>result.client)):!result.threeColumns))throw Error('Layout validation failed: '+width+' '+name+' '+JSON.stringify(result));
+                  for(const result of results)if(result.overflow||!result.gridInside||!result.all50||(mobile?!(result.sameWidth&&result.fit&&result.next&&result.last&&result.reset&&result.snap.includes('mandatory')&&(result.count===1||result.scrollWidth>result.client)):!result.desktopColumns))throw Error('Layout validation failed: '+width+' '+name+' '+JSON.stringify(result));
                   await page.close();
                 }
                 await context.close();
               }
             } finally {await browser.close()}
-            console.log('PASS: all 16 product pages at 320, 390, 720 and 1366px; one full-width mobile card, scroll to next/last/back, desktop 3 columns, no document overflow');
+            console.log('PASS: all 16 product pages at 320, 390, 720 and 1366px; one full-width mobile card, scroll to next/last/back, desktop original 3 or 6 columns, no document overflow');
           })().catch(e=>{console.error(e);process.exit(1)});
           JS
       - name: Publish only validated HTML changes with backup
