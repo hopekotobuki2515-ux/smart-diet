@@ -10,7 +10,7 @@ BASE='https://rakudadou.sakura.ne.jp/kurashi/'
 ROOT=Path(os.environ['RUNNER_TEMP'])/'kurashi-copy-update'
 DATA=json.loads(Path('kurashi-copy-update-20261126/payload.json').read_text())
 mapping=json.loads(re.search(r"mapping=json.loads\(r'''(.*?)'''\)",Path('.github/workflows/deploy-kurashi-seo.yml').read_text(),re.S).group(1))
-assert len(mapping)==27 and len(DATA['articles'])==15 and len(DATA['products'])==204
+assert len(mapping)==27 and len(DATA['articles'])==15 and len(DATA['products'])==212
 def fetch(url):
     with urlopen(Request(url,headers={'User-Agent':'Mozilla/5.0','Cache-Control':'no-cache'}),timeout=35) as r:
         assert r.status==200 and unquote(r.url)==unquote(url),(url,r.url,r.status)
@@ -97,14 +97,25 @@ def prepare():
                 assert item is not None,('Unknown product',id)
                 names=re.findall(r'<h3[^>]*>(.*?)</h3>',card,re.S)
                 assert len(names)==1 and text(names[0])==item['name'],('Product name mismatch',id,names)
+                links=re.findall(r'\bhref="([^"]+)"',card)
+                assert links==item['links'],('Affiliate links differ',id)
                 ds=list(DESC.finditer(card));assert len(ds)==1,('Description count',id,len(ds))
                 actual=text(ds[0].group(2))
                 assert actual in (item['old'],item['fresh']),('Product description differs',id,actual[:180])
                 assert 120<=visible_count(item['fresh'])<=150,('Length',id)
                 seen[id]+=1
                 return DESC.sub(lambda m:m.group(1)+esc(item['fresh'])+m.group(3),card)
-            s=CARD.sub(product,s)
-            assert len(CARD.findall(s))==len(DESC.findall(s)),('Unmatched product description elements',old,len(CARD.findall(s)),len(DESC.findall(s)))
+            if old=='self.html':
+                assert len(CARD.findall(s))==206 and not DESC.findall(s),'Self catalogue structure changed'
+                for m in CARD.finditer(s):
+                    id=m.group(1);card=m.group(0);item=DATA['products'].get(id)
+                    assert item is not None,('Unknown self catalogue product',id)
+                    assert [text(x) for x in re.findall(r'<h3[^>]*>(.*?)</h3>',card,re.S)]==[item['name']],('Self catalogue name mismatch',id)
+                    assert re.findall(r'\bhref="([^"]+)"',card)==item['links'],('Self catalogue affiliate links mismatch',id)
+                assert s==original,'Self catalogue must remain unchanged'
+            else:
+                s=CARD.sub(product,s)
+                assert len(CARD.findall(s))==len(DESC.findall(s)),('Unmatched product description elements',old,len(CARD.findall(s)),len(DESC.findall(s)))
             p2=parse(s)
             assert (p.refs,p.scripts,p.styles,p.canon,p.robots)==(p2.refs,p2.scripts,p2.styles,p2.canon,p2.robots),'Protected references, scripts, styles or SEO settings changed'
             for tag,k,v in p2.refs:
@@ -121,7 +132,7 @@ def prepare():
     assert not errors,('Preflight aborted, no deployment',errors)
     assert set(seen)==set(DATA['products']),('Missing product IDs',sorted(set(DATA['products'])-set(seen)))
     assert len(manifest)==27
-    print('PASS: 15 articles, 204 unique product IDs,',sum(seen.values()),'product descriptions,',len(changes),'changed HTML files',flush=True)
+    print('PASS: 15 articles, 212 unique product IDs,',sum(seen.values()),'product descriptions,',len(changes),'changed HTML files',flush=True)
     (ROOT/'changes.txt').write_text(''.join(p+'\n' for p in changes))
     (ROOT/'manifest.json').write_text(json.dumps(manifest,ensure_ascii=False))
 def verify():
