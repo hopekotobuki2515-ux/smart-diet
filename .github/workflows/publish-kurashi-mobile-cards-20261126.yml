@@ -45,29 +45,33 @@ jobs:
                 for(const [name,v] of targets){
                   const page=await context.newPage();
                   await page.goto(v.url,{waitUntil:'domcontentloaded',timeout:15000});
-                  const result=await page.evaluate(async mobile=>{
-                    const g=document.querySelector('.product-section > .product-grid');
-                    const cards=[...g.querySelectorAll(':scope > .product-card')];
-                    const cs=getComputedStyle(g), rect=g.getBoundingClientRect();
+                  const results=await page.evaluate(async mobile=>{
+                    const grids=[...document.querySelectorAll('.product-section > .product-grid')],results=[];
                     const wait=()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
-                    const initial=cards[0].getBoundingClientRect();
-                    const res={count:cards.length,client:g.clientWidth,scrollWidth:g.scrollWidth,card:initial.width,columns:cs.gridTemplateColumns,overflow:document.documentElement.scrollWidth>innerWidth+1,viewport:innerWidth,gridInside:rect.left>=-1&&rect.right<=innerWidth+1,snap:cs.scrollSnapType,all50:[...g.querySelectorAll('.product-description')].every(e=>Array.from(e.textContent.replace(/\s/g,'')).length===50)};
-                    if(mobile){
-                      g.scrollLeft=cards[1].offsetLeft-cards[0].offsetLeft;await wait();
-                      res.next=Math.abs(cards[1].getBoundingClientRect().left-g.getBoundingClientRect().left)<=2;
-                      g.scrollLeft=g.scrollWidth;await wait();
-                      res.last=Math.abs(cards[cards.length-1].getBoundingClientRect().left-g.getBoundingClientRect().left)<=2;
-                      g.scrollLeft=0;await wait();
-                      res.reset=Math.abs(cards[0].getBoundingClientRect().left-g.getBoundingClientRect().left)<=2;
-                      res.sameWidth=cards.every(c=>Math.abs(c.getBoundingClientRect().width-g.clientWidth)<=1);
-                      res.fit=cards.every(c=>c.scrollWidth<=c.clientWidth+1);
-                    } else {
-                      res.threeColumns=cards[0].getBoundingClientRect().top===cards[2].getBoundingClientRect().top && cards[1].getBoundingClientRect().left>cards[0].getBoundingClientRect().left && cards[3].getBoundingClientRect().top>cards[0].getBoundingClientRect().top;
+                    for(const g of grids){
+                      const cards=[...g.querySelectorAll(':scope > .product-card')];
+                      if(!cards.length)throw Error('empty grid');
+                      const cs=getComputedStyle(g), rect=g.getBoundingClientRect();
+                      const initial=cards[0].getBoundingClientRect();
+                      const res={count:cards.length,client:g.clientWidth,scrollWidth:g.scrollWidth,card:initial.width,overflow:document.documentElement.scrollWidth>innerWidth+1,viewport:innerWidth,gridInside:rect.left>=-1&&rect.right<=innerWidth+1,snap:cs.scrollSnapType,all50:[...g.querySelectorAll('.product-description')].every(e=>Array.from(e.textContent.replace(/\s/g,'')).length===50)};
+                      if(mobile){
+                        if(cards.length>1){g.scrollLeft=cards[1].offsetLeft-cards[0].offsetLeft;await wait();res.next=Math.abs(cards[1].getBoundingClientRect().left-g.getBoundingClientRect().left)<=2;}else res.next=true;
+                        g.scrollLeft=g.scrollWidth;await wait();
+                        res.last=Math.abs(cards[cards.length-1].getBoundingClientRect().left-g.getBoundingClientRect().left)<=2;
+                        g.scrollLeft=0;await wait();
+                        res.reset=Math.abs(cards[0].getBoundingClientRect().left-g.getBoundingClientRect().left)<=2;
+                        res.sameWidth=cards.every(c=>Math.abs(c.getBoundingClientRect().width-g.clientWidth)<=1);
+                        res.fit=cards.every(c=>c.scrollWidth<=c.clientWidth+1);
+                      } else {
+                        res.threeColumns=cs.gridTemplateColumns.split(' ').length===3 && (cards.length<3 || cards[0].getBoundingClientRect().top===cards[2].getBoundingClientRect().top) && (cards.length<2 || cards[1].getBoundingClientRect().left>cards[0].getBoundingClientRect().left) && (cards.length<4 || cards[3].getBoundingClientRect().top>cards[0].getBoundingClientRect().top);
+                      }
+                      results.push(res);
                     }
-                    return res;
+                    return results;
                   },mobile);
-                  console.log('DISPLAY',width,name,JSON.stringify(result));
-                  if(result.overflow||!result.gridInside||!result.all50||(mobile?!(result.sameWidth&&result.fit&&result.next&&result.last&&result.reset&&result.snap.includes('mandatory')&&result.scrollWidth>result.client):!result.threeColumns))throw Error('Layout validation failed: '+width+' '+name+' '+JSON.stringify(result));
+                  if(!results.length || (name==='self.html'?results.length<2:results.length!==1))throw Error('Wrong number of product grids');
+                  console.log('DISPLAY',width,name,JSON.stringify(results));
+                  for(const result of results)if(result.overflow||!result.gridInside||!result.all50||(mobile?!(result.sameWidth&&result.fit&&result.next&&result.last&&result.reset&&result.snap.includes('mandatory')&&(result.count===1||result.scrollWidth>result.client)):!result.threeColumns))throw Error('Layout validation failed: '+width+' '+name+' '+JSON.stringify(result));
                   await page.close();
                 }
                 await context.close();
