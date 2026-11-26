@@ -1,0 +1,142 @@
+name: Publish verified Kurashi text revisions
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/publish-kurashi-copy-20261126.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: kurashi-copy-update
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate and prepare from actual live pages
+        run: python3 kurashi-copy-update-20261126/apply.py prepare
+      - name: Publish only validated HTML changes with backup
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          root="$RUNNER_TEMP/kurashi-copy-update"
+          if ! test -s "$root/changes.txt"; then echo "Already current, no deployment necessary"; exit 0; fi
+          test -n "$SSH_KEY" && test -n "$SAKURA_HOST" && test -n "$SAKURA_USER"
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          chmod 600 ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" >> ~/.ssh/known_hosts
+          test -s ~/.ssh/known_hosts
+          tar -czf "$RUNNER_TEMP/kurashi-copy-update.tar.gz" -C "$root" changes.txt original public
+          remote=$(cat <<'REMOTE'
+          sh -c '
+          set -eu
+          dest=/home/rakudadou/www/kurashi
+          test -d "$dest"; test ! -L "$dest"
+          stage=$(mktemp -d /home/rakudadou/kurashi-copy-stage.XXXXXXXX)
+          backup=""
+          committed=0
+          rollback() {
+            status=$?
+            if test "$committed" -eq 1 && test "$status" -ne 0; then
+              while IFS= read -r rel; do
+                cp -p "$backup/$rel" "$dest/$rel" || echo "ROLLBACK FAILED: $rel" >&2
+              done < "$stage/changes.txt"
+            fi
+            rm -rf "$stage"
+            exit "$status"
+          }
+          trap rollback 0
+          tar -xzf - -C "$stage"
+          test -s "$stage/changes.txt"
+          while IFS= read -r rel; do
+            case "$rel" in */index.html) ;; *) exit 1;; esac
+            case "$rel" in /*|*..*|*//* ) exit 1;; esac
+            dir=$(dirname "$rel")
+            test -d "$dest/$dir"; test ! -L "$dest/$dir"
+            test -f "$dest/$rel"; test ! -L "$dest/$rel"
+            test -s "$stage/public/$rel"
+            cmp "$stage/original/$rel" "$dest/$rel"
+          done < "$stage/changes.txt"
+          backup=$(mktemp -d /home/rakudadou/kurashi-copy-backup.XXXXXXXX)
+          chmod 700 "$backup"
+          while IFS= read -r rel; do
+            mkdir -p "$backup/$(dirname "$rel")"
+            cp -p "$dest/$rel" "$backup/$rel"
+          done < "$stage/changes.txt"
+          committed=1
+          while IFS= read -r rel; do
+            tmp=$(mktemp "$dest/$(dirname "$rel")/.copy-update.XXXXXXXX")
+            cp -p "$dest/$rel" "$tmp"
+            cat "$stage/public/$rel" > "$tmp"
+            mv -f "$tmp" "$dest/$rel"
+            cmp "$stage/public/$rel" "$dest/$rel"
+            echo "INSTALLED: $rel"
+          done < "$stage/changes.txt"
+          committed=0
+          echo "PASS: exact live source match, backup outside web root, verified server files"
+          '
+          REMOTE
+          )
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" "$remote" < "$RUNNER_TEMP/kurashi-copy-update.tar.gz"
+      - name: Verify all public HTML pages, sitemap and local images
+        run: python3 kurashi-copy-update-20261126/apply.py verify
+      - name: Install browser check
+        run: |
+          npm install --no-save playwright
+          npx playwright install chromium
+      - name: Check actual PC and smartphone layout
+        run: |
+          node <<'JS'
+          const {chromium}=require('playwright');
+          const fs=require('fs');
+          const path=require('path');
+          (async()=>{
+            const manifest=JSON.parse(fs.readFileSync(path.join(process.env.RUNNER_TEMP,'kurashi-copy-update','manifest.json'),'utf8'));
+            const b=await chromium.launch({headless:true});
+            let failures=[];
+            try {
+              for(const width of [390,1366]){
+                const c=await b.newContext({viewport:{width,height:844},isMobile:width===390});
+                await c.route('**/*',r=>{
+                  const u=new URL(r.request().url());
+                  return ['rakudadou.sakura.ne.jp','m.media-amazon.com','images-na.ssl-images-amazon.com'].includes(u.hostname)?r.continue():r.abort();
+                });
+                for(const [name,v] of Object.entries(manifest).filter(([k])=>k.startsWith('genre-'))){
+                  const p=await c.newPage();
+                  await p.goto(v.url,{waitUntil:'domcontentloaded',timeout:30000});
+                  const result=await p.evaluate(()=>{
+                    const body=document.querySelector('[data-article-body]');
+                    const count=s=>Array.from(s.replace(/\s/g,'')).length;
+                    const chars=[...body.querySelectorAll('p')].reduce((n,e)=>n+count(e.textContent),0);
+                    const products=[...document.querySelectorAll('.product-description')];
+                    return {chars,products:products.length,invalid:products.map(e=>count(e.textContent)).filter(n=>n<120||n>150),overflow:document.documentElement.scrollWidth>innerWidth+1,articleVisible:!!body.getClientRects().length};
+                  });
+                  console.log('DISPLAY',width,name,JSON.stringify(result));
+                  if(result.chars<1500||result.chars>2000||result.invalid.length||result.overflow||!result.articleVisible)failures.push([width,name,result]);
+                  await p.close();
+                }
+                await c.close();
+              }
+            } finally {await b.close();}
+            if(failures.length)throw Error(JSON.stringify(failures));
+            console.log('PASS: all 15 genre pages at 390 and 1366 px, no horizontal overflow, rendered copy lengths verified');
+          })().catch(e=>{console.error(e);process.exit(1)});
+          JS
+      - name: Save validation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kurashi-copy-update-evidence
+          path: |
+            ${{ runner.temp }}/kurashi-copy-update/manifest.json
+            ${{ runner.temp }}/kurashi-copy-update/changes.txt
+          if-no-files-found: ignore
+          retention-days: 30
