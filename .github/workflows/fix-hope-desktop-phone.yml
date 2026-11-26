@@ -1,0 +1,131 @@
+name: Repair verified HOPE PC telephone links and GA4 event
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fix-hope-desktop-phone.yml'
+permissions:
+  contents: read
+concurrency:
+  group: rakudadou-desktop-content
+  cancel-in-progress: false
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Inspect server files and repair only verified phone markup
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          T=$(mktemp -d /home/rakudadou/hope-phone-stage.XXXXXXXX)
+          trap 'rm -rf "$T"' EXIT
+          cat > "$T/repair.php" <<'PHP'
+          <?php
+          $root='/home/rakudadou/www';
+          $pages=['hope-site-contact.html','hope-site-privacy.html'];
+          $original=[]; $staged=[];
+          $tracking=<<<'HTML'
+          <!-- HOPE phone click tracking -->
+          <script>
+          document.addEventListener('click', function(event) {
+            var target = event.target;
+            var link = target && typeof target.closest === 'function' ? target.closest('a[href^="tel:"]') : null;
+            if (!link || typeof window.gtag !== 'function') return;
+            window.gtag('event', 'phone_click', {
+              send_to: 'G-ZCETMLPKX3',
+              link_url: link.getAttribute('href'),
+              transport_type: 'beacon'
+            });
+          }, true);
+          </script>
+          HTML;
+          $css='<style id="hope-desktop-phone-cursor">a[href="tel:0836398200"]{cursor:pointer!important;pointer-events:auto!important}</style>';
+          $telPattern='~<a\b[^>]*\bhref\s*=\s*["\x27]tel:0836398200["\x27][^>]*>\s*0836-39-8200\s*</a>~i';
+          foreach($pages as $name){
+            $path=$root.'/'.$name;
+            if(is_link($path)||!is_file($path)||realpath($path)!==$path)throw new RuntimeException('Unexpected path '.$name);
+            $s=file_get_contents($path);
+            if($s===false||!preg_match('//u',$s)||substr_count(strtolower($s),'</head>')!==1||!str_contains($s,'G-ZCETMLPKX3')||!str_contains($s,'googletagmanager.com/gtag/js'))throw new RuntimeException('Unexpected HTML or GA4: '.$name);
+            $original[$name]=$s;
+            $links=preg_match_all($telPattern,$s);
+            $events=substr_count($s,'phone_click');
+            echo 'BEFORE '.$name.' telephone_links='.$links.' phone_click_occurrences='.$events.PHP_EOL;
+            if($links===0){
+              if(preg_match('~<a\b[^>]*\bhref\s*=\s*["\x27]tel:~i',$s))throw new RuntimeException('Unexpected alternate tel link: '.$name);
+              $plain='~(>)(0836-39-8200)(<)~';
+              if(preg_match_all($plain,$s)!==1)throw new RuntimeException('Exact standalone number not uniquely found: '.$name);
+              $s=preg_replace($plain,'$1<a href="tel:0836398200">$2</a>$3',$s,1);
+            }elseif($links!==1)throw new RuntimeException('Unexpected link count: '.$name);
+            if($events===0){
+              $s=preg_replace('~</head>~i',$tracking."\n".'</head>',$s,1);
+            }elseif($events!==1||!preg_match('~gtag\s*\(\s*["\x27]event["\x27]\s*,\s*["\x27]phone_click["\x27]~',$s)){
+              throw new RuntimeException('Unexpected existing tracking; unchanged: '.$name);
+            }
+            if(!str_contains($s,'id="hope-desktop-phone-cursor"')){
+              $s=preg_replace('~</head>~i',$css."\n".'</head>',$s,1);
+            }
+            if(preg_match_all($telPattern,$s)!==1||substr_count($s,'phone_click')!==1||substr_count($s,'G-ZCETMLPKX3')!==substr_count($original[$name],'G-ZCETMLPKX3')+($events===0?1:0)||substr_count($s,'adsbygoogle.js')!==substr_count($original[$name],'adsbygoogle.js'))throw new RuntimeException('Validation failed: '.$name);
+            $staged[$name]=$s;
+          }
+          $backup=tempnam('/home/rakudadou','hope-phone-backup.');
+          if($backup===false||!unlink($backup)||!mkdir($backup,0700))throw new RuntimeException('Private backup creation failed');
+          foreach($pages as $name){
+            if(file_put_contents($backup.'/'.$name,$original[$name])!==strlen($original[$name]))throw new RuntimeException('Backup write failed');
+          }
+          $changed=[];
+          try {
+            foreach($pages as $name){
+              $p=$root.'/'.$name;
+              if(file_get_contents($p)!==$original[$name])throw new RuntimeException('Concurrent modification: '.$name);
+              if($original[$name]!==$staged[$name]){
+                $tmp=tempnam($root,'.hope-phone-');
+                if($tmp===false)throw new RuntimeException('Stage failed');
+                if(file_put_contents($tmp,$staged[$name])!==strlen($staged[$name])||!chmod($tmp,fileperms($p)&0777)||!rename($tmp,$p)){@unlink($tmp);throw new RuntimeException('Publish failed: '.$name);}
+                $changed[]=$name;
+              }
+              if(file_get_contents($p)!==$staged[$name])throw new RuntimeException('Readback failed: '.$name);
+              echo 'AFTER '.$name.' telephone_links=1 phone_click_occurrences=1 cursor=pointer sha256='.hash('sha256',$staged[$name]).PHP_EOL;
+            }
+          }catch(Throwable $e){
+            foreach($changed as $name)if(file_get_contents($root.'/'.$name)===$staged[$name])file_put_contents($root.'/'.$name,$original[$name],LOCK_EX);
+            throw $e;
+          }
+          PHP
+          php -l "$T/repair.php"
+          php -d display_errors=1 "$T/repair.php"
+          REMOTE
+      - name: Check both public PC pages without firing analytics
+        run: |
+          set -eu
+          for name in hope-site-contact.html hope-site-privacy.html; do
+            curl --fail --silent --show-error --max-time 25 -A 'Mozilla/5.0 (X11; Linux x86_64) Chrome/130.0' "https://www.rakudadou.jp/$name?phoneverify=$GITHUB_RUN_ID" -o "$name"
+          done
+          python3 - <<'PY'
+          from pathlib import Path
+          from html.parser import HTMLParser
+          class Check(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.tel=0
+              def handle_starttag(self, tag, attrs):
+                  if tag=='a' and dict(attrs).get('href')=='tel:0836398200':
+                      self.tel+=1
+          for n in ('hope-site-contact.html','hope-site-privacy.html'):
+              s=Path(n).read_text()
+              p=Check();p.feed(s)
+              assert p.tel==1,(n,p.tel)
+              assert s.count('phone_click')==1,n
+              assert 'G-ZCETMLPKX3' in s and 'hope-desktop-phone-cursor' in s,n
+              print('PUBLIC PASS',n,'tel=1 phone_click=1 cursor=pointer')
+          PY
