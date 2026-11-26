@@ -29,12 +29,14 @@ NEW='''  .product-section > .product-grid {
     scroll-snap-align: start;
     overflow-wrap: anywhere;
   }
-  .product-section > .product-disclosure::after {
+  .product-section > h2::after {
     content: "左右にスワイプして商品を見る";
     display: block;
     margin-top: 6px;
     color: var(--red-dark);
     font-weight: 700;
+    font-size: 13px;
+    line-height: 1.5;
   }'''
 TARGETS=set(a.DATA['articles'])|{'self.html'}
 def prepare():
@@ -49,8 +51,9 @@ def prepare():
         if key in TARGETS:
             assert s.count(OLD)==1,(key,'mobile rule missing or ambiguous')
             assert re.search(r'@media \(max-width: 720px\) \{\s*'+re.escape(OLD.strip()),s),(key,'not inside mobile media query')
-            assert len(re.findall(r'<section class="section-card product-section">',s))==1
-            assert len(re.findall(r'<div class="product-grid">',s))==1
+            sections=len(re.findall(r'<section class="section-card product-section"(?:\s[^>]*)?>',s))
+            grids=len(re.findall(r'<div class="product-grid">',s))
+            assert sections==grids and (sections>1 if key=='self.html' else sections==1),(key,sections,grids)
             cards=a.CARD.findall(s)
             assert len(cards)==(206 if key=='self.html' else sum(v['page']==key for v in a.DATA['products'].values()))
             total+=len(cards)
