@@ -1,0 +1,44 @@
+name: Audit live Kurashi card layout
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/audit-kurashi-card-layout.yml']
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inspect actual product containers and responsive CSS
+        run: |
+          python3 - <<'PY'
+          import sys,re,json
+          from html.parser import HTMLParser
+          from collections import Counter
+          from concurrent.futures import ThreadPoolExecutor
+          sys.path.insert(0,'kurashi-copy-50-20261126')
+          import apply as a
+          class Inspect(HTMLParser):
+              def __init__(self):super().__init__();self.stack=[];self.parents=Counter();self.styles=[]
+              def handle_starttag(self,t,attrs):
+                  d=dict(attrs)
+                  if t=='article' and 'data-product-id' in d:
+                      self.parents[tuple((k,v.get('class',''),v.get('id','')) for k,v in self.stack[-5:])]+=1
+                  if t not in ('area','base','br','col','embed','hr','img','input','link','meta','param','source','track','wbr'):self.stack.append((t,d))
+              def handle_endtag(self,t):
+                  for i in range(len(self.stack)-1,-1,-1):
+                      if self.stack[i][0]==t:self.stack=self.stack[:i];break
+          keys=['self.html']+list(a.DATA['articles'])
+          with ThreadPoolExecutor(max_workers=5) as ex:raw=dict(zip(keys,ex.map(lambda x:a.fetch(a.url(x)).decode(),keys)))
+          for key,s in raw.items():
+              p=Inspect();p.feed(s)
+              print('LAYOUT',key,json.dumps([(x,n) for x,n in p.parents.items()],ensure_ascii=False),flush=True)
+          for key in ['genre-strength-training.html','self.html']:
+              s=raw[key]
+              print('STYLE_BEGIN',key)
+              for style in re.findall(r'<style[^>]*>(.*?)</style>',s,re.S):print(style)
+              print('STYLE_END',key)
+              m=a.CARD.search(s);print('CARD_CONTEXT',s[max(0,m.start()-500):m.end()+100])
+          PY
