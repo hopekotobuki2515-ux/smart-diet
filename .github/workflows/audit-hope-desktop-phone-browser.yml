@@ -1,0 +1,57 @@
+name: Audit live HOPE desktop phone hit targets without writes
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/audit-hope-desktop-phone-browser.yml'
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Install browser test
+        run: |
+          npm install --no-save playwright
+          npx playwright install chromium
+      - name: Inspect actual PC phone hit targets and test local event queue
+        run: |
+          cat > audit.cjs <<'JS'
+          const {chromium}=require('playwright');
+          (async()=>{
+            const b=await chromium.launch({headless:true});
+            const c=await b.newContext({viewport:{width:1366,height:900},userAgent:'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36'});
+            await c.route('**/*',r=>{
+              const u=new URL(r.request().url());
+              return ['www.rakudadou.jp','rakudadou.jp','rakudadou.sakura.ne.jp'].includes(u.hostname)?r.continue():r.abort();
+            });
+            for(const name of ['index.htm','kaatsutoha.htm','kaatsukouka.htm','taiken.htm','ryoukin.htm','koutsu.htm','shitsumon.htm','nyuukainagare.htm','pro.html','hope-site-contact.html','hope-site-privacy.html']){
+              const p=await c.newPage();
+              await p.goto('https://www.rakudadou.jp/'+name+'?phoneaudit='+Date.now(),{waitUntil:'domcontentloaded',timeout:20000});
+              await p.evaluate(()=>document.addEventListener('click',e=>e.preventDefault()));
+              console.log('PAGE',name,p.url(),await p.title());
+              const found=await p.evaluate(()=>{
+                const norm=s=>s.normalize('NFKC').replace(/[\s\-―−ー–‐]/g,'');
+                return [...document.querySelectorAll('body *')].filter(e=>(
+                  [...e.childNodes].some(n=>n.nodeType===3&&norm(n.textContent).includes('0836398200'))||
+                  (e.tagName==='IMG'&&norm(e.alt).includes('0836398200'))||
+                  (e.tagName==='A'&&/^tel:/i.test(e.getAttribute('href')||''))
+                )).map(e=>({html:e.outerHTML.slice(0,380),visible:!!e.getClientRects().length,anchor:e.closest('a')?.getAttribute('href')||null,cursor:getComputedStyle(e).cursor,pointer:getComputedStyle(e).pointerEvents}));
+              });
+              console.log('PHONE',JSON.stringify(found));
+              for(const a of await p.locator('a[href^="tel:"]').all()){
+                if(!await a.isVisible())continue;
+                await a.scrollIntoViewIfNeeded();
+                const hit=await a.evaluate(e=>{const r=e.getBoundingClientRect();const hit=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);return {hits:hit===e||e.contains(hit),hit:hit?.outerHTML.slice(0,200),cursor:getComputedStyle(e).cursor,rect:{x:r.x,y:r.y,w:r.width,h:r.height}}});
+                const count=()=>p.evaluate(()=>Array.from(window.dataLayer||[]).filter(x=>x[0]==='event'&&x[1]==='phone_click').length);
+                const before=await count();
+                if(hit.rect.w&&hit.rect.h)await p.mouse.click(hit.rect.x+hit.rect.w/2,hit.rect.y+hit.rect.h/2);
+                console.log('CLICK',JSON.stringify({hit,before,after:await count()}));
+              }
+              await p.close();
+            }
+            await b.close();
+          })().catch(e=>{console.error(e);process.exit(1)});
+          JS
+          node audit.cjs
