@@ -1,0 +1,113 @@
+name: Repair verified HOPE access page phone link and test browser click
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fix-hope-access-phone.yml'
+permissions:
+  contents: read
+concurrency:
+  group: rakudadou-desktop-content
+  cancel-in-progress: false
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Repair exact existing CP932 phone text with private backup
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          T=$(mktemp -d /home/rakudadou/hope-access-phone.XXXXXXXX)
+          trap 'rm -rf "$T"' EXIT
+          cat > "$T/repair.php" <<'PHP'
+          <?php
+          $p='/home/rakudadou/www/koutsu.htm';
+          if(!is_file($p)||is_link($p)||realpath($p)!==$p)throw new RuntimeException('Unexpected file');
+          $s=file_get_contents($p);
+          if($s===false||!str_contains($s,'G-ZCETMLPKX3')||!str_contains($s,'googletagmanager.com/gtag/js')||preg_match_all('~</head\s*>~i',$s)!==1)throw new RuntimeException('Unexpected GA4/head');
+          $phone=iconv('UTF-8','CP932','０８３６－３９―８２００');
+          $tail=iconv('UTF-8','CP932','　');
+          $face=iconv('UTF-8','CP932','メイリオ');
+          $pattern='~(<font\b[^>]*\bface\s*=\s*["\x27]?'.preg_quote($face,'~').'["\x27]?[^>]*>)'.preg_quote($phone.$tail,'~').'(</font\s*>)~i';
+          if(preg_match_all($pattern,$s,$m,PREG_OFFSET_CAPTURE)!==1||preg_match('~<a\b[^>]*href\s*=\s*["\x27]?tel:~i',$s))throw new RuntimeException('Exact unlinked phone markup not unique; unchanged');
+          $match=$m[0][0][0];$offset=$m[0][0][1];
+          $replacement=$m[1][0][0].'<a href="tel:0836398200" style="color:inherit;text-decoration:underline;cursor:pointer;">'.$phone.'</a>'.$tail.$m[2][0][0];
+          $n=substr_replace($s,$replacement,$offset,strlen($match));
+          $events=substr_count($s,'phone_click');
+          if($events===0){
+            $track=<<<'HTML'
+          <!-- HOPE phone click tracking -->
+          <script>
+          document.addEventListener('click', function(event) {
+            var target = event.target;
+            var link = target && typeof target.closest === 'function' ? target.closest('a[href^="tel:"]') : null;
+            if (!link || typeof window.gtag !== 'function') return;
+            window.gtag('event', 'phone_click', {
+              send_to: 'G-ZCETMLPKX3',
+              link_url: link.getAttribute('href'),
+              transport_type: 'beacon'
+            });
+          }, true);
+          </script>
+          HTML;
+            $n=preg_replace('~</head\s*>~i',$track."\n".'$0',$n,1);
+          }elseif($events!==1||!preg_match('~gtag\s*\(\s*["\x27]event["\x27]\s*,\s*["\x27]phone_click["\x27]~',$s))throw new RuntimeException('Unexpected existing phone tracking');
+          if(substr_count($n,'href="tel:0836398200"')!==1||substr_count($n,'phone_click')!==1||substr_count($n,'adsbygoogle.js')!==substr_count($s,'adsbygoogle.js')||substr_count($n,'G-ZCETMLPKX3')!==substr_count($s,'G-ZCETMLPKX3')+($events===0?1:0))throw new RuntimeException('Staged verification failed');
+          $backup=tempnam('/home/rakudadou','hope-access-phone-backup.');
+          if($backup===false||file_put_contents($backup,$s)!==strlen($s)||!chmod($backup,0600))throw new RuntimeException('Backup failed');
+          $tmp=tempnam(dirname($p),'.hope-access-phone-');
+          if($tmp===false)throw new RuntimeException('Stage failed');
+          try{
+            if(file_put_contents($tmp,$n)!==strlen($n)||!chmod($tmp,fileperms($p)&0777)||file_get_contents($p)!==$s||!rename($tmp,$p))throw new RuntimeException('Publish failed');
+            if(file_get_contents($p)!==$n){file_put_contents($p,$s,LOCK_EX);throw new RuntimeException('Readback failed; restored');}
+          }finally{if(file_exists($tmp))unlink($tmp);}
+          echo 'PASS access page only; exact previously unlinked number linked; prior phone_click count='.$events.'; backup retained; AdSense and GA4 preserved'.PHP_EOL;
+          PHP
+          php -l "$T/repair.php"
+          php -d display_errors=1 "$T/repair.php"
+          REMOTE
+      - name: Install browser
+        run: |
+          npm install --no-save playwright
+          npx playwright install chromium
+      - name: Verify real public browser clicks without sending analytics
+        run: |
+          cat > verify.cjs <<'JS'
+          const {chromium}=require('playwright');
+          (async()=>{
+            const b=await chromium.launch({headless:true});
+            const c=await b.newContext({viewport:{width:1366,height:900},userAgent:'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36'});
+            await c.route('**/*',r=>['www.rakudadou.jp','rakudadou.jp','rakudadou.sakura.ne.jp'].includes(new URL(r.request().url()).hostname)?r.continue():r.abort());
+            for(const name of ['koutsu.htm','hope-site-contact.html','hope-site-privacy.html']){
+              const p=await c.newPage();
+              const response=await p.goto('https://www.rakudadou.jp/'+name+'?phoneverify='+Date.now(),{waitUntil:'domcontentloaded',timeout:20000});
+              if(response.status()!==200)throw Error(name+' status '+response.status());
+              await p.evaluate(()=>document.addEventListener('click',e=>e.preventDefault()));
+              const a=p.locator('a[href="tel:0836398200"]');
+              if(await a.count()!==1||!await a.isVisible())throw Error(name+' link missing');
+              await a.scrollIntoViewIfNeeded();
+              const hit=await a.evaluate(e=>{const r=e.getBoundingClientRect();const h=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);return {ok:h===e||e.contains(h),cursor:getComputedStyle(e).cursor,x:r.x+r.width/2,y:r.y+r.height/2};});
+              if(!hit.ok||hit.cursor!=='pointer')throw Error(name+' hit '+JSON.stringify(hit));
+              const count=()=>p.evaluate(()=>Array.from(window.dataLayer||[]).filter(x=>x[0]==='event'&&x[1]==='phone_click'&&x[2]?.send_to==='G-ZCETMLPKX3').length);
+              const before=await count();
+              await p.mouse.click(hit.x,hit.y);
+              const after=await count();
+              if(after-before!==1)throw Error(name+' event delta '+(after-before));
+              console.log('BROWSER PASS',name,'visible, pointer, click hit, exactly one phone_click for expected measurement ID');
+              await p.close();
+            }
+            await b.close();
+          })().catch(e=>{console.error(e);process.exit(1)});
+          JS
+          node verify.cjs
