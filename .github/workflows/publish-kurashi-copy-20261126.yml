@@ -140,3 +140,5 @@ jobs:
             ${{ runner.temp }}/kurashi-copy-update/changes.txt
           if-no-files-found: ignore
           retention-days: 30
+
+# Reconciled with read-only live inventory: 212 described products; self catalogue unchanged.
