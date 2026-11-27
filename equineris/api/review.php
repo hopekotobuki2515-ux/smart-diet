@@ -33,7 +33,7 @@ function rate_limit(string $base, string $scope, string $passwordHash, int $limi
  $data=stream_get_contents($h);$entry=is_string($data)?json_decode($data,true):null;
  $now=time();$start=is_array($entry)?(int)($entry['start']??0):0;$count=is_array($entry)?(int)($entry['count']??0):0;
  if($now-$start>=3600||$start>$now){$start=$now;$count=0;}
- if($count>=$limit){flock($h,LOCK_UN);fclose($h);fail(429,'送信回数が上限です。時間を置いてください');}
+ if($count>=$limit){$remaining=max(1,3600-($now-$start));flock($h,LOCK_UN);fclose($h);header('Retry-After: '.(string)$remaining);fail(429,'試行回数が上限です。約'.(string)ceil($remaining/60).'分後に再試行してください');}
  ftruncate($h,0);rewind($h);fwrite($h,json_encode(['start'=>$start,'count'=>$count+1]));fflush($h);flock($h,LOCK_UN);fclose($h);
 }
 function data_dir(): string {
@@ -84,10 +84,18 @@ if($origin!==''){$requestHost=($_SERVER['HTTP_HOST']??'');$own=($secure?'https':
 if($action==='login'){
  rate_limit($base,'login',$passwordHash,30);
  $password=field('password',500);
- if(!isset($_SESSION['login_failures']))$_SESSION['login_failures']=0;
- if($_SESSION['login_failures']>=8)fail(429,'試行回数が上限です。ブラウザを閉じて時間を置いてください');
- if(!password_verify($password,$passwordHash)){$_SESSION['login_failures']++;fail(401,'パスワードが正しくありません');}
- session_regenerate_id(true);$_SESSION['equineris_trainer_authenticated']=true;$_SESSION['login_failures']=0;$_SESSION['csrf']=bin2hex(random_bytes(32));output(['ok'=>true,'csrf'=>$_SESSION['csrf']]);
+ // A legacy session had no expiration. Migrate it once; the separate IP limit remains in force.
+ $now=time();$start=(int)($_SESSION['login_window_start']??0);
+ if($start<=0||$start>$now||$now-$start>=3600){
+  $_SESSION['login_window_start']=$now;$_SESSION['login_failures']=0;$start=$now;
+ }
+ $failures=(int)($_SESSION['login_failures']??0);
+ if($failures>=8){
+  $remaining=max(1,3600-($now-$start));header('Retry-After: '.(string)$remaining);
+  fail(429,'ログイン試行回数が上限です。約'.(string)ceil($remaining/60).'分後に再試行してください');
+ }
+ if(!password_verify($password,$passwordHash)){$_SESSION['login_failures']=$failures+1;fail(401,'パスワードが正しくありません');}
+ session_regenerate_id(true);$_SESSION['equineris_trainer_authenticated']=true;unset($_SESSION['login_failures'],$_SESSION['login_window_start']);$_SESSION['csrf']=bin2hex(random_bytes(32));output(['ok'=>true,'csrf'=>$_SESSION['csrf']]);
 }
 if($action==='logout'){unset($_SESSION['equineris_trainer_authenticated']);output(['ok'=>true]);}
 if($action==='submit'){
