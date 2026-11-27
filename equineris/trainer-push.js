@@ -20,7 +20,7 @@ async function prepare(){
   const state=await stateResponse.json();if(!stateResponse.ok||!state.trainer)throw Error('ログインしてください');
   csrf=state.csrf;
   const key=await call('push_key');publicKey=keyBytes(key.publicKey);
-  await navigator.serviceWorker.register('./trainer-push-sw.js',{scope:'./'});
+  await navigator.serviceWorker.register('./trainer-push-sw.js',{scope:'./trainer-dashboard.html'});
   registration=await navigator.serviceWorker.ready;
   if(!registration.active?.scriptURL.endsWith('/trainer-push-sw.js'))throw Error('通知アプリを再起動してください');
   const existing=await registration.pushManager.getSubscription();
