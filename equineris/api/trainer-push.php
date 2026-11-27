@@ -50,7 +50,10 @@ function push_send(string $base,bool $test=false): bool {
   $keys=push_read($base.'/trainer-vapid.json');
   if($keys===null)return false;
   $auth=['VAPID'=>['subject'=>'https://rakudadou.sakura.ne.jp/smart-diet/equineris/','publicKey'=>$keys['publicKey'],'privateKey'=>$keys['privateKey']]];
-  $sender=new \Minishlink\WebPush\WebPush($auth,['TTL'=>3600,'urgency'=>'high'],5);
+  $client=new \GuzzleHttp\Client(['timeout'=>5,'connect_timeout'=>3,'allow_redirects'=>false]);
+  $factory=new \GuzzleHttp\Psr7\HttpFactory();
+  $sender=new \Minishlink\WebPush\WebPush($auth,['TTL'=>3600,'urgency'=>'high'],$client,$factory,$factory);
+  $sub['contentEncoding']='aes128gcm';
   $report=$sender->sendOneNotification(\Minishlink\WebPush\Subscription::create($sub),json_encode(['test'=>$test],JSON_THROW_ON_ERROR));
   return $report->isSuccess();
  }catch(Throwable $e){error_log('EQUINERIS push delivery failed');return false;}
