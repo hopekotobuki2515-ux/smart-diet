@@ -66,6 +66,32 @@ try:
   test('trainer can approve edited AI draft',approval.status_code==200)
   client_after=s.post(url+'?action=mine',data={'client_key':'c'*64},headers={'X-CSRF-Token':csrf}).json()['items'][0]
   test('approved reply visible to client',client_after['status']=='reviewed')
+  # Automatic replies are distinct from existing AI draft consent.
+  old_auto=s.post(url+'?action=auto_comment',data={'id':ai_id,'comment':'上書き禁止'},headers={'X-CSRF-Token':csrf})
+  test('automatic reply cannot overwrite reviewed records',old_auto.status_code==409)
+  auto_data=dict(new_data,client_key='d'*64,auto_reply_consent='yes')
+  auto=s.post(url+'?action=submit',data=auto_data,headers={'X-CSRF-Token':csrf})
+  test('separate automatic reply opt-in stored',auto.status_code==200)
+  aid=auto.json()['id']
+  queue=s.post(url+'?action=auto_list',headers={'X-CSRF-Token':csrf}).json()['items']
+  target=next(x for x in queue if x['id']==aid)
+  test('auto queue omits name and client key','name' not in target and 'client' not in target)
+  test('old consent does not enter auto queue',all(x['id']!=ai_id for x in queue))
+  forbidden=s.get(url+f'?action=auto_photo&id={rid}&n=0')
+  test('auto photo denies no consent',forbidden.status_code==403)
+  invalid_auto=s.post(url+'?action=auto_comment',data={'id':aid,'comment':''},headers={'X-CSRF-Token':csrf})
+  test('empty automatic comment denied',invalid_auto.status_code==400)
+  first_auto=s.post(url+'?action=auto_comment',data={'id':aid,'comment':'食事の記録ありがとうございます。'},headers={'X-CSRF-Token':csrf})
+  test('consented automatic reply succeeds',first_auto.status_code==200 and first_auto.json()['reply_source']=='ai')
+  dup=s.post(url+'?action=auto_comment',data={'id':aid,'comment':'二重送信'},headers={'X-CSRF-Token':csrf})
+  test('duplicate automatic reply denied',dup.status_code==409)
+  auto_mine=s.post(url+'?action=mine',data={'client_key':'d'*64},headers={'X-CSRF-Token':csrf}).json()['items'][0]
+  test('client sees correct AI source without overwrite',auto_mine['reply_source']=='ai' and auto_mine['comment']=='食事の記録ありがとうございます。')
+  defer=s.post(url+'?action=submit',data=dict(auto_data,client_key='e'*64),headers={'X-CSRF-Token':csrf}).json()['id']
+  deferred=s.post(url+'?action=auto_defer',data={'id':defer},headers={'X-CSRF-Token':csrf})
+  test('manual-review fallback stays waiting',deferred.status_code==200 and deferred.json()['status']=='waiting')
+  queue2=s.post(url+'?action=auto_list',headers={'X-CSRF-Token':csrf}).json()['items']
+  test('deferred records excluded from auto queue',all(x['id']!=defer for x in queue2))
   logout=s.post(url+'?action=logout',headers={'X-CSRF-Token':csrf});test('logout works',logout.status_code==200)
   denied_ai=s.post(url+'?action=ai_generate',data={'id':ai_id},headers={'X-CSRF-Token':csrf})
   test('AI call forbidden after logout',denied_ai.status_code==403)
