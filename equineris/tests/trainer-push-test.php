@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+if(PHP_SAPI!=='cli'){http_response_code(404);exit;}
 define('EQUINERIS_PUSH_CONTEXT',true);
 require __DIR__.'/../api/trainer-push.php';
 push_load();
