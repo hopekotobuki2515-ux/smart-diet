@@ -132,10 +132,12 @@ jobs:
             $cfg = require $file;
             $hash = is_array($cfg) ? ($cfg["trainer_password_hash"] ?? null) : null;
             if (is_string($hash) === false) exit(4);
-            exit(password_verify($password, $hash) ? 0 : 3);
+            exit(password_verify($password, $hash) ? 0 : 4);
           '
           CHECK_PASSWORD
           )
+          # Sakura's login shell requires the quoted PHP command on one line.
+          CHECK_COMMAND=${CHECK_COMMAND//$'\n'/ }
           if printf '%s' "$TRAINER_PASSWORD" | ssh -i ~/.ssh/id_sakura -o BatchMode=yes "$SAKURA_USER@$SAKURA_HOST" "$CHECK_COMMAND"; then
             echo "Trainer password unchanged; existing hash and OAuth tokens preserved"
             exit 0
