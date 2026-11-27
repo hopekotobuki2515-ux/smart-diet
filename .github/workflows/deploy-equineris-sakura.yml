@@ -121,6 +121,28 @@ jobs:
             echo "::error::Trainer password must be at least 16 characters"
             exit 1
           }
+          # Preserve the exact hash for an unchanged password: OAuth tokens bind to it.
+          # The password is passed only over SSH stdin, never as a command-line argument.
+          CHECK_COMMAND=$(cat <<'CHECK_PASSWORD'
+          php -r '
+            $file = "/home/rakudadou/www/smart-diet/equineris/api/config.local.php";
+            $password = stream_get_contents(STDIN);
+            if (!is_file($file)) exit(3);
+            if (!is_readable($file)) exit(4);
+            $cfg = require $file;
+            $hash = is_array($cfg) ? ($cfg["trainer_password_hash"] ?? null) : null;
+            if (!is_string($hash)) exit(4);
+            exit(password_verify($password, $hash) ? 0 : 3);
+          '
+          CHECK_PASSWORD
+          )
+          if printf '%s' "$TRAINER_PASSWORD" | ssh -i ~/.ssh/id_sakura -o BatchMode=yes "$SAKURA_USER@$SAKURA_HOST" "$CHECK_COMMAND"; then
+            echo "Trainer password unchanged; existing hash and OAuth tokens preserved"
+            exit 0
+          else
+            CHECK_RC=$?
+            test "$CHECK_RC" -eq 3 || { echo "::error::Unable to safely check existing trainer configuration"; exit 1; }
+          fi
           umask 077
           CONFIG_FILE=$(mktemp)
           trap 'rm -f "$CONFIG_FILE"' EXIT
