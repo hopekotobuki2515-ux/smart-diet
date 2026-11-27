@@ -81,6 +81,9 @@ $csrf=(string)($_SERVER['HTTP_X_CSRF_TOKEN']??'');
 if(!hash_equals($_SESSION['csrf'],$csrf))fail(403,'送信の確認に失敗しました。再読み込みしてください');
 $origin=(string)($_SERVER['HTTP_ORIGIN']??'');
 if($origin!==''){$requestHost=($_SERVER['HTTP_HOST']??'');$own=($secure?'https':'http').'://'.$requestHost;if(!hash_equals($own,$origin))fail(403,'別サイトからの送信は禁止されています');}
+define('EQUINERIS_PUSH_CONTEXT',true);
+require_once __DIR__.'/trainer-push.php';
+if(str_starts_with($action,'push_'))push_action($action,$base,$passwordHash);
 if($action==='login'){
  rate_limit($base,'login',$passwordHash,30);
  $password=field('password',500);
@@ -126,7 +129,10 @@ if($action==='submit'){
   @chmod($dest,0600);$moved[]=$dest;$photos[]=['name'=>$file,'mime'=>$p['mime']];
  }
  $record=['id'=>$id,'client'=>$client,'name'=>$name,'date'=>$day,'stage'=>(int)$stage,'note'=>$note,'summary'=>$summary,'photos'=>$photos,'created'=>gmdate('c'),'status'=>'waiting','comment'=>'','reviewed'=>null,'ai_consent'=>field('ai_consent',5)==='yes','ai_draft'=>null,'ai_generated_at'=>null];
- persist($base.'/requests/'.$id.'.json',$record);output(['ok'=>true,'id'=>$id,'status'=>'waiting']);
+ persist($base.'/requests/'.$id.'.json',$record);
+ // Notification errors must never invalidate a successfully stored food record.
+ push_send($base);
+ output(['ok'=>true,'id'=>$id,'status'=>'waiting']);
 }
 if($action==='mine'){
  $client=valid_client(field('client_key',64));$items=[];

@@ -12,6 +12,11 @@ on:
       - 'nutrient-panel.js'
       - 'program.css'
       - '.github/workflows/deploy-equineris-sakura.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'equineris/**'
+      - '.github/workflows/deploy-equineris-sakura.yml'
   workflow_dispatch:
 permissions:
   contents: read
@@ -55,7 +60,22 @@ jobs:
           python tests/api-integration.py
           python tests/mcp-integration.py
 
+      - name: Verify iPhone Web Push and build exact tested dependencies
+        run: |
+          php -l equineris/api/trainer-push.php
+          node --check equineris/trainer-push.js
+          node --check equineris/trainer-push-sw.js
+          python -m json.tool equineris/trainer.webmanifest >/dev/null
+          composer --working-dir=equineris/api/push-lib install --no-dev --prefer-dist --no-interaction --no-progress
+          php equineris/tests/trainer-push-test.php
+      - uses: actions/upload-artifact@v4
+        with:
+          name: equineris-push-vendor
+          path: equineris/api/push-lib/vendor/
+          if-no-files-found: error
+
   deploy:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: verify
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -80,6 +100,16 @@ jobs:
           }
           ssh-keyscan -T 10 -H "$SAKURA_HOST" >> ~/.ssh/known_hosts
           test -s ~/.ssh/known_hosts
+      - uses: actions/download-artifact@v4
+        with:
+          name: equineris-push-vendor
+          path: equineris/api/push-lib/vendor/
+      - name: Check Sakura PHP compatibility before changing live files
+        env:
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes "$SAKURA_USER@$SAKURA_HOST" 'php -r '\''exit(PHP_VERSION_ID >= 80200 && extension_loaded("curl") && extension_loaded("mbstring") && extension_loaded("openssl") ? 0 : 1);'\'''
       - name: Back up live files outside the public directory
         env:
           SAKURA_HOST: ${{ vars.SAKURA_HOST }}

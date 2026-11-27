@@ -1,0 +1,14 @@
+{
+  "require": {
+    "minishlink/web-push": "11.0.0",
+    "guzzlehttp/guzzle": "^7.9",
+    "guzzlehttp/psr7": "^2.7"
+  },
+  "config": {
+    "platform": {
+      "php": "8.2.0"
+    },
+    "allow-plugins": false,
+    "sort-packages": true
+  }
+}

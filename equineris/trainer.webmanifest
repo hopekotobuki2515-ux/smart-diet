@@ -1,0 +1,10 @@
+{
+  "id": "./trainer-dashboard.html",
+  "name": "EQUINERIS トレーナー",
+  "short_name": "EQUINERIS",
+  "start_url": "./trainer-dashboard.html",
+  "scope": "./trainer-dashboard.html",
+  "display": "standalone",
+  "background_color": "#fffdf8",
+  "theme_color": "#285d4a"
+}
