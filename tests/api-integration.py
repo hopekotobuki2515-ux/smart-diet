@@ -1,4 +1,4 @@
-import requests, subprocess, os, time, tempfile, sys, pathlib, json
+import requests, subprocess, os, time, tempfile, sys, pathlib, json, re
 from PIL import Image
 from io import BytesIO
 base=pathlib.Path(__file__).resolve().parents[1]/'equineris'
@@ -9,7 +9,8 @@ hash=subprocess.check_output(['php','-r',f'echo password_hash({password!r},PASSW
 mock_draft={'food_observations':'写真から食材候補が見られます。重量は不明です。','four_group_review':'点数は入力されていません。','improvement_suggestion':'食品群を確認してみましょう。','trainer_comment_draft':'次の食事では主菜も意識してみましょう。'}
 mock_response={'status':'completed','output':[{'type':'message','content':[{'type':'output_text','text':json.dumps(mock_draft,ensure_ascii=False)}]}]}
 env=dict(os.environ,EQUINERIS_LOCAL_TEST='1',EQUINERIS_AI_TEST_RESPONSE=json.dumps(mock_response,ensure_ascii=False))
-port='18896'; proc=subprocess.Popen(['php','-S',f'127.0.0.1:{port}','-t',str(base)],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.PIPE)
+session_dir=tempfile.TemporaryDirectory()
+port='18896'; proc=subprocess.Popen(['php','-d',f'session.save_path={session_dir.name}','-S',f'127.0.0.1:{port}','-t',str(base)],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.PIPE)
 url=f'http://127.0.0.1:{port}/api/review.php'
 s=requests.Session(); ok=[]
 def test(name,cond):
@@ -23,7 +24,9 @@ try:
   j=status.json();csrf=j['csrf'];test('server configured',j['configured'] and not j['trainer'])
   j2=s.post(url+'?action=submit',data={'name':'Test'},timeout=10);test('CSRF rejection',j2.status_code==403)
   denied=s.post(url+'?action=list',headers={'X-CSRF-Token':csrf});test('admin list requires authentication',denied.status_code==403)
-  invalid=s.post(url+'?action=login',data={'password':'wrong'},headers={'X-CSRF-Token':csrf});test('bad admin password denied',invalid.status_code==401)
+  legacy=pathlib.Path(session_dir.name)/('sess_'+s.cookies.get('equineris_trainer'))
+  legacy.write_text(legacy.read_text()+'login_failures|i:8;')
+  invalid=s.post(url+'?action=login',data={'password':'wrong'},headers={'X-CSRF-Token':csrf});test('legacy lock migrates without bypassing password',invalid.status_code==401)
   pic=BytesIO();Image.new('RGB',(40,30),(200,100,30)).save(pic,format='PNG');pic.seek(0)
   key='a'*64
   data={'client_key':key,'consent':'yes','name':'Local test user','date':'2026-11-22','stage':'1','note':'食事内容を確認してください','summary':'朝食: 写真1枚'}
@@ -67,8 +70,22 @@ try:
   denied_ai=s.post(url+'?action=ai_generate',data={'id':ai_id},headers={'X-CSRF-Token':csrf})
   test('AI call forbidden after logout',denied_ai.status_code==403)
   photo_again=s.get(url+f'?action=photo&id={rid}&n=0');test('after logout photo is private',photo_again.status_code==403)
+  # A new lock must deny even a valid password until the window expires.
+  for _ in range(8):
+    attempt=s.post(url+'?action=login',data={'password':'wrong'},headers={'X-CSRF-Token':csrf})
+    test('failed login still rejected',attempt.status_code==401)
+  locked=s.post(url+'?action=login',data={'password':password},headers={'X-CSRF-Token':csrf})
+  test('eight failures lock the session with Retry-After',locked.status_code==429 and 0<int(locked.headers.get('Retry-After','0'))<=3600)
+  session_file=pathlib.Path(session_dir.name)/('sess_'+s.cookies.get('equineris_trainer'))
+  raw=session_file.read_text()
+  updated,n=re.subn(r'login_window_start\|i:\d+;',f'login_window_start|i:{int(time.time())-3601};',raw)
+  test('test session contains a lock timestamp',n==1)
+  session_file.write_text(updated)
+  unlocked=s.post(url+'?action=login',data={'password':password},headers={'X-CSRF-Token':csrf})
+  test('valid password works after session lock expires',unlocked.status_code==200)
   print('API TEST PASSED:',len(ok),'/',len(ok));print('\n'.join('PASS '+x for x in ok))
 finally:
   proc.terminate();proc.wait(timeout=4)
   (api/'config.local.php').unlink(missing_ok=True)
   (api/'ai-config.local.php').unlink(missing_ok=True)
+  session_dir.cleanup()
