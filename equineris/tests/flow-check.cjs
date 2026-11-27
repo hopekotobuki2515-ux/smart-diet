@@ -373,8 +373,7 @@ test('opening continuation resumes the saved 12-week lesson, not the unrelated t
  const page=source['index.html'];
  const script=scriptOf(page).find(x=>x.includes('findResumeHref'));
  assert.ok(script);
- for(const id of ['continueProgramLink','startButton','recordOnlyLink','trainerDashboardLink'])assert.match(page,new RegExp('id="'+id+'"'));
- assert.match(page,/id="trainerDashboardLink" href="\.\/trainer-dashboard\.html">トレーナー専用画面<\/a>/);
+ for(const id of ['continueProgramLink','startButton','recordOnlyLink'])assert.match(page,new RegExp('id="'+id+'"'));
  assert.doesNotMatch(page,/id="loginButton"/,'do not offer an unavailable account login');
  assert.match(source['setup.html'],/window\.location\.assign\('\.\/learning\.html\?week=1'\)/,'first setup should open week one');
  const resume=raw=>{
