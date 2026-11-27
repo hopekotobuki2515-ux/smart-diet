@@ -42,6 +42,12 @@ function push_subscription_valid(array $s): bool {
  return is_string($keys['p256dh']??null)&&preg_match('/^[A-Za-z0-9_-]{87}$/D',$keys['p256dh'])===1
  &&is_string($keys['auth']??null)&&preg_match('/^[A-Za-z0-9_-]{22}$/D',$keys['auth'])===1;
 }
+function push_sender(array $keys, ?\Psr\Http\Client\ClientInterface $client=null): \Minishlink\WebPush\WebPush {
+ $auth=['VAPID'=>['subject'=>'https://rakudadou.sakura.ne.jp/smart-diet/equineris/','publicKey'=>$keys['publicKey'],'privateKey'=>$keys['privateKey']]];
+ $client=$client??new \GuzzleHttp\Client(['timeout'=>5,'connect_timeout'=>3,'allow_redirects'=>false]);
+ $factory=new \GuzzleHttp\Psr7\HttpFactory();
+ return new \Minishlink\WebPush\WebPush($auth,['TTL'=>3600,'urgency'=>'high'],$client,$factory,$factory);
+}
 function push_send(string $base,bool $test=false): bool {
  try{
   $sub=push_read($base.'/trainer-push-subscription.json');
@@ -49,10 +55,7 @@ function push_send(string $base,bool $test=false): bool {
   push_load();
   $keys=push_read($base.'/trainer-vapid.json');
   if($keys===null)return false;
-  $auth=['VAPID'=>['subject'=>'https://rakudadou.sakura.ne.jp/smart-diet/equineris/','publicKey'=>$keys['publicKey'],'privateKey'=>$keys['privateKey']]];
-  $client=new \GuzzleHttp\Client(['timeout'=>5,'connect_timeout'=>3,'allow_redirects'=>false]);
-  $factory=new \GuzzleHttp\Psr7\HttpFactory();
-  $sender=new \Minishlink\WebPush\WebPush($auth,['TTL'=>3600,'urgency'=>'high'],$client,$factory,$factory);
+  $sender=push_sender($keys);
   $sub['contentEncoding']='aes128gcm';
   $report=$sender->sendOneNotification(\Minishlink\WebPush\Subscription::create($sub),json_encode(['test'=>$test],JSON_THROW_ON_ERROR));
   return $report->isSuccess();
