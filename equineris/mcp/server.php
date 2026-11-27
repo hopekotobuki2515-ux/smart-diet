@@ -68,14 +68,14 @@ function run_tool(string $name,array $args):array{
   $comment=$args['comment']??null;$confirmed=$args['confirmed']??null;
   if($confirmed!==true)return txt('未送信：トレーナーの承認が必要です。');
   if(!is_string($comment)||trim($comment)===''||strlen($comment)>8000||preg_match('//u',$comment)!==1||preg_match_all('/./us',$comment)>2000)return txt('Invalid comment length');
-  $lockPath=ehome().'/oauth/ratelimit/reply-'.$id.'.lock';
+  $lockPath=ehome().'/requests/'.$id.'.lock';
   $h=fopen($lockPath,'c');if(!$h||!flock($h,LOCK_EX))return txt('Could not acquire review lock');
   $path=ehome().'/requests/'.$id.'.json';$r=erecord($id);
   if(empty($r['ai_consent'])){flock($h,LOCK_UN);fclose($h);return txt('ChatGPT分析に同意していない記録には返信できません。');}
   if(($r['status']??'')!=='waiting'){
    flock($h,LOCK_UN);fclose($h);return txt('未送信：この記録はすでに確認済みです。既存コメントは変更しません。');
   }
-  $r['comment']=trim($comment);$r['status']='reviewed';$r['reviewed']=gmdate('c');
+  $r['comment']=trim($comment);$r['status']='reviewed';$r['reviewed']=gmdate('c');$r['reply_source']='trainer';
   ewrite($path,$r);flock($h,LOCK_UN);fclose($h);
   return txt(json_encode(['saved'=>true,'id'=>$id,'status'=>'reviewed','comment'=>$r['comment']],JSON_UNESCAPED_UNICODE));
  }

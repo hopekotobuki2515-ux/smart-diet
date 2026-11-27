@@ -19,6 +19,14 @@ function persist(string $path, array $data): void {
  if(file_put_contents($tmp,$encoded,LOCK_EX)===false)fail(500,'保存できませんでした');
  @chmod($tmp,0600);if(!rename($tmp,$path)){@unlink($tmp);fail(500,'保存できませんでした');}
 }
+function reply_lock(string $base,string $id){
+ $h=@fopen($base.'/requests/'.$id.'.lock','c');
+ if(!$h||!flock($h,LOCK_EX))fail(503,'返信ロックを取得できません');
+ @chmod($base.'/requests/'.$id.'.lock',0600);return $h;
+}
+function auto_eligible(array $r): bool {
+ return ($r['ai_consent']??false)===true&&($r['auto_reply_consent']??false)===true&&($r['status']??'')==='waiting'&&empty($r['auto_deferred_at']);
+}
 function file_id(string $id): string {if(!preg_match('/^[a-f0-9]{32}$/D',$id))fail(400,'記録IDが不正です');return $id;}
 function secret(): string {
  $file=__DIR__.'/config.local.php';if(!is_file($file))fail(503,'トレーナーチェックはサーバー設定前です');
@@ -66,9 +74,9 @@ if($action==='status'&&$_SERVER['REQUEST_METHOD']==='GET'){
 // All non-status actions require a configured backend.
 $passwordHash=secret();
 $base=data_dir();
-if($action==='photo'&&$_SERVER['REQUEST_METHOD']==='GET'){
+if(in_array($action,['photo','auto_photo'],true)&&$_SERVER['REQUEST_METHOD']==='GET'){
  require_admin();$id=file_id((string)($_GET['id']??''));$idx=(int)($_GET['n']??-1);
- $rec=json_file($base.'/requests/'.$id.'.json');$photos=$rec['photos']??[];
+ $rec=json_file($base.'/requests/'.$id.'.json');if($action==='auto_photo'&&!auto_eligible($rec))fail(403,'自動返信対象外です');$photos=$rec['photos']??[];
  if($idx<0||$idx>=count($photos))fail(404,'写真が見つかりません');
  $name=$photos[$idx]['name']??'';
  if(!preg_match('/^[a-f0-9]{32}-[0-3]\.(jpg|png|webp)$/D',$name))fail(500,'保存済み画像名が不正です');
@@ -128,7 +136,7 @@ if($action==='submit'){
   if(!move_uploaded_file($p['tmp'],$dest)){foreach($moved as $old)@unlink($old);fail(500,'写真を保存できません');}
   @chmod($dest,0600);$moved[]=$dest;$photos[]=['name'=>$file,'mime'=>$p['mime']];
  }
- $record=['id'=>$id,'client'=>$client,'name'=>$name,'date'=>$day,'stage'=>(int)$stage,'note'=>$note,'summary'=>$summary,'photos'=>$photos,'created'=>gmdate('c'),'status'=>'waiting','comment'=>'','reviewed'=>null,'ai_consent'=>field('ai_consent',5)==='yes','ai_draft'=>null,'ai_generated_at'=>null];
+ $record=['id'=>$id,'client'=>$client,'name'=>$name,'date'=>$day,'stage'=>(int)$stage,'note'=>$note,'summary'=>$summary,'photos'=>$photos,'created'=>gmdate('c'),'status'=>'waiting','comment'=>'','reviewed'=>null,'ai_consent'=>field('ai_consent',5)==='yes','ai_draft'=>null,'ai_generated_at'=>null,'auto_reply_consent'=>field('ai_consent',5)==='yes'&&field('auto_reply_consent',5)==='yes'];
  persist($base.'/requests/'.$id.'.json',$record);
  // Notification errors must never invalidate a successfully stored food record.
  push_send($base);
@@ -136,7 +144,7 @@ if($action==='submit'){
 }
 if($action==='mine'){
  $client=valid_client(field('client_key',64));$items=[];
- foreach(glob($base.'/requests/*.json')?:[] as $path){$r=json_file($path);if(hash_equals($r['client']??'',$client))$items[]=['id'=>$r['id'],'date'=>$r['date'],'stage'=>$r['stage'],'status'=>$r['status'],'comment'=>$r['comment'],'created'=>$r['created'],'reviewed'=>$r['reviewed']];}
+ foreach(glob($base.'/requests/*.json')?:[] as $path){$r=json_file($path);if(hash_equals($r['client']??'',$client))$items[]=['id'=>$r['id'],'date'=>$r['date'],'stage'=>$r['stage'],'status'=>$r['status'],'comment'=>$r['comment'],'created'=>$r['created'],'reviewed'=>$r['reviewed'],'reply_source'=>$r['reply_source']??'trainer'];}
  usort($items,fn($a,$b)=>strcmp($b['created'],$a['created']));output(['items'=>array_slice($items,0,100)]);
 }
 if($action==='list'){
@@ -147,12 +155,29 @@ if($action==='list'){
  if(is_file($aiPath)){$aiCfg=require $aiPath;$aiReady=is_array($aiCfg)&&is_string($aiCfg['api_key']??null)&&trim($aiCfg['api_key'])!=='';}
  output(['items'=>array_slice($items,0,100),'ai_configured'=>$aiReady]);
 }
+if($action==='auto_list'){
+ require_admin();$items=[];
+ foreach(glob($base.'/requests/*.json')?:[] as $path){$r=json_file($path);if(!auto_eligible($r))continue;
+  $items[]=['id'=>$r['id'],'date'=>$r['date'],'stage'=>$r['stage'],'summary'=>$r['summary'],'note'=>$r['note'],'photo_count'=>count($r['photos']??[]),'created'=>$r['created']];
+ }
+ usort($items,fn($a,$b)=>strcmp($a['created'],$b['created']));
+ output(['items'=>array_slice($items,0,10)]);
+}
+if(in_array($action,['auto_comment','auto_defer'],true)){
+ require_admin();$id=file_id(field('id',32));$path=$base.'/requests/'.$id.'.json';$lock=reply_lock($base,$id);$r=json_file($path);
+ if(!auto_eligible($r))fail(409,'自動返信対象外または返信済みです');
+ if($action==='auto_defer'){$r['auto_deferred_at']=gmdate('c');persist($path,$r);flock($lock,LOCK_UN);fclose($lock);output(['ok'=>true,'id'=>$id,'status'=>'waiting']);}
+ $comment=field('comment',500);
+ if($comment===''||preg_match('//u',$comment)!==1||preg_match_all('/./us',$comment)>500)fail(400,'自動返信のコメントが不正です');
+ $r['status']='reviewed';$r['comment']=$comment;$r['reviewed']=gmdate('c');$r['reply_source']='ai';
+ persist($path,$r);flock($lock,LOCK_UN);fclose($lock);output(['ok'=>true,'id'=>$id,'status'=>'reviewed','reply_source'=>'ai']);
+}
 if($action==='ai_generate'){
  require_admin();define('EQUINERIS_TRAINER_AI_CONTEXT',true);require __DIR__.'/ai-review.php';
 }
 if($action==='comment'){
  require_admin();$id=file_id(field('id',32));$comment=field('comment',2000);
  if($comment==='')fail(400,'コメントを入力してください');
- $path=$base.'/requests/'.$id.'.json';$r=json_file($path);$r['status']='reviewed';$r['comment']=$comment;$r['reviewed']=gmdate('c');persist($path,$r);output(['ok'=>true,'id'=>$id]);
+ $path=$base.'/requests/'.$id.'.json';$lock=reply_lock($base,$id);$r=json_file($path);$r['status']='reviewed';$r['comment']=$comment;$r['reviewed']=gmdate('c');$r['reply_source']='trainer';persist($path,$r);flock($lock,LOCK_UN);fclose($lock);output(['ok'=>true,'id'=>$id]);
 }
 fail(404,'操作が見つかりません');

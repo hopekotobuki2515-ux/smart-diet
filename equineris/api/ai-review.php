@@ -108,10 +108,11 @@ foreach($allowed as $name){
  $draft[$name]=trim($value);
 }
 $draft['model']='gpt-4.1-mini';
+$lock=reply_lock($base,$id);
 $current=json_file($path);
 if(empty($current['ai_consent']))fail(403,'AIチェックへの同意がありません');
 $current['ai_draft']=$draft;
 $current['ai_generated_at']=gmdate('c');
-persist($path,$current);
+persist($path,$current);flock($lock,LOCK_UN);fclose($lock);
 // Never update status, comment, reviewed or send anything to the user.
 output(['ok'=>true,'draft'=>$draft,'generated_at'=>$current['ai_generated_at']]);
