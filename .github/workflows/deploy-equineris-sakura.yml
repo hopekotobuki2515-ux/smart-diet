@@ -127,11 +127,11 @@ jobs:
           php -r '
             $file = "/home/rakudadou/www/smart-diet/equineris/api/config.local.php";
             $password = stream_get_contents(STDIN);
-            if (!is_file($file)) exit(3);
-            if (!is_readable($file)) exit(4);
+            if (is_file($file) === false) exit(3);
+            if (is_readable($file) === false) exit(4);
             $cfg = require $file;
             $hash = is_array($cfg) ? ($cfg["trainer_password_hash"] ?? null) : null;
-            if (!is_string($hash)) exit(4);
+            if (is_string($hash) === false) exit(4);
             exit(password_verify($password, $hash) ? 0 : 3);
           '
           CHECK_PASSWORD
