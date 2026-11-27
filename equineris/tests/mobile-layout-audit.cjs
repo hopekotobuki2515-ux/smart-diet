@@ -111,7 +111,14 @@ const ready=async(fn)=>{
    }
   }
   const outside=Math.max(root.scrollWidth,document.body.scrollWidth)-innerWidth;
-  return {width:innerWidth,docWidth:root.scrollWidth,outside:Math.round(outside),narrow:narrow.slice(0,15),narrowTotal:narrow.length,stacked:stacked.slice(0,10),stackedTotal:stacked.length,title:document.title,bodyText:document.body.innerText.trim().length,weekCards:document.querySelectorAll('#lessonTrack .point-slide').length,weekVisible:!document.querySelector('#lessonView')?.hidden,weekSourceComplete:(()=>{
+  return {width:innerWidth,docWidth:root.scrollWidth,outside:Math.round(outside),narrow:narrow.slice(0,15),narrowTotal:narrow.length,stacked:stacked.slice(0,10),stackedTotal:stacked.length,title:document.title,bodyText:document.body.innerText.trim().length,trainerEntryReady:(()=>{
+   if(!location.pathname.endsWith('/index.html'))return true;
+   const entry=document.getElementById('trainerDashboardLink');
+   if(!entry)return false;
+   const rect=entry.getBoundingClientRect(),style=getComputedStyle(entry),dest=new URL(entry.href,location.href);
+   return rect.width>=80&&rect.height>=35&&rect.top>=0&&rect.bottom<=innerHeight&&
+    style.display!=='none'&&style.visibility!=='hidden'&&dest.pathname.endsWith('/trainer-dashboard.html');
+  })(),weekCards:document.querySelectorAll('#lessonTrack .point-slide').length,weekVisible:!document.querySelector('#lessonView')?.hidden,weekSourceComplete:(()=>{
    const weekNumber=Number(new URLSearchParams(location.search).get('week'));
    if(!Number.isInteger(weekNumber)||weekNumber<1||weekNumber>12)return true;
    const source=window.SMART_DIET_LESSONS?.[weekNumber-1];
@@ -326,6 +333,7 @@ const ready=async(fn)=>{
    await sleep(135);
    const result=JSON.parse(await evalJS(probe));
    if(!result.title||result.bodyText<15)throw Error('Page content missing '+name+' at '+width+': '+JSON.stringify(result));
+   if(name==='index.html'&&!result.trainerEntryReady)throw Error('Trainer dashboard link is missing, clipped or incorrect at '+width+': '+JSON.stringify(result));
    if(name.startsWith('learning.html?week=')&&(result.weekCards!==4||!result.weekVisible))throw Error('Weekly cards did not render '+name+': '+JSON.stringify(result));
    if((name==='learning.html'||name.startsWith('learning.html?week='))&&!result.weekRecordReady)throw Error('Missing or misplaced food record link on learning screen '+name+': '+JSON.stringify(result));
    if(name.startsWith('learning.html?week=')&&!result.weekBriefReady)throw Error('Concise lessons, original detail or contextual actions missing '+name+': '+JSON.stringify(result));
