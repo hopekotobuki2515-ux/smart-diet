@@ -1,0 +1,131 @@
+name: Repair HOPE article readability and remove inaccurate cover
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/repair-hope-reading-20261128.yml']
+permissions:
+  contents: read
+concurrency:
+  group: hope-blog-production-host
+  cancel-in-progress: false
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - name: Remove only the identified generated image
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          D=/home/rakudadou/hope-blog-private/data
+          T=$(mktemp -d "$D/readability.XXXXXXXX")
+          trap 'rm -rf "$T"' EXIT
+          cat > "$T/remove.php" <<'PHP'
+          <?php
+          declare(strict_types=1);
+          $_SERVER['SCRIPT_NAME']='/hope-blog/index.php';
+          require '/home/rakudadou/www/hope-blog/common.php';
+          if(realpath(DATA)!=='/home/rakudadou/hope-blog-private/data')throw new RuntimeException('Unexpected data path');
+          $lock=fopen(DATA.'write.lock','c');if(!$lock||!flock($lock,LOCK_EX))throw new RuntimeException('Lock failed');
+          try{
+            $rows=loadj('articles.json');$before=$rows;
+            $keys=array_keys(array_filter($rows,fn($r)=>(int)$r['id']===122));
+            if(count($keys)!==1)throw new RuntimeException('Article mismatch');
+            $k=$keys[0];$row=$rows[$k];
+            if($row['title']!=='加圧トレーニングで美肌は期待できる？｜運動と肌の健康の関係')throw new RuntimeException('Title mismatch');
+            $bad='17fa18a55d219610336ad081547a75caca58099ea11ce122.png';
+            if(str_contains($row['body'],$bad)||str_contains($row['more'],$bad))throw new RuntimeException('Unexpected inline image');
+            $removed=0;
+            foreach(['image','eyecatch'] as $f){if(str_contains((string)($row[$f]??''),$bad)){$row[$f]='';$removed++;if($f==='eyecatch')$row['eyecatch_alt']='';}}
+            if($removed){$backup=tempnam(DATA,'before-remove-wrong-cover-');if(!$backup||!copy(DATA.'articles.json',$backup)||!chmod($backup,0600))throw new RuntimeException('Backup failed');$rows[$k]=$row;try{writej('articles.json',$rows);if(loadj('articles.json')!==$rows)throw new RuntimeException('Verification failed');}catch(Throwable $e){writej('articles.json',$before);throw $e;}}
+            echo 'PASS: known generated image fields cleared: '.$removed.'; all article wording and other records preserved.'.PHP_EOL;
+          }finally{flock($lock,LOCK_UN);fclose($lock);}
+          PHP
+          php -l "$T/remove.php"
+          php "$T/remove.php"
+          REMOTE
+      - name: Inspect actual article markup and test a scoped layout correction
+        run: |
+          set -eu
+          cd /tmp
+          npm install --no-audit --no-fund playwright
+          npx playwright install chromium
+          cat > /tmp/reading.cjs <<'JS'
+          const {chromium}=require('playwright');
+          const fs=require('fs');
+          const base='https://rakudadou.sakura.ne.jp/hope-blog/';
+          const needle='肌のハリや弾力を保つために';
+          (async()=>{
+            const browser=await chromium.launch({args:['--no-sandbox']});
+            try{
+              let selector,css;
+              for(const width of [1366,1024,390,320]){
+                const page=await browser.newPage({viewport:{width,height:900}});
+                const r=await page.goto(base+'blog-entry-122.html',{waitUntil:'domcontentloaded'});
+                if(r.status()!==200)throw Error('Article unavailable');
+                const info=await page.evaluate(needle=>{
+                  const p=[...document.querySelectorAll('p')].find(e=>e.textContent.includes(needle)&&e.textContent.length<400);
+                  if(!p)throw Error('Expected paragraph absent');
+                  let root=p.parentElement;
+                  while(root&&!root.querySelector('h2'))root=root.parentElement;
+                  if(!root||root===document.body||root===document.documentElement)throw Error('No isolated article content');
+                  const path=[];let n=root;
+                  while(n&&n!==document.body){
+                    const part=n.id?'#'+CSS.escape(n.id):n.localName+[...n.classList].map(c=>'.'+CSS.escape(c)).join('');
+                    path.unshift(part);
+                    if(document.querySelectorAll(path.join(' > ')).length===1&&path.join(' > ').includes('.'))break;
+                    n=n.parentElement;
+                  }
+                  const sel=path.join(' > ');
+                  if(document.querySelectorAll(sel).length!==1)throw Error('Selector ambiguous');
+                  const c=getComputedStyle(p),rc=getComputedStyle(root);
+                  return {sel,paragraphs:root.querySelectorAll('p').length,heads:root.querySelectorAll('h2').length,rootWidth:root.getBoundingClientRect().width,pWidth:p.getBoundingClientRect().width,font:c.fontSize,margin:c.marginBottom,writing:c.writingMode,whiteSpace:c.whiteSpace,rootDisplay:rc.display,styles:[...document.styleSheets].map(s=>s.href),badImage:[...document.images].some(i=>i.src.includes('17fa18a55d219610336ad081547a75caca58099ea11ce122'))};
+                },needle);
+                console.log('BEFORE',width,JSON.stringify(info));
+                if(info.badImage||info.paragraphs<30||info.heads<8)throw Error('Unexpected content or cover');
+                if(!info.styles.some(s=>s&&new URL(s).pathname==='/hope-blog/assets/style.css'))throw Error('Shared stylesheet not loaded; no change made');
+                if(selector&&selector!==info.sel)throw Error('Selector differs by viewport');
+                selector=info.sel;
+                if(!css)css='\n/* HOPE article reading: normal horizontal paragraphs */\n'+selector+' { min-width:0; max-width:100%; writing-mode:horizontal-tb; word-break:normal; overflow-wrap:break-word; }\n'+selector+' p { display:block; width:auto; max-width:100%; white-space:normal; writing-mode:horizontal-tb; word-break:normal; overflow-wrap:break-word; line-break:strict; line-height:1.85; margin:0 0 1.2em; }\n'+selector+' h2, '+selector+' h3 { white-space:normal; writing-mode:horizontal-tb; word-break:normal; overflow-wrap:break-word; line-height:1.45; }\n';
+                if(!process.env.VERIFY_LIVE)await page.addStyleTag({content:css});
+                const after=await page.evaluate(sel=>{
+                  const root=document.querySelector(sel);
+                  const ps=[...root.querySelectorAll('p')].filter(p=>p.textContent.trim().length>20);
+                  const problems=ps.filter(p=>{
+                    const c=getComputedStyle(p), b=p.getBoundingClientRect();
+                    return c.writingMode!=='horizontal-tb'||b.width<Math.min(180,innerWidth*.6)||parseFloat(c.marginBottom)<parseFloat(c.fontSize)*.8||parseFloat(c.lineHeight)<parseFloat(c.fontSize)*1.55;
+                  }).map(p=>p.textContent.slice(0,35));
+                  return {problems,paragraphs:ps.length,scroll:document.documentElement.scrollWidth,client:document.documentElement.clientWidth};
+                },selector);
+                console.log('AFTER',width,JSON.stringify(after));
+                if(after.problems.length||after.scroll>after.client+2)throw Error('Readability check failed; no unverified CSS deployed');
+                await page.close();
+              }
+              if(!process.env.VERIFY_LIVE)fs.writeFileSync('/tmp/hope-reading.css',css);
+            }finally{await browser.close()}
+          })().catch(e=>{console.error(e);process.exit(1)});
+          JS
+          node /tmp/reading.cjs
+      - name: Deploy tested article CSS only with backup
+        env:
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          test -s /tmp/hope-reading.css
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -c '"'"'set -eu; F=/home/rakudadou/www/hope-blog/assets/style.css; D=/home/rakudadou/hope-blog-private/data; test -f "$F"; test ! -L "$F"; B=$(mktemp "$D/before-reading-css.XXXXXXXX"); cp "$F" "$B"; chmod 600 "$B"; T=$(mktemp "$F.XXXXXXXX"); trap "rm -f \"$T\"" EXIT; cat "$F" > "$T"; cat >> "$T"; chmod 644 "$T"; mv "$T" "$F"; echo "PASS: scoped CSS installed; private backup saved."'"'"'' < /tmp/hope-reading.css
+      - name: Verify the deployed article at desktop and mobile sizes
+        run: |
+          set -eu
+          cd /tmp
+          VERIFY_LIVE=1 node /tmp/reading.cjs
