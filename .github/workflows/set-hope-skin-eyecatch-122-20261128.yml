@@ -43,7 +43,8 @@ jobs:
           printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
           ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
           ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
-          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'set -eu; P=/home/rakudadou/www/hope-blog/assets/hope-blog-images; test -d "$P"; T=$(mktemp "$P/.image.XXXXXXXX"); trap "rm -f \"$T\"" EXIT; cat > "$T"; test "$(wc -c < "$T" | tr -d " ")" = 2039201; chmod 644 "$T"; if test -e "$P/17fa18a55d219610336ad081547a75caca58099ea11ce122.png"; then cmp "$T" "$P/17fa18a55d219610336ad081547a75caca58099ea11ce122.png"; else mv "$T" "$P/17fa18a55d219610336ad081547a75caca58099ea11ce122.png"; fi' < /tmp/hope-eyecatch.png
+          remote='set -eu; P=/home/rakudadou/www/hope-blog/assets/hope-blog-images; test -d "$P"; T=$(mktemp "$P/.image.XXXXXXXX"); cat > "$T"; test "$(wc -c < "$T" | tr -d " ")" = 2039201; chmod 644 "$T"; if test -e "$P/17fa18a55d219610336ad081547a75caca58099ea11ce122.png"; then cmp "$T" "$P/17fa18a55d219610336ad081547a75caca58099ea11ce122.png"; rm "$T"; else mv "$T" "$P/17fa18a55d219610336ad081547a75caca58099ea11ce122.png"; fi'
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" "sh -c '$remote'" < /tmp/hope-eyecatch.png
           ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
           set -eu
           D=/home/rakudadou/hope-blog-private/data
