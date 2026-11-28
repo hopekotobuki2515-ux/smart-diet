@@ -1,0 +1,67 @@
+name: Delete only HOPE article 121
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/delete-hope-skin-article-121-20261128.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: hope-blog-production-host
+  cancel-in-progress: false
+jobs:
+  delete:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Remove only verified article 121 with private backup
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          D=/home/rakudadou/hope-blog-private/data
+          T=$(mktemp -d "$D/delete-121.XXXXXXXX")
+          trap 'rm -rf "$T"' EXIT
+          cat > "$T/delete.php" <<'PHP'
+          <?php
+          declare(strict_types=1);
+          $_SERVER['SCRIPT_NAME']='/hope-blog/index.php';
+          require '/home/rakudadou/www/hope-blog/common.php';
+          if(realpath(DATA)!=='/home/rakudadou/hope-blog-private/data')throw new RuntimeException('Unexpected DATA location');
+          $lock=fopen(DATA.'write.lock','c');if(!$lock||!flock($lock,LOCK_EX))throw new RuntimeException('Lock failed');
+          try{
+           if(is_link(DATA.'articles.json')||!is_file(DATA.'articles.json'))throw new RuntimeException('Unexpected article file');
+           $rows=loadj('articles.json');$before=$rows;
+           $keys=array_keys(array_filter($rows,fn($r)=>(int)$r['id']===121));
+           if(count($keys)===0){echo 'PASS: article 121 already absent.'.PHP_EOL;exit;}
+           if(count($keys)!==1)throw new RuntimeException('Article identity mismatch');
+           $k=$keys[0];
+           if($rows[$k]['title']!=='加圧トレーニングと肌の関係｜運動習慣と美肌について')throw new RuntimeException('Title mismatch');
+           $backup=tempnam(DATA,'before-delete-article-121-');if(!$backup||!copy(DATA.'articles.json',$backup)||!chmod($backup,0600))throw new RuntimeException('Backup failed');
+           array_splice($rows,$k,1);
+           try{writej('articles.json',$rows);$actual=loadj('articles.json');if($actual!==$rows||count($actual)!==count($before)-1||count(array_filter($actual,fn($r)=>(int)$r['id']===121))!==0)throw new RuntimeException('Deletion verification failed');}catch(Throwable $e){writej('articles.json',$before);throw $e;}
+           echo 'PASS: article 121 removed; all other articles unchanged.'.PHP_EOL;
+          }finally{flock($lock,LOCK_UN);fclose($lock);}
+          
+          PHP
+          php -l "$T/delete.php"
+          php "$T/delete.php"
+          REMOTE
+      - name: Verify public article is unavailable and blog stays online
+        run: |
+          set -eu
+          code=$(curl -sSL --max-time 30 -o /tmp/article.html -w '%{http_code}' 'https://rakudadou.sakura.ne.jp/hope-blog/blog-entry-121.html')
+          echo "ARTICLE_HTTP=$code"
+          case "$code" in 404|410) ;; *) exit 1;; esac
+          curl -fsSL --max-time 30 'https://rakudadou.sakura.ne.jp/hope-blog/' -o /tmp/home.html
+          if grep -Fq 'blog-entry-121.html' /tmp/home.html; then exit 1; fi
+          echo 'PASS: deleted article unavailable and absent from blog home.'
