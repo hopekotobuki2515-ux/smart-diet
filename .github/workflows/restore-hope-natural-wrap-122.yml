@@ -1,0 +1,88 @@
+name: Restore natural Japanese wrapping in HOPE article 122
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/restore-hope-natural-wrap-122.yml']
+permissions:
+  contents: read
+concurrency:
+  group: hope-blog-production-host
+  cancel-in-progress: false
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Remove only the artificial eight-character wrappers
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          D=/home/rakudadou/hope-blog-private/data
+          T=$(mktemp -d "$D/natural-wrap.XXXXXXXX")
+          trap 'rm -rf "$T"' EXIT
+          cat > "$T/fix.php" <<'PHP'
+          <?php
+          declare(strict_types=1);
+          $_SERVER['SCRIPT_NAME']='/hope-blog/index.php';
+          require '/home/rakudadou/www/hope-blog/common.php';
+          if(realpath(DATA)!=='/home/rakudadou/hope-blog-private/data')throw new RuntimeException('Data path mismatch');
+          $lock=fopen(DATA.'write.lock','c');if(!$lock||!flock($lock,LOCK_EX))throw new RuntimeException('Lock failed');
+          try{
+            $rows=loadj('articles.json');$before=$rows;
+            $keys=array_keys(array_filter($rows,fn($r)=>(int)$r['id']===122));
+            if(count($keys)!==1)throw new RuntimeException('Article identity mismatch');
+            $k=$keys[0];$row=$rows[$k];$old=$row['body'];
+            if($row['title']!=='加圧トレーニングで美肌は期待できる？｜運動と肌の健康の関係')throw new RuntimeException('Title mismatch');
+            $new=preg_replace('~<span class="hope-keep-ending" style="white-space:nowrap">([^<>]*)</span>~u','$1',$old,-1,$count);
+            if($count!==45||str_contains($new,'hope-keep-ending')||strip_tags($new)!==strip_tags($old)||substr_count($new,'</p>')!==substr_count($old,'</p>'))throw new RuntimeException('Markup verification failed');
+            if(!str_contains($new,'この働きが損なわれることがあります。'))throw new RuntimeException('Specified sentence mismatch');
+            $backup=tempnam(DATA,'before-natural-wrap-122-');if(!$backup||!copy(DATA.'articles.json',$backup)||!chmod($backup,0600))throw new RuntimeException('Backup failed');
+            $row['body']=$new;$rows[$k]=$row;
+            try{writej('articles.json',$rows);if(loadj('articles.json')!==$rows)throw new RuntimeException('Readback mismatch');}catch(Throwable $e){writej('articles.json',$before);throw $e;}
+            echo 'PASS: 45 artificial wrappers removed; every character, paragraph and other article record preserved.'.PHP_EOL;
+          }finally{flock($lock,LOCK_UN);fclose($lock);}
+          PHP
+          php -l "$T/fix.php"
+          php "$T/fix.php"
+          REMOTE
+      - name: Verify public article on mobile Safari engine and desktop Chromium
+        run: |
+          set -eu
+          cd /tmp
+          npm install --no-audit --no-fund playwright
+          npx playwright install --with-deps webkit chromium
+          node - <<'JS'
+          const {webkit,chromium,devices}=require('playwright');
+          (async()=>{
+            for(const [engine,profiles] of [[webkit,[{...devices['iPhone 13'],viewport:{width:390,height:844}},{...devices['iPhone 13'],viewport:{width:375,height:812}}]],[chromium,[{viewport:{width:1366,height:900}},{viewport:{width:1024,height:900}}]]]){
+              const b=await engine.launch();
+              try{
+                for(const profile of profiles){
+                  const p=await b.newPage(profile);
+                  const r=await p.goto('https://rakudadou.sakura.ne.jp/hope-blog/blog-entry-122.html',{waitUntil:'domcontentloaded'});
+                  if(r.status()!==200)throw Error('Article HTTP '+r.status());
+                  const d=await p.evaluate(()=>{
+                    const root=document.querySelector('.blog_entry_text');
+                    const para=[...root.querySelectorAll('p')].find(x=>x.textContent.includes('表皮の一番外側にある角層は'));
+                    if(!para)throw Error('Specified paragraph missing');
+                    const c=getComputedStyle(para);
+                    return {paragraphs:root.querySelectorAll('p').length,wrappers:root.querySelectorAll('.hope-keep-ending').length,paragraph:para.textContent,whiteSpace:c.whiteSpace,wordBreak:c.wordBreak,writingMode:c.writingMode,forcedBreaks:para.querySelectorAll('br').length,client:document.documentElement.clientWidth,scroll:document.documentElement.scrollWidth};
+                  });
+                  console.log('NATURAL_WRAP',engine.name(),JSON.stringify(d));
+                  if(d.paragraphs!==53||d.wrappers||d.forcedBreaks||d.whiteSpace!=='normal'||d.wordBreak!=='normal'||d.writingMode!=='horizontal-tb'||d.scroll>d.client+2||!d.paragraph.includes('この働きが損なわれることがあります。'))throw Error('Public verification failed');
+                  await p.close();
+                }
+              }finally{await b.close();}
+            }
+          })().catch(e=>{console.error(e);process.exit(1)});
+          JS
