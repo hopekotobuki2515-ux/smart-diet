@@ -1,0 +1,142 @@
+name: Prevent isolated Japanese paragraph endings in HOPE article 122
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/fix-hope-122-paragraph-endings.yml']
+permissions:
+  contents: read
+concurrency:
+  group: hope-blog-production-host
+  cancel-in-progress: false
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Validate paragraph split and Japanese end-of-line handling in browser
+        run: |
+          set -eu
+          cd /tmp
+          npm install --no-audit --no-fund playwright
+          npx playwright install chromium
+          cat > /tmp/hope-endings.cjs <<'JS'
+          const {chromium}=require('playwright');
+          const fs=require('fs');
+          const sentences=['研究には運動習慣のない41〜59歳の健康な日本人女性61人が参加しました。','有酸素運動と筋力トレーニングの二つのグループに分かれ、指導者のもとで週2回、16週間の運動を実施しました。','最終的な分析対象は56人です。'];
+          (async()=>{
+            const b=await chromium.launch({args:['--no-sandbox']});
+            try{
+              for(const width of [320,360,375,390,393,414,430,768,1024,1366]){
+                const p=await b.newPage({viewport:{width,height:900}});
+                const r=await p.goto('https://rakudadou.sakura.ne.jp/hope-blog/blog-entry-122.html',{waitUntil:'domcontentloaded'});
+                if(r.status()!==200)throw Error('Article HTTP '+r.status());
+                const d=await p.evaluate(({sentences,live})=>{
+                  const root=document.querySelector('.blog_entry_text');
+                  if(!root)throw Error('Missing article');
+                  const baseline=root.textContent.replace(/\s/g,'');
+                  if(!live){
+                    const matches=[...root.querySelectorAll('p')].filter(p=>p.textContent===sentences.join(''));
+                    if(matches.length!==1)throw Error('Expected paragraph mismatch');
+                    const old=matches[0],nodes=sentences.map(t=>{const n=document.createElement('p');n.textContent=t;return n;});
+                    old.replaceWith(...nodes);
+                    for(const p of root.querySelectorAll('p')){
+                      const n=p.lastChild;
+                      if(!n||n.nodeType!==Node.TEXT_NODE)continue;
+                      const chars=Array.from(n.data);
+                      if(chars.length<8||!/(?:。|。\s*\[\d+\])$/u.test(n.data)||!/[一-龯ぁ-んァ-ヶ]/u.test(n.data))continue;
+                      const tail=chars.slice(-8).join('');
+                      const s=document.createElement('span');s.className='hope-keep-ending';s.style.whiteSpace='nowrap';s.textContent=tail;
+                      n.data=chars.slice(0,-8).join('');p.append(s);
+                    }
+                    if(root.textContent.replace(/\s/g,'')!==baseline)throw Error('Preview changed wording');
+                  }
+                  const pars=[...root.querySelectorAll('p')],split=sentences.every(t=>pars.filter(p=>p.textContent===t).length===1);
+                  const guards=[...root.querySelectorAll('.hope-keep-ending')];
+                  const bad=guards.filter(s=>{
+                    const range=document.createRange();range.selectNodeContents(s);const rects=[...range.getClientRects()].filter(r=>r.width>0);
+                    return rects.length!==1||getComputedStyle(s).whiteSpace!=='nowrap';
+                  }).map(s=>s.textContent);
+                  const orphans=[];
+                  for(const para of pars){
+                    if(!/[一-龯ぁ-んァ-ヶ]/u.test(para.textContent)||para.textContent.trim().length<12||!para.querySelector('.hope-keep-ending'))continue;
+                    const w=document.createTreeWalker(para,NodeFilter.SHOW_TEXT);const lines=new Map();let n;
+                    while(n=w.nextNode())for(let i=0;i<n.length;i++){
+                      if(/\s/.test(n.data[i]))continue;
+                      const q=document.createRange();q.setStart(n,i);q.setEnd(n,i+1);const a=q.getBoundingClientRect();
+                      if(a.width>0){const y=Math.round(a.top);lines.set(y,(lines.get(y)||0)+1);}
+                    }
+                    const ys=[...lines.keys()].sort((a,b)=>a-b);
+                    if(ys.length>1&&lines.get(ys[ys.length-1])<3)orphans.push(para.textContent.slice(-30));
+                  }
+                  return {text:baseline,split,paragraphs:pars.length,guards:guards.length,bad,orphans,scroll:document.documentElement.scrollWidth,client:document.documentElement.clientWidth};
+                },{sentences,live:!!process.env.LIVE});
+                const {text,...metrics}=d;console.log('ENDING_CHECK',width,JSON.stringify(metrics));
+                if(!d.split||d.paragraphs!==53||d.guards<35||d.bad.length||d.orphans.length||d.scroll>d.client+2)throw Error('Paragraph validation failed');
+                if(!process.env.LIVE)fs.writeFileSync('/tmp/hope-ending-text-'+width,text);
+                else if(text!==fs.readFileSync('/tmp/hope-ending-text-'+width,'utf8'))throw Error('Public article wording changed');
+                await p.close();
+              }
+            }finally{await b.close();}
+          })().catch(e=>{console.error(e);process.exit(1)});
+          JS
+          node /tmp/hope-endings.cjs
+      - name: Apply only verified paragraph markup changes to article 122
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          D=/home/rakudadou/hope-blog-private/data
+          T=$(mktemp -d "$D/ending-122.XXXXXXXX")
+          trap 'rm -rf "$T"' EXIT
+          cat > "$T/fix.php" <<'PHP'
+          <?php
+          declare(strict_types=1);
+          $_SERVER['SCRIPT_NAME']='/hope-blog/index.php';
+          require '/home/rakudadou/www/hope-blog/common.php';
+          if(realpath(DATA)!=='/home/rakudadou/hope-blog-private/data')throw new RuntimeException('Data mismatch');
+          $s=['研究には運動習慣のない41〜59歳の健康な日本人女性61人が参加しました。','有酸素運動と筋力トレーニングの二つのグループに分かれ、指導者のもとで週2回、16週間の運動を実施しました。','最終的な分析対象は56人です。'];
+          $lock=fopen(DATA.'write.lock','c');if(!$lock||!flock($lock,LOCK_EX))throw new RuntimeException('Lock failed');
+          try{
+            $rows=loadj('articles.json');$before=$rows;
+            $keys=array_keys(array_filter($rows,fn($r)=>(int)$r['id']===122));
+            if(count($keys)!==1)throw new RuntimeException('Article mismatch');
+            $k=$keys[0];$row=$rows[$k];$old=$row['body'];
+            if($row['title']!=='加圧トレーニングで美肌は期待できる？｜運動と肌の健康の関係'||str_contains($old,'hope-keep-ending'))throw new RuntimeException('Unexpected article state');
+            $find='<p>'.implode('',$s).'</p>';
+            if(substr_count($old,$find)!==1)throw new RuntimeException('Target paragraph mismatch');
+            $body=str_replace($find,'<p>'.implode("</p>\n<p>",$s).'</p>',$old);
+            $count=0;
+            $body=preg_replace_callback('~(<p(?:\s[^>]*)?>)(.*?)(</p>)~su',function($m)use(&$count){
+              $pos=strrpos($m[2],'>');$prefix=$pos===false?'':substr($m[2],0,$pos+1);$tail=$pos===false?$m[2]:substr($m[2],$pos+1);
+              if(!preg_match('/(?:。|。\s*\[\d+\])$/u',$tail)||!preg_match('/[一-龯ぁ-んァ-ヶ]/u',$tail))return $m[0];
+              $chars=preg_split('//u',$tail,-1,PREG_SPLIT_NO_EMPTY);
+              if(count($chars)<8)return $m[0];
+              $end=implode('',array_slice($chars,-8));if(str_contains($end,'&'))return $m[0];
+              $count++;
+              return $m[1].$prefix.implode('',array_slice($chars,0,-8)).'<span class="hope-keep-ending" style="white-space:nowrap">'.$end.'</span>'.$m[3];
+            },$body);
+            $norm=fn($x)=>preg_replace('/\s+/u','',strip_tags($x));
+            if(!is_string($body)||$norm($body)!==$norm($old)||$count<35||substr_count($body,'</p>')!==substr_count($old,'</p>')+2)throw new RuntimeException('Markup verification failed');
+            $backup=tempnam(DATA,'before-122-ending-');if(!$backup||!copy(DATA.'articles.json',$backup)||!chmod($backup,0600))throw new RuntimeException('Backup failed');
+            $row['body']=$body;$rows[$k]=$row;
+            try{writej('articles.json',$rows);if(loadj('articles.json')!==$rows)throw new RuntimeException('Readback mismatch');}catch(Throwable $e){writej('articles.json',$before);throw $e;}
+            echo 'PASS: article 122 wording and other article data unchanged; protected endings '.$count.PHP_EOL;
+          }finally{flock($lock,LOCK_UN);fclose($lock);}
+          PHP
+          php -l "$T/fix.php"
+          php "$T/fix.php"
+          REMOTE
+      - name: Verify public paragraph endings and unchanged wording
+        run: |
+          set -eu
+          cd /tmp
+          LIVE=1 node /tmp/hope-endings.cjs
