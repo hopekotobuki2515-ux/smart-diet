@@ -1,0 +1,80 @@
+name: Revise HOPE skin article wording
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/revise-hope-skin-wording-20261128.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: hope-blog-production-host
+  cancel-in-progress: false
+jobs:
+  revise:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Update article 121 only with verified original wording
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          D=/home/rakudadou/hope-blog-private/data
+          T=$(mktemp -d "$D/skin-wording.XXXXXXXX")
+          trap 'rm -rf "$T"' EXIT
+          cat > "$T/revise.php" <<'PHP'
+          <?php
+          declare(strict_types=1);
+          $_SERVER['SCRIPT_NAME']='/hope-blog/index.php';
+          require '/home/rakudadou/www/hope-blog/common.php';
+          if(realpath(DATA)!=='/home/rakudadou/hope-blog-private/data')throw new RuntimeException('Unexpected DATA location');
+          $changes=json_decode(<<<'CHANGES'
+          {"title":["加圧トレーニングと肌の関係｜女性のお客様が感じたうれしい変化","加圧トレーニングと肌の関係｜お客様が感じたうれしい変化"],"body":["HOPEをご利用いただいている女性のお客様から、","HOPEに通われているお客様から、"],"excerpt":["女性のお客様の声から、","お客様の声をきっかけに、"],"description":["女性のお客様の声から、","お客様の声をきっかけに、"]}
+          CHANGES
+          ,true,512,JSON_THROW_ON_ERROR);
+          $lock=fopen(DATA.'write.lock','c');if(!$lock||!flock($lock,LOCK_EX))throw new RuntimeException('Lock failed');
+          try {
+           if(is_link(DATA.'articles.json')||!is_file(DATA.'articles.json'))throw new RuntimeException('Unexpected article file');
+           $rows=loadj('articles.json');$before=$rows;
+           $keys=array_keys(array_filter($rows,fn($r)=>(int)$r['id']===121));
+           if(count($keys)!==1)throw new RuntimeException('Article identity mismatch');
+           $k=$keys[0];$row=$rows[$k];
+           if(!in_array($row['title'],$changes['title'],true))throw new RuntimeException('Title mismatch');
+           foreach($changes as $field=>[$old,$new]){
+             if(!isset($row[$field])||!is_string($row[$field]))throw new RuntimeException('Field missing '.$field);
+             if(substr_count($row[$field],$old)===1){$row[$field]=str_replace($old,$new,$row[$field]);echo 'Updated '.$field.PHP_EOL;}
+             elseif(substr_count($row[$field],$old)===0&&substr_count($row[$field],$new)===1){echo 'Already updated '.$field.PHP_EOL;}
+             else throw new RuntimeException('Unexpected source text in '.$field);
+           }
+           foreach(['title','body','excerpt','description','more','eyecatch_alt','keywords'] as $f){if(str_contains((string)($row[$f]??''),'女性のお客様'))throw new RuntimeException('Remaining phrase: '.$f);}
+           if(!str_contains($row['body'],'中年女性61人'))throw new RuntimeException('Research description altered');
+           $backup=tempnam(DATA,'before-skin-wording-');if(!$backup||!copy(DATA.'articles.json',$backup)||!chmod($backup,0600))throw new RuntimeException('Backup failed');
+           $rows[$k]=$row;
+           try{writej('articles.json',$rows);if(loadj('articles.json')!==$rows)throw new RuntimeException('Verification failed');}catch(Throwable $e){writej('articles.json',$before);throw $e;}
+           echo 'PASS: article 121 wording only; all other fields and articles unchanged.'.PHP_EOL;
+          }finally{flock($lock,LOCK_UN);fclose($lock);}
+          
+          PHP
+          php -l "$T/revise.php"
+          php "$T/revise.php"
+          REMOTE
+      - name: Verify public article and listing
+        run: |
+          set -eu
+          curl -fsSL --max-time 30 'https://rakudadou.sakura.ne.jp/hope-blog/blog-entry-121.html' -o /tmp/article.html
+          curl -fsSL --max-time 30 'https://rakudadou.sakura.ne.jp/hope-blog/' -o /tmp/home.html
+          grep -Fq '加圧トレーニングと肌の関係｜お客様が感じたうれしい変化' /tmp/article.html
+          grep -Fq '加圧トレーニングと肌の関係｜お客様が感じたうれしい変化' /tmp/home.html
+          grep -Fq 'HOPEに通われているお客様から、' /tmp/article.html
+          grep -Fq '中年女性61人' /tmp/article.html
+          if grep -Fq '女性のお客様' /tmp/article.html; then echo 'Old wording remains'; exit 1; fi
+          echo 'PASS: public article and listing use revised title; research facts retained.'
