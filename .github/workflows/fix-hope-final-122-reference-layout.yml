@@ -1,0 +1,82 @@
+name: Fix final HOPE article reference layout
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/fix-hope-final-122-reference-layout.yml']
+permissions:
+  contents: read
+concurrency:
+  group: hope-blog-production-host
+  cancel-in-progress: false
+jobs:
+  revise:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Update reference presentation only
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          D=/home/rakudadou/hope-blog-private/data
+          T=$(mktemp -d "$D/skin-reference.XXXXXXXX")
+          trap 'rm -rf "$T"' EXIT
+          cat > "$T/revise.php" <<'PHP'
+          <?php
+          declare(strict_types=1);
+          $_SERVER['SCRIPT_NAME']='/hope-blog/index.php';
+          require '/home/rakudadou/www/hope-blog/common.php';
+          if(realpath(DATA)!=='/home/rakudadou/hope-blog-private/data')throw new RuntimeException('Unexpected DATA');
+          $pairs=json_decode(<<<'PAIRS'
+          [["<p>[1] Pattersonら（2019）Blood Flow Restriction Exercise: Considerations of Methodology, Application, and Safety. <a href=\"https://pubmed.ncbi.nlm.nih.gov/31156448/\">https://pubmed.ncbi.nlm.nih.gov/31156448/</a></p>","<p style=\"overflow-wrap:anywhere\">[1] <a href=\"https://pubmed.ncbi.nlm.nih.gov/31156448/\">Pattersonら（2019）Blood Flow Restriction Exercise: Considerations of Methodology, Application, and Safety.</a></p>"],["<p>[2] Exercise under heat stress: thermoregulation, hydration, performance implications, and mitigation strategies. Physiological Reviews（2021） <a href=\"https://doi.org/10.1152/physrev.00038.2020\">https://doi.org/10.1152/physrev.00038.2020</a></p>","<p style=\"overflow-wrap:anywhere\">[2] <a href=\"https://doi.org/10.1152/physrev.00038.2020\">Exercise under heat stress: thermoregulation, hydration, performance implications, and mitigation strategies. Physiological Reviews（2021）</a></p>"],["<p>[3] Nishikoriら（2023）Resistance training rejuvenates aging skin by reducing circulating inflammatory factors and enhancing dermal extracellular matrices. Scientific Reports 13, 10214. <a href=\"https://www.nature.com/articles/s41598-023-37207-9\">https://www.nature.com/articles/s41598-023-37207-9</a></p>","<p style=\"overflow-wrap:anywhere\">[3] <a href=\"https://www.nature.com/articles/s41598-023-37207-9\">Nishikoriら（2023）Resistance training rejuvenates aging skin by reducing circulating inflammatory factors and enhancing dermal extracellular matrices. Scientific Reports 13, 10214.</a></p>"],["<p>[4] Takaradaら（2000）Rapid increase in plasma growth hormone after low-intensity resistance exercise with vascular occlusion. <a href=\"https://pubmed.ncbi.nlm.nih.gov/10642363/\">https://pubmed.ncbi.nlm.nih.gov/10642363/</a></p>","<p style=\"overflow-wrap:anywhere\">[4] <a href=\"https://pubmed.ncbi.nlm.nih.gov/10642363/\">Takaradaら（2000）Rapid increase in plasma growth hormone after low-intensity resistance exercise with vascular occlusion.</a></p>"],["<p>[5] 米国皮膚科学会 How your workout can affect your skin. <a href=\"https://www.aad.org/public/everyday-care/skin-care-secrets/routine/workout-affect-skin\">https://www.aad.org/public/everyday-care/skin-care-secrets/routine/workout-affect-skin</a></p>","<p style=\"overflow-wrap:anywhere\">[5] <a href=\"https://www.aad.org/public/everyday-care/skin-care-secrets/routine/workout-affect-skin\">米国皮膚科学会 How your workout can affect your skin.</a></p>"],["<p>[6] 厚生労働省「健康づくりのための身体活動・運動ガイド2023」成人版 <a href=\"https://kennet.mhlw.go.jp/information/information/exercise/s-00-002\">https://kennet.mhlw.go.jp/information/information/exercise/s-00-002</a></p>","<p style=\"overflow-wrap:anywhere\">[6] <a href=\"https://kennet.mhlw.go.jp/information/information/exercise/s-00-002\">厚生労働省「健康づくりのための身体活動・運動ガイド2023」成人版</a></p>"]]
+          PAIRS
+          ,true,512,JSON_THROW_ON_ERROR);
+          $lock=fopen(DATA.'write.lock','c');if(!$lock||!flock($lock,LOCK_EX))throw new RuntimeException('Lock failed');
+          try{
+           $rows=loadj('articles.json');$before=$rows;
+           $keys=array_keys(array_filter($rows,fn($r)=>(int)$r['id']===122));
+           if(count($keys)!==1)throw new RuntimeException('Article identity mismatch');
+           $k=$keys[0];$row=$rows[$k];
+           if($row['title']!=='加圧トレーニングで美肌は期待できる？｜運動と肌の健康の関係')throw new RuntimeException('Title mismatch');
+           foreach($pairs as [$old,$new]){
+            if(substr_count($row['body'],$old)===1)$row['body']=str_replace($old,$new,$row['body']);
+            elseif(substr_count($row['body'],$old)===0&&substr_count($row['body'],$new)===1){}
+            else throw new RuntimeException('Unexpected reference');
+           }
+           if(preg_match('/お客様|感想|体験談|ご本人/u',$row['body']))throw new RuntimeException('Unexpected wording in article');
+           $backup=tempnam(DATA,'before-skin-reference-');if(!$backup||!copy(DATA.'articles.json',$backup)||!chmod($backup,0600))throw new RuntimeException('Backup failed');
+           $rows[$k]=$row;
+           try{writej('articles.json',$rows);if(loadj('articles.json')!==$rows)throw new RuntimeException('Verification failed');}catch(Throwable $e){writej('articles.json',$before);throw $e;}
+           echo 'PASS: only six reference link presentations changed; original article wording and other data preserved.'.PHP_EOL;
+          }finally{flock($lock,LOCK_UN);fclose($lock);}
+          
+          PHP
+          php -l "$T/revise.php"
+          php "$T/revise.php"
+          REMOTE
+      - name: Verify article and viewport widths
+        run: |
+          set -eu
+          cd /tmp
+          npm install --no-audit --no-fund playwright
+          npx playwright install chromium
+          node - <<'JS'
+          const {chromium}=require('playwright');
+          (async()=>{const b=await chromium.launch({args:['--no-sandbox']});try{for(const width of [360,390,1366]){
+            const p=await b.newPage({viewport:{width,height:900}});
+            const r=await p.goto('https://rakudadou.sakura.ne.jp/hope-blog/blog-entry-122.html',{waitUntil:'domcontentloaded'});
+            const v=await p.evaluate(()=>({title:document.title,scroll:document.documentElement.scrollWidth,client:document.documentElement.clientWidth,overflow:[...document.querySelectorAll('body *')].filter(e=>e.getBoundingClientRect().right>innerWidth+2&&e.getBoundingClientRect().width>0).slice(0,10).map(e=>({tag:e.tagName,cls:e.className,text:e.innerText?.slice(0,60)}))}));
+            console.log('LAYOUT',JSON.stringify({width,http:r.status(),...v}));
+            if(r.status()!==200||v.scroll>v.client+2)throw Error('layout');
+            await p.close();
+          }}finally{await b.close()}})().catch(e=>{console.error(e);process.exit(1)});
+          JS
