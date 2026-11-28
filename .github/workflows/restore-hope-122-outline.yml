@@ -1,0 +1,100 @@
+name: Restore HOPE article 122 required outline and orange rules
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/restore-hope-122-outline.yml']
+permissions:
+  contents: read
+concurrency:
+  group: hope-blog-production-host
+  cancel-in-progress: false
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Add required navigation and heading rules without rewriting content
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          D=/home/rakudadou/hope-blog-private/data
+          T=$(mktemp -d "$D/outline-122.XXXXXXXX")
+          trap 'rm -rf "$T"' EXIT
+          cat > "$T/outline.php" <<'PHP'
+          <?php
+          declare(strict_types=1);
+          $_SERVER['SCRIPT_NAME']='/hope-blog/index.php';
+          require '/home/rakudadou/www/hope-blog/common.php';
+          if(realpath(DATA)!=='/home/rakudadou/hope-blog-private/data')throw new RuntimeException('Data mismatch');
+          $lock=fopen(DATA.'write.lock','c');if(!$lock||!flock($lock,LOCK_EX))throw new RuntimeException('Lock failed');
+          try{
+            $rows=loadj('articles.json');$before=$rows;
+            $keys=array_keys(array_filter($rows,fn($r)=>(int)$r['id']===122));
+            if(count($keys)!==1)throw new RuntimeException('Article identity mismatch');
+            $k=$keys[0];$row=$rows[$k];$old=$row['body'];
+            if($row['title']!=='加圧トレーニングで美肌は期待できる？｜運動と肌の健康の関係'||str_contains($old,'hope-122-toc')||str_contains($old,'hope-keep-ending'))throw new RuntimeException('Unexpected article revision');
+            $labels=[];
+            $body=preg_replace_callback('~<h2>([^<>]+)</h2>~u',function($m)use(&$labels){
+              $id='hope-122-section-'.(count($labels)+1);$labels[$id]=$m[1];
+              return '<h2 id="'.$id.'" style="scroll-margin-top:90px">'.$m[1].'</h2><hr class="hope-122-rule" aria-hidden="true" style="border:0;border-top:3px solid #f39a32;width:100%;margin:0 0 1.2em">';
+            },$old);
+            if(count($labels)!==9||!str_contains($body,'id="hope-122-section-1"'))throw new RuntimeException('Heading mismatch');
+            $nav='<nav id="hope-122-toc" aria-label="記事の目次" style="box-sizing:border-box;border:1px solid #e5e7e9;border-radius:12px;padding:16px;margin:24px 0;line-height:1.8"><div style="font-weight:bold;font-size:1.15em;margin-bottom:8px">目次</div><hr style="border:0;border-top:3px solid #f39a32;margin:0 0 12px"><ol style="padding-left:1.5em;margin:0">';
+            foreach($labels as $id=>$label)$nav.='<li style="margin:0 0 .4em"><a style="color:#333;white-space:normal;word-break:normal;overflow-wrap:break-word" href="#'.$id.'">'.$label.'</a></li>';
+            $nav.='</ol></nav>';
+            $pos=strpos($body,'<h2 id="hope-122-section-1"');
+            if($pos===false)throw new RuntimeException('Insertion anchor missing');
+            $body=substr_replace($body,$nav."\n",$pos,0);
+            $restored=str_replace($nav."\n",'',$body);
+            $restored=preg_replace('~<hr class="hope-122-rule"[^>]*>~','',$restored);
+            $restored=preg_replace('~<h2 id="hope-122-section-\d+" style="scroll-margin-top:90px">~','<h2>',$restored);
+            if($restored!==$old)throw new RuntimeException('Original text and markup not preserved');
+            $backup=tempnam(DATA,'before-122-outline-');if(!$backup||!copy(DATA.'articles.json',$backup)||!chmod($backup,0600))throw new RuntimeException('Backup failed');
+            $row['body']=$body;$rows[$k]=$row;
+            try{writej('articles.json',$rows);if(loadj('articles.json')!==$rows)throw new RuntimeException('Readback mismatch');}catch(Throwable $e){writej('articles.json',$before);throw $e;}
+            echo 'PASS: nine heading rules and linked outline; original paragraphs, links and other articles preserved.'.PHP_EOL;
+          }finally{flock($lock,LOCK_UN);fclose($lock);}
+          PHP
+          php -l "$T/outline.php"
+          php "$T/outline.php"
+          REMOTE
+      - name: Verify live outline and rules in desktop and mobile engines
+        run: |
+          set -eu
+          cd /tmp
+          npm install --no-audit --no-fund playwright
+          npx playwright install --with-deps chromium webkit
+          node - <<'JS'
+          const {chromium,webkit,devices}=require('playwright');
+          (async()=>{
+            for(const [engine,profile] of [[chromium,{viewport:{width:1366,height:900}}],[webkit,{...devices['iPhone 13']}]]){
+              const b=await engine.launch();
+              try{
+                const p=await b.newPage(profile);
+                const r=await p.goto('https://rakudadou.sakura.ne.jp/hope-blog/blog-entry-122.html',{waitUntil:'domcontentloaded'});
+                if(r.status()!==200)throw Error('HTTP '+r.status());
+                const result=await p.evaluate(()=>{
+                  const root=document.querySelector('.blog_entry_text'),toc=root.querySelector('#hope-122-toc');
+                  const links=[...toc.querySelectorAll('a')],rules=[...root.querySelectorAll('.hope-122-rule')];
+                  const bad=links.filter(a=>{const h=document.getElementById(a.hash.slice(1));return !h||h.textContent!==a.textContent||h.nextElementSibling?.className!=='hope-122-rule'});
+                  const invisible=rules.filter(e=>getComputedStyle(e).borderTopColor!=='rgb(243, 154, 50)'||e.getBoundingClientRect().width<100||parseFloat(getComputedStyle(e).borderTopWidth)<2);
+                  return {links:links.length,rules:rules.length,bad:bad.length,invisible:invisible.length,paragraphs:root.querySelectorAll('p').length,scroll:document.documentElement.scrollWidth,client:document.documentElement.clientWidth};
+                });
+                console.log('OUTLINE',engine.name(),JSON.stringify(result));
+                if(result.links!==9||result.rules!==9||result.bad||result.invisible||result.paragraphs!==53||result.scroll>result.client+2)throw Error('Outline check failed');
+                await p.locator('#hope-122-toc a').first().click();
+                if(!p.url().endsWith('#hope-122-section-1'))throw Error('Anchor failed');
+              }finally{await b.close();}
+            }
+          })().catch(e=>{console.error(e);process.exit(1)});
+          JS
