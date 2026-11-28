@@ -1,0 +1,86 @@
+name: Publish HOPE coupon price notice
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/publish-hope-coupon-notice-20261128.yml'
+permissions:
+  contents: read
+concurrency:
+  group: deploy-hope-mobile-sakura
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Patch only coupon notice on existing pages
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'php' <<'PHP'
+          <?php
+          $root='/home/rakudadou/www/hope-mobile';
+          $paths=[$root.'/パーソナルトレーニング料金/index.html',$root.'/pricing.html'];
+          $heading='      <h2>加圧トレーニング30分の回数券（クーポン）</h2>';
+          $notice='      <p><strong>2027年1月4日より、回数券の料金が新料金に変更となります。</strong></p>';
+          $changes=[];
+          foreach($paths as $f){
+              if(!is_file($f)||is_link($f)||is_link(dirname($f)))throw new RuntimeException('Unexpected target: '.$f);
+              $s=file_get_contents($f);
+              foreach(['8,250円','15,750円','30,000円','59,800円'] as $x)if(strpos($s,$x)===false)throw new RuntimeException('Price mismatch: '.$f);
+              if(substr_count($s,$heading)!==1)throw new RuntimeException('Heading mismatch: '.$f);
+              if(substr_count($s,$heading."\n".$notice)===1)continue;
+              if(strpos($s,'2027年1月4日')!==false)throw new RuntimeException('Conflicting date: '.$f);
+              $n=str_replace($heading,$heading."\n".$notice,$s);
+              if(str_replace("\n".$notice,'',$n)!==$s)throw new RuntimeException('Unexpected diff');
+              $changes[]=[$f,$s,$n];
+          }
+          $staged=[];
+          try{
+              foreach($changes as [$f,$s,$n]){
+                  $b=tempnam('/home/rakudadou','hope-coupon-backup.');
+                  if(!$b||file_put_contents($b,$s)!==strlen($s))throw new RuntimeException('Backup failed');
+                  $t=tempnam(dirname($f),'hope-coupon-stage-');
+                  if(!$t)throw new RuntimeException('Stage failed');
+                  $staged[]=[$f,$s,$n,$t,$b];
+                  if(file_put_contents($t,$n)!==strlen($n)||!chmod($t,fileperms($f)&0777))throw new RuntimeException('Stage write failed');
+              }
+              foreach($staged as [$f,$s,$n,$t,$b])if(file_get_contents($f)!==$s)throw new RuntimeException('Concurrent edit');
+              $published=[];
+              try{
+                  foreach($staged as [$f,$s,$n,$t,$b]){
+                      if(!rename($t,$f))throw new RuntimeException('Publish failed');
+                      $published[]=[$f,$b];
+                      if(file_get_contents($f)!==$n)throw new RuntimeException('Verification failed');
+                      echo "PASS one notice added, all other bytes preserved: ",$f,PHP_EOL;
+                  }
+              }catch(Throwable $e){
+                  foreach($published as [$f,$b]){copy($b,$f);chmod($f,0644);}
+                  throw $e;
+              }
+          }finally{foreach($staged as [$f,$s,$n,$t,$b])if(file_exists($t))unlink($t);}
+          PHP
+      - name: Verify public notice
+        run: |
+          python3 - <<'PY'
+          from urllib.request import urlopen, Request
+          from urllib.parse import quote
+          base='https://rakudadou.sakura.ne.jp/hope-mobile/'
+          for path in [quote('パーソナルトレーニング料金')+'/', 'pricing.html']:
+              with urlopen(Request(base+path+'?verify=20261128-coupon',headers={'Cache-Control':'no-cache'}),timeout=20) as r:
+                  assert r.status==200
+                  s=r.read().decode('utf-8')
+              assert s.count('2027年1月4日より、回数券の料金が新料金に変更となります。')==1
+              for x in ['8,250円','15,750円','30,000円','59,800円']:
+                  assert x in s,x
+              print('PASS public HTTP 200, exact notice and all prices:',base+path)
+          PY
