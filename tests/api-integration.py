@@ -123,6 +123,13 @@ try:
   session_file.write_text(updated)
   unlocked=s.post(url+'?action=login',data={'password':password},headers={'X-CSRF-Token':csrf})
   test('valid password works after session lock expires',unlocked.status_code==200)
+  import hmac, hashlib
+  final_device=s.cookies.get('equineris_trainer_device')
+  token_file=base.parents[2]/'equineris-private'/'trainer-sessions'/(hmac.new(hash.encode(),final_device.encode(),hashlib.sha256).hexdigest()+'.json')
+  test('device token stored by digest outside document root',token_file.is_file() and final_device not in token_file.read_text())
+  token_file.write_text(json.dumps({'expires':int(time.time())-1}))
+  test('expired device cannot restore login',s.get(url+'?action=status').json()['trainer'] is False)
+  test('expired device cannot view photo',s.get(url+f'?action=photo&id={rid}&n=0').status_code==403)
   print('API TEST PASSED:',len(ok),'/',len(ok));print('\n'.join('PASS '+x for x in ok))
 finally:
   proc.terminate();proc.wait(timeout=4)
