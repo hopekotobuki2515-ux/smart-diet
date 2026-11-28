@@ -1,0 +1,100 @@
+name: Add official HOPE site navigation to blog
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/add-hope-blog-official-site-navigation.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: hope-blog-production-host
+  cancel-in-progress: false
+jobs:
+  polish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Check official site before any change
+        run: |
+          set -eu
+          curl -fsSL --max-time 30 'https://rakudadou.sakura.ne.jp/hope-mobile/' -o /tmp/hope-official.html
+          grep -Fq '加圧パーソナル' /tmp/hope-official.html
+          grep -Fq '0836' /tmp/hope-official.html
+      - name: Add verified official-site link without changing article data
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          D=/home/rakudadou/hope-blog-private/data
+          P=/home/rakudadou/www/hope-blog
+          T=$(mktemp -d "$D/header-stage.XXXXXXXX")
+          export T
+          trap 'rm -rf "$T"' EXIT
+          cat > "$T/patch.php" <<'PHP'
+          <?php
+          declare(strict_types=1);
+          $d='/home/rakudadou/hope-blog-private/data';$p='/home/rakudadou/www/hope-blog';$t=getenv('T');
+          $hp=$d.'/home-page.php';$fp=$d.'/fragments.json';
+          foreach([$hp,$fp] as $f)if(is_link($f)||!is_file($f))throw new RuntimeException('Unexpected file');
+          $home=file_get_contents($hp);$raw=file_get_contents($fp);$fr=json_decode($raw,true,512,JSON_THROW_ON_ERROR);
+          $url='https://rakudadou.sakura.ne.jp/hope-mobile/';
+          $cta='<div class="hope-official-site-route" style="box-sizing:border-box;max-width:1120px;margin:12px auto;padding:0 16px;text-align:center"><a href="'.$url.'" style="box-sizing:border-box;display:block;max-width:420px;margin:0 auto;padding:12px 10px;min-height:44px;border:1px solid #e3c8a6;border-radius:8px;background:#fff8ee;color:#753b10;font-size:15px;line-height:1.5;font-weight:700;text-decoration:none;white-space:normal;word-break:normal">HOPE公式ホームページ（体験・料金）</a></div>';
+          if(substr_count($home,'</header>')!==1||!str_contains($home,'class="site-header"')||str_contains($home,'hope-official-site-route'))throw new RuntimeException('Home revision mismatch');
+          $newHome=str_replace('</header>','</header>'."\n".$cta,$home);
+          $keys=[];
+          foreach($fr as $key=>$value)if(is_string($value)&&preg_match('~<(?:div|header)\b[^>]*\bclass=["\x27][^"\x27]*\bl_header\b[^"\x27]*["\x27][^>]*>~i',$value))$keys[]=$key;
+          if(count($keys)!==1)throw new RuntimeException('Article header fragment not uniquely identified: '.count($keys));
+          $key=$keys[0];$old=$fr[$key];
+          if(str_contains($old,'hope-official-site-route'))throw new RuntimeException('Already present');
+          $fr[$key]=preg_replace_callback('~<(?:div|header)\b[^>]*\bclass=["\x27][^"\x27]*\bl_header\b[^"\x27]*["\x27][^>]*>~i',fn($m)=>$cta."\n".$m[0],$old,1,$count);
+          if($count!==1||str_replace($cta."\n",'',$fr[$key])!==$old||str_replace("\n".$cta,'',$newHome)!==$home)throw new RuntimeException('Preservation check failed');
+          file_put_contents($t.'/home-page.php',$newHome);
+          file_put_contents($t.'/fragments.json',json_encode($fr,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_THROW_ON_ERROR));
+          echo 'PASS: home and shared header link added; all other fragment values unchanged'.PHP_EOL;
+          PHP
+          php "$T/patch.php"
+          php -l "$T/home-page.php"
+          B=$(mktemp -d "$D/official-nav-backup.XXXXXXXX")
+          cp "$D/home-page.php" "$D/fragments.json" "$B/"
+          chmod 600 "$B/"* "$T/home-page.php" "$T/fragments.json"
+          php -r 'foreach(["articles.json","config.json"] as $f)echo hash_file("sha256",$argv[1]."/".$f),PHP_EOL;foreach(["index.php","common.php","admin.php",".htaccess","assets/style.css"] as $f)echo hash_file("sha256",$argv[2]."/".$f),PHP_EOL;' "$D" "$P" > "$T/before"
+          mv "$T/home-page.php" "$D/home-page.php"
+          if ! mv "$T/fragments.json" "$D/fragments.json"; then cp "$B/home-page.php" "$D/home-page.php"; exit 1; fi
+          php -r 'foreach(["articles.json","config.json"] as $f)echo hash_file("sha256",$argv[1]."/".$f),PHP_EOL;foreach(["index.php","common.php","admin.php",".htaccess","assets/style.css"] as $f)echo hash_file("sha256",$argv[2]."/".$f),PHP_EOL;' "$D" "$P" > "$T/after"
+          cmp "$T/before" "$T/after"
+          echo 'PASS: article data, config and other site files unchanged.'
+          REMOTE
+      - name: Verify live official-site link on blog and article
+        run: |
+          set -eu
+          cd /tmp
+          npm install --no-audit --no-fund playwright
+          node - <<'JS'
+          const {chromium}=require('playwright');
+          (async()=>{
+            const b=await chromium.launch({channel:'chrome',headless:true,args:['--no-sandbox']});
+            try{for(const width of [320,390,1366])for(const route of ['','blog-entry-122.html','blog-entry-102.html']){
+              const p=await b.newPage({viewport:{width,height:900}});
+              const r=await p.goto('https://rakudadou.sakura.ne.jp/hope-blog/'+route,{waitUntil:'domcontentloaded'});
+              const a=p.locator('.hope-official-site-route a');
+              if(r.status()!==200||await a.count()!==1||!await a.isVisible())throw Error('Missing public link: '+route);
+              const v=await a.evaluate(e=>({href:e.href,x:e.getBoundingClientRect().left,right:e.getBoundingClientRect().right,scroll:document.documentElement.scrollWidth,client:document.documentElement.clientWidth}));
+              if(v.href!=='https://rakudadou.sakura.ne.jp/hope-mobile/'||v.x<0||v.right>width+1||v.scroll>v.client+2)throw Error(JSON.stringify(v));
+              await a.click();
+              await p.waitForLoadState('domcontentloaded');
+              if(!p.url().includes('/hope-mobile/')||!(await p.locator('body').innerText()).includes('加圧'))throw Error('Destination mismatch');
+              console.log('PASS '+width+' '+(route||'blog top')+' official link clicked');
+              await p.close();
+            }}finally{await b.close();}
+          })().catch(e=>{console.error(e);process.exit(1)});
+          JS
