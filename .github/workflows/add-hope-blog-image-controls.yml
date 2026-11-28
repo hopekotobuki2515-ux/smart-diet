@@ -1,0 +1,166 @@
+name: Add HOPE blog image controls
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/add-hope-blog-image-controls.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: hope-blog-production-host
+  cancel-in-progress: false
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Validate live source, back up, apply scoped image controls
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          P=/home/rakudadou/www/hope-blog
+          D=/home/rakudadou/hope-blog-private/data
+          test -d "$P" && test -d "$D" && test ! -L "$P" && test ! -L "$D"
+          T=$(mktemp -d "$D/image-stage.XXXXXXXX")
+          trap 'rm -rf "$T"' EXIT
+          cat > "$T/patch.php" <<'PHP'
+          <?php
+          declare(strict_types=1);
+          $root=$argv[1];$stage=$argv[2];
+          foreach(['admin.php','common.php'] as $f){if(is_link("$root/$f")||!is_file("$root/$f"))throw new RuntimeException("Unexpected source: $f");}
+          $a=file_get_contents("$root/admin.php");$c=file_get_contents("$root/common.php");
+          function once(&$s,$old,$new){if(substr_count($s,$old)!==1)throw new RuntimeException('Live source does not match expected anchor: '.substr($old,0,60));$s=str_replace($old,$new,$s);}
+          if(str_contains($a,'hope_image_upload'))throw new RuntimeException('Image feature already installed');
+          $handler=<<<'CODE'
+          elseif($action==='hope_image_upload'){
+          header('Content-Type: application/json; charset=utf-8');
+          try{
+           $f=$_FILES['image']??null;
+           if(!$f||$f['error']!==UPLOAD_ERR_OK||!is_uploaded_file($f['tmp_name']))throw new RuntimeException('画像を選択してください。最大5MBです。');
+           if($f['size']<1||$f['size']>5*1024*1024)throw new RuntimeException('画像は5MB以内にしてください。');
+           $types=['image/jpeg'=>'jpg','image/png'=>'png','image/webp'=>'webp','image/gif'=>'gif'];
+           $mime=(new finfo(FILEINFO_MIME_TYPE))->file($f['tmp_name']);
+           $info=@getimagesize($f['tmp_name']);
+           if(!isset($types[$mime])||!$info||($info['mime']??'')!==$mime||$info[0]>8000||$info[1]>8000||$info[0]*$info[1]>24000000)throw new RuntimeException('JPEG・PNG・WebP・GIF形式（最大24メガピクセル）の画像を選んでください。');
+           $dir=__DIR__.'/assets/hope-blog-images';
+           if(is_link($dir)||!is_dir($dir)||!is_writable($dir))throw new RuntimeException('画像保存先を確認してください。');
+           $name=bin2hex(random_bytes(24)).'.'.$types[$mime];
+           if(!move_uploaded_file($f['tmp_name'],$dir.'/'.$name))throw new RuntimeException('画像を保存できません。');
+           chmod($dir.'/'.$name,0644);
+           echo json_encode(['url'=>url('assets/hope-blog-images/'.$name)],JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);
+          }catch(Throwable $ex){http_response_code(400);echo json_encode(['error'=>$ex instanceof RuntimeException?$ex->getMessage():'画像の保存に失敗しました。'],JSON_UNESCAPED_UNICODE);}
+          exit;
+          }
+          CODE;
+          once($a,"elseif(\$action==='save'){",$handler."elseif(\$action==='save'){");
+          $save=<<<'CODE'
+          $cover=(string)($_POST['hope_cover']??($old['eyecatch']??''));
+          $coverAlt=trim((string)($_POST['hope_cover_alt']??($old['eyecatch_alt']??'')));
+          if($cover!==''){
+           $prefix=url('assets/hope-blog-images/');
+           if(!str_starts_with($cover,$prefix)||!preg_match('/^[a-f0-9]{48}\.(?:jpg|png|webp|gif)$/D',substr($cover,strlen($prefix)))||!is_file(__DIR__.'/assets/hope-blog-images/'.substr($cover,strlen($prefix))))throw new RuntimeException('アイキャッチ画像を選び直してください。');
+           $image=$cover;
+          }
+          CODE;
+          once($a,"\$row=['id'=>\$id,", $save."\$row=['id'=>\$id,'eyecatch'=>\$cover,'eyecatch_alt'=>\$coverAlt,");
+          $ui=<<<'HTML'
+          <fieldset id="hope-image-tools" style="margin:16px 0;padding:12px;border:1px solid #ccc;min-width:0;max-width:100%;box-sizing:border-box">
+          <legend>アイキャッチ画像</legend>
+          <input type="hidden" name="hope_cover" id="hope-cover" value="<?=e($a['eyecatch']??'')?>">
+          <label>画像を選択（JPEG・PNG・WebP・GIF、5MB以内）<input type="file" id="hope-cover-file" accept="image/jpeg,image/png,image/webp,image/gif" style="max-width:100%"></label>
+          <label>代替テキスト（alt）<input type="text" name="hope_cover_alt" id="hope-cover-alt" value="<?=e($a['eyecatch_alt']??'')?>"></label>
+          <img id="hope-cover-preview" alt="" hidden style="max-width:100%;max-height:240px;object-fit:contain">
+          <button type="button" id="hope-cover-clear">アイキャッチを解除</button>
+          <p style="font-size:14px">未設定の場合は、従来どおり本文の最初の画像が一覧に使われます。</p>
+          <p id="hope-image-status" role="status" aria-live="polite"></p>
+          </fieldset>
+          HTML;
+          once($a,'<label>本文（HTML）',$ui.'<label>本文（HTML）');
+          $bodyUi=<<<'HTML'
+          <div style="margin:12px 0">
+          <label>本文・追記に挿入する画像<input type="file" id="hope-body-file" accept="image/jpeg,image/png,image/webp,image/gif" style="max-width:100%"></label>
+          <label>画像の説明（alt）<input type="text" id="hope-body-alt"></label>
+          <label>挿入先<select id="hope-image-target"><option value="body">本文</option><option value="more">追記</option></select></label>
+          <button type="button" id="hope-body-insert">画像をアップロードして挿入</button>
+          </div>
+          HTML;
+          once($a,'<label>概要<textarea',$bodyUi.'<label>概要<textarea');
+          $js=<<<'JS'
+          <script>
+          (()=>{
+          const by=id=>document.getElementById(id),cover=by('hope-cover'),coverFile=by('hope-cover-file'),coverAlt=by('hope-cover-alt'),coverPreview=by('hope-cover-preview'),status=by('hope-image-status'),insert=by('hope-body-insert'),clear=by('hope-cover-clear'),form=cover.closest('form');
+          let busy=false;
+          const esc=s=>String(s).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+          function show(){coverPreview.hidden=!cover.value;if(cover.value)coverPreview.src=cover.value;else coverPreview.removeAttribute('src');coverPreview.alt=coverAlt.value;preview();}
+          async function upload(file){
+           if(!file)throw Error('画像を選択してください。');
+           if(file.size>5*1024*1024)throw Error('画像は5MB以内にしてください。');
+           const data=new FormData();data.append('action','hope_image_upload');data.append('csrf',form.elements.csrf.value);data.append('image',file);
+           const r=await fetch(location.href,{method:'POST',body:data,credentials:'same-origin'});let j;try{j=await r.json()}catch{throw Error('ログイン状態または通信を確認してください。')}
+           if(!r.ok||!j.url)throw Error(j.error||'画像のアップロードに失敗しました。');return j.url;
+          }
+          async function run(task){if(busy)return;busy=true;coverFile.disabled=true;insert.disabled=true;clear.disabled=true;status.textContent='画像を送信しています…';try{await task();status.textContent='画像を登録しました。記事の保存を押してください。'}catch(e){status.textContent=e.message}finally{busy=false;coverFile.disabled=false;insert.disabled=false;clear.disabled=false;}}
+          coverFile.addEventListener('change',()=>{const f=coverFile.files[0];if(f)run(async()=>{cover.value=await upload(f);show();coverFile.value=''})});
+          coverAlt.addEventListener('input',show);clear.addEventListener('click',()=>{cover.value='';coverFile.value='';show();status.textContent='アイキャッチを解除しました。保存すると反映されます。'});
+          insert.addEventListener('click',()=>{const target=by(by('hope-image-target').value),file=by('hope-body-file').files[0],alt=by('hope-body-alt').value,start=target.selectionStart,end=target.selectionEnd;run(async()=>{const u=await upload(file);const tag='\n<img src="'+esc(u)+'" alt="'+esc(alt)+'" style="max-width:100%;height:auto">\n';target.setRangeText(tag,start,end,'end');target.dispatchEvent(new Event('input'));target.focus();by('hope-body-file').value='';by('hope-body-alt').value='';})});
+          form.addEventListener('submit',e=>{if(busy){e.preventDefault();status.textContent='画像のアップロードが完了してから保存してください。'}});
+          show();
+          })();
+          </script>
+          JS;
+          once($a,'<p><button type="submit">記事を保存',$js.'<p><button type="submit">記事を保存');
+          $oldPreview=<<<'CODE'
+          +b.value+m.value
+          CODE;
+          $newPreview=<<<'CODE'
+          +((()=>{const u=document.getElementById('hope-cover')?.value||'',a=document.getElementById('hope-cover-alt')?.value||'';const esc=s=>String(s).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));return u&&!b.value.includes(u)?'<img src="'+esc(u)+'" alt="'+esc(a)+'" style="max-width:100%;height:auto">':''})())+b.value+m.value
+          CODE;
+          once($a,$oldPreview,$newPreview);
+          $orig=<<<'CODE'
+          'body'=>internal($a['body'])
+          CODE;
+          $replacement=<<<'CODE'
+          'body'=>((!empty($a['eyecatch'])&&!str_contains($a['body'],$a['eyecatch']))?'<p class="hope-eyecatch"><img src="'.e($a['eyecatch']).'" alt="'.e($a['eyecatch_alt']??'').'" style="max-width:100%;height:auto"></p>':'').internal($a['body'])
+          CODE;
+          once($c,$orig,$replacement);
+          file_put_contents("$stage/admin.php",$a);file_put_contents("$stage/common.php",$c);
+          
+          PHP
+          php "$T/patch.php" "$P" "$T"
+          php -l "$T/admin.php"
+          php -l "$T/common.php"
+          php -r 'if(!class_exists("finfo")||!function_exists("getimagesize"))exit(1);'
+          B=$(mktemp -d "$D/image-backup.XXXXXXXX")
+          cp "$P/admin.php" "$P/common.php" "$B/"
+          chmod 600 "$B/admin.php" "$B/common.php"
+          php -r 'foreach(["articles.json","config.json","fragments.json"] as $f)echo hash_file("sha256",$argv[1]."/".$f),PHP_EOL;foreach(["index.php",".htaccess","assets/style.css"] as $f)echo hash_file("sha256",$argv[2]."/".$f),PHP_EOL;' "$D" "$P" > "$T/before"
+          test ! -L "$P/assets/hope-blog-images"
+          mkdir -p "$P/assets/hope-blog-images"
+          chmod 755 "$P/assets/hope-blog-images"
+          test -w "$P/assets/hope-blog-images"
+          chmod 644 "$T/admin.php" "$T/common.php"
+          rollback(){ cp "$B/admin.php" "$B/common.php" "$P/"; chmod 644 "$P/admin.php" "$P/common.php"; }
+          if ! mv "$T/common.php" "$P/common.php" || ! mv "$T/admin.php" "$P/admin.php"; then rollback; exit 1; fi
+          if ! php -l "$P/admin.php" || ! php -l "$P/common.php"; then rollback; exit 1; fi
+          php -r 'foreach(["articles.json","config.json","fragments.json"] as $f)echo hash_file("sha256",$argv[1]."/".$f),PHP_EOL;foreach(["index.php",".htaccess","assets/style.css"] as $f)echo hash_file("sha256",$argv[2]."/".$f),PHP_EOL;' "$D" "$P" > "$T/after"
+          if ! cmp "$T/before" "$T/after"; then rollback; exit 1; fi
+          echo 'PASS: image controls installed; article data, configuration, index and CSS unchanged.'
+          REMOTE
+      - name: Verify public blog and unauthenticated admin
+        run: |
+          set -eu
+          curl --fail --silent --show-error --max-time 30 'https://rakudadou.sakura.ne.jp/hope-blog/' -o /tmp/hope-home.html
+          curl --fail --silent --show-error --max-time 30 'https://rakudadou.sakura.ne.jp/hope-blog/admin.php?new=1' -o /tmp/hope-admin.html
+          grep -q 'ログイン' /tmp/hope-admin.html
+          ! grep -q 'id="hope-cover-file"' /tmp/hope-admin.html
+          echo 'PASS: public blog and login page respond; image controls require authentication.'
