@@ -37,6 +37,18 @@ try:
   img=s.get(url+f'?action=photo&id={rid}&n=0');test('private photo requires admin login',img.status_code==403)
   login=s.post(url+'?action=login',data={'password':password},headers={'X-CSRF-Token':csrf});test('admin login succeeds',login.status_code==200)
   csrf=login.json()['csrf']
+  device=s.cookies.get('equineris_trainer_device')
+  test('trainer receives persistent device cookie',isinstance(device,str) and len(device)==64)
+  cookie=next(c for c in s.cookies if c.name=='equineris_trainer_device')
+  test('device cookie has expiry and HttpOnly',int(time.time())+29*86400<cookie.expires<=int(time.time())+30*86400 and any(k.lower()=='httponly' for k in cookie._rest))
+  reopened=requests.Session()
+  reopened.cookies.set('equineris_trainer_device',device,path='/api/')
+  resumed=reopened.get(url+'?action=status')
+  test('trainer stays logged in without session cookie or password',resumed.status_code==200 and resumed.json()['trainer'])
+  test('restored trainer can view private photo',reopened.get(url+f'?action=photo&id={rid}&n=0').status_code==200)
+  stranger=requests.Session()
+  stranger.cookies.set('equineris_trainer_device','0'*64,path='/api/')
+  test('forged device cookie cannot authenticate',stranger.get(url+'?action=status').json()['trainer'] is False)
   # The dashboard must POST to the API; a GET produces HTTP 405 even after login.
   dashboard=(base/'trainer-dashboard.js').read_text()
   test('trainer dashboard sends list via POST with CSRF', "await req('list',new FormData())" in dashboard and "'X-CSRF-Token':csrf" in dashboard)
@@ -93,6 +105,8 @@ try:
   queue2=s.post(url+'?action=auto_list',headers={'X-CSRF-Token':csrf}).json()['items']
   test('deferred records excluded from auto queue',all(x['id']!=defer for x in queue2))
   logout=s.post(url+'?action=logout',headers={'X-CSRF-Token':csrf});test('logout works',logout.status_code==200)
+  test('logout revokes persistent device token across sessions',reopened.get(url+'?action=status').json()['trainer'] is False)
+  test('revoked device cannot view photo',reopened.get(url+f'?action=photo&id={rid}&n=0').status_code==403)
   denied_ai=s.post(url+'?action=ai_generate',data={'id':ai_id},headers={'X-CSRF-Token':csrf})
   test('AI call forbidden after logout',denied_ai.status_code==403)
   photo_again=s.get(url+f'?action=photo&id={rid}&n=0');test('after logout photo is private',photo_again.status_code==403)
