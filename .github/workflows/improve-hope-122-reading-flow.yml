@@ -1,0 +1,109 @@
+name: Improve HOPE article 122 reading flow
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/improve-hope-122-reading-flow.yml']
+permissions:
+  contents: read
+concurrency:
+  group: hope-blog-production-host
+  cancel-in-progress: false
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Add subheadings and natural mid-sentence breaks
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          D=/home/rakudadou/hope-blog-private/data
+          T=$(mktemp -d "$D/outline-122.XXXXXXXX")
+          trap 'rm -rf "$T"' EXIT
+          cat > "$T/outline.php" <<'PHP'
+          <?php
+          declare(strict_types=1);
+          $_SERVER['SCRIPT_NAME']='/hope-blog/index.php';
+          require '/home/rakudadou/www/hope-blog/common.php';
+          if(realpath(DATA)!=='/home/rakudadou/hope-blog-private/data')throw new RuntimeException('Data mismatch');
+          $lock=fopen(DATA.'write.lock','c');if(!$lock||!flock($lock,LOCK_EX))throw new RuntimeException('Lock failed');
+          try{
+            $rows=loadj('articles.json');$before=$rows;
+            $keys=array_keys(array_filter($rows,fn($r)=>(int)$r['id']===122));
+            if(count($keys)!==1)throw new RuntimeException('Article mismatch');
+            $k=$keys[0];$row=$rows[$k];$old=$row['body'];
+            if($row['title']!=='加圧トレーニングで美肌は期待できる？｜運動と肌の健康の関係'||substr_count($old,'class="hope-122-rule"')!==9||!str_contains($old,'hope-122-toc')||str_contains($old,'hope-122-subheading'))throw new RuntimeException('Unexpected article state');
+            $heads=[
+              '表皮の一番外側にある角層'=>'表皮のバリア機能',
+              '表皮の下にある真皮'=>'肌のハリを支える真皮',
+              '筋肉を動かすと、運動に必要な'=>'運動による皮膚の血流の変化',
+              '加圧トレーニングでは、ベルトを装着した部位'=>'加圧と除圧による血流の変化',
+              '研究には運動習慣のない'=>'研究の対象者と運動方法',
+              '両グループで皮膚の弾力'=>'研究で確認された肌の変化',
+              'この研究には運動をしない比較群'=>'研究結果を読む際の注意点',
+              '2000年に発表された研究では'=>'運動後のホルモン反応',
+              '一方、血液中の成長ホルモン'=>'ホルモンの増加と美肌効果の違い',
+              '前述の研究では、16週間'=>'血液中の成分と皮膚の関係',
+              '運動前は、肌に負担'=>'運動前と運動中のケア',
+              '運動器具に触れた手で'=>'運動後の洗顔と保湿',
+              '厚生労働省の「健康づくり'=>'運動を習慣にする目安',
+              '血栓症の既往や心血管系'=>'安全に続けるための注意点'
+            ];
+            $body=$old;
+            foreach($heads as $anchor=>$label){
+              $needle='<p>'.$anchor;
+              if(substr_count($body,$needle)!==1)throw new RuntimeException('Paragraph anchor mismatch: '.$anchor);
+              $body=str_replace($needle,'<h3 class="hope-122-subheading" style="font-size:1.12em;line-height:1.6;margin:1.35em 0 .5em;font-weight:700;color:inherit;white-space:normal;word-break:normal">'.$label.'</h3>'."\n".$needle,$body);
+            }
+            $n=0;
+            $body=preg_replace_callback('~(<p(?:\s[^>]*)?>)([^<>]*)(</p>)~u',function($m)use(&$n){
+              if(preg_match('/^\s*\[\d+\]/u',$m[2]))return $m[0];
+              $sentences=preg_split('/(?<=。)/u',$m[2],-1,PREG_SPLIT_NO_EMPTY);
+              foreach($sentences as &$sentence){
+                $chars=preg_split('//u',$sentence,-1,PREG_SPLIT_NO_EMPTY);
+                $len=count($chars);if($len<58)continue;
+                $best=null;$dist=PHP_INT_MAX;
+                foreach($chars as $i=>$ch){
+                  if($ch!=='、'||$i+1<24||$len-$i-1<24)continue;
+                  $d=abs(($i+1)-$len/2);if($d<$dist){$dist=$d;$best=$i+1;}
+                }
+                if($best!==null){array_splice($chars,$best,0,['<br class="hope-122-sentence-break">']);$sentence=implode('',$chars);$n++;}
+              }
+              unset($sentence);
+              return $m[1].implode('',$sentences).$m[3];
+            },$body);
+            $reverse=preg_replace('~<h3 class="hope-122-subheading"[^>]*>[^<]*</h3>\n~u','',$body);
+            $reverse=str_replace('<br class="hope-122-sentence-break">','',$reverse);
+            if($reverse!==$old||$n<3||substr_count($body,'class="hope-122-subheading"')!==count($heads))throw new RuntimeException('Preservation check failed');
+            $backup=tempnam(DATA,'before-122-readability-');if(!$backup||!copy(DATA.'articles.json',$backup)||!chmod($backup,0600))throw new RuntimeException('Backup failed');
+            $row['body']=$body;$rows[$k]=$row;
+            try{writej('articles.json',$rows);if(loadj('articles.json')!==$rows)throw new RuntimeException('Readback mismatch');}catch(Throwable $e){writej('articles.json',$before);throw $e;}
+            echo 'PASS: subheadings '.count($heads).'; sentence breaks '.$n.'; original text, metadata, images, links, outline and other articles unchanged.'.PHP_EOL;
+          }finally{flock($lock,LOCK_UN);fclose($lock);}
+          PHP
+          php -l "$T/outline.php"
+          php "$T/outline.php"
+          REMOTE
+      - name: Verify live article
+        run: |
+          set -eu
+          curl -fsSL --max-time 30 'https://rakudadou.sakura.ne.jp/hope-blog/blog-entry-122.html' -o /tmp/hope122.html
+          python - <<'PY'
+          from pathlib import Path
+          s=Path('/tmp/hope122.html').read_text()
+          assert s.count('class="hope-122-subheading"') == 14
+          assert s.count('class="hope-122-sentence-break"') >= 3
+          assert s.count('class="hope-122-rule"') == 9
+          assert 'hope-122-toc' in s
+          print('PASS: public article subheadings, sentence breaks and existing outline')
+          PY
