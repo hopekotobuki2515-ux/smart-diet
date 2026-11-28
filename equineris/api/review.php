@@ -28,11 +28,65 @@ function auto_eligible(array $r): bool {
  return ($r['ai_consent']??false)===true&&($r['auto_reply_consent']??false)===true&&($r['status']??'')==='waiting'&&empty($r['auto_deferred_at']);
 }
 function file_id(string $id): string {if(!preg_match('/^[a-f0-9]{32}$/D',$id))fail(400,'記録IDが不正です');return $id;}
-function secret(): string {
- $file=__DIR__.'/config.local.php';if(!is_file($file))fail(503,'トレーナーチェックはサーバー設定前です');
+function configured_hash(): ?string {
+ $file=__DIR__.'/config.local.php';if(!is_file($file))return null;
  $cfg=require $file;
- if(!is_array($cfg)||empty($cfg['trainer_password_hash'])||!is_string($cfg['trainer_password_hash'])||password_get_info($cfg['trainer_password_hash'])['algo']===null)fail(503,'管理者認証が未設定です');
+ if(!is_array($cfg)||empty($cfg['trainer_password_hash'])||!is_string($cfg['trainer_password_hash'])||password_get_info($cfg['trainer_password_hash'])['algo']===null)return null;
  return $cfg['trainer_password_hash'];
+}
+function secret(): string {
+ $hash=configured_hash();if($hash===null)fail(503,'管理者認証が未設定です');return $hash;
+}
+const TRAINER_DEVICE_COOKIE='equineris_trainer_device';
+const TRAINER_DEVICE_TTL=30*86400;
+function device_cookie(string $value,int $expires,bool $secure): void {
+ $path=getenv('EQUINERIS_LOCAL_TEST')==='1'?'/api/':'/smart-diet/equineris/api/';
+ if(!setcookie(TRAINER_DEVICE_COOKIE,$value,['expires'=>$expires,'path'=>$path,'secure'=>$secure,'httponly'=>true,'samesite'=>'Strict']))fail(503,'ログイン情報を保存できません');
+}
+function device_token(): ?string {
+ $value=$_COOKIE[TRAINER_DEVICE_COOKIE]??null;
+ return is_string($value)&&preg_match('/^[a-f0-9]{64}$/D',$value)===1?$value:null;
+}
+function device_file(string $base,string $hash,string $token): string {
+ return $base.'/trainer-sessions/'.hash_hmac('sha256',$token,$hash).'.json';
+}
+function restore_device(?string $hash,bool $secure): void {
+ $token=device_token();$valid=false;
+ if($hash!==null&&$token!==null){
+  $path=device_file(data_dir(),$hash,$token);
+  if(is_file($path)){
+   $raw=@file_get_contents($path);$entry=is_string($raw)?json_decode($raw,true):null;
+   $valid=is_array($entry)&&is_int($entry['expires']??null)&&$entry['expires']>time();
+   if(!$valid)@unlink($path);
+  }
+ }
+ if(!$valid){
+  unset($_SESSION['equineris_trainer_authenticated']);
+  if(isset($_COOKIE[TRAINER_DEVICE_COOKIE]))device_cookie('',time()-3600,$secure);
+  return;
+ }
+ if(empty($_SESSION['equineris_trainer_authenticated'])){
+  if(!session_regenerate_id(true))fail(503,'ログイン状態を復元できません');
+ }
+ $_SESSION['equineris_trainer_authenticated']=true;
+}
+function revoke_device(string $base,string $hash,bool $secure): void {
+ $token=device_token();
+ if($token!==null){$path=device_file($base,$hash,$token);if(is_file($path)&&!@unlink($path))fail(503,'ログイン情報を無効にできません');}
+ unset($_SESSION['equineris_trainer_authenticated']);
+ device_cookie('',time()-3600,$secure);
+}
+function issue_device(string $base,string $hash,bool $secure): void {
+ $dir=$base.'/trainer-sessions';
+ if(!is_dir($dir)&&!@mkdir($dir,0700)&&!is_dir($dir))fail(503,'ログイン情報を保存できません');
+ @chmod($dir,0700);
+ foreach(glob($dir.'/*.json')?:[] as $path){
+  $raw=@file_get_contents($path);$entry=is_string($raw)?json_decode($raw,true):null;
+  if(is_array($entry)&&is_int($entry['expires']??null)&&$entry['expires']<=time())@unlink($path);
+ }
+ $token=bin2hex(random_bytes(32));$expires=time()+TRAINER_DEVICE_TTL;
+ persist(device_file($base,$hash,$token),['expires'=>$expires]);
+ device_cookie($token,$expires,$secure);
 }
 function rate_limit(string $base, string $scope, string $passwordHash, int $limit): void {
  $host=(string)($_SERVER['REMOTE_ADDR']??'unknown');$key=hash('sha256',$scope.'|'.$host.'|'.$passwordHash);
@@ -60,19 +114,16 @@ ini_set('session.use_strict_mode','1');
 ini_set('session.use_only_cookies','1');
 session_name('equineris_trainer');
 session_set_cookie_params(['lifetime'=>0,'path'=>'/','secure'=>$secure,'httponly'=>true,'samesite'=>'Strict']);
-session_start();
+if(!session_start())fail(503,'ログインセッションを開始できません');
+$configuredHash=configured_hash();
+restore_device($configuredHash,$secure);
 if(!isset($_SESSION['csrf']))$_SESSION['csrf']=bin2hex(random_bytes(32));
 $action=(string)($_GET['action']??'status');
 if($action==='status'&&$_SERVER['REQUEST_METHOD']==='GET'){
- $configured=false;
- if(is_file(__DIR__.'/config.local.php')){
-  $cfg=require __DIR__.'/config.local.php';
-  $configured=is_array($cfg)&&isset($cfg['trainer_password_hash'])&&is_string($cfg['trainer_password_hash'])&&password_get_info($cfg['trainer_password_hash'])['algo']!==null;
- }
- output(['configured'=>$configured,'trainer'=>!empty($_SESSION['equineris_trainer_authenticated']),'csrf'=>$_SESSION['csrf']]);
+ output(['configured'=>$configuredHash!==null,'trainer'=>!empty($_SESSION['equineris_trainer_authenticated']),'csrf'=>$_SESSION['csrf']]);
 }
 // All non-status actions require a configured backend.
-$passwordHash=secret();
+$passwordHash=$configuredHash??secret();
 $base=data_dir();
 if(in_array($action,['photo','auto_photo'],true)&&$_SERVER['REQUEST_METHOD']==='GET'){
  require_admin();$id=file_id((string)($_GET['id']??''));$idx=(int)($_GET['n']??-1);
@@ -106,9 +157,12 @@ if($action==='login'){
   fail(429,'ログイン試行回数が上限です。約'.(string)ceil($remaining/60).'分後に再試行してください');
  }
  if(!password_verify($password,$passwordHash)){$_SESSION['login_failures']=$failures+1;fail(401,'パスワードが正しくありません');}
- session_regenerate_id(true);$_SESSION['equineris_trainer_authenticated']=true;unset($_SESSION['login_failures'],$_SESSION['login_window_start']);$_SESSION['csrf']=bin2hex(random_bytes(32));output(['ok'=>true,'csrf'=>$_SESSION['csrf']]);
+ if(!session_regenerate_id(true))fail(503,'ログインセッションを更新できません');
+ revoke_device($base,$passwordHash,$secure);
+ issue_device($base,$passwordHash,$secure);
+ $_SESSION['equineris_trainer_authenticated']=true;unset($_SESSION['login_failures'],$_SESSION['login_window_start']);$_SESSION['csrf']=bin2hex(random_bytes(32));output(['ok'=>true,'csrf'=>$_SESSION['csrf']]);
 }
-if($action==='logout'){unset($_SESSION['equineris_trainer_authenticated']);output(['ok'=>true]);}
+if($action==='logout'){revoke_device($base,$passwordHash,$secure);output(['ok'=>true]);}
 if($action==='submit'){
  rate_limit($base,'submit',$passwordHash,30);
  if(field('consent',10)!=='yes')fail(400,'共有への同意が必要です');
