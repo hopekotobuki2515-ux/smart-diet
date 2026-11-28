@@ -1,0 +1,89 @@
+name: Remove HOPE skin customer wording
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/remove-hope-skin-customer-wording-20261128.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: hope-blog-production-host
+  cancel-in-progress: false
+jobs:
+  revise:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Update all identified customer wording in article 121
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          D=/home/rakudadou/hope-blog-private/data
+          T=$(mktemp -d "$D/skin-customer.XXXXXXXX")
+          trap 'rm -rf "$T"' EXIT
+          cat > "$T/revise.php" <<'PHP'
+          <?php
+          declare(strict_types=1);
+          $_SERVER['SCRIPT_NAME']='/hope-blog/index.php';
+          require '/home/rakudadou/www/hope-blog/common.php';
+          if(realpath(DATA)!=='/home/rakudadou/hope-blog-private/data')throw new RuntimeException('Unexpected DATA location');
+          $pairs=json_decode(<<<'PAIRS'
+          [["HOPEに通われているお客様から、加圧トレーニングを始めてから顔の肌の調子が良くなったという、うれしい感想をいただきました。","HOPEでは、加圧トレーニングを始めてから顔の肌の調子が良くなったという感想をいただいたことがあります。"],["お客様の声は、日頃から運動をサポートする立場として、とても興味深いものです。","こうした感想は、日頃から運動をサポートする立場として、とても興味深いものです。"],["今回はお客様からいただいた感想をきっかけに、","今回はこの感想をきっかけに、"],["お客様から届いた、体重だけでは分からない変化","体重だけでは分からない体の変化"],["ただし、このお客様の感想は、ご本人が感じた変化です。","ただし、これはご本人が実感した変化です。"]]
+          PAIRS
+          ,true,512,JSON_THROW_ON_ERROR);
+          $meta=json_decode(<<<'META'
+          ["お客様の声をきっかけに、","感想をきっかけに、"]
+          META
+          ,true,512,JSON_THROW_ON_ERROR);
+          $lock=fopen(DATA.'write.lock','c');if(!$lock||!flock($lock,LOCK_EX))throw new RuntimeException('Lock failed');
+          try{
+           if(is_link(DATA.'articles.json')||!is_file(DATA.'articles.json'))throw new RuntimeException('Unexpected article file');
+           $rows=loadj('articles.json');$before=$rows;
+           $keys=array_keys(array_filter($rows,fn($r)=>(int)$r['id']===121));
+           if(count($keys)!==1)throw new RuntimeException('Article identity mismatch');
+           $k=$keys[0];$row=$rows[$k];
+           if($row['title']!=='加圧トレーニングと肌の関係｜運動習慣と美肌について')throw new RuntimeException('Title mismatch');
+           function replaceVerified(string $s,array $pair):string{
+            [$old,$new]=$pair;
+            if(substr_count($s,$old)===1)return str_replace($old,$new,$s);
+            if(substr_count($s,$old)===0&&substr_count($s,$new)===1)return $s;
+            throw new RuntimeException('Source text mismatch: '.$old);
+           }
+           foreach($pairs as $pair){$row['body']=replaceVerified($row['body'],$pair);echo 'Verified body replacement: '.$pair[1].PHP_EOL;}
+           foreach(['excerpt','description'] as $f){if(!isset($row[$f])||!is_string($row[$f]))throw new RuntimeException('Missing field '.$f);$row[$f]=replaceVerified($row[$f],$meta);}
+           foreach(['title','body','more','excerpt','description','eyecatch_alt','keywords'] as $f){
+            if(str_contains((string)($row[$f]??''),'お客様'))throw new RuntimeException('Remaining customer wording: '.$f);
+           }
+           if(!str_contains($row['body'],'中年女性61人'))throw new RuntimeException('Research facts changed');
+           $plain=preg_replace('/\s+/u','',strip_tags(preg_replace('/<h2>.*?<\/h2>/s','',$row['body'])));
+           if(!is_string($plain)||mb_strlen($plain,'UTF-8')<3000)throw new RuntimeException('Article length below minimum');
+           $backup=tempnam(DATA,'before-skin-customer-');if(!$backup||!copy(DATA.'articles.json',$backup)||!chmod($backup,0600))throw new RuntimeException('Backup failed');
+           $rows[$k]=$row;
+           try{writej('articles.json',$rows);if(loadj('articles.json')!==$rows)throw new RuntimeException('Verification failed');}catch(Throwable $e){writej('articles.json',$before);throw $e;}
+           echo 'PASS: article 121 only; no customer wording; other data preserved.'.PHP_EOL;
+           echo 'TEXT_LENGTH='.mb_strlen($plain,'UTF-8').PHP_EOL;
+          }finally{flock($lock,LOCK_UN);fclose($lock);}
+          
+          PHP
+          php -l "$T/revise.php"
+          php "$T/revise.php"
+          REMOTE
+      - name: Verify public article text and metadata
+        run: |
+          set -eu
+          curl -fsSL --max-time 30 'https://rakudadou.sakura.ne.jp/hope-blog/blog-entry-121.html' -o /tmp/article.html
+          grep -Fq '体重だけでは分からない体の変化' /tmp/article.html
+          grep -Fq '中年女性61人' /tmp/article.html
+          grep -Fq '今回はこの感想をきっかけに、' /tmp/article.html
+          if grep -Fq 'お客様' /tmp/article.html; then echo 'Customer wording still present in rendered HTML'; exit 1; fi
+          echo 'PASS: rendered article contains zero occurrences of customer wording.'
