@@ -1,0 +1,109 @@
+name: Publish final HOPE skin article
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/publish-hope-skin-final-20261128.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: hope-blog-production-host
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Verify internal link
+        run: |
+          set -eu
+          curl -fsSL --max-time 30 'https://rakudadou.sakura.ne.jp/hope-blog/blog-entry-102.html' -o /tmp/related.html
+          grep -Fq '加圧トレーニングを初めて体験する方へ' /tmp/related.html
+      - name: Append final article
+        id: publish
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE' > /tmp/hope-publish-result
+          set -eu
+          D=/home/rakudadou/hope-blog-private/data
+          T=$(mktemp -d "$D/publish-skin-final.XXXXXXXX")
+          trap 'rm -rf "$T"' EXIT
+          cat > "$T/append.php" <<'PHP'
+          <?php
+          declare(strict_types=1);
+          $_SERVER['SCRIPT_NAME']='/hope-blog/index.php';
+          require '/home/rakudadou/www/hope-blog/common.php';
+          if(realpath(DATA)!=='/home/rakudadou/hope-blog-private/data')throw new RuntimeException('Unexpected DATA location');
+          $payload=json_decode(<<<'ARTICLE_JSON'
+          {"title":"加圧トレーニングで美肌は期待できる？｜運動と肌の健康の関係","body":"<p>肌のハリや弾力を保つために、化粧水や美容液、日焼け対策を意識している方は多いのではないでしょうか。外側からのスキンケアに加えて、日常的に体を動かすことも、肌の健康を考えるうえで大切な視点です。</p>\n<p>一般的な筋力トレーニングでは、肌の弾力や真皮の構造に良い変化がみられた研究があります。ただし、加圧トレーニングそのものに同じ美肌効果があるかは、まだ十分に確かめられていません。</p>\n<p>では、軽い負荷で筋肉を刺激する加圧トレーニングには、どのような可能性があるのでしょうか。肌の仕組み、血液循環、成長ホルモン、筋力トレーニングの研究から、運動と美肌の関係を解説します。</p>\n<h2>美肌を支える皮膚の仕組み</h2>\n<p>肌は、体の内側を守る大切な器官です。主に表皮、真皮、皮下組織から構成されており、それぞれが異なる役割を担っています。美肌を考える際には、表面の見た目だけでなく、皮膚の構造にも目を向けてみましょう。</p>\n<p>表皮の一番外側にある角層は、体内の水分が逃げるのを抑え、外部からの刺激を防ぐバリアとして働きます。角層が乾燥したり、強い摩擦を受けたりすると、この働きが損なわれることがあります。</p>\n<p>表皮の下にある真皮には、コラーゲンやエラスチンなどが存在します。コラーゲンは皮膚の強さを支え、エラスチンは皮膚が伸びた後に元の状態へ戻る性質に関わっています。</p>\n<p>年齢を重ねると、皮膚の構造や弾力は少しずつ変化していきます。紫外線や喫煙などの影響も加わるため、肌を健やかに保つには、日焼け対策や保湿だけでなく、日々の生活習慣にも気を配ることが重要です。</p>\n<p>表皮には血管がなく、真皮には毛細血管があります。血液循環は皮膚の組織に酸素や栄養を届けるために必要です。このように、肌は体全体の働きから切り離して考えられるものではありません。</p>\n<h2>加圧トレーニングと血液循環の関係</h2>\n<p>加圧トレーニングは、腕や脚の付け根に専用のベルトを装着し、血流を適切に制限した状態で運動を行う方法です。比較的軽い負荷でも筋肉に刺激を与えられることが特徴です。[1]</p>\n<p>詳しいトレーニング方法については、関連記事「<a href=\"/hope-blog/blog-entry-102.html\">加圧トレーニングを初めて体験する方へ</a>」をご覧ください。</p>\n<p>筋肉を動かすと、運動に必要な酸素や栄養を供給するために血液循環が調整されます。また、運動によって体温が上昇すると、皮膚への血流が増え、汗をかくことと合わせて体の熱を逃がす働きが生じます。</p>\n<p>運動後に顔が赤くなったり、肌が温かく感じられたりすることがあるのは、こうした体温調節に伴う生理的な反応の一つです。[2] ただし、一時的な血色の変化と、長期間にわたる肌の弾力や構造の変化は区別して考える必要があります。</p>\n<p>加圧トレーニングでは、ベルトを装着した部位の血流が制限され、除圧によってその制限が解除されます。これは通常の運動とは異なる循環動態を伴いますが、腕や脚の血流の変化が、そのまま顔の皮膚の血流改善を意味するわけではありません。</p>\n<p>血液循環の反応は運動強度、気温、体調などによっても異なります。美容を目的に加圧の強さを上げるのではなく、安全に筋肉を動かせる条件を整えることが基本です。</p>\n<h2>筋力トレーニングで肌の弾力は変わる？</h2>\n<p>2023年、立命館大学とポーラ化成工業の共同研究チームは、筋力トレーニングと皮膚の加齢変化に関する研究を学術誌Scientific Reportsに発表しました。[3]</p>\n<p>研究には運動習慣のない41〜59歳の健康な日本人女性61人が参加しました。有酸素運動と筋力トレーニングの二つのグループに分かれ、指導者のもとで週2回、16週間の運動を実施しました。最終的な分析対象は56人です。</p>\n<p>両グループで皮膚の弾力と真皮上層の構造が改善し、筋力トレーニングのグループでは真皮の厚みの増加も確認されました。</p>\n<p>有酸素運動には自転車エルゴメーターを、筋力トレーニングには上半身と下半身を鍛えるマシンを使用しました。運動の開始前と終了後に左頬の皮膚を測定しており、顔を直接鍛えるのではなく、全身の運動を通じた肌の変化を調べた研究です。</p>\n<p>真皮の構造は、肌のハリを支えるうえで重要な要素です。ただし、研究で測定された皮膚の弾力や真皮の厚みは、見た目の美しさを直接評価するものではありません。美容のすべての悩みに効果があるという意味でもありません。</p>\n<p>この研究には運動をしない比較群がなく、対象者も限られています。また、加圧トレーニングを実施した研究ではありません。加圧でも同様の変化が生じるかは、別途検証する必要があります。</p>\n<h2>成長ホルモンと肌の健康</h2>\n<p>加圧トレーニングの特徴として知られている反応の一つが、運動後の成長ホルモン濃度の上昇です。成長ホルモンは脳の下垂体から分泌され、成長期だけでなく成人でも代謝や体の組織の維持に関わっています。</p>\n<p>2000年に発表された研究では、血流を制限した状態で低負荷の筋力運動を行った後、血液中の成長ホルモン濃度が一時的に上昇することが確認されました。[4]</p>\n<p>成長ホルモンとその作用を仲介する因子は、タンパク質の代謝や組織の維持に関係します。このことから、加圧トレーニングを美容の観点で考える際にも、ホルモン反応は関心のあるテーマの一つになります。</p>\n<p>一方、血液中の成長ホルモンが増加したという結果と、皮膚でコラーゲンが増えたという結果は同じではありません。運動直後のホルモン濃度を測定した研究だけでは、肌のハリや弾力が長期的に変化するかどうかまでは判断できません。</p>\n<p>また、成長ホルモンの分泌は運動だけで決まるものではありません。睡眠や年齢などの影響も受けています。特定の運動による一時的な反応だけを重視するよりも、運動と休養を組み合わせた生活を整えることが大切です。</p>\n<h2>筋肉を動かすと皮膚にどのような影響があるのか</h2>\n<p>筋肉には、体を動かすだけでなく、収縮することによってさまざまな物質を放出する働きがあります。筋肉が産生する情報伝達物質の一部はマイオカインと呼ばれ、運動による全身への影響を理解するための研究が進んでいます。</p>\n<p>前述の研究では、16週間の運動前後の血液を採取し、その血漿を使って培養した真皮の細胞への影響を調べました。真皮の構造を支える成分に関わる遺伝子の働きが変化し、運動に伴う血液中の成分の変化が皮膚に影響する可能性が示されました。[3]</p>\n<p>細胞外マトリックスとは、細胞の周囲を満たすタンパク質などの構造のことです。皮膚ではコラーゲンなどを含み、細胞を支える環境をつくっています。筋肉を動かすことと、このような皮膚の組織の維持との関係は、運動の価値を考えるうえで興味深い研究分野です。</p>\n<p>ただし、筋肉の収縮によって生じるすべての物質が肌に良い作用をするというわけではありません。個々の成分の働きや運動方法による違いは研究途上です。加圧独自の刺激が皮膚にどのような作用をもたらすかについても、一般的な筋トレの結果と分けて考えましょう。</p>\n<h2>美肌を意識した運動前後のスキンケア</h2>\n<p>運動を習慣にするなら、汗をかいたときの肌の扱いにも気を配りましょう。汗そのものが肌をきれいにするわけではなく、汗と皮脂、化粧品、衣類やタオルによる摩擦が肌への刺激につながることもあります。</p>\n<p>運動前は、肌に負担となるような濃いメイクを可能な範囲で落としておきましょう。汗は清潔なタオルを使い、強くこすらず、軽く押さえるように拭き取ります。</p>\n<p>運動器具に触れた手で顔を頻繁に触ることは避け、運動後は早めに洗顔やシャワーを行いましょう。洗浄力の強い製品を何度も使う必要はなく、肌に合った洗顔料で優しく洗うことが基本です。[5]</p>\n<p>洗顔後は必要に応じて保湿を行い、屋外での運動では日焼け止めや帽子などを活用してください。水分補給も体調管理のために欠かせません。</p>\n<p>肌に強い赤みや痛み、長引く炎症などがある場合には、運動で解決しようとせず皮膚科に相談しましょう。肌の状態に合ったケアを行いながら、無理なく運動を続けましょう。</p>\n<h2>美肌のために運動を続けるポイント</h2>\n<p>肌の健康を考えて運動を始める場合にも、短期間での大きな変化を求める必要はありません。先ほど紹介した筋力トレーニングの研究は16週間にわたるものであり、加圧トレーニングを何回行えば肌が変化するという目安を示した研究ではありません。</p>\n<p>厚生労働省の「健康づくりのための身体活動・運動ガイド2023」では、成人に対して日常生活での身体活動を増やし、筋力トレーニングを週2〜3日行うことを推奨しています。[6] これは一般的な健康づくりの目安であり、美肌を目的とした加圧トレーニングの回数を示すものではありません。</p>\n<p>運動経験や体力には個人差があります。まずは自分に合った運動から始め、体調に応じて負荷と休養を調整しましょう。加圧トレーニングの場合は特に、専門的な知識を持つ指導者のもとで適切な圧を設定することが重要です。</p>\n<p>血栓症の既往や心血管系の病気がある方、妊娠中の方などは、加圧トレーニングを行う前に医師に相談してください。運動中に強い痛みやしびれ、めまいなどが生じたときは中止しましょう。</p>\n<p>運動のない日も、歩く時間をつくったり、長時間座り続けないようにしたりすることで、身体活動を増やせます。十分な睡眠、バランスの良い食事、紫外線対策を組み合わせることも、肌を健やかに保つための土台になります。</p>\n<h2>まとめ｜運動を肌の健康づくりにも取り入れよう</h2>\n<p>一般的な筋力トレーニングには、皮膚の弾力や真皮の構造に良い変化をもたらす可能性が示されています。加圧トレーニングも筋力運動の一つですが、特有の美肌効果や肌の変化が起こる期間については、現時点で確認できる研究だけでは断定できません。</p>\n<p>肌の健康づくりを考えるなら、スキンケアだけでなく、継続できる運動習慣を生活の中に取り入れてみてはいかがでしょうか。</p>\n<p>山口県宇部市の加圧パーソナルエクササイズスタジオHOPEでは、体力や目的に合わせて運動をサポートしています。筋力トレーニングが初めての方も、ご自身のペースで運動を始めてみませんか。</p>\n<p>あなたの歩幅で、あなたと共に。</p>\n<p>加圧パーソナルエクササイズスタジオHOPE　代表：パーソナルトレーナー村田健作</p>\n<p><a href=\"https://www.rakudadou.jp/hope-mobile/\">体験トレーニング・料金・スタジオ案内</a></p>\n<h2>参考文献・関連資料</h2>\n<p>[1] Pattersonら（2019）Blood Flow Restriction Exercise: Considerations of Methodology, Application, and Safety. <a href=\"https://pubmed.ncbi.nlm.nih.gov/31156448/\">https://pubmed.ncbi.nlm.nih.gov/31156448/</a></p>\n<p>[2] Exercise under heat stress: thermoregulation, hydration, performance implications, and mitigation strategies. Physiological Reviews（2021） <a href=\"https://doi.org/10.1152/physrev.00038.2020\">https://doi.org/10.1152/physrev.00038.2020</a></p>\n<p>[3] Nishikoriら（2023）Resistance training rejuvenates aging skin by reducing circulating inflammatory factors and enhancing dermal extracellular matrices. Scientific Reports 13, 10214. <a href=\"https://www.nature.com/articles/s41598-023-37207-9\">https://www.nature.com/articles/s41598-023-37207-9</a></p>\n<p>[4] Takaradaら（2000）Rapid increase in plasma growth hormone after low-intensity resistance exercise with vascular occlusion. <a href=\"https://pubmed.ncbi.nlm.nih.gov/10642363/\">https://pubmed.ncbi.nlm.nih.gov/10642363/</a></p>\n<p>[5] 米国皮膚科学会 How your workout can affect your skin. <a href=\"https://www.aad.org/public/everyday-care/skin-care-secrets/routine/workout-affect-skin\">https://www.aad.org/public/everyday-care/skin-care-secrets/routine/workout-affect-skin</a></p>\n<p>[6] 厚生労働省「健康づくりのための身体活動・運動ガイド2023」成人版 <a href=\"https://kennet.mhlw.go.jp/information/information/exercise/s-00-002\">https://kennet.mhlw.go.jp/information/information/exercise/s-00-002</a></p>","excerpt":"加圧トレーニングと美肌の関係を、筋力トレーニングの研究、血液循環、成長ホルモン、運動前後のスキンケアから解説します。肌の健康を意識した運動習慣のポイントも紹介。","keywords":"加圧トレーニング 美肌,加圧トレーニング 肌,加圧トレーニング 美肌効果,加圧トレーニング 美容,運動 肌 綺麗になる,運動 肌にいい"}
+          ARTICLE_JSON
+          ,true,512,JSON_THROW_ON_ERROR);
+          $lock=fopen(DATA.'write.lock','c');if(!$lock||!flock($lock,LOCK_EX))throw new RuntimeException('Lock failed');
+          try{
+           if(is_link(DATA.'articles.json')||!is_file(DATA.'articles.json'))throw new RuntimeException('Unexpected article file');
+           $rows=loadj('articles.json');$before=$rows;$c=loadj('config.json');
+           if(($c['cats'][23]??null)!=='加圧トレーニング')throw new RuntimeException('Category mismatch');
+           $target=array_values(array_filter($rows,fn($r)=>(int)$r['id']===102&&$r['status']==='public'&&str_contains($r['title'],'加圧トレーニングを初めて体験する方へ')));
+           if(count($target)!==1)throw new RuntimeException('Internal link target mismatch');
+           $existing=array_values(array_filter($rows,fn($r)=>$r['title']===$payload['title']));
+           if(count($existing)>0){
+            if(count($existing)!==1||$existing[0]['body']!==$payload['body']||$existing[0]['status']!=='public')throw new RuntimeException('Possible duplicate');
+            echo 'ARTICLE_ID='.(int)$existing[0]['id'].PHP_EOL;exit;
+           }
+           $id=max(121,...array_map('intval',array_column($rows,'id')))+1;
+           $row=['id'=>$id,'title'=>$payload['title'],'date'=>date('Y-m-d H:i:s'),'category'=>23,'status'=>'public','body'=>$payload['body'],'more'=>'','excerpt'=>$payload['excerpt'],'keywords'=>$payload['keywords'],'description'=>$payload['excerpt'],'image'=>'','eyecatch'=>'','eyecatch_alt'=>'','comments'=>[],'allow_comments'=>true,'convert_breaks'=>false];
+           $backup=tempnam(DATA,'before-skin-final-');if(!$backup||!copy(DATA.'articles.json',$backup)||!chmod($backup,0600))throw new RuntimeException('Backup failed');
+           $rows[]=$row;
+           try{writej('articles.json',$rows);$actual=loadj('articles.json');if($actual!==$rows||array_slice($actual,0,-1)!==$before)throw new RuntimeException('Article verification failed');}catch(Throwable $e){writej('articles.json',$before);throw $e;}
+           echo 'PASS: final article added; existing articles unchanged.'.PHP_EOL;
+           echo 'ARTICLE_ID='.$id.PHP_EOL;
+          }finally{flock($lock,LOCK_UN);fclose($lock);}
+          
+          PHP
+          php -l "$T/append.php"
+          php "$T/append.php"
+          REMOTE
+          cat /tmp/hope-publish-result
+          id=$(sed -n 's/^ARTICLE_ID=//p' /tmp/hope-publish-result)
+          test -n "$id"
+          case "$id" in *[!0-9]*) exit 1;; esac
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+      - name: Verify live article and listing
+        env:
+          ARTICLE_ID: ${{ steps.publish.outputs.id }}
+        run: |
+          set -eu
+          URL="https://rakudadou.sakura.ne.jp/hope-blog/blog-entry-$ARTICLE_ID.html"
+          curl -fsSL --max-time 30 "$URL" -o /tmp/article.html
+          curl -fsSL --max-time 30 'https://rakudadou.sakura.ne.jp/hope-blog/' -o /tmp/home.html
+          grep -Fq '加圧トレーニングで美肌は期待できる？｜運動と肌の健康の関係' /tmp/article.html
+          grep -Fq 'blog-entry-'$ARTICLE_ID'.html' /tmp/home.html
+          grep -Fq '最終的な分析対象は56人です。' /tmp/article.html
+          grep -Fq '加圧トレーニングと美肌の関係を、筋力トレーニングの研究、血液循環、成長ホルモン、運動前後のスキンケアから解説します。肌の健康を意識した運動習慣のポイントも紹介。' /tmp/article.html
+          grep -Fq '/hope-blog/blog-entry-102.html' /tmp/article.html
+          if grep -Eq 'お客様|感想|体験談|ご本人|SEO設定（公開本文には含めない）' /tmp/article.html; then exit 1; fi
+          printf 'PUBLIC_URL=%s\n' "$URL"
+          cd /tmp
+          npm install --no-audit --no-fund playwright
+          npx playwright install chromium
+          cat > /tmp/check.cjs <<'JS'
+          const {chromium}=require('playwright');
+          (async()=>{const b=await chromium.launch({headless:true,args:['--no-sandbox']});try{for(const width of [390,1366]){
+            const p=await b.newPage({viewport:{width,height:900}});
+            const r=await p.goto('https://rakudadou.sakura.ne.jp/hope-blog/blog-entry-'+process.env.ARTICLE_ID+'.html',{waitUntil:'domcontentloaded',timeout:30000});
+            const v=await p.evaluate(()=>({title:document.title,scroll:document.documentElement.scrollWidth,client:document.documentElement.clientWidth,robots:document.querySelector('meta[name=robots]')?.content||'',description:document.querySelector('meta[name=description]')?.content||''}));
+            console.log('LAYOUT '+JSON.stringify({width,...v}));
+            if(r.status()!==200||v.scroll>v.client+2||!v.title.includes('加圧トレーニングで美肌は期待できる？')||!v.description.includes('加圧トレーニングと美肌の関係'))throw Error('Layout or metadata mismatch');
+            await p.close();
+          }}finally{await b.close()}})().catch(e=>{console.error(e);process.exit(1)});
+          JS
+          node /tmp/check.cjs
