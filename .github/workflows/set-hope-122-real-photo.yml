@@ -1,0 +1,109 @@
+name: Replace HOPE article 122 cover with verified original equipment photograph
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/set-hope-122-real-photo.yml']
+permissions:
+  contents: read
+concurrency:
+  group: hope-blog-production-host
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Retrieve the exact existing photograph and preserve aspect ratio
+        run: |
+          set -eu
+          curl -fsSL --max-time 60 'https://raw.githubusercontent.com/hopekotobuki2515-ux/hope-homepage/main/assets/kaatsu-session.jpg' -o /tmp/original.jpg
+          test "$(git hash-object /tmp/original.jpg)" = c2ba659f205d812eed002a71aa49e38217ea87a6
+          python -m pip install --quiet pillow
+          python - <<'PY'
+          from PIL import Image
+          im=Image.open('/tmp/original.jpg')
+          assert im.size==(4608,3072)
+          im.resize((639,426),Image.Resampling.LANCZOS).convert('RGB').save('/tmp/hope-122-real-equipment.jpg',quality=93)
+          with Image.open('/tmp/hope-122-real-equipment.jpg') as out:
+              assert out.size==(639,426)
+          print('PASS: actual original photograph, same 3:2 aspect ratio, no crop, no padding.')
+          PY
+      - name: Install image and set only article 122 cover fields
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -c '"'"'set -eu; P=/home/rakudadou/www/hope-blog/assets/hope-blog-images; test -d "$P"; T=$(mktemp "$P/.real122.XXXXXXXX"); trap "rm -f \"$T\"" EXIT; cat > "$T"; chmod 644 "$T"; mv "$T" "$P/hope-122-real-equipment.jpg"'"'"'' < /tmp/hope-122-real-equipment.jpg
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          D=/home/rakudadou/hope-blog-private/data
+          T=$(mktemp -d "$D/real-cover.XXXXXXXX")
+          trap 'rm -rf "$T"' EXIT
+          cat > "$T/cover.php" <<'PHP'
+          <?php
+          declare(strict_types=1);
+          $_SERVER['SCRIPT_NAME']='/hope-blog/index.php';
+          require '/home/rakudadou/www/hope-blog/common.php';
+          if(realpath(DATA)!=='/home/rakudadou/hope-blog-private/data')throw new RuntimeException('Data mismatch');
+          $name='hope-122-real-equipment.jpg';
+          $url=url('assets/hope-blog-images/'.$name);
+          if($url!=='/hope-blog/assets/hope-blog-images/'.$name)throw new RuntimeException('URL mismatch');
+          $im=getimagesize('/home/rakudadou/www/hope-blog/assets/hope-blog-images/'.$name);
+          if(!$im||$im[0]!==639||$im[1]!==426||$im[2]!==IMAGETYPE_JPEG)throw new RuntimeException('Image mismatch');
+          $lock=fopen(DATA.'write.lock','c');if(!$lock||!flock($lock,LOCK_EX))throw new RuntimeException('Lock failed');
+          try{
+            $rows=loadj('articles.json');$before=$rows;
+            $keys=array_keys(array_filter($rows,fn($r)=>(int)$r['id']===122));
+            if(count($keys)!==1)throw new RuntimeException('Article mismatch');
+            $k=$keys[0];$row=$rows[$k];
+            if($row['title']!=='加圧トレーニングで美肌は期待できる？｜運動と肌の健康の関係'||!str_contains($row['body'],'hope-122-toc'))throw new RuntimeException('Article revision mismatch');
+            foreach(['image','eyecatch'] as $f){if(!in_array((string)($row[$f]??''),['',$url],true))throw new RuntimeException('Existing cover differs');}
+            $row['image']=$url;$row['eyecatch']=$url;$row['eyecatch_alt']='HOPEの実際の加圧トレーニング専用器具';
+            $backup=tempnam(DATA,'before-real-cover-122-');if(!$backup||!copy(DATA.'articles.json',$backup)||!chmod($backup,0600))throw new RuntimeException('Backup failed');
+            $rows[$k]=$row;
+            try{writej('articles.json',$rows);if(loadj('articles.json')!==$rows)throw new RuntimeException('Readback mismatch');}catch(Throwable $e){writej('articles.json',$before);throw $e;}
+            echo 'PASS: cover fields only, article text, table of contents and other data unchanged.'.PHP_EOL;
+          }finally{flock($lock,LOCK_UN);fclose($lock);}
+          PHP
+          php -l "$T/cover.php"
+          php "$T/cover.php"
+          REMOTE
+      - name: Verify exact public image and article plus homepage placement
+        run: |
+          set -eu
+          curl -fsSL --max-time 30 'https://rakudadou.sakura.ne.jp/hope-blog/assets/hope-blog-images/hope-122-real-equipment.jpg' -o /tmp/live.jpg
+          cmp /tmp/live.jpg /tmp/hope-122-real-equipment.jpg
+          cd /tmp
+          npm install --no-audit --no-fund playwright
+          npx playwright install --with-deps chromium webkit
+          node - <<'JS'
+          const {chromium,webkit,devices}=require('playwright');
+          (async()=>{
+            for(const [engine,profile] of [[chromium,{viewport:{width:1366,height:900}}],[webkit,{...devices['iPhone 13']}]]) {
+              const b=await engine.launch();
+              try{
+                const p=await b.newPage(profile);
+                for(const route of ['blog-entry-122.html','']){
+                  const r=await p.goto('https://rakudadou.sakura.ne.jp/hope-blog/'+route,{waitUntil:'domcontentloaded'});
+                  if(r.status()!==200)throw Error('Page HTTP error');
+                  const selector='img[src*="hope-122-real-equipment.jpg"]';
+                  const img=p.locator(selector).first();
+                  await img.evaluate(n=>{n.loading='eager'});
+                  await img.scrollIntoViewIfNeeded();
+                  await p.waitForFunction(s=>{const n=document.querySelector(s);return n&&n.complete&&n.naturalWidth===639&&n.naturalHeight===426},selector);
+                  const d=await img.evaluate(n=>({width:n.getBoundingClientRect().width,height:n.getBoundingClientRect().height,scroll:document.documentElement.scrollWidth,client:document.documentElement.clientWidth}));
+                  if(d.width<100||d.height<50||d.scroll>d.client+2)throw Error(JSON.stringify(d));
+                  if(route&&await p.locator('#hope-122-toc a').count()!==9)throw Error('TOC regression');
+                  console.log('PASS cover',engine.name(),route||'home',JSON.stringify(d));
+                }
+              }finally{await b.close();}
+            }
+          })().catch(e=>{console.error(e);process.exit(1)});
+          JS
