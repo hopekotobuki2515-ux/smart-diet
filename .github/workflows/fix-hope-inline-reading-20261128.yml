@@ -1,0 +1,115 @@
+name: Fix HOPE article inline reading style
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/fix-hope-inline-reading-20261128.yml']
+permissions:
+  contents: read
+concurrency:
+  group: hope-blog-production-host
+  cancel-in-progress: false
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Test actual rendered article before changing production
+        run: |
+          set -eu
+          cd /tmp
+          npm install --no-audit --no-fund playwright
+          npx playwright install chromium
+          cat > /tmp/hope-reading.css <<'CSS'
+          /* hope-reading-20261128 */
+          .blog_entry_text{box-sizing:border-box;width:100%;min-width:0;max-width:760px;margin-inline:auto;writing-mode:horizontal-tb;white-space:normal;word-break:normal;overflow-wrap:break-word;line-height:1.9}
+          .blog_entry_text p{display:block;box-sizing:border-box;width:auto;max-width:100%;margin:0 0 1.25em;white-space:normal;writing-mode:horizontal-tb;word-break:normal;overflow-wrap:break-word;line-break:strict;line-height:1.9}
+          .blog_entry_text h2,.blog_entry_text h3{display:block;white-space:normal;writing-mode:horizontal-tb;word-break:normal;overflow-wrap:break-word;line-height:1.5;margin:1.6em 0 .8em}
+          .blog_entry_text img{max-width:100%;height:auto}
+          CSS
+          cat > /tmp/check-reading.cjs <<'JS'
+          const {chromium}=require('playwright');
+          const fs=require('fs');
+          (async()=>{
+            const b=await chromium.launch({args:['--no-sandbox']});
+            try{
+              for(const width of [320,390,1024,1366]){
+                const p=await b.newPage({viewport:{width,height:900}});
+                const r=await p.goto('https://rakudadou.sakura.ne.jp/hope-blog/blog-entry-122.html',{waitUntil:'domcontentloaded'});
+                if(r.status()!==200)throw Error('HTTP '+r.status());
+                if(!process.env.LIVE)await p.addStyleTag({content:fs.readFileSync('/tmp/hope-reading.css','utf8')});
+                const d=await p.evaluate(()=>{
+                  const root=document.querySelector('.blog_entry_text');
+                  if(!root)throw Error('Article root missing');
+                  const ps=[...root.querySelectorAll('p')];
+                  const long=ps.filter(x=>x.textContent.trim().length>30);
+                  const bad=long.filter(x=>{
+                    const c=getComputedStyle(x),r=x.getBoundingClientRect();
+                    return r.width<Math.min(180,innerWidth*.55)||c.writingMode!=='horizontal-tb'||parseFloat(c.marginBottom)<parseFloat(c.fontSize)||parseFloat(c.lineHeight)<parseFloat(c.fontSize)*1.7;
+                  });
+                  const first=long[0],walker=document.createTreeWalker(first,NodeFilter.SHOW_TEXT),lines={};let n;
+                  while(n=walker.nextNode())for(let i=0;i<n.length;i++){const range=document.createRange();range.setStart(n,i);range.setEnd(n,i+1);const r=range.getBoundingClientRect();if(r.width>0){const k=Math.round(r.top);lines[k]=(lines[k]||0)+1;}}
+                  return {paragraphs:ps.length,heads:root.querySelectorAll('h2').length,width:root.getBoundingClientRect().width,scroll:document.documentElement.scrollWidth,client:document.documentElement.clientWidth,bad:bad.length,maxChars:Math.max(...Object.values(lines)),text:root.textContent,badImage:[...document.images].some(i=>i.src.includes('17fa18a55d219610336ad081547a75caca58099ea11ce122'))};
+                });
+                const {text,...metrics}=d;
+                console.log('READING',width,JSON.stringify(metrics));
+                if(d.paragraphs<40||d.heads<8||d.width>761||d.bad||d.maxChars<12||d.scroll>d.client+2||d.badImage)throw Error('Reading validation failed');
+                if(!process.env.LIVE)fs.writeFileSync('/tmp/hope-reading-text-'+width,text);
+                else if(text!==fs.readFileSync('/tmp/hope-reading-text-'+width,'utf8'))throw Error('Article text changed');
+                await p.close();
+              }
+            }finally{await b.close();}
+          })().catch(e=>{console.error(e);process.exit(1)});
+          JS
+          node /tmp/check-reading.cjs
+      - name: Patch actual inline head and preserve data
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          D=/home/rakudadou/hope-blog-private/data
+          T=$(mktemp -d "$D/inline-reading.XXXXXXXX")
+          trap 'rm -rf "$T"' EXIT
+          cat > "$T/patch.php" <<'PHP'
+          <?php
+          declare(strict_types=1);
+          $_SERVER['SCRIPT_NAME']='/hope-blog/index.php';
+          require '/home/rakudadou/www/hope-blog/common.php';
+          if(realpath(DATA)!=='/home/rakudadou/hope-blog-private/data')throw new RuntimeException('Unexpected data path');
+          $css=<<<'CSS'
+          /* hope-reading-20261128 */
+          .blog_entry_text{box-sizing:border-box;width:100%;min-width:0;max-width:760px;margin-inline:auto;writing-mode:horizontal-tb;white-space:normal;word-break:normal;overflow-wrap:break-word;line-height:1.9}
+          .blog_entry_text p{display:block;box-sizing:border-box;width:auto;max-width:100%;margin:0 0 1.25em;white-space:normal;writing-mode:horizontal-tb;word-break:normal;overflow-wrap:break-word;line-break:strict;line-height:1.9}
+          .blog_entry_text h2,.blog_entry_text h3{display:block;white-space:normal;writing-mode:horizontal-tb;word-break:normal;overflow-wrap:break-word;line-height:1.5;margin:1.6em 0 .8em}
+          .blog_entry_text img{max-width:100%;height:auto}
+          CSS;
+          $lock=fopen(DATA.'write.lock','c');if(!$lock||!flock($lock,LOCK_EX))throw new RuntimeException('Lock failed');
+          try{
+            $f=loadj('fragments.json');$before=$f;
+            if(!is_string($f['head']??null)||substr_count($f['head'],'</head>')!==1)throw new RuntimeException('Unexpected head fragment; no changes made');
+            if(str_contains($f['head'],'hope-reading-20261128'))throw new RuntimeException('Already patched');
+            $articleHash=hash_file('sha256',DATA.'articles.json');
+            $configHash=hash_file('sha256',DATA.'config.json');
+            $f['head']=str_replace('</head>','<style id="hope-reading-20261128">'.$css.'</style></head>',$f['head']);
+            $backup=DATA.'before-inline-reading-20261128.json';
+            if(file_exists($backup)||!copy(DATA.'fragments.json',$backup)||!chmod($backup,0600))throw new RuntimeException('Backup failed');
+            try{writej('fragments.json',$f);if(loadj('fragments.json')!==$f||hash_file('sha256',DATA.'articles.json')!==$articleHash||hash_file('sha256',DATA.'config.json')!==$configHash)throw new RuntimeException('Data verification failed');}catch(Throwable $e){writej('fragments.json',$before);throw $e;}
+            echo 'PASS: inline head style only; all articles and configuration unchanged.'.PHP_EOL;
+          }finally{flock($lock,LOCK_UN);fclose($lock);}
+          PHP
+          php -l "$T/patch.php"
+          php "$T/patch.php"
+          REMOTE
+      - name: Verify deployed text and layout
+        run: |
+          set -eu
+          cd /tmp
+          LIVE=1 node /tmp/check-reading.cjs
