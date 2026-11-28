@@ -1,0 +1,60 @@
+name: Check final HOPE article 122
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/check-hope-final-122-20261128.yml']
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check individual public conditions
+        run: |
+          set -eu
+          curl -fsSL --max-time 30 'https://rakudadou.sakura.ne.jp/hope-blog/blog-entry-122.html' -o /tmp/article.html
+          curl -fsSL --max-time 30 'https://rakudadou.sakura.ne.jp/hope-blog/' -o /tmp/home.html
+          python - <<'PY'
+          from html.parser import HTMLParser
+          class Parser(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.title=''
+                  self.in_title=False
+                  self.meta={}
+                  self.text=[]
+                  self.links=[]
+                  self.headings=[]
+              def handle_starttag(self, tag, attrs):
+                  a=dict(attrs)
+                  if tag=='title': self.in_title=True
+                  if tag=='meta': self.meta[a.get('name','')]=a.get('content','')
+                  if tag=='a': self.links.append(a.get('href',''))
+              def handle_endtag(self,tag):
+                  if tag=='title': self.in_title=False
+              def handle_data(self,s):
+                  if self.in_title: self.title+=s
+                  self.text.append(s)
+          a=Parser(); a.feed(open('/tmp/article.html').read())
+          h=Parser(); h.feed(open('/tmp/home.html').read())
+          t=' '.join(a.text)
+          print('TITLE:',a.title)
+          print('DESCRIPTION:',a.meta.get('description'))
+          print('ROBOTS:',a.meta.get('robots'))
+          print('IN_LIST:',any('blog-entry-122.html' in v for v in h.links))
+          print('RESEARCH:', '最終的な分析対象は56人です。' in t)
+          print('RELATED:',any('blog-entry-102.html' in v for v in a.links))
+          print('UNWANTED:', [v for v in ['お客様','感想','体験談','ご本人','SEO設定（公開本文には含めない）'] if v in t])
+          print('REFERENCES:',[v for v in a.links if 'pubmed' in v or 'nature.com' in v or 'aad.org' in v or 'doi.org' in v or 'kennet.mhlw' in v])
+          PY
+      - name: Check mobile and desktop
+        run: |
+          set -eu
+          cd /tmp
+          npm install --no-audit --no-fund playwright
+          npx playwright install chromium
+          node - <<'JS'
+          const {chromium}=require('playwright');
+          (async()=>{const b=await chromium.launch({args:['--no-sandbox']});try{for(const width of [390,1366]){const p=await b.newPage({viewport:{width,height:900}});const r=await p.goto('https://rakudadou.sakura.ne.jp/hope-blog/blog-entry-122.html',{waitUntil:'domcontentloaded'});const v=await p.evaluate(()=>({title:document.title,scroll:document.documentElement.scrollWidth,client:document.documentElement.clientWidth,main:document.querySelector('main')?.innerText?.slice(0,150)||'',h1:[...document.querySelectorAll('h1')].map(x=>x.innerText),h2:[...document.querySelectorAll('h2')].map(x=>x.innerText)}));console.log('LAYOUT',JSON.stringify({width,http:r.status(),...v}));if(r.status()!==200||v.scroll>v.client+2)throw Error('layout');await p.close()}}finally{await b.close()}})().catch(e=>{console.error(e);process.exit(1)});
+          JS
