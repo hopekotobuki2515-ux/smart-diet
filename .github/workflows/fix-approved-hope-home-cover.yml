@@ -1,0 +1,64 @@
+name: Fix approved cover on HOPE home listing
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/fix-approved-hope-home-cover.yml']
+permissions:
+  contents: read
+concurrency:
+  group: hope-blog-production-host
+  cancel-in-progress: false
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Allow the approved local image in home template and verify
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          D=/home/rakudadou/hope-blog-private/data
+          T=$(mktemp -d "$D/approved-home.XXXXXXXX")
+          trap 'rm -rf "$T"' EXIT
+          cat > "$T/patch.php" <<'PHP'
+          <?php
+          $d='/home/rakudadou/hope-blog-private/data';
+          $p=$d.'/home-page.php';
+          $s=file_get_contents($p);
+          $old="preg_match('~^https?://~i',\$img)";
+          $new="(preg_match('~^https?://~i',\$img) || ((int)\$a['id']===122 && \$img==='/hope-blog/assets/hope-blog-images/hope-122-approved-eyecatch.jpg'))";
+          if(substr_count($s,$old)!==1)throw new RuntimeException('Home image predicate differs; no changes made');
+          $b=tempnam($d,'before-approved-home-');if(!$b||!copy($p,$b)||!chmod($b,0600))throw new RuntimeException('Backup failed');
+          $n=str_replace($old,$new,$s);
+          $tmp=$argv[1].'/home-page.php';file_put_contents($tmp,$n);chmod($tmp,0600);
+          PHP
+          php "$T/patch.php" "$T"
+          php -l "$T/home-page.php"
+          mv "$T/home-page.php" "$D/home-page.php"
+          echo 'PASS: only approved article image predicate changed'
+          REMOTE
+          for page in blog-entry-122.html ''; do
+            curl -fsSL --max-time 25 -H 'Cache-Control: no-cache' "https://rakudadou.sakura.ne.jp/hope-blog/$page" -o /tmp/page.html
+            python - /tmp/page.html <<'PY'
+          import sys
+          from html.parser import HTMLParser
+          class P(HTMLParser):
+              def __init__(self): super().__init__(); self.images=[]
+              def handle_starttag(self,t,a):
+                  if t=='img': self.images.append(dict(a))
+          p=P();p.feed(open(sys.argv[1]).read())
+          assert any(i.get('src','').endswith('/hope-blog/assets/hope-blog-images/hope-122-approved-eyecatch.jpg') for i in p.images)
+          PY
+            echo "PASS public ${page:-home}"
+          done
+          curl -fsSL --max-time 25 'https://rakudadou.sakura.ne.jp/hope-blog/assets/hope-blog-images/hope-122-approved-eyecatch.jpg' -o /tmp/live.jpg
+          echo 'b3c5279dae03b6f77783883e7b81ea7bd52f924c7548472e0a0b8f323c33edc1  /tmp/live.jpg' | sha256sum -c -
