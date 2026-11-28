@@ -1,0 +1,80 @@
+name: Revise three HOPE skin article paragraphs
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/revise-hope-skin-paragraphs-20261128.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: hope-blog-production-host
+  cancel-in-progress: false
+jobs:
+  revise:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Update requested paragraphs only
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE'
+          set -eu
+          D=/home/rakudadou/hope-blog-private/data
+          T=$(mktemp -d "$D/skin-paragraphs.XXXXXXXX")
+          trap 'rm -rf "$T"' EXIT
+          cat > "$T/revise.php" <<'PHP'
+          <?php
+          declare(strict_types=1);
+          $_SERVER['SCRIPT_NAME']='/hope-blog/index.php';
+          require '/home/rakudadou/www/hope-blog/common.php';
+          if(realpath(DATA)!=='/home/rakudadou/hope-blog-private/data')throw new RuntimeException('Unexpected DATA location');
+          $pairs=json_decode(<<<'PAIRS'
+          [["今回いただいた肌についての感想も、体重計では測れない変化の一つです。顔の肌は毎日の洗顔や身支度で目にするものですから、その調子が良いと感じることは、日々の気分にも関わるのではないでしょうか。","肌の調子も、体重や体脂肪率だけでは分からない体の変化の一つです。毎日の洗顔や身支度を通じて肌の状態に気づくことは、日々の健康を振り返るきっかけにもなります。"],["ただし、これはご本人が実感した変化です。医学的に測定した結果ではありませんので、加圧トレーニングによってのものと断定することはできません。","肌の状態には、運動だけでなく、食事や睡眠、生活習慣など、さまざまな要因が関係しています。そのため、肌の変化を加圧トレーニングだけの効果と判断することはできません。"],["それでも、加圧トレーニングを始めた時期にこのような変化を感じたという事実は、加圧トレーニングと肌について考える大切なきっかけになります。","体重や体型の変化だけに目を向けるのではなく、肌の状態も含めて、運動習慣と体の健康との関係を考えてみましょう。"]]
+          PAIRS
+          ,true,512,JSON_THROW_ON_ERROR);
+          $lock=fopen(DATA.'write.lock','c');if(!$lock||!flock($lock,LOCK_EX))throw new RuntimeException('Lock failed');
+          try{
+           if(is_link(DATA.'articles.json')||!is_file(DATA.'articles.json'))throw new RuntimeException('Unexpected article file');
+           $rows=loadj('articles.json');$before=$rows;
+           $keys=array_keys(array_filter($rows,fn($r)=>(int)$r['id']===121));
+           if(count($keys)!==1)throw new RuntimeException('Article identity mismatch');
+           $k=$keys[0];$row=$rows[$k];
+           if($row['title']!=='加圧トレーニングと肌の関係｜運動習慣と美肌について')throw new RuntimeException('Title mismatch');
+           foreach($pairs as [$old,$new]){
+            if(substr_count($row['body'],$old)===1)$row['body']=str_replace($old,$new,$row['body']);
+            elseif(substr_count($row['body'],$old)===0&&substr_count($row['body'],$new)===1){}
+            else throw new RuntimeException('Unexpected paragraph wording');
+           }
+           $plain=preg_replace('/\s+/u','',strip_tags(preg_replace('/<h2>.*?<\/h2>/s','',explode('<h2>参考文献・関連資料</h2>',$row['body'],2)[0])));
+           if(!is_string($plain)||mb_strlen($plain,'UTF-8')<3000)throw new RuntimeException('Article length below minimum');
+           $backup=tempnam(DATA,'before-skin-paragraphs-');if(!$backup||!copy(DATA.'articles.json',$backup)||!chmod($backup,0600))throw new RuntimeException('Backup failed');
+           $rows[$k]=$row;
+           try{writej('articles.json',$rows);if(loadj('articles.json')!==$rows)throw new RuntimeException('Verification failed');}catch(Throwable $e){writej('articles.json',$before);throw $e;}
+           echo 'PASS: only three requested paragraphs in article 121 updated; all other data unchanged.'.PHP_EOL;
+           echo 'TEXT_LENGTH='.mb_strlen($plain,'UTF-8').PHP_EOL;
+          }finally{flock($lock,LOCK_UN);fclose($lock);}
+          
+          PHP
+          php -l "$T/revise.php"
+          php "$T/revise.php"
+          REMOTE
+      - name: Verify public article
+        run: |
+          set -eu
+          curl -fsSL --max-time 30 'https://rakudadou.sakura.ne.jp/hope-blog/blog-entry-121.html' -o /tmp/article.html
+          grep -Fq '肌の調子も、体重や体脂肪率だけでは分からない体の変化の一つです。毎日の洗顔や身支度を通じて肌の状態に気づくことは、日々の健康を振り返るきっかけにもなります。' /tmp/article.html
+          if grep -Fq '今回いただいた肌についての感想も、体重計では測れない変化の一つです。顔の肌は毎日の洗顔や身支度で目にするものですから、その調子が良いと感じることは、日々の気分にも関わるのではないでしょうか。' /tmp/article.html; then exit 1; fi
+          grep -Fq '肌の状態には、運動だけでなく、食事や睡眠、生活習慣など、さまざまな要因が関係しています。そのため、肌の変化を加圧トレーニングだけの効果と判断することはできません。' /tmp/article.html
+          if grep -Fq 'ただし、これはご本人が実感した変化です。医学的に測定した結果ではありませんので、加圧トレーニングによってのものと断定することはできません。' /tmp/article.html; then exit 1; fi
+          grep -Fq '体重や体型の変化だけに目を向けるのではなく、肌の状態も含めて、運動習慣と体の健康との関係を考えてみましょう。' /tmp/article.html
+          if grep -Fq 'それでも、加圧トレーニングを始めた時期にこのような変化を感じたという事実は、加圧トレーニングと肌について考える大切なきっかけになります。' /tmp/article.html; then exit 1; fi
+          echo 'PASS: all three revised public paragraphs verified.'
