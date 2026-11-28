@@ -1,0 +1,109 @@
+name: Publish HOPE skin article
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/publish-hope-skin-article-20261128.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: hope-blog-production-host
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Check internal link before publication
+        run: |
+          set -eu
+          curl -fsSL --max-time 30 'https://rakudadou.sakura.ne.jp/hope-blog/blog-entry-102.html' -o /tmp/hope-related.html
+          grep -Fq '加圧トレーニングを初めて体験する方へ' /tmp/hope-related.html
+      - name: Append approved article only via existing Sakura connection
+        id: publish
+        env:
+          SSH_KEY: ${{ secrets.SAKURA_SSH_KEY }}
+          SAKURA_HOST: ${{ vars.SAKURA_HOST }}
+          SAKURA_USER: ${{ vars.SAKURA_USER }}
+        run: |
+          set -eu
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%b\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_sakura
+          ssh-keygen -y -f ~/.ssh/id_sakura >/dev/null
+          ssh-keyscan -T 10 -H "$SAKURA_HOST" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_sakura -o BatchMode=yes -o StrictHostKeyChecking=yes "$SAKURA_USER@$SAKURA_HOST" 'sh -s' <<'REMOTE' > /tmp/hope-publish-result
+          set -eu
+          D=/home/rakudadou/hope-blog-private/data
+          T=$(mktemp -d "$D/publish-skin.XXXXXXXX")
+          trap 'rm -rf "$T"' EXIT
+          cat > "$T/append.php" <<'PHP'
+          <?php
+          declare(strict_types=1);
+          $_SERVER['SCRIPT_NAME']='/hope-blog/index.php';
+          require '/home/rakudadou/www/hope-blog/common.php';
+          if(realpath(DATA)!=='/home/rakudadou/hope-blog-private/data')throw new RuntimeException('Unexpected DATA location');
+          $payload=json_decode(<<<'ARTICLE_JSON'
+          {"title":"加圧トレーニングと肌の関係｜女性のお客様が感じたうれしい変化","body":"<p>加圧トレーニングというと、筋力アップやダイエット、体を引き締める為に行う運動ということを思い浮かべる方が多いのではないでしょうか。</p>\n<p>HOPEをご利用いただいている女性のお客様から、加圧トレーニングを始めてから顔の肌の調子が良くなったという、うれしい感想をいただきました。</p>\n<p>体を動かすことを目的に始めたトレーニングで、肌にも変化を感じられたというお話です。お客様の声は、日頃から運動をサポートする立場として、とても興味深いものです。</p>\n<p>加圧トレーニングと肌の調子には、どのような関係があるのでしょうか。</p>\n<p>今回はお客様からいただいた感想をきっかけに、運動と美肌の関係と運動習慣について、研究で分かっていることと、まだ分かっていないことを整理してお伝えします。</p>\n<h2>お客様から届いた、体重だけでは分からない変化</h2>\n<p>加圧トレーニングに限らずトレーニング効果を表すとき、体重/体脂肪率/筋肉量。この数字を基に判断されます。しかし、感じられる効果は、それだけではなく様々なカラダに対する効果を感じる事もあります。</p>\n<p>肌の調子が良くなることも、その一つです。その他には、階段を上るときの腰や膝への負担が軽くなる。体を動かすことへの抵抗感が少なくなり自分のために時間を使えるようになる。</p>\n<p>こうした日常生活の小さな変化にも、加圧トレーニングを続ける意味があります。</p>\n<p>今回いただいた肌についての感想も、体重計では測れない変化の一つです。顔の肌は毎日の洗顔や身支度で目にするものですから、その調子が良いと感じることは、日々の気分にも関わるのではないでしょうか。</p>\n<p>ただし、このお客様の感想は、ご本人が感じた変化です。医学的に測定した結果ではありませんので、加圧トレーニングによってのものと断定することはできません。</p>\n<p>それでも、加圧トレーニングを始めた時期にこのような変化を感じたという事実は、加圧トレーニングと肌について考える大切なきっかけになります。</p>\n<h2>加圧トレーニングとは？</h2>\n<p>加圧トレーニングについて詳しくは、<a href=\"/hope-blog/blog-entry-102.html\">こちらから ＞＞＞</a></p>\n<p>なお、持病がある方や妊娠中の方、血栓症の既往がある方などは、加圧トレーニングが適さない場合があります。事前に医師に相談し、体調に不安がある場合には無理をしないでください。[1]</p>\n<h2>運動をすると肌が綺麗になる？筋トレと肌に関する研究</h2>\n<p>ここで今回いただいた感想に関わる研究が実際に行われていたので紹介します。</p>\n<p>2023年の学術誌Scientific Reportsに掲載された日本の研究です。</p>\n<p>運動習慣のない健康な中年女性61人が参加し、16週間の有酸素運動と筋力トレーニングを比較しています。最終的に56人のデータが分析されました。</p>\n<p>その結果、両方の運動で肌の弾力性と真皮上層の構造に改善がみられ、筋力トレーニングでは真皮の厚さにも改善が報告されました。[2]</p>\n<p>真皮は皮膚の表面より内側にある組織で、肌の弾力や強さを支えるコラーゲンなどを含んでいます。肌について考えるときには、外側から行うスキンケアだけでなく、日常的な運動との関係にも目を向ける価値があることを示す研究といえます。</p>\n<p>一方で、この研究で行われたのが通常の筋力トレーニングと有酸素運動です。加圧トレーニングそのものを検証した研究ではありません。</p>\n<p>肌に対する治療効果を調べたものでもありません。研究対象も限られているため、すべての年齢層や体質の方に同じ変化が起こるとはいえません。</p>\n<p>加圧トレーニングも筋力トレーニングの方法の一つですが、この研究結果をそのまま加圧トレーニングに当てはめるのは適切ではありません。</p>\n<p>大切なのは、運動が肌の状態と無関係だと決めつけることでも、運動さえすれば肌が綺麗になると考えることでもなく、分かっている範囲を正しく理解することです。</p>\n<h2>加圧トレーニングと成長ホルモンの関係</h2>\n<p>加圧トレーニングの美容面について調べると、成長ホルモンという言葉を見かけることがあります。</p>\n<p>成長ホルモンは子どもの成長に関わるだけでなく、大人の体でも組織の維持や代謝に関わっているホルモンです。</p>\n<p>2000年に発表された研究では、血流を制限しながら低負荷の筋力トレーニングを行った後、血中の成長ホルモン濃度が一時的に上昇したことが報告されています。[3]</p>\n<p>このような体内の反応は、加圧トレーニングの特徴を理解するうえで興味深いものです。しかし、運動後に成長ホルモンが増えたことと、実際に顔の肌が綺麗になることは、別々に検証する必要があります。</p>\n<p>ホルモン濃度の一時的な変化だけから、美肌効果や肌の若返りを保証することはできません。さまざまな要因が関係しているため、成長ホルモンだけで今回の感想を説明することは難しいと考えます。</p>\n<p>美容を目的に圧を強くしたり、運動回数を過度に増やしたりする必要もありません。体に合った方法で運動を続けることを優先しましょう。</p>\n<h2>美肌を目指すために運動の前後に意識したいこと</h2>\n<p>運動をすること自体は、肌のトラブルを必ず防ぐものではありません。汗や摩擦、毛穴を詰まらせやすい化粧品などによって、肌トラブルを招くこともあります。</p>\n<p>米国皮膚科学会は、肌トラブルが気になる方への対策として、運動中の汗は清潔なタオルで優しく押さえるように拭き、運動後は早めに洗顔やシャワーを行うことなどを勧めています。[4]</p>\n<p>肌が気になる方は、次のような基本的なケアを取り入れてみてはいかがでしょうか。</p>\n<p>運動前には、可能であれば毛穴を詰まらせやすい濃いメイクを落とします。汗を拭くときは、タオルで顔をごしごしこすらず、肌を押さえるようにしましょう。</p>\n<p>トレーニング中に顔を頻繁に触らないことも意識してみてください。</p>\n<p>運動後は肌に合った洗顔料で優しく洗い、必要に応じて保湿します。清潔にしようとして何度も強く洗うことは避けましょう。</p>\n<p>屋外で運動する場合には日焼け対策も忘れずに行いましょう。</p>\n<p>日本皮膚科学会も、肌トラブルに関するQ&Aで、規則正しい生活や適切な洗顔、肌への刺激を避けることなどを勧めています。[5]</p>\n<p>特別な美容用品をそろえることよりも、まずは今の生活に取り入れやすい基本を続けることが大切です。</p>\n<p>赤みや腫れ、痛み、繰り返す肌荒れなどに悩んでいる場合には、早めに皮膚科を受診してください。加圧トレーニングは皮膚科で行う治療の代わりにはなりません。</p>\n<h2>加圧トレーニングの美容面の変化はいつから？</h2>\n<p>もし、この記事をきっかけにこれから加圧トレーニングを始めてみようと思っていただけたら、どのくらいで変化を感じられるのかは気になるところだと思います。</p>\n<p>しかし、肌の調子については個人差が大きく、加圧トレーニングを何回行えば肌が綺麗になるのかといった具体的な期間を示せる根拠は、今回確認した資料にはありません。</p>\n<p>また、肌の状態は同じ人でも日によって変わります。昨日と今日を比べて一喜一憂するより、日々の体調や生活の様子も合わせて振り返ってみましょう。</p>\n<p>何かを目標に運動を始めるときは、最初から大きな変化を求めず、生活の中で続けられることを目標にするのがおすすめです。</p>\n<p>忙しい日が続くときは運動量を調整し、休養が必要なときはしっかり休む。体調に合わせて取り組める方法を選ぶことで、運動を無理なく生活の一部にしていきましょう。</p>\n<h2>宇部市で加圧トレーニングを始めてみたい方へ</h2>\n<p>今回いただいた感想を通じて、運動の価値は、筋力や体型といった目に見える数字だけでは測れないことを改めて考えました。</p>\n<p>肌の調子が良いと感じること、体を動かす時間を楽しめるようになること、自分の体の状態に関心を持つこと。それぞれの方にとって、運動を続ける理由は違ってよいと思います。</p>\n<p>加圧パーソナルエクササイズスタジオHOPEは、山口県宇部市の完全予約制パーソナルトレーニングスタジオです。</p>\n<p>加圧トレーニングを中心に、目的や体力に合わせた運動をご案内しています。筋力トレーニングが初めての方、運動を始めたいけれど何から取り組めばよいか分からない方も、ご自身のペースで始められる方法を一緒に考えていきましょう。</p>\n<p>肌の悩みを治すための施設ではありませんが、運動を生活に取り入れ、健康づくりに取り組むためのお手伝いをします。まずは一度、加圧トレーニングがどのような運動なのか、体験を通じて確かめてみませんか。</p>\n<p>あなたの歩幅で、あなたと共に。</p>\n<p>加圧パーソナルエクササイズスタジオHOPE<br>代表：パーソナルトレーナー村田健作</p>\n<p>体験トレーニング・料金・スタジオ案内はこちらからご確認いただけます。</p>\n<p><a href=\"https://www.rakudadou.jp/hope-mobile/\">HOPEホームページ・体験案内</a></p>\n<h2>参考文献・関連資料</h2>\n<p>[1] <a href=\"https://pubmed.ncbi.nlm.nih.gov/31156448/\">Pattersonら（2019）血流制限トレーニングの方法・実施・安全性</a></p>\n<p>[2] <a href=\"https://www.nature.com/articles/s41598-023-37207-9\">Nishikoriら（2023）筋力トレーニングと皮膚の加齢変化、Scientific Reports 13, 10214</a></p>\n<p>[3] <a href=\"https://pubmed.ncbi.nlm.nih.gov/10642363/\">Takaradaら（2000）血流制限下の低負荷筋力運動後の成長ホルモン応答</a></p>\n<p>[4] <a href=\"https://www.aad.org/public/diseases/acne/causes/workouts\">米国皮膚科学会：肌トラブルが気になる方への運動時のケア</a></p>\n<p>[5] <a href=\"https://qa.dermatol.or.jp/qa3/q17.html\">日本皮膚科学会：皮膚科Q&amp;A 日常生活で注意すること</a></p>","excerpt":"加圧トレーニングを始めて肌の調子が良くなったという女性のお客様の声から、運動と肌の関係、筋トレの研究、成長ホルモン、運動前後の肌ケアを宇部市のHOPEが紹介します。","keywords":"加圧トレーニング,肌,美肌,美容,筋トレ,運動,宇部市,HOPE"}
+          ARTICLE_JSON
+          ,true,512,JSON_THROW_ON_ERROR);
+          $lock=fopen(DATA.'write.lock','c');if(!$lock||!flock($lock,LOCK_EX))throw new RuntimeException('Cannot lock article data');
+          try {
+           if(is_link(DATA.'articles.json')||!is_file(DATA.'articles.json'))throw new RuntimeException('Unexpected article file');
+           $rows=loadj('articles.json');$c=loadj('config.json');$before=$rows;
+           if(($c['cats'][23]??null)!=='加圧トレーニング')throw new RuntimeException('Category mismatch');
+           $target=array_values(array_filter($rows,fn($r)=>(int)$r['id']===102&&$r['status']==='public'&&str_contains($r['title'],'加圧トレーニングを初めて体験する方へ')&&$r['date']<=date('Y-m-d H:i:s')));
+           if(count($target)!==1)throw new RuntimeException('Internal link target mismatch');
+           $existing=array_values(array_filter($rows,fn($r)=>$r['title']===$payload['title']));
+           if(count($existing)>0){if(count($existing)!==1||$existing[0]['body']!==$payload['body']||$existing[0]['status']!=='public')throw new RuntimeException('Possible duplicate article');echo 'ARTICLE_ID='.(int)$existing[0]['id'].PHP_EOL;exit;}
+           $id=max(120,...array_map('intval',array_column($rows,'id')))+1;
+           $row=['id'=>$id,'title'=>$payload['title'],'date'=>date('Y-m-d H:i:s'),'category'=>23,'status'=>'public','body'=>$payload['body'],'more'=>'','excerpt'=>$payload['excerpt'],'keywords'=>$payload['keywords'],'description'=>$payload['excerpt'],'image'=>'','eyecatch'=>'','eyecatch_alt'=>'','comments'=>[],'allow_comments'=>true,'convert_breaks'=>false];
+           $backup=tempnam(DATA,'before-skin-article-');if(!$backup||!copy(DATA.'articles.json',$backup)||!chmod($backup,0600))throw new RuntimeException('Backup failed');
+           $rows[]=$row;
+           try {writej('articles.json',$rows);$actual=loadj('articles.json');if(count($actual)!==count($before)+1||array_slice($actual,0,-1)!==$before||end($actual)!==$row)throw new RuntimeException('Article preservation verification failed');}
+           catch(Throwable $e){writej('articles.json',$before);throw $e;}
+           echo 'PASS: existing articles unchanged; one new public article appended.'.PHP_EOL;
+           echo 'ARTICLE_ID='.$id.PHP_EOL;
+           echo 'PREVIEW_MODE='.(empty($c['preview'])?'off':'on').PHP_EOL;
+          }finally{flock($lock,LOCK_UN);fclose($lock);}
+          
+          PHP
+          php -l "$T/append.php"
+          php "$T/append.php"
+          REMOTE
+          cat /tmp/hope-publish-result
+          id=$(sed -n 's/^ARTICLE_ID=//p' /tmp/hope-publish-result)
+          test -n "$id"
+          case "$id" in *[!0-9]*) exit 1;; esac
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+      - name: Verify article URL, home listing, metadata and mobile layout
+        env:
+          ARTICLE_ID: ${{ steps.publish.outputs.id }}
+        run: |
+          set -eu
+          URL="https://rakudadou.sakura.ne.jp/hope-blog/blog-entry-$ARTICLE_ID.html"
+          curl -fsSL --max-time 30 "$URL" -o /tmp/hope-new.html
+          grep -Fq '加圧トレーニングと肌の関係' /tmp/hope-new.html
+          grep -Fq '最終的に56人のデータが分析されました' /tmp/hope-new.html
+          grep -Fq '/hope-blog/blog-entry-102.html' /tmp/hope-new.html
+          curl -fsSL --max-time 30 'https://rakudadou.sakura.ne.jp/hope-blog/' -o /tmp/hope-home.html
+          grep -Fq "blog-entry-$ARTICLE_ID.html" /tmp/hope-home.html
+          printf 'PUBLIC_URL=%s\n' "$URL"
+          cd /tmp
+          npm install --no-audit --no-fund playwright
+          npx playwright install chromium
+          cat > /tmp/hope-article-check.cjs <<'JS'
+          const {chromium}=require('playwright');
+          (async()=>{const b=await chromium.launch({headless:true,args:['--no-sandbox']});try{
+            for(const width of [390,1366]){
+              const p=await b.newPage({viewport:{width,height:900}});
+              const res=await p.goto('https://rakudadou.sakura.ne.jp/hope-blog/blog-entry-'+process.env.ARTICLE_ID+'.html',{waitUntil:'domcontentloaded',timeout:30000});
+              if(res.status()!==200)throw Error('HTTP '+res.status());
+              const v=await p.evaluate(()=>({title:document.title,desc:document.querySelector('meta[name=description]')?.content||'',viewport:document.querySelector('meta[name=viewport]')?.content||'',scroll:document.documentElement.scrollWidth,client:document.documentElement.clientWidth,link:!!document.querySelector('a[href="/hope-blog/blog-entry-102.html"]'),research:document.body.innerText.includes('最終的に56人のデータが分析されました'),robots:document.querySelector('meta[name=robots]')?.content||'',canonical:document.querySelector('link[rel=canonical]')?.href||''}));
+              console.log('LAYOUT '+JSON.stringify({width,...v}));
+              if(!v.title.includes('加圧トレーニングと肌の関係')||!v.desc.includes('肌の調子が良くなった')||!v.link||!v.research||v.scroll>v.client+2)throw Error('Article layout or metadata mismatch');
+              await p.close();
+            }
+          }finally{await b.close()}})().catch(e=>{console.error(e);process.exit(1)});
+          JS
+          node /tmp/hope-article-check.cjs
